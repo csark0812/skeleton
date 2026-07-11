@@ -12,25 +12,27 @@ const FIXTURES = join(import.meta.dir, "fixtures");
 
 describe("skill-roots", () => {
 	it("detects flat root skill layout", () => {
-		const toolbox = join(FIXTURES, "toolbox-repo");
-		const index = buildSkillIndex(toolbox);
+		const flatRoot = join(FIXTURES, "flat-skill-root");
+		const index = buildSkillIndex(flatRoot);
 		expect(index.slugs).toContain("multi");
-		expect(resolveSkillPath(index, toolbox, "multi")).toBe("multi/SKILL.md");
+		expect(resolveSkillPath(index, flatRoot, "multi")).toBe("multi/SKILL.md");
 	});
 
 	it("detects nested .claude/skills layout", () => {
-		const postprint = join(FIXTURES, "postprint-repo");
-		const index = buildSkillIndex(postprint);
+		const nestedSkills = join(FIXTURES, "nested-skills-customize");
+		const index = buildSkillIndex(nestedSkills);
 		expect(index.slugs).toContain("code-review");
-		expect(resolveSkillPath(index, postprint, "code-review")).toBe(
+		expect(resolveSkillPath(index, nestedSkills, "code-review")).toBe(
 			".claude/skills/code-review/SKILL.md",
 		);
 	});
 
 	it("classifies skill paths", () => {
-		const postprint = join(FIXTURES, "postprint-repo");
-		const index = buildSkillIndex(postprint);
-		expect(isSkillPath(".claude/skills/code-review/SKILL.md", index)).toBe(true);
+		const nestedSkills = join(FIXTURES, "nested-skills-customize");
+		const index = buildSkillIndex(nestedSkills);
+		expect(isSkillPath(".claude/skills/code-review/SKILL.md", index)).toBe(
+			true,
+		);
 		expect(isSkillPath("docs/foo.md", index)).toBe(false);
 	});
 
@@ -40,9 +42,9 @@ describe("skill-roots", () => {
 	});
 
 	it("excludes references and _shared under nested roots", () => {
-		const postprint = join(FIXTURES, "postprint-repo");
-		const roots = detectSkillRoots(postprint);
-		const index = buildSkillIndex(postprint);
+		const nestedSkills = join(FIXTURES, "nested-skills-customize");
+		const roots = detectSkillRoots(nestedSkills);
+		const index = buildSkillIndex(nestedSkills);
 		expect(index.slugs).not.toContain("references");
 		expect(index.slugs).not.toContain("_shared");
 		expect(roots.some((r) => r.relPath === ".claude/skills")).toBe(true);

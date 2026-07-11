@@ -3,11 +3,14 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 
 const HOOK = join(import.meta.dir, "../../hooks/customize-on-skill-read.ts");
-const POSTPRINT = join(import.meta.dir, "../../audit/__tests__/fixtures/postprint-repo");
+const NESTED_SKILLS_CUSTOMIZE = join(
+	import.meta.dir,
+	"../../audit/__tests__/fixtures/nested-skills-customize",
+);
 
 function runHook(stdin: string): { stdout: string; exitCode: number | null } {
 	const proc = spawnSync("bun", [HOOK], {
-		cwd: POSTPRINT,
+		cwd: NESTED_SKILLS_CUSTOMIZE,
 		input: stdin,
 		encoding: "utf8",
 	});
@@ -27,7 +30,10 @@ describe("customize-on-skill-read hook", () => {
 	});
 
 	it("injects customize content for SKILL.md Read (Cursor)", () => {
-		const skillPath = join(POSTPRINT, ".claude/skills/code-review/SKILL.md");
+		const skillPath = join(
+			NESTED_SKILLS_CUSTOMIZE,
+			".claude/skills/code-review/SKILL.md",
+		);
 		const { stdout, exitCode } = runHook(
 			JSON.stringify({
 				tool_name: "Read",
@@ -37,7 +43,7 @@ describe("customize-on-skill-read hook", () => {
 		);
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
-		expect(parsed.additional_context).toContain("PostPrint code review");
+		expect(parsed.additional_context).toContain("Code review customize");
 	});
 
 	it("injects customize content for Skill tool (Claude)", () => {
@@ -49,7 +55,9 @@ describe("customize-on-skill-read hook", () => {
 		);
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
-		expect(parsed.hookSpecificOutput.additionalContext).toContain("PostPrint code review");
+		expect(parsed.hookSpecificOutput.additionalContext).toContain(
+			"Code review customize",
+		);
 	});
 
 	it("returns noop when no customize override", () => {
