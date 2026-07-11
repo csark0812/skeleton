@@ -1,0 +1,13 @@
+repos:
+  - repo: local
+    hooks:
+      - id: skeleton-validate-staged
+        name: skeleton validate changed (staged)
+        entry: bun run validate:changed -- --staged
+        language: system
+        pass_filenames: false
+      - id: skeleton-test
+        name: bun test
+        entry: bun test
+        language: system
+        pass_filenames: false

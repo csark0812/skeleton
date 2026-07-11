@@ -70,6 +70,16 @@ Check off when done.
 
 ---
 
+## Phase 1c checklist
+
+- [x] `skeleton init` — `.skeleton/` scaffold, hook merge, package.json scripts
+- [x] Hook merge tests in `init.test.ts` (14 cases)
+- [x] Self-healing: dogfood registry/docs, pre-commit, `audit self`
+- [x] `/skeleton` skill (`skeleton/SKILL.md`) + framework docs
+- [x] CI: `.github/workflows/test.yml` (bun test + build + audit self + validate:ci)
+
+---
+
 ## Phase 1b checklist
 
 - [x] `skill-roots.ts` + port `skill-index`, `links` resolution

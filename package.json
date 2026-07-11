@@ -22,6 +22,9 @@
 		"test:cli": "bun test src/__tests__/cli",
 		"validate:changed": "bun src/cli.ts validate changed",
 		"validate:ci": "bun src/cli.ts validate changed --base origin/main",
+		"audit:docs": "bun src/cli.ts audit docs",
+		"audit:skills": "bun src/cli.ts audit skills",
+		"audit:self": "bun src/cli.ts audit self",
 		"prepack": "bun test && bun run build"
 	},
 	"dependencies": {

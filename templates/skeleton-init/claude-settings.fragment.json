@@ -1,0 +1,24 @@
+{
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Read",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "{{HOOK_COMMAND}}"
+					}
+				]
+			},
+			{
+				"matcher": "Skill",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "{{HOOK_COMMAND}}"
+					}
+				]
+			}
+		]
+	}
+}

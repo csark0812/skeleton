@@ -1,0 +1,15 @@
+{
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "read_file",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "{{HOOK_COMMAND}}"
+					}
+				]
+			}
+		]
+	}
+}

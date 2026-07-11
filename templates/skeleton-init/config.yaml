@@ -1,14 +1,13 @@
-# yaml-language-server: $schema=../schemas/config.schema.json
+# yaml-language-server: $schema=node_modules/@csark0812/skeleton/schemas/config.schema.json
 
 scan:
   include:
     - "docs/**"
     - "README.md"
     - ".skeleton/registry.md"
-    - "skeleton/**"
+    - "AGENTS.md"
   exclude:
     - "refs/**"
-    - "todo.md"
   banned: []
   retiredSkills: []
 
