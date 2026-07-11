@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=../../../../schemas/config.schema.json
+
+scan:
+  include:
+    - "docs/**"
+    - ".skeleton/registry.md"
+  exclude: []
+  banned: []
+  retiredSkills: []
+
+daysUntilStale: 180

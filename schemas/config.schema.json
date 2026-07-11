@@ -1,0 +1,43 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://github.com/csark0812/skeleton/schemas/config.schema.json",
+	"title": "Skeleton config",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["scan", "daysUntilStale"],
+	"properties": {
+		"scan": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["include", "exclude", "banned"],
+			"properties": {
+				"include": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"minItems": 1
+				},
+				"exclude": {
+					"type": "array",
+					"items": { "type": "string" }
+				},
+				"banned": {
+					"type": "array",
+					"items": { "type": "string" }
+				},
+				"retiredSkills": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+				}
+			}
+		},
+		"daysUntilStale": {
+			"type": "integer",
+			"minimum": 1
+		},
+		"plugins": {
+			"type": "array",
+			"items": { "type": "string", "minLength": 1 },
+			"description": "Plugin entry paths relative to .skeleton/ (v1.5 — unused in v1)"
+		}
+	}
+}
