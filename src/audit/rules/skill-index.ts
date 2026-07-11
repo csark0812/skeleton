@@ -9,6 +9,7 @@ import {
 } from "../core/skill-roots.ts";
 import { type Issue, issue } from "../core/report.ts";
 import { SKILL_LINK_RE } from "../core/shared.ts";
+import { isGeneratedReference } from "../../references/constants.ts";
 
 const NON_PUBLIC_SLUGS = new Set(["align-commands"]);
 
@@ -51,17 +52,26 @@ function scanFileForSkillLinks(
 	const issues: Issue[] = [];
 	const rel = relative(ctx.root, filePath).replace(/\\/g, "/");
 	const content = readFileSync(filePath, "utf8");
+	if (isGeneratedReference(content)) return issues;
 	for (const match of content.matchAll(SKILL_LINK_RE)) {
 		const slug = match[1];
 		if (!slug) continue;
 
 		if (ctx.retiredSkills.has(slug)) {
-			issues.push(issue("skill-index", rel, `references retired skill "${slug}/SKILL.md"`));
+			issues.push(
+				issue(
+					"skill-index",
+					rel,
+					`references retired skill "${slug}/SKILL.md"`,
+				),
+			);
 			continue;
 		}
 
 		if (!resolveSkillPath(index, ctx.root, slug)) {
-			issues.push(issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`));
+			issues.push(
+				issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`),
+			);
 		}
 	}
 	return issues;
@@ -85,12 +95,20 @@ function validateReadmeTaxonomy(
 		const nestedSlugs = diskSlugs.filter((slug) =>
 			existsSync(join(ctx.root, skillRoot.relPath, slug, "SKILL.md")),
 		);
-		const publicSlugs = nestedSlugs.filter((slug) => !NON_PUBLIC_SLUGS.has(slug));
+		const publicSlugs = nestedSlugs.filter(
+			(slug) => !NON_PUBLIC_SLUGS.has(slug),
+		);
 		const relReadme = `${skillRoot.relPath}/README.md`;
 
 		for (const slug of publicSlugs) {
 			if (!taxonomySlugs.includes(slug)) {
-				issues.push(issue("skill-index", relReadme, `taxonomy missing public skill "${slug}"`));
+				issues.push(
+					issue(
+						"skill-index",
+						relReadme,
+						`taxonomy missing public skill "${slug}"`,
+					),
+				);
 			}
 		}
 

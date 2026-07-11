@@ -6,6 +6,11 @@ import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
+import {
+	printSyncResult,
+	runReferencesCheck,
+	runReferencesSync,
+} from "./references/run.ts";
 
 function usage(): void {
 	console.error(`Usage: skeleton <command>
@@ -15,7 +20,9 @@ Commands:
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
   validate changed [paths…] [--staged] [--base <ref>]
   register <path> [--topic=…] [--dry-run] [--json]
-  customize resolve <slug> [--json]`);
+  customize resolve <slug> [--json]
+  references sync [--dry-run] [--no-rewrite-links]
+  references check [--json] [--strict]`);
 }
 
 function parseRegisterArgs(argv: string[]): {
@@ -107,6 +114,27 @@ function main(): void {
 			const parsed = parseInitArgs(argv.slice(1));
 			runInit(parsed);
 			process.exit(0);
+		}
+
+		if (command === "references") {
+			const sub = argv[1];
+			if (sub === "sync") {
+				const dryRun = argv.includes("--dry-run");
+				const rewriteLinks = !argv.includes("--no-rewrite-links");
+				const result = runReferencesSync({ dryRun, rewriteLinks });
+				printSyncResult(result);
+				process.exit(0);
+			}
+			if (sub === "check") {
+				process.exit(
+					runReferencesCheck({
+						json: argv.includes("--json"),
+						strict: argv.includes("--strict"),
+					}),
+				);
+			}
+			usage();
+			process.exit(1);
 		}
 
 		usage();

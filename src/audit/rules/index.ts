@@ -7,6 +7,7 @@ import { linksRule } from "./links.ts";
 import { registryRule } from "./registry.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
+import { generatedReferencesRule } from "../../references/check.ts";
 
 export interface AuditRule {
 	id: string;
@@ -23,7 +24,10 @@ export const docsRules: AuditRule[] = [
 	{ ...bannedRule, global: true },
 ];
 
-export const skillsRules: AuditRule[] = [{ ...skillIndexRule, global: true }];
+export const skillsRules: AuditRule[] = [
+	{ ...skillIndexRule, global: true },
+	{ ...generatedReferencesRule, global: true },
+];
 
 export const allRules: AuditRule[] = [...docsRules, ...skillsRules];
 
