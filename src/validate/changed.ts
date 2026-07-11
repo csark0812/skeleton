@@ -1,0 +1,191 @@
+import { existsSync, readFileSync } from "node:fs";
+import { basename, extname, join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
+import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
+import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
+import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
+import { runAudit } from "../audit/run.ts";
+import { gitDiffChangedFiles } from "./git-diff.ts";
+
+const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
+const SHELL_EXTENSIONS = new Set([".sh", ".bash", ".zsh"]);
+const SKIP_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
+const COMMAND_CONFIG_NAMES = new Set(["package.json", "project.json"]);
+
+export interface ValidateChangedOptions {
+	paths?: string[];
+	staged?: boolean;
+	base?: string;
+	root?: string;
+}
+
+type Bucket = "docs" | "skills" | "shell" | "json" | "skip";
+
+function bucketFor(relPath: string, root: string): Bucket {
+	const normalized = normalizeRelPath(relPath);
+	const ext = extname(normalized).toLowerCase();
+	const name = basename(normalized);
+
+	if (SKIP_EXTENSIONS.has(ext)) return "skip";
+	if (COMMAND_CONFIG_NAMES.has(name)) return "skip";
+
+	const skillIndex = buildSkillIndex(root);
+	if (isSkillPath(normalized, skillIndex)) return "skills";
+
+	if (DOC_EXTENSIONS.has(ext)) {
+		const config = loadConfig(root);
+		if (isInScanPerimeter(normalized, config, root, skillIndex)) return "docs";
+		return "skip";
+	}
+
+	if (SHELL_EXTENSIONS.has(ext)) return "shell";
+	if (ext === ".json") return "json";
+	return "skip";
+}
+
+function isInScanPerimeter(
+	relPath: string,
+	config: ReturnType<typeof loadConfig>,
+	root: string,
+	skillIndex: ReturnType<typeof buildSkillIndex>,
+): boolean {
+	const scanned = new Set(
+		collectScanFiles(config, root, skillIndex).map((abs) => relPathFromAbs(abs, root)),
+	);
+	if (scanned.has(relPath)) return true;
+	return config.scan.include.some((pattern) => matchesGlobScope(relPath, pattern));
+}
+
+function parseJsonContent(content: string): unknown {
+	try {
+		return JSON.parse(content);
+	} catch {
+		const withoutComments = content
+			.replace(/\/\*[\s\S]*?\*\//g, "")
+			.replace(/^\s*\/\/.*$/gm, "");
+		const withoutTrailingCommas = withoutComments.replace(/,\s*([}\]])/g, "$1");
+		return JSON.parse(withoutTrailingCommas);
+	}
+}
+
+function validateJson(relPath: string, root: string): number {
+	const abs = join(root, relPath);
+	try {
+		parseJsonContent(readFileSync(abs, "utf8"));
+		return 0;
+	} catch (error) {
+		console.error(`validate changed: invalid JSON in ${relPath}: ${error}`);
+		return 1;
+	}
+}
+
+function validateShell(relPath: string, root: string): number {
+	const abs = join(root, relPath);
+	const shellcheck = spawnSync("shellcheck", [abs], { encoding: "utf8" });
+	if (shellcheck.status === 0) return 0;
+
+	const bash = spawnSync("bash", ["-n", abs], { encoding: "utf8" });
+	if (bash.status === 0) return 0;
+
+	console.error(
+		`validate changed: shell syntax check failed for ${relPath}: ${bash.stderr || shellcheck.stderr}`,
+	);
+	return 1;
+}
+
+function resolvePaths(options: ValidateChangedOptions): string[] {
+	if (options.paths && options.paths.length > 0) {
+		return options.paths.map((p) => normalizeRelPath(p));
+	}
+	return gitDiffChangedFiles({
+		staged: options.staged,
+		base: options.base,
+		root: options.root,
+	});
+}
+
+export function runValidateChanged(options: ValidateChangedOptions = {}): number {
+	const root = options.root ?? findRepoRoot();
+	const relPaths = resolvePaths(options);
+
+	if (relPaths.length === 0) {
+		console.log("validate changed: no changed files.");
+		return 0;
+	}
+
+	const buckets: Record<Exclude<Bucket, "skip">, string[]> = {
+		docs: [],
+		skills: [],
+		shell: [],
+		json: [],
+	};
+	let skipped = 0;
+
+	for (const relPath of relPaths) {
+		const abs = join(root, relPath);
+		if (!existsSync(abs)) continue;
+		const bucket = bucketFor(relPath, root);
+		if (bucket === "skip") {
+			skipped++;
+			continue;
+		}
+		buckets[bucket].push(relPath);
+	}
+
+	let exitCode = 0;
+
+	if (options.base) {
+		const globalExit = runAudit({
+			suite: "self",
+			strict: false,
+			json: false,
+			paths: [],
+			only: null,
+			root,
+			globalOnly: true,
+		});
+		if (globalExit !== 0) exitCode = 1;
+	}
+
+	if (buckets.docs.length > 0) {
+		const docExit = runAudit({
+			suite: "docs",
+			strict: false,
+			json: false,
+			paths: buckets.docs,
+			only: null,
+			root,
+			pathScopedOnly: true,
+		});
+		if (docExit !== 0) exitCode = 1;
+	}
+
+	if (buckets.skills.length > 0) {
+		const skillExit = runAudit({
+			suite: "skills",
+			strict: false,
+			json: false,
+			paths: buckets.skills,
+			only: null,
+			root,
+			pathScopedOnly: true,
+		});
+		if (skillExit !== 0) exitCode = 1;
+	}
+
+	for (const relPath of buckets.shell) {
+		if (validateShell(relPath, root) !== 0) exitCode = 1;
+	}
+
+	for (const relPath of buckets.json) {
+		if (validateJson(relPath, root) !== 0) exitCode = 1;
+	}
+
+	if (exitCode === 0) {
+		const note = skipped > 0 ? ` (${skipped} path(s) skipped)` : "";
+		console.log(`validate changed passed${note}.`);
+	}
+
+	return exitCode;
+}

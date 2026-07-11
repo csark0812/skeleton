@@ -11,7 +11,9 @@ export function runCoverageGapsRule(ctx: AuditContext): Issue[] {
 	const exclude = [...COVERAGE_BUILTIN_EXCLUDES, ...ctx.config.scan.exclude];
 	const candidates = collectCoverageCandidateFiles(ctx.root, exclude);
 	const scanned = new Set(
-		collectScanFiles(ctx.config, ctx.root).map((f) => relPath(f, ctx.root)),
+		collectScanFiles(ctx.config, ctx.root, ctx.skillIndex).map((f) =>
+			relPath(f, ctx.root),
+		),
 	);
 	const issues: Issue[] = [];
 

@@ -16,9 +16,12 @@
 	},
 	"packageManager": "bun@1.2.21",
 	"scripts": {
-		"build": "bun build src/cli.ts --target=node --outfile=dist/cli.js",
+		"build": "bun build src/cli.ts --target=node --outfile=dist/cli.js && bun build src/hooks/customize-on-skill-read.ts --target=node --outfile=dist/hooks/customize-on-skill-read.js",
 		"test": "bun test",
 		"test:audit": "bun test src/audit/__tests__",
+		"test:cli": "bun test src/__tests__/cli",
+		"validate:changed": "bun src/cli.ts validate changed",
+		"validate:ci": "bun src/cli.ts validate changed --base origin/main",
 		"prepack": "bun test && bun run build"
 	},
 	"dependencies": {

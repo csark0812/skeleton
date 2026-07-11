@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=../../../../schemas/config.schema.json
+
+scan:
+  include:
+    - "docs/**"
+    - "multi/**"
+    - ".skeleton/registry.md"
+  exclude:
+    - "refs/**"
+  banned: []
+
+daysUntilStale: 180

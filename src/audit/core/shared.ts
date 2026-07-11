@@ -11,7 +11,9 @@ export const DOC_META_RE =
 	/<!--\s*doc-meta:\s*owner=[^|]+\|\s*last-reviewed=\d{4}-\d{2}-\d{2}\s*-->/;
 export const DOC_META_LAST_REVIEWED_RE = /last-reviewed=(\d{4}-\d{2}-\d{2})/;
 export const SKILL_LINK_IN_TARGET_RE =
-	/(?:\.claude\/skills\/|(?:\.\.\/)+)([a-z0-9-]+)\/SKILL\.md/;
+	/(?:\.claude\/skills\/|\.agents\/skills\/|(?:\.\.\/)+)([a-z0-9-]+)\/SKILL\.md/;
+export const SKILL_LINK_RE =
+	/(?:\.claude\/skills\/|\.agents\/skills\/|\.\.\/|\.\/)?([a-z0-9-]+)\/SKILL\.md/g;
 
 export function normalizeRelPath(p: string): string {
 	return p.replace(/\\/g, "/");

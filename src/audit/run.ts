@@ -1,6 +1,7 @@
 import { createContext } from "./core/context.ts";
 import { printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
+import { skillCountOnDisk } from "./rules/skill-index.ts";
 
 export interface AuditCliOptions {
 	suite: string;
@@ -9,6 +10,8 @@ export interface AuditCliOptions {
 	paths: string[];
 	only: Set<string> | null;
 	root?: string;
+	globalOnly?: boolean;
+	pathScopedOnly?: boolean;
 }
 
 export function parseAuditArgs(argv: string[]): AuditCliOptions {
@@ -43,11 +46,24 @@ function labelForSuite(suite: string): string {
 	switch (suite) {
 		case "docs":
 			return "Doc audit";
+		case "skills":
+			return "Skill index audit";
 		case "self":
 			return "Self audit";
 		default:
 			return "Audit";
 	}
+}
+
+function shouldRunRule(
+	rule: { global?: boolean },
+	options: AuditCliOptions,
+	pathScoped: boolean,
+): boolean {
+	if (options.globalOnly) return Boolean(rule.global);
+	if (options.pathScopedOnly) return !rule.global;
+	if (pathScoped && rule.global) return false;
+	return true;
 }
 
 export function runAudit(options: AuditCliOptions): number {
@@ -59,20 +75,25 @@ export function runAudit(options: AuditCliOptions): number {
 		(r) => !options.only || options.only.has(r.id),
 	);
 
-	const pathScoped = options.paths.length > 0;
+	const pathScoped = options.paths.length > 0 && !options.globalOnly;
 	const issues = [];
 	for (const rule of rules) {
-		if (pathScoped && rule.global) continue;
+		if (!shouldRunRule(rule, options, pathScoped)) continue;
 		issues.push(...rule.run(ctx));
 	}
 
+	const label = labelForSuite(options.suite);
 	return printReport(issues, {
 		strict: options.strict,
 		json: options.json,
-		label: labelForSuite(options.suite),
+		label,
 		fileCount:
 			options.suite === "docs" || options.suite === "self"
 				? ctx.files.length
+				: undefined,
+		successSuffix:
+			options.suite === "skills"
+				? ` (${skillCountOnDisk(ctx)} skills on disk)`
 				: undefined,
 	});
 }

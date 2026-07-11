@@ -1,0 +1,148 @@
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import type { AuditContext } from "../core/context.ts";
+import {
+	buildSkillIndex,
+	listSkillSlugs,
+	resolveSkillPath,
+	type SkillIndex,
+} from "../core/skill-roots.ts";
+import { type Issue, issue } from "../core/report.ts";
+import { SKILL_LINK_RE } from "../core/shared.ts";
+
+const NON_PUBLIC_SLUGS = new Set(["align-commands"]);
+
+function walkSkillMarkdown(dir: string): string[] {
+	const files: string[] = [];
+	if (!existsSync(dir)) return files;
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		if (entry.name.startsWith(".")) continue;
+		const fullPath = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			files.push(...walkSkillMarkdown(fullPath));
+			continue;
+		}
+		if (entry.name.endsWith(".md")) files.push(fullPath);
+	}
+	return files;
+}
+
+function parseReadmeTaxonomySlugs(content: string): string[] {
+	const slugs: string[] = [];
+	const taxonomyStart = content.indexOf("## Taxonomy");
+	if (taxonomyStart < 0) return slugs;
+	const internalStart = content.indexOf("## Internal");
+	const taxonomyBlock =
+		internalStart > taxonomyStart
+			? content.slice(taxonomyStart, internalStart)
+			: content.slice(taxonomyStart);
+	for (const match of taxonomyBlock.matchAll(SKILL_LINK_RE)) {
+		const slug = match[1];
+		if (slug && !slugs.includes(slug)) slugs.push(slug);
+	}
+	return slugs;
+}
+
+function scanFileForSkillLinks(
+	ctx: AuditContext,
+	filePath: string,
+	index: SkillIndex,
+): Issue[] {
+	const issues: Issue[] = [];
+	const rel = relative(ctx.root, filePath).replace(/\\/g, "/");
+	const content = readFileSync(filePath, "utf8");
+	for (const match of content.matchAll(SKILL_LINK_RE)) {
+		const slug = match[1];
+		if (!slug) continue;
+
+		if (ctx.retiredSkills.has(slug)) {
+			issues.push(issue("skill-index", rel, `references retired skill "${slug}/SKILL.md"`));
+			continue;
+		}
+
+		if (!resolveSkillPath(index, ctx.root, slug)) {
+			issues.push(issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`));
+		}
+	}
+	return issues;
+}
+
+function validateReadmeTaxonomy(
+	ctx: AuditContext,
+	index: SkillIndex,
+	diskSlugs: string[],
+): Issue[] {
+	const issues: Issue[] = [];
+	for (const skillRoot of index.roots) {
+		if (skillRoot.kind !== "nested") continue;
+		const readmePath = join(ctx.root, skillRoot.relPath, "README.md");
+		if (!existsSync(readmePath)) continue;
+
+		const readme = readFileSync(readmePath, "utf8");
+		if (!readme.includes("## Taxonomy")) continue;
+
+		const taxonomySlugs = parseReadmeTaxonomySlugs(readme);
+		const nestedSlugs = diskSlugs.filter((slug) =>
+			existsSync(join(ctx.root, skillRoot.relPath, slug, "SKILL.md")),
+		);
+		const publicSlugs = nestedSlugs.filter((slug) => !NON_PUBLIC_SLUGS.has(slug));
+		const relReadme = `${skillRoot.relPath}/README.md`;
+
+		for (const slug of publicSlugs) {
+			if (!taxonomySlugs.includes(slug)) {
+				issues.push(issue("skill-index", relReadme, `taxonomy missing public skill "${slug}"`));
+			}
+		}
+
+		for (const slug of taxonomySlugs) {
+			if (!nestedSlugs.includes(slug)) {
+				issues.push(
+					issue(
+						"skill-index",
+						relReadme,
+						`taxonomy lists skill "${slug}" with no SKILL.md on disk`,
+					),
+				);
+			}
+		}
+	}
+	return issues;
+}
+
+export function runSkillIndexRule(ctx: AuditContext): Issue[] {
+	const issues: Issue[] = [];
+	const index = ctx.skillIndex;
+	const diskSlugs = listSkillSlugs(index);
+
+	issues.push(...validateReadmeTaxonomy(ctx, index, diskSlugs));
+
+	for (const skillRoot of index.roots) {
+		const scanRoot =
+			skillRoot.kind === "nested"
+				? join(ctx.root, skillRoot.relPath)
+				: join(ctx.root);
+		if (skillRoot.kind === "nested" && existsSync(scanRoot)) {
+			for (const skillMd of walkSkillMarkdown(scanRoot)) {
+				issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
+			}
+		}
+		if (skillRoot.kind === "flat") {
+			for (const slug of index.slugs) {
+				const skillDir = join(ctx.root, slug);
+				if (existsSync(skillDir)) {
+					for (const skillMd of walkSkillMarkdown(skillDir)) {
+						issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
+					}
+				}
+			}
+		}
+	}
+
+	return issues;
+}
+
+export const skillIndexRule = { id: "skill-index", run: runSkillIndexRule };
+
+export function skillCountOnDisk(ctx: AuditContext): number {
+	return listSkillSlugs(ctx.skillIndex).length;
+}

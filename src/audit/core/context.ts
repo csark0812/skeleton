@@ -7,6 +7,7 @@ import {
 import { findRepoRoot, loadConfig, retiredSkills } from "../config/load.ts";
 import type { SkeletonConfig } from "../config/types.ts";
 import { parseRegistry } from "./registry.ts";
+import { buildSkillIndex, type SkillIndex } from "./skill-roots.ts";
 
 export interface AuditContext {
 	root: string;
@@ -16,6 +17,7 @@ export interface AuditContext {
 	registryPaths: string[];
 	registryHasTableHeader: boolean;
 	retiredSkills: Set<string>;
+	skillIndex: SkillIndex;
 }
 
 export interface AuditOptions {
@@ -27,14 +29,15 @@ export interface AuditOptions {
 export function createContext(options: AuditOptions = {}): AuditContext {
 	const root = options.root ?? findRepoRoot();
 	const config = loadConfig(root);
-	let files = collectScanFiles(config, root);
+	const skillIndex = buildSkillIndex(root);
+	let files = collectScanFiles(config, root, skillIndex);
 
 	if (options.paths && options.paths.length > 0) {
 		files = filterToPaths(files, options.paths, root);
 	}
 
 	const registry = parseRegistry(root);
-	const allDocMetaPaths = collectDocMetaPaths(config, root, registry.paths);
+	const allDocMetaPaths = collectDocMetaPaths(config, root, registry.paths, skillIndex);
 
 	return {
 		root,
@@ -47,5 +50,6 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		registryPaths: registry.paths,
 		registryHasTableHeader: registry.hasTableHeader,
 		retiredSkills: new Set(retiredSkills(config)),
+		skillIndex,
 	};
 }

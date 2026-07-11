@@ -6,6 +6,7 @@ import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { registryRule } from "./registry.ts";
 import { scanRootsRule } from "./scan-roots.ts";
+import { skillIndexRule } from "./skill-index.ts";
 
 export interface AuditRule {
 	id: string;
@@ -22,13 +23,27 @@ export const docsRules: AuditRule[] = [
 	{ ...bannedRule, global: true },
 ];
 
+export const skillsRules: AuditRule[] = [{ ...skillIndexRule, global: true }];
+
+export const allRules: AuditRule[] = [...docsRules, ...skillsRules];
+
 export function rulesForSuite(suite: string): AuditRule[] {
 	switch (suite) {
 		case "docs":
 			return docsRules;
+		case "skills":
+			return skillsRules;
 		case "self":
-			return docsRules;
+			return allRules;
 		default:
 			throw new Error(`Unknown suite: ${suite}`);
 	}
+}
+
+export function globalRulesForSuite(suite: string): AuditRule[] {
+	return rulesForSuite(suite).filter((rule) => rule.global);
+}
+
+export function pathScopedRulesForSuite(suite: string): AuditRule[] {
+	return rulesForSuite(suite).filter((rule) => !rule.global);
 }

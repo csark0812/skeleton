@@ -5,6 +5,11 @@ import type { SkeletonConfig } from "../config/types.ts";
 import { mergedExcludes } from "../config/load.ts";
 import { parseRegistryPaths } from "./registry.ts";
 import {
+	buildSkillIndex,
+	skillCollectAugments,
+	type SkillIndex,
+} from "./skill-roots.ts";
+import {
 	extractScanRootsFromInclude,
 	matchesGlobScope,
 	normalizeRelPath,
@@ -45,9 +50,14 @@ function expandPatterns(
 export function collectScanFiles(
 	config: SkeletonConfig,
 	root: string,
+	skillIndex?: SkillIndex,
 ): string[] {
 	const exclude = mergedExcludes(config);
-	return expandPatterns(root, config.scan.include, exclude);
+	const includePatterns = [...config.scan.include];
+	if (skillIndex) {
+		includePatterns.push(...skillCollectAugments(skillIndex));
+	}
+	return expandPatterns(root, includePatterns, exclude);
 }
 
 export function collectBannedFiles(
@@ -96,6 +106,7 @@ export function collectDocMetaPaths(
 	config: SkeletonConfig,
 	root: string,
 	registryPaths: string[],
+	skillIndex?: SkillIndex,
 ): string[] {
 	const paths: string[] = [];
 
@@ -119,7 +130,7 @@ export function collectDocMetaPaths(
 		if (existsSync(abs)) paths.push(normalizeRelPath(rel));
 	}
 
-	for (const abs of collectScanFiles(config, root)) {
+	for (const abs of collectScanFiles(config, root, skillIndex)) {
 		const content = readFileSync(abs, "utf8");
 		if (/<!--\s*doc-meta:/.test(content)) {
 			paths.push(normalizeRelPath(relative(root, abs)));

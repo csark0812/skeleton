@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { readFileContent, relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import {
@@ -7,6 +7,7 @@ import {
 	extractLinksFromMarkdown,
 	slugifyAnchor,
 } from "../core/markdown.ts";
+import { resolveSkillPath } from "../core/skill-roots.ts";
 import { type Issue, issue } from "../core/report.ts";
 import {
 	isExternalLink,
@@ -55,10 +56,7 @@ function validateTarget(
 
 	if (target.includes("/SKILL.md")) {
 		const slug = skillMatch?.[1];
-		if (
-			slug &&
-			!existsSync(join(ctx.root, ".claude/skills", slug, "SKILL.md"))
-		) {
+		if (slug && !resolveSkillPath(ctx.skillIndex, ctx.root, slug)) {
 			issues.push(
 				issue("links", relSource, `missing skill "${slug}/SKILL.md"`, {
 					link: linkLabel,

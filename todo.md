@@ -56,17 +56,28 @@ Check off when done.
 
 | ID  | Item                                                             | Phase | Notes                                                                                      |
 | --- | ---------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------ |
-| H1  | **`global` rule flag + CI two-pass**                             | 1b    | D1: `--base` runs global then path-scoped; `--staged`/HEAD path-scoped only                |
+| H1  | **`global` rule flag + CI two-pass**                             | 1b    | done — D1: `--base` runs global then path-scoped; `--staged`/HEAD path-scoped only          |
 | H2  | **`scan-roots`** — fail when declared scan trees missing on disk | 1a    | done — PostPrint `validateScanRoots()`; globs alone match nothing silently                 |
 | H3  | **`links` full port checklist**                                  | 1a    | done — `#anchor`, agent-file links, placeholder skip, `retiredSkills` refs                 |
 | H4  | **`scan.retiredSkills` config**                                  | 1a    | done in schema + links; skill-index deferred to 1b                                         |
-| H5  | **Nested skill exclusions**                                      | 1b    | Exclude `references`, `_shared` under nested roots; `align-commands` non-public            |
+| H5  | **Nested skill exclusions**                                      | 1b    | done — exclude `references`, `_shared`; `align-commands` non-public                       |
 | H6  | **doc-meta hardcoded targets**                                   | 1a    | done — registry-listed docs, hub READMEs, files with existing doc-meta                     |
 | H7  | **`draftPathPrefixes` semantics**                                | 1.5   | PostPrint uses as prose-policy _allow-list_ for draft markers — not same as `scan.exclude` |
 | H8  | **PostPrint git-diff delegation**                                | 3     | Wrapper forwards `--base`; keeps routing buckets                                           |
-| H9  | **Integration tests: global-rule scoping**                       | 1b    | Path-scoped skips global; `--base` two-pass per D1                                         |
+| H9  | **Integration tests: global-rule scoping**                       | 1b    | done — path-scoped skips global; `--base` two-pass per D1                                   |
 | H10 | **Plugin prose-policy engine**                                   | 1.5   | Generic matcher in core; PostPrint YAML in plugin                                          |
 | H11 | **PostPrint migration plan expansion**                           | 3     | File lists, rollback, PR breakdown                                                         |
+
+---
+
+## Phase 1b checklist
+
+- [x] `skill-roots.ts` + port `skill-index`, `links` resolution
+- [x] `validate changed` (path routing, `--staged`, `--base`; JSON skip by basename)
+- [x] `register`, `customize/resolve.ts` (shared module)
+- [x] `hooks/customize-on-skill-read.ts` + dual build `dist/hooks/` + platform adapter unit tests
+- [x] CLI integration tests + fixtures (`toolbox-repo`, `postprint-repo`); global-rule scoping (H1, H9)
+- [x] H5 nested skill exclusions (`references`, `_shared`; `align-commands` non-public)
 
 ---
 
