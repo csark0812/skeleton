@@ -2,3 +2,5 @@ node_modules/
 dist/
 .test-tmp/
 .DS_Store
+.agents/
+.claude/
