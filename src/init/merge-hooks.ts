@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { isSkeletonHookCommand } from "./resolve-hook-command.ts";
+import { resolveTemplatesDir } from "./package-paths.ts";
 
-const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../templates/skeleton-init");
+const TEMPLATES_DIR = resolveTemplatesDir();
 
 export type MergeAction = "added" | "updated" | "skipped" | "conflict";
 

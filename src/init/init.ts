@@ -1,18 +1,23 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { mergeHookConfigs, mergePackageJsonScripts, type MergeHookResult } from "./merge-hooks.ts";
+import { join } from "node:path";
+import {
+	mergeHookConfigs,
+	mergePackageJsonScripts,
+	type MergeHookResult,
+} from "./merge-hooks.ts";
+import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
 import { resolveHookCommand } from "./resolve-hook-command.ts";
+import { skillsAddArgs } from "./skills-args.ts";
 
-const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "../../templates/skeleton-init");
+const TEMPLATES_DIR = resolveTemplatesDir();
 
 export interface InitOptions {
 	cwd?: string;
 	forceHooks?: boolean;
 	skills?: boolean;
 	noSkills?: boolean;
-	globalSkills?: boolean;
+	skillsFlags?: string[];
 	runSkillsCommand?: (args: string[], cwd: string) => number;
 }
 
@@ -54,28 +59,18 @@ function assertPackageResolvable(cwd: string): void {
 	const hasDep =
 		pkg.devDependencies?.["@csark0812/skeleton"] ||
 		pkg.dependencies?.["@csark0812/skeleton"];
-	if (!hasDep && !existsSync(join(dirname(fileURLToPath(import.meta.url)), "../../package.json"))) {
-		console.error(
-			"warning: @csark0812/skeleton not found in package.json — install with npm install -D @csark0812/skeleton",
-		);
+	if (!hasDep) {
+		try {
+			resolvePackageRoot();
+		} catch {
+			console.error(
+				"warning: @csark0812/skeleton not found in package.json — install with npm install -D @csark0812/skeleton",
+			);
+		}
 	}
 }
 
-export function skillsAddArgs(globalSkills = false): string[] {
-	const args = [
-		"skills",
-		"add",
-		"csark0812/skeleton",
-		"--skill",
-		"skeleton",
-		"-a",
-		"cursor",
-		"claude-code",
-		"-y",
-	];
-	if (globalSkills) args.push("-g");
-	return args;
-}
+export { skillsAddArgs } from "./skills-args.ts";
 
 function runSkillsAdd(args: string[], cwd: string): number {
 	const result = spawnSync("npx", args, {
@@ -92,7 +87,11 @@ export function runInit(options: InitOptions = {}): InitResult {
 
 	const scaffold = writeScaffold(cwd);
 	const hookCommand = resolveHookCommand(cwd);
-	const hooks = mergeHookConfigs({ cwd, hookCommand, forceHooks: options.forceHooks });
+	const hooks = mergeHookConfigs({
+		cwd,
+		hookCommand,
+		forceHooks: options.forceHooks,
+	});
 	const scripts = mergePackageJsonScripts(cwd);
 
 	for (const result of hooks) {
@@ -119,7 +118,7 @@ export function runInit(options: InitOptions = {}): InitResult {
 
 	let skills: InitResult["skills"] = "skipped";
 	if (options.skills && !options.noSkills) {
-		const args = skillsAddArgs(options.globalSkills);
+		const args = skillsAddArgs({ skillsFlags: options.skillsFlags });
 		const run = options.runSkillsCommand ?? runSkillsAdd;
 		const exitCode = run(args, cwd);
 		if (exitCode !== 0) {

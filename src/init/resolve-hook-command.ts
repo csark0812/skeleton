@@ -1,13 +1,12 @@
 import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolvePackageRoot } from "./package-paths.ts";
 
 const PACKAGE_NAME = "@csark0812/skeleton";
 const HOOK_DIST = "dist/hooks/customize-on-skill-read.js";
 const HOOK_SRC = "src/hooks/customize-on-skill-read.ts";
-
-const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const PACKAGE_ROOT = resolvePackageRoot();
 
 export function toRepoRelative(cwd: string, absPath: string): string {
 	const rel = relative(cwd, absPath).replace(/\\/g, "/");

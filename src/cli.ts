@@ -3,6 +3,7 @@
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
 import { runInit } from "./init/init.ts";
+import { parseInitArgs } from "./init/parse-args.ts";
 import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
 
@@ -10,7 +11,7 @@ function usage(): void {
 	console.error(`Usage: skeleton <command>
 
 Commands:
-  init [--skills] [--no-skills] [--global-skills] [--force-hooks]
+  init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
   validate changed [paths…] [--staged] [--base <ref>]
   register <path> [--topic=…] [--dry-run] [--json]
@@ -103,10 +104,8 @@ function main(): void {
 		}
 
 		if (command === "init") {
-			const forceHooks = argv.includes("--force-hooks");
-			const noSkills = argv.includes("--no-skills");
-			const skills = argv.includes("--skills") || argv.includes("--global-skills");
-			runInit({ forceHooks, skills, noSkills, globalSkills: argv.includes("--global-skills") });
+			const parsed = parseInitArgs(argv.slice(1));
+			runInit(parsed);
 			process.exit(0);
 		}
 

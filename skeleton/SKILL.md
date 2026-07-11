@@ -18,6 +18,8 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
+Append any `skills add` flags after `--skills` (e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`).
+
 Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
 ## Workflow
@@ -28,11 +30,11 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
 ## Validation
 
-| Context | Command |
-|---------|---------|
-| Local changed files | `skeleton validate changed` |
-| Pre-commit | `skeleton validate changed --staged` |
-| CI / PR | `skeleton validate changed --base origin/main` |
-| Full SSOT pass | `skeleton audit self` |
+| Context             | Command                                        |
+| ------------------- | ---------------------------------------------- |
+| Local changed files | `skeleton validate changed`                    |
+| Pre-commit          | `skeleton validate changed --staged`           |
+| CI / PR             | `skeleton validate changed --base origin/main` |
+| Full SSOT pass      | `skeleton audit self`                          |
 
 Framework docs live in [docs/developer/install.md](../docs/developer/install.md).

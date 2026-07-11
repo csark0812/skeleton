@@ -72,13 +72,14 @@ Check off when done.
 
 ## Phase 4 publish checklist
 
-- [ ] `bun test` green + `bun run build`
-- [ ] `node dist/cli.js audit self`
-- [ ] npm tarball smoke (`npm pack --dry-run`)
-- [ ] Publish `@csark0812/skeleton@1.0.0`
-- [ ] Verify skills channel: `npx skills add csark0812/skeleton --list`
+- [x] `bun test` green + `bun run build`
+- [x] `node dist/cli.js audit self`
+- [x] npm tarball smoke (`npm pack --dry-run`)
+- [ ] Publish `@csark0812/skeleton@1.0.0` (needs `npm publish --access public --otp=<code>`)
+- [x] Verify skills channel: `npx skills add csark0812/skeleton --list`
 - [ ] Verify skill install: `npx skills add csark0812/skeleton --skill skeleton -y`
-- [ ] Verify consumer one-liner: `npx skeleton init --skills`
+- [ ] Verify consumer one-liner: `npx skeleton init --skills` (after npm publish)
+- [x] Fix bundled init template paths (`package-paths.ts`) — tarball `init` smoke passes
 
 ---
 
