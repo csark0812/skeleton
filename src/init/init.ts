@@ -1,4 +1,5 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mergeHookConfigs, mergePackageJsonScripts, type MergeHookResult } from "./merge-hooks.ts";
@@ -12,12 +13,14 @@ export interface InitOptions {
 	skills?: boolean;
 	noSkills?: boolean;
 	globalSkills?: boolean;
+	runSkillsCommand?: (args: string[], cwd: string) => number;
 }
 
 export interface InitResult {
 	scaffold: "created" | "skipped";
 	hooks: MergeHookResult[];
 	scripts: "added" | "updated" | "skipped";
+	skills: "installed" | "skipped";
 }
 
 function writeScaffold(cwd: string): "created" | "skipped" {
@@ -58,6 +61,31 @@ function assertPackageResolvable(cwd: string): void {
 	}
 }
 
+export function skillsAddArgs(globalSkills = false): string[] {
+	const args = [
+		"skills",
+		"add",
+		"csark0812/skeleton",
+		"--skill",
+		"skeleton",
+		"-a",
+		"cursor",
+		"claude-code",
+		"-y",
+	];
+	if (globalSkills) args.push("-g");
+	return args;
+}
+
+function runSkillsAdd(args: string[], cwd: string): number {
+	const result = spawnSync("npx", args, {
+		cwd,
+		stdio: "inherit",
+		shell: false,
+	});
+	return result.status ?? 1;
+}
+
 export function runInit(options: InitOptions = {}): InitResult {
 	const cwd = options.cwd ?? process.cwd();
 	assertPackageResolvable(cwd);
@@ -89,11 +117,17 @@ export function runInit(options: InitOptions = {}): InitResult {
 		console.log("init: merged validate/audit scripts into package.json");
 	}
 
+	let skills: InitResult["skills"] = "skipped";
 	if (options.skills && !options.noSkills) {
-		console.log(
-			"init: run manually — npx skills add csark0812/skeleton --skill skeleton -y",
-		);
+		const args = skillsAddArgs(options.globalSkills);
+		const run = options.runSkillsCommand ?? runSkillsAdd;
+		const exitCode = run(args, cwd);
+		if (exitCode !== 0) {
+			throw new Error(`skills install failed: npx ${args.join(" ")}`);
+		}
+		skills = "installed";
+		console.log("init: installed /skeleton skill");
 	}
 
-	return { scaffold, hooks, scripts };
+	return { scaffold, hooks, scripts, skills };
 }

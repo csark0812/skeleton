@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mergeHookConfigs, mergePackageJsonScripts } from "../../init/merge-hooks.ts";
-import { runInit } from "../../init/init.ts";
+import { runInit, skillsAddArgs } from "../../init/init.ts";
 import { isSkeletonHookCommand, resolveHookCommand } from "../../init/resolve-hook-command.ts";
 
 let tempDirs: string[] = [];
@@ -182,5 +182,36 @@ describe("skeleton init", () => {
 		const cwd = makeRepo();
 		runInit({ cwd });
 		expect(existsSync(join(cwd, ".skeleton/customize"))).toBe(true);
+	});
+
+	it("runs skills add when --skills is requested", () => {
+		const cwd = makeRepo();
+		const calls: Array<{ args: string[]; cwd: string }> = [];
+		const result = runInit({
+			cwd,
+			skills: true,
+			runSkillsCommand: (args, commandCwd) => {
+				calls.push({ args, cwd: commandCwd });
+				return 0;
+			},
+		});
+		expect(result.skills).toBe("installed");
+		expect(calls).toEqual([{ args: skillsAddArgs(false), cwd }]);
+	});
+
+	it("adds -g for global skill installs", () => {
+		const args = skillsAddArgs(true);
+		expect(args).toContain("-g");
+	});
+
+	it("fails init when skills add fails", () => {
+		const cwd = makeRepo();
+		expect(() =>
+			runInit({
+				cwd,
+				skills: true,
+				runSkillsCommand: () => 1,
+			}),
+		).toThrow(/skills install failed/);
 	});
 });

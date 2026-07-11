@@ -70,6 +70,18 @@ Check off when done.
 
 ---
 
+## Phase 4 publish checklist
+
+- [ ] `bun test` green + `bun run build`
+- [ ] `node dist/cli.js audit self`
+- [ ] npm tarball smoke (`npm pack --dry-run`)
+- [ ] Publish `@csark0812/skeleton@1.0.0`
+- [ ] Verify skills channel: `npx skills add csark0812/skeleton --list`
+- [ ] Verify skill install: `npx skills add csark0812/skeleton --skill skeleton -y`
+- [ ] Verify consumer one-liner: `npx skeleton init --skills`
+
+---
+
 ## Phase 1c checklist
 
 - [x] `skeleton init` — `.skeleton/` scaffold, hook merge, package.json scripts
