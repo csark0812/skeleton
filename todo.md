@@ -75,10 +75,10 @@ Check off when done.
 - [x] `bun test` green + `bun run build`
 - [x] `node dist/cli.js audit self`
 - [x] npm tarball smoke (`npm pack --dry-run`)
-- [ ] Publish `@csark0812/skeleton@1.0.0` (needs `npm publish --access public --otp=<code>`)
+- [x] Publish `@csark0812/skeleton@1.0.0` (2026-07-11)
 - [x] Verify skills channel: `npx skills add csark0812/skeleton --list`
-- [ ] Verify skill install: `npx skills add csark0812/skeleton --skill skeleton -y`
-- [ ] Verify consumer one-liner: `npx skeleton init --skills` (after npm publish)
+- [x] Verify skill install: `npx skills add csark0812/skeleton --skill skeleton -y`
+- [x] Verify consumer one-liner: `npx skeleton init --skills` (npm install + init smoke)
 - [x] Fix bundled init template paths (`package-paths.ts`) — tarball `init` smoke passes
 
 ---
