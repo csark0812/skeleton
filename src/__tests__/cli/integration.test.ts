@@ -121,4 +121,12 @@ describe("validate changed routing", () => {
 		});
 		expect(exit).toBe(1);
 	});
+
+	it("fails when all explicit paths are missing on disk", () => {
+		const exit = runValidateChanged({
+			root: FLAT_SKILL_ROOT,
+			paths: ["docs/does-not-exist.md"],
+		});
+		expect(exit).toBe(1);
+	});
 });

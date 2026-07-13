@@ -2,10 +2,10 @@ import { generatedReferencesRule } from "../../references/check.ts";
 import type { AuditContext } from "../core/context.ts";
 import type { Issue } from "../core/report.ts";
 import { bannedRule } from "./banned.ts";
-import { coverageGapsRule } from "./coverage-gaps.ts";
 import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { registryRule } from "./registry.ts";
+import { coverageGapsRule } from "./scan-gaps.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
 

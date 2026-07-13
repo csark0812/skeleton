@@ -118,11 +118,16 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 		shell: [],
 		json: [],
 	};
+	let missing = 0;
 	let skipped = 0;
 
 	for (const relPath of relPaths) {
 		const abs = join(root, relPath);
-		if (!existsSync(abs)) continue;
+		if (!existsSync(abs)) {
+			missing++;
+			console.error(`validate changed: path not found: ${relPath}`);
+			continue;
+		}
 		const bucket = bucketFor(relPath, root);
 		if (bucket === "skip") {
 			skipped++;
@@ -135,6 +140,13 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 		buckets.docs.length + buckets.skills.length + buckets.shell.length + buckets.json.length;
 
 	let exitCode = 0;
+
+	if (missing > 0 && audited === 0 && skipped === 0) {
+		console.error(
+			"validate changed: no paths existed on disk. Pass real paths or use --staged / --base.",
+		);
+		return 1;
+	}
 
 	if (options.base) {
 		const globalExit = runAudit({
@@ -152,8 +164,8 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 	if (skipped > 0 && audited === 0) {
 		console.error(
 			"validate changed: all paths were skipped (code/config). This does not verify TypeScript or app code.\n" +
-				"  In this repo: bun test && bun run typecheck\n" +
-				"  Consumers: run your local code validation gates.",
+				"  Skeleton package: bun test && bun run typecheck && bun run build\n" +
+				"  Consumers: run your local code validation gates (e.g. npm test / npm run typecheck).",
 		);
 		return 1;
 	}
@@ -181,7 +193,7 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 			console.error(
 				"validate changed: skill paths need the full skills suite (path-scoped skill rules are empty).\n" +
 					"  Run: skeleton audit skills\n" +
-					"  Or:  skeleton audit self / npm test (toolbox)",
+					"  Or:  skeleton audit self",
 			);
 			return 1;
 		}

@@ -32,6 +32,9 @@
 		"audit:docs": "bun src/cli.ts audit docs",
 		"audit:skills": "bun src/cli.ts audit skills",
 		"audit:self": "bun src/cli.ts audit self",
+		"check": "bun run lint && bun test && bun run typecheck && bun run build && bun run audit:self",
+		"start": "bun src/cli.ts --help",
+		"dev": "bun src/cli.ts --help",
 		"prepack": "bun test && bun run typecheck && bun run build"
 	},
 	"dependencies": {
