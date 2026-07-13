@@ -18,7 +18,7 @@ Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and fo
 - Sync or update skills from an external toolbox repo
 - Avoid editing synced toolbox skill copies in the consumer repo
 
-Not for: normal feature work that only reads toolbox skills (customize injects automatically on `SKILL.md` read via hooks).
+Not for: normal feature work that only reads toolbox skills (customize injects automatically on skill reads via hooks, including skill-tree / references Reads).
 
 ## Layout
 
@@ -32,9 +32,9 @@ Not for: normal feature work that only reads toolbox skills (customize injects a
 
 ## Customize hooks
 
-`skeleton init` merges IDE hooks that run `customize-on-skill-read.js` on `SKILL.md` read (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`).
+`skeleton init` merges IDE hooks that run `customize-on-skill-read.js` on skill reads (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`).
 
-- Hook injects `.skeleton/customize/<slug>.md` as additional context when path ends with `/SKILL.md`
+- Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**`); Grep/shell still skip
 - **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`
 - Project-specific dispatch overlays (e.g. product-intent council prompts) belong in customize, not in toolbox skill trees
 
