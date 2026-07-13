@@ -1,8 +1,4 @@
-const SKELETON_INIT_FLAGS = new Set([
-	"--force-hooks",
-	"--skills",
-	"--no-skills",
-]);
+const SKELETON_INIT_FLAGS = new Set(["--force-hooks", "--skills", "--no-skills"]);
 
 export interface ParsedInitArgs {
 	forceHooks: boolean;

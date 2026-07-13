@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isSkeletonHookCommand } from "./resolve-hook-command.ts";
 import { resolveTemplatesDir } from "./package-paths.ts";
+import { isSkeletonHookCommand } from "./resolve-hook-command.ts";
 
 const TEMPLATES_DIR = resolveTemplatesDir();
 
@@ -82,9 +82,7 @@ function mergeCursorHooks(
 		}
 
 		const extras = Object.fromEntries(
-			Object.entries(current ?? {}).filter(
-				([key]) => !["command", "matcher"].includes(key),
-			),
+			Object.entries(current ?? {}).filter(([key]) => !["command", "matcher"].includes(key)),
 		);
 		const merged = { ...extras, ...canonical };
 		if (deepEqual(current, merged)) return { platform: "cursor", action: "skipped" };
@@ -133,7 +131,7 @@ function mergeNestedHooks(
 		const incomingHook = incomingGroup.hooks?.[0];
 		if (!incomingHook) continue;
 
-		let groupIdx = eventHooks.findIndex((group) => group.matcher === matcher);
+		const groupIdx = eventHooks.findIndex((group) => group.matcher === matcher);
 		if (groupIdx < 0) {
 			eventHooks.push({
 				...incomingGroup,
@@ -152,8 +150,7 @@ function mergeNestedHooks(
 			const userEdited =
 				current &&
 				!opts.forceHooks &&
-				(current.type !== incomingHook.type ||
-					!isSkeletonHookCommand(current.command));
+				(current.type !== incomingHook.type || !isSkeletonHookCommand(current.command));
 
 			if (userEdited) {
 				return {

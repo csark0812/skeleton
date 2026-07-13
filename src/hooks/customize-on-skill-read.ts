@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
-import { resolveCustomizeFromRoot } from "../customize/resolve.ts";
-import { slugFromPath } from "../audit/core/skill-roots.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
+import { slugFromPath } from "../audit/core/skill-roots.ts";
+import { resolveCustomizeFromRoot } from "../customize/resolve.ts";
 
 interface HookPayload {
 	tool_name?: string;
@@ -41,7 +41,7 @@ function extractSkillSlug(payload: HookPayload): string | null {
 		if (typeof slug === "string" && slug.trim()) return slug.trim();
 	}
 	const path = extractPath(payload);
-	if (path) return slugFromPath(path);
+	if (path) return slugFromPath(path, process.cwd());
 	return null;
 }
 
@@ -74,12 +74,8 @@ function main(): void {
 	try {
 		const raw = readFileSync(0, "utf8");
 		const payload = parsePayload(raw);
-		const path = extractPath(payload);
-		if (path && !path.endsWith("/SKILL.md")) {
-			process.stdout.write("{}");
-			return;
-		}
-
+		// Inject on /SKILL.md and skill-tree paths (incl. references/*).
+		// Still skip Grep/shell (different tools) and non-skill paths (no slug).
 		const slug = extractSkillSlug(payload);
 		if (!slug) {
 			process.stdout.write("{}");

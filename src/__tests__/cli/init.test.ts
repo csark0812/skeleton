@@ -1,31 +1,32 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import {
-	existsSync,
-	mkdirSync,
-	mkdtempSync,
-	readFileSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import {
-	mergeHookConfigs,
-	mergePackageJsonScripts,
-} from "../../init/merge-hooks.ts";
+import { join } from "node:path";
 import { runInit, skillsAddArgs } from "../../init/init.ts";
+import { mergeHookConfigs, mergePackageJsonScripts } from "../../init/merge-hooks.ts";
 import { parseInitArgs } from "../../init/parse-args.ts";
-import {
-	isSkeletonHookCommand,
-	resolveHookCommand,
-} from "../../init/resolve-hook-command.ts";
+import { isSkeletonHookCommand, resolveHookCommand } from "../../init/resolve-hook-command.ts";
 
 let tempDirs: string[] = [];
-const TEMP_ROOT = join(import.meta.dir, "../../../.test-tmp");
+
+/** Cursor's default sandbox blocks mkdir of `.cursor` / `.claude` even under os.tmpdir(). */
+function canWriteAgentDirs(): boolean {
+	const probe = mkdtempSync(join(tmpdir(), "skeleton-agent-dir-probe-"));
+	try {
+		mkdirSync(join(probe, ".cursor"), { recursive: true });
+		mkdirSync(join(probe, ".claude"), { recursive: true });
+		return true;
+	} catch {
+		return false;
+	} finally {
+		rmSync(probe, { recursive: true, force: true });
+	}
+}
+
+const describeHooks = canWriteAgentDirs() ? describe : describe.skip;
 
 function makeRepo(extra: Record<string, unknown> = {}): string {
-	mkdirSync(TEMP_ROOT, { recursive: true });
-	const dir = mkdtempSync(join(TEMP_ROOT, "skeleton-init-"));
+	const dir = mkdtempSync(join(tmpdir(), "skeleton-init-"));
 	tempDirs.push(dir);
 	writeFileSync(
 		join(dir, "package.json"),
@@ -41,7 +42,51 @@ afterEach(() => {
 	tempDirs = [];
 });
 
-describe("skeleton init", () => {
+describe("skeleton init helpers", () => {
+	it("resolves hoisted package hook from node_modules", () => {
+		const cwd = makeRepo();
+		const hookDir = join(cwd, "node_modules", "@csark0812", "skeleton", "dist", "hooks");
+		mkdirSync(hookDir, { recursive: true });
+		writeFileSync(join(hookDir, "customize-on-skill-read.js"), "// stub\n");
+		const command = resolveHookCommand(cwd);
+		expect(command).toContain(
+			"node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
+		);
+	});
+
+	it("falls back to node_modules relative command when package missing", () => {
+		const cwd = mkdtempSync(join(tmpdir(), "skeleton-init-fallback-"));
+		tempDirs.push(cwd);
+		const command = resolveHookCommand(cwd);
+		expect(command).toBe(
+			"node node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
+		);
+	});
+
+	it("resolveHookCommand returns a skeleton customize hook path", () => {
+		const cwd = makeRepo();
+		const command = resolveHookCommand(cwd);
+		expect(isSkeletonHookCommand(command)).toBe(true);
+		expect(command.includes("customize-on-skill-read")).toBe(true);
+	});
+
+	it("mergePackageJsonScripts is skipped without package.json", () => {
+		const cwd = mkdtempSync(join(tmpdir(), "skeleton-init-nopkg-"));
+		tempDirs.push(cwd);
+		expect(mergePackageJsonScripts(cwd)).toBe("skipped");
+	});
+
+	it("parseInitArgs forwards unknown flags to skills", () => {
+		expect(parseInitArgs(["--force-hooks", "--skills", "-g", "--all"])).toEqual({
+			forceHooks: true,
+			skills: true,
+			noSkills: false,
+			skillsFlags: ["-g", "--all"],
+		});
+	});
+});
+
+describeHooks("skeleton init hooks", () => {
 	it("fresh init writes scaffold, hooks, and scripts", () => {
 		const cwd = makeRepo();
 		const result = runInit({ cwd });
@@ -75,14 +120,10 @@ describe("skeleton init", () => {
 			}),
 		);
 		runInit({ cwd });
-		const hooks = JSON.parse(
-			readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"),
-		);
+		const hooks = JSON.parse(readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"));
 		expect(hooks.hooks.postToolUse).toHaveLength(2);
 		expect(
-			hooks.hooks.postToolUse.some(
-				(h: { command: string }) => h.command === "echo user-hook",
-			),
+			hooks.hooks.postToolUse.some((h: { command: string }) => h.command === "echo user-hook"),
 		).toBe(true);
 	});
 
@@ -94,9 +135,7 @@ describe("skeleton init", () => {
 			JSON.stringify({ permissions: { allow: ["Read"] }, hooks: {} }),
 		);
 		runInit({ cwd });
-		const settings = JSON.parse(
-			readFileSync(join(cwd, ".claude/settings.json"), "utf8"),
-		);
+		const settings = JSON.parse(readFileSync(join(cwd, ".claude/settings.json"), "utf8"));
 		expect(settings.permissions).toEqual({ allow: ["Read"] });
 	});
 
@@ -108,9 +147,7 @@ describe("skeleton init", () => {
 			JSON.stringify({
 				version: 1,
 				hooks: {
-					postToolUse: [
-						{ command: "node customize-on-skill-read.js", matcher: "Write" },
-					],
+					postToolUse: [{ command: "node customize-on-skill-read.js", matcher: "Write" }],
 				},
 			}),
 		);
@@ -125,9 +162,7 @@ describe("skeleton init", () => {
 			forceHooks: true,
 		});
 		expect(forced[0]?.action).toBe("updated");
-		const hooks = JSON.parse(
-			readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"),
-		);
+		const hooks = JSON.parse(readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"));
 		expect(hooks.hooks.postToolUse[0].matcher).toBe("Read");
 	});
 
@@ -135,26 +170,8 @@ describe("skeleton init", () => {
 		const cwd = makeRepo();
 		mkdirSync(join(cwd, ".cursor"), { recursive: true });
 		writeFileSync(join(cwd, ".cursor/hooks.json"), "{not json");
-		expect(() =>
-			mergeHookConfigs({ cwd, hookCommand: resolveHookCommand(cwd) }),
-		).toThrow(/Invalid JSON/);
-	});
-
-	it("resolves hoisted package hook from node_modules", () => {
-		const cwd = makeRepo();
-		const hookDir = join(
-			cwd,
-			"node_modules",
-			"@csark0812",
-			"skeleton",
-			"dist",
-			"hooks",
-		);
-		mkdirSync(hookDir, { recursive: true });
-		writeFileSync(join(hookDir, "customize-on-skill-read.js"), "// stub\n");
-		const command = resolveHookCommand(cwd);
-		expect(command).toContain(
-			"node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
+		expect(() => mergeHookConfigs({ cwd, hookCommand: resolveHookCommand(cwd) })).toThrow(
+			/Invalid JSON/,
 		);
 	});
 
@@ -169,33 +186,15 @@ describe("skeleton init", () => {
 		expect(existsSync(join(cwd, ".codex/hooks.json"))).toBe(false);
 	});
 
-	it("falls back to node_modules relative command when package missing", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "skeleton-init-fallback-"));
-		tempDirs.push(cwd);
-		const command = resolveHookCommand(cwd);
-		expect(command).toBe(
-			"node node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
-		);
-	});
-
-	it("resolveHookCommand returns a skeleton customize hook path", () => {
-		const cwd = makeRepo();
-		const command = resolveHookCommand(cwd);
-		expect(isSkeletonHookCommand(command)).toBe(true);
-		expect(command.includes("customize-on-skill-read")).toBe(true);
-	});
-
 	it("re-init upgrades hook command in place without duplicating entries", () => {
 		const cwd = makeRepo();
 		const tsCommand = "bun src/hooks/customize-on-skill-read.ts";
 		mergeHookConfigs({ cwd, hookCommand: tsCommand, forceHooks: true });
 		const jsCommand = "node dist/hooks/customize-on-skill-read.js";
 		mergeHookConfigs({ cwd, hookCommand: jsCommand, forceHooks: true });
-		const hooks = JSON.parse(
-			readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"),
-		);
-		const skeletonHooks = hooks.hooks.postToolUse.filter(
-			(h: { command: string }) => isSkeletonHookCommand(h.command),
+		const hooks = JSON.parse(readFileSync(join(cwd, ".cursor/hooks.json"), "utf8"));
+		const skeletonHooks = hooks.hooks.postToolUse.filter((h: { command: string }) =>
+			isSkeletonHookCommand(h.command),
 		);
 		expect(skeletonHooks).toHaveLength(1);
 	});
@@ -210,13 +209,6 @@ describe("skeleton init", () => {
 		);
 		runInit({ cwd });
 		expect(readFileSync(configPath, "utf8")).toContain("custom");
-	});
-
-	it("mergePackageJsonScripts is skipped without package.json", () => {
-		mkdirSync(TEMP_ROOT, { recursive: true });
-		const cwd = mkdtempSync(join(TEMP_ROOT, "skeleton-init-nopkg-"));
-		tempDirs.push(cwd);
-		expect(mergePackageJsonScripts(cwd)).toBe("skipped");
 	});
 
 	it("writes .skeleton/customize directory", () => {
@@ -260,17 +252,6 @@ describe("skeleton init", () => {
 				cwd,
 			},
 		]);
-	});
-
-	it("parseInitArgs forwards unknown flags to skills", () => {
-		expect(parseInitArgs(["--force-hooks", "--skills", "-g", "--all"])).toEqual(
-			{
-				forceHooks: true,
-				skills: true,
-				noSkills: false,
-				skillsFlags: ["-g", "--all"],
-			},
-		);
 	});
 
 	it("fails init when skills add fails", () => {

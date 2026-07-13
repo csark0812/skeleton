@@ -2,7 +2,7 @@
 
 **Source of truth for** installing skeleton in a consumer repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-11 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
 
 ## CLI
 
@@ -18,6 +18,16 @@ Init writes `.skeleton/`, merges IDE customize hooks, and adds `validate:changed
 ## Edit config
 
 Open `.skeleton/config.yaml` and set `scan.include` / `scan.exclude` / `scan.banned` for your repo layout. See [doc-system](doc-system.md).
+
+## Pre-commit (optional)
+
+Install the [pre-commit](https://pre-commit.com/) tool once per machine (`brew install pre-commit` or `pipx install pre-commit`), then in the consumer repo:
+
+```bash
+pre-commit install
+```
+
+Hook config typically runs `skeleton validate changed --staged`.
 
 ## Verify
 

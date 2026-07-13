@@ -18,7 +18,7 @@ function runHook(stdin: string): { stdout: string; exitCode: number | null } {
 }
 
 describe("customize-on-skill-read hook", () => {
-	it("returns noop for non-SKILL.md Read", () => {
+	it("returns noop for non-skill Read", () => {
 		const { stdout, exitCode } = runHook(
 			JSON.stringify({
 				tool_name: "Read",
@@ -29,11 +29,25 @@ describe("customize-on-skill-read hook", () => {
 		expect(stdout.trim()).toBe("{}");
 	});
 
-	it("injects customize content for SKILL.md Read (Cursor)", () => {
-		const skillPath = join(
+	it("injects customize content for skill-tree references Read", () => {
+		const refPath = join(
 			NESTED_SKILLS_CUSTOMIZE,
-			".claude/skills/code-review/SKILL.md",
+			".claude/skills/code-review/references/planning/build.md",
 		);
+		const { stdout, exitCode } = runHook(
+			JSON.stringify({
+				tool_name: "Read",
+				hook_event_name: "postToolUse",
+				tool_input: { path: refPath },
+			}),
+		);
+		expect(exitCode).toBe(0);
+		const parsed = JSON.parse(stdout);
+		expect(parsed.additional_context).toContain("Code review customize");
+	});
+
+	it("injects customize content for SKILL.md Read (Cursor)", () => {
+		const skillPath = join(NESTED_SKILLS_CUSTOMIZE, ".claude/skills/code-review/SKILL.md");
 		const { stdout, exitCode } = runHook(
 			JSON.stringify({
 				tool_name: "Read",
@@ -55,9 +69,7 @@ describe("customize-on-skill-read hook", () => {
 		);
 		expect(exitCode).toBe(0);
 		const parsed = JSON.parse(stdout);
-		expect(parsed.hookSpecificOutput.additionalContext).toContain(
-			"Code review customize",
-		);
+		expect(parsed.hookSpecificOutput.additionalContext).toContain("Code review customize");
 	});
 
 	it("returns noop when no customize override", () => {

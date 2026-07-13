@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { parseRegistryPaths } from "../audit/core/registry.ts";
-import { REGISTRY_DIR_REL, normalizeRelPath } from "../audit/core/shared.ts";
+import { normalizeRelPath, REGISTRY_DIR_REL } from "../audit/core/shared.ts";
 
 const CUSTOMIZE_PREFIX = "Customize: ";
 
@@ -89,8 +89,7 @@ function readAlwaysInclude(
 export function resolveCustomize(root: string, slug: string): CustomizeResolveResult {
 	const slugFile = resolveSlugFile(root, slug);
 	const alwaysNames = alwaysIncludeBasenames(root);
-	const skip =
-		slugFile.path != null ? basename(slugFile.path) : null;
+	const skip = slugFile.path != null ? basename(slugFile.path) : null;
 	const always = readAlwaysInclude(root, alwaysNames, skip);
 
 	const parts: string[] = [];
@@ -110,16 +109,13 @@ export function resolveCustomize(root: string, slug: string): CustomizeResolveRe
 
 	return {
 		slug,
-		content: parts.join("\n\n---\n\n") + "\n",
+		content: `${parts.join("\n\n---\n\n")}\n`,
 		path: slugFile.path ?? always.paths[0] ?? null,
 		included,
 	};
 }
 
-export function resolveCustomizeFromRoot(
-	slug: string,
-	startDir?: string,
-): CustomizeResolveResult {
+export function resolveCustomizeFromRoot(slug: string, startDir?: string): CustomizeResolveResult {
 	const root = findRepoRoot(startDir);
 	return resolveCustomize(root, slug);
 }

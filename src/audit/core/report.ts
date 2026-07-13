@@ -33,9 +33,7 @@ export function issue(
 
 export function finalizeIssues(issues: Issue[], strict: boolean): Issue[] {
 	if (!strict) return issues;
-	return issues.map((i) =>
-		i.severity === "warning" ? { ...i, severity: "error" as const } : i,
-	);
+	return issues.map((i) => (i.severity === "warning" ? { ...i, severity: "error" as const } : i));
 }
 
 export function printReport(issues: Issue[], options: ReportOptions): number {
@@ -71,13 +69,10 @@ export function printReport(issues: Issue[], options: ReportOptions): number {
 	}
 
 	if (errors.length === 0) {
-		const warnNote =
-			warnings.length > 0 ? `, ${warnings.length} warning(s)` : "";
+		const warnNote = warnings.length > 0 ? `, ${warnings.length} warning(s)` : "";
 		const countNote =
 			options.successSuffix ??
-			(options.fileCount !== undefined
-				? ` (${options.fileCount} files scanned${warnNote})`
-				: "");
+			(options.fileCount !== undefined ? ` (${options.fileCount} files scanned${warnNote})` : "");
 		console.log(`${label} passed${countNote}.`);
 		return 0;
 	}

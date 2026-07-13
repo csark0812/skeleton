@@ -1,12 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { buildSkillIndex } from "../audit/core/skill-roots.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
-import {
-    CANONICAL_REFS_DIR,
-    SHARED_REF_LINK_RE,
-    isGeneratedReference,
-} from "./constants.ts";
+import { buildSkillIndex } from "../audit/core/skill-roots.ts";
+import { CANONICAL_REFS_DIR, isGeneratedReference, SHARED_REF_LINK_RE } from "./constants.ts";
 
 export interface SharedRefLink {
 	refPath: string;
@@ -41,10 +37,7 @@ function canonicalExists(root: string, refPath: string): boolean {
 }
 
 /** Links still pointing at the old shared root references/ tree. */
-export function findSharedRefLinks(
-	content: string,
-	sourceFile: string,
-): SharedRefLink[] {
+export function findSharedRefLinks(content: string, sourceFile: string): SharedRefLink[] {
 	const links: SharedRefLink[] = [];
 	for (const match of content.matchAll(SHARED_REF_LINK_RE)) {
 		const refPath = match[1];
@@ -79,9 +72,7 @@ function findLocalCanonicalLinks(
 		for (const match of content.matchAll(siblingRe)) {
 			const raw = normalizeRelPath(match[1] ?? "");
 			if (!raw) continue;
-			const refPath = withinDir
-				? normalizeRelPath(join(withinDir, raw))
-				: raw;
+			const refPath = withinDir ? normalizeRelPath(join(withinDir, raw)) : raw;
 			if (!canonicalExists(root, refPath)) continue;
 			links.push({ refPath, sourceFile });
 		}
@@ -90,9 +81,7 @@ function findLocalCanonicalLinks(
 	return links;
 }
 
-export function discoverSkillReferencePlans(
-	root: string,
-): SkillReferencePlan[] {
+export function discoverSkillReferencePlans(root: string): SkillReferencePlan[] {
 	const index = buildSkillIndex(root);
 	const plans: SkillReferencePlan[] = [];
 
@@ -122,16 +111,9 @@ export function discoverSkillReferencePlans(
 		while (queue.length > 0) {
 			const refPath = queue.pop();
 			if (!refPath || !canonicalExists(root, refPath)) continue;
-			const canonicalContent = readFileSync(
-				join(root, CANONICAL_REFS_DIR, refPath),
-				"utf8",
-			);
+			const canonicalContent = readFileSync(join(root, CANONICAL_REFS_DIR, refPath), "utf8");
 			const syntheticSource = generatedRefPath(slug, refPath);
-			for (const link of findLocalCanonicalLinks(
-				root,
-				canonicalContent,
-				syntheticSource,
-			)) {
+			for (const link of findLocalCanonicalLinks(root, canonicalContent, syntheticSource)) {
 				if (refPaths.has(link.refPath)) continue;
 				refPaths.add(link.refPath);
 				links.push(link);
@@ -147,7 +129,7 @@ export function discoverSkillReferencePlans(
 	return plans.sort((a, b) => a.skill.localeCompare(b.skill));
 }
 
-export function canonicalRefPath(root: string, refPath: string): string {
+export function canonicalRefPath(_root: string, refPath: string): string {
 	return normalizeRelPath(join(CANONICAL_REFS_DIR, refPath));
 }
 
@@ -155,22 +137,14 @@ export function generatedRefPath(skill: string, refPath: string): string {
 	return normalizeRelPath(join(skill, "references", refPath));
 }
 
-export function rewriteSharedRefTarget(
-	sourceFile: string,
-	skill: string,
-	refPath: string,
-): string {
+export function rewriteSharedRefTarget(sourceFile: string, skill: string, refPath: string): string {
 	const sourceDir = sourceFile.slice(0, sourceFile.lastIndexOf("/"));
 	const target = generatedRefPath(skill, refPath);
 	if (!sourceDir) return target;
 	const fromParts = sourceDir.split("/");
 	const toParts = target.split("/");
 	let i = 0;
-	while (
-		i < fromParts.length &&
-		i < toParts.length &&
-		fromParts[i] === toParts[i]
-	) {
+	while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) {
 		i++;
 	}
 	const ups = fromParts.length - i;
@@ -179,17 +153,9 @@ export function rewriteSharedRefTarget(
 	return rel || (toParts.at(-1) ?? refPath);
 }
 
-export function rewriteSharedRefLinks(
-	content: string,
-	sourceFile: string,
-	skill: string,
-): string {
+export function rewriteSharedRefLinks(content: string, sourceFile: string, skill: string): string {
 	return content.replace(SHARED_REF_LINK_RE, (_match, refPath: string) => {
-		const rewritten = rewriteSharedRefTarget(
-			sourceFile,
-			skill,
-			normalizeRelPath(refPath),
-		);
+		const rewritten = rewriteSharedRefTarget(sourceFile, skill, normalizeRelPath(refPath));
 		return `(${rewritten})`;
 	});
 }

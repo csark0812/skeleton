@@ -17,18 +17,12 @@ const HEADING_LINE_RE = /^(#{1,6})\s+(.+)$/;
 
 const processor = remark().use(remarkGfm);
 
-function lineFromOffset(
-	content: string,
-	offset: number | undefined,
-): number | undefined {
+function lineFromOffset(content: string, offset: number | undefined): number | undefined {
 	if (offset === undefined) return undefined;
 	return content.slice(0, offset).split("\n").length;
 }
 
-export function extractLinksFromMarkdown(
-	content: string,
-	filePath: string,
-): ExtractedLink[] {
+export function extractLinksFromMarkdown(content: string, filePath: string): ExtractedLink[] {
 	if (filePath.endsWith(".mdc")) {
 		return extractLinksRegex(content);
 	}
@@ -79,10 +73,7 @@ export function extractLinksRegex(content: string): ExtractedLink[] {
 	return links;
 }
 
-export function extractHeadingSlugs(
-	content: string,
-	filePath: string,
-): Set<string> {
+export function extractHeadingSlugs(content: string, filePath: string): Set<string> {
 	if (filePath.endsWith(".mdc")) {
 		return extractHeadingSlugsLineBased(content);
 	}
@@ -94,9 +85,7 @@ export function extractHeadingSlugs(
 	visit(tree, (node) => {
 		if (node.type === "heading" && "children" in node) {
 			const text = node.children
-				.filter(
-					(c: HeadingInline) => c.type === "text" || c.type === "inlineCode",
-				)
+				.filter((c: HeadingInline) => c.type === "text" || c.type === "inlineCode")
 				.map((c: HeadingInline) => ("value" in c ? String(c.value) : ""))
 				.join("");
 			if (text) slugs.add(slugger.slug(text));

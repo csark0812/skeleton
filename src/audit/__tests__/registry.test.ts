@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { parseRegistry } from "../core/registry.ts";
 import type { AuditContext } from "../core/context.ts";
+import { parseRegistry } from "../core/registry.ts";
 import { runRegistryRule } from "../rules/registry.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
@@ -58,8 +58,6 @@ describe("registry rule", () => {
 			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
-		expect(issues.some((i) => i.message.includes("Source of truth for"))).toBe(
-			true,
-		);
+		expect(issues.some((i) => i.message.includes("Source of truth for"))).toBe(true);
 	});
 });

@@ -52,9 +52,7 @@ function listNestedSlugs(root: string, relRoot: string): string[] {
 	return readdirSync(absRoot, { withFileTypes: true })
 		.filter(
 			(entry) =>
-				entry.isDirectory() &&
-				!entry.name.startsWith(".") &&
-				!NESTED_EXCLUDED_DIRS.has(entry.name),
+				entry.isDirectory() && !entry.name.startsWith(".") && !NESTED_EXCLUDED_DIRS.has(entry.name),
 		)
 		.filter((entry) => existsSync(join(absRoot, entry.name, "SKILL.md")))
 		.map((entry) => entry.name)
@@ -117,9 +115,7 @@ export function buildSkillIndex(root: string): SkillIndex {
 
 	for (const skillRoot of roots) {
 		const rootSlugs =
-			skillRoot.kind === "nested"
-				? listNestedSlugs(root, skillRoot.relPath)
-				: listFlatSlugs(root);
+			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
 		for (const slug of rootSlugs) {
 			if (!slugSet.has(slug)) {
 				slugSet.add(slug);
@@ -158,8 +154,13 @@ export function isSkillPath(relPath: string, index: SkillIndex): boolean {
 	return false;
 }
 
+const NESTED_SKILL_SLUG_RE = /(?:^|\/)\.(?:claude|agents)\/skills\/([a-z0-9-]+)\//;
+const FLAT_SKILL_REFERENCES_RE = /(?:^|\/)([a-z0-9-]+)\/references(?:\/|$)/;
+
 export function slugFromSkillPath(relPath: string): string | null {
 	const normalized = normalizeRelPath(relPath);
+	const nested = normalized.match(NESTED_SKILL_SLUG_RE);
+	if (nested?.[1]) return nested[1];
 	if (normalized.endsWith("/SKILL.md")) {
 		const parts = normalized.split("/");
 		return parts.at(-2) ?? null;
@@ -167,10 +168,30 @@ export function slugFromSkillPath(relPath: string): string | null {
 	return null;
 }
 
-export function slugFromPath(filePath: string): string | null {
+/**
+ * Resolve a skill slug from a read path.
+ * Covers `…/SKILL.md`, nested `.claude|agents/skills/<slug>/**`, and flat
+ * `<slug>/references/**` (optionally verified via workspaceRoot + SKILL.md).
+ */
+export function slugFromPath(filePath: string, workspaceRoot?: string): string | null {
 	const normalized = normalizeRelPath(filePath);
-	if (!normalized.endsWith("/SKILL.md")) return null;
-	return slugFromSkillPath(normalized);
+
+	const nested = normalized.match(NESTED_SKILL_SLUG_RE);
+	if (nested?.[1]) return nested[1];
+
+	if (normalized.endsWith("/SKILL.md")) {
+		return slugFromSkillPath(normalized);
+	}
+
+	const flatRef = normalized.match(FLAT_SKILL_REFERENCES_RE);
+	const flatSlug = flatRef?.[1];
+	if (!flatSlug || FLAT_SKILL_DENYLIST.has(flatSlug)) return null;
+
+	if (workspaceRoot) {
+		if (!existsSync(join(workspaceRoot, flatSlug, "SKILL.md"))) return null;
+	}
+
+	return flatSlug;
 }
 
 export function skillCollectAugments(index: SkillIndex): string[] {

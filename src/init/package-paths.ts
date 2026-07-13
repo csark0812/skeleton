@@ -4,10 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
 
-const PACKAGE_ROOT_CANDIDATES = [
-	join(MODULE_DIR, "../.."),
-	join(MODULE_DIR, ".."),
-];
+const PACKAGE_ROOT_CANDIDATES = [join(MODULE_DIR, "../.."), join(MODULE_DIR, "..")];
 
 export function resolvePackageRoot(): string {
 	for (const candidate of PACKAGE_ROOT_CANDIDATES) {

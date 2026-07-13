@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { runAudit } from "../../audit/run.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
 import { registerPath } from "../../register.ts";
-import { runAudit } from "../../audit/run.ts";
 import { runValidateChanged } from "../../validate/changed.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
@@ -112,5 +112,13 @@ describe("validate changed routing", () => {
 		} finally {
 			unlinkSync(tsPath);
 		}
+	});
+
+	it("fails skill-only paths without --base and points at audit skills", () => {
+		const exit = runValidateChanged({
+			root: FLAT_SKILL_ROOT,
+			paths: ["multi/SKILL.md"],
+		});
+		expect(exit).toBe(1);
 	});
 });

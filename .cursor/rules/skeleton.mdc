@@ -1,0 +1,11 @@
+---
+description: Skeleton CLI agent guidance
+globs:
+alwaysApply: true
+---
+
+Follow [AGENTS.md](AGENTS.md) for cold-start and validation lanes.
+
+- Docs / config → `bun run validate:changed -- <path>` or `bun run audit:self`
+- Skill body → `bun run audit:skills` (not path-scoped validate alone)
+- TypeScript → `bun test` + `bun run typecheck` + `bun run build`

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { loadConfig } from "../config/load.ts";
-import { findRepoRoot } from "../config/load.ts";
+import { findRepoRoot, loadConfig } from "../config/load.ts";
 
 describe("loadConfig", () => {
 	it("loads dogfood config from repo root", () => {

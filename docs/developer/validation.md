@@ -16,12 +16,13 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 | Path                                                              | Action                                      |
 | ----------------------------------------------------------------- | ------------------------------------------- |
-| Docs/skills in scan perimeter                                     | `audit docs` / `audit skills` (path-scoped) |
+| Docs in scan perimeter                                            | `audit docs` (path-scoped)                  |
+| Skill trees (`SKILL.md` perimeter)                                | exits non-zero → run `audit skills` (or CI `--base` globals) |
 | `.sh`, `.bash`, `.zsh`                                            | shellcheck or `bash -n`                     |
 | Other `.json`                                                     | JSONC-tolerant syntax check                 |
 | `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)            |
 
-Skipped paths are intentional: skeleton validates SSOT/docs/skills only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run. Mixed doc+code paths still skip code and audit the rest.
+Skipped paths are intentional: skeleton validates SSOT/docs only on the path-scoped lane. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run. Skill-only paths also exit non-zero (skill-body rules are global). Mixed doc+code paths still skip code and audit the rest.
 
 In this repo, code gates are:
 

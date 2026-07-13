@@ -6,9 +6,7 @@ export function runBannedRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
 	for (const abs of collectBannedFiles(ctx.config, ctx.root)) {
 		const rel = relPath(abs, ctx.root);
-		issues.push(
-			issue("banned", rel, "file matches scan.banned — must not exist in repo"),
-		);
+		issues.push(issue("banned", rel, "file matches scan.banned — must not exist in repo"));
 	}
 	return issues;
 }

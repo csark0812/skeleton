@@ -2,13 +2,13 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { findRepoRoot, loadConfig } from "./audit/config/load.ts";
 import { collectScanFiles } from "./audit/core/collect.ts";
-import { buildSkillIndex } from "./audit/core/skill-roots.ts";
 import {
-	REGISTRY_DIR_REL,
-	REGISTRY_REL_PATH,
 	matchesGlobScope,
 	normalizeRelPath,
+	REGISTRY_DIR_REL,
+	REGISTRY_REL_PATH,
 } from "./audit/core/shared.ts";
+import { buildSkillIndex } from "./audit/core/skill-roots.ts";
 import { CUSTOMIZE_PREFIX } from "./customize/resolve.ts";
 
 const REGISTRY_TABLE_ROW_RE = /^\|\s*([^|]+)\|\s*\[[^\]]*\]\(([^)]+)\)\s*\|/;
@@ -123,8 +123,7 @@ function upsertRow(
 		if (afterSection >= 0) {
 			const insertAt = content.indexOf("\n", afterSection + REGISTRY_TABLE_HEADER.length);
 			if (insertAt >= 0) {
-				const updated =
-					content.slice(0, insertAt + 1) + newLine + "\n" + content.slice(insertAt + 1);
+				const updated = `${content.slice(0, insertAt + 1) + newLine}\n${content.slice(insertAt + 1)}`;
 				return { content: updated, action: "added" };
 			}
 		}
@@ -146,9 +145,7 @@ export function registerPath(options: RegisterOptions): RegisterResult {
 	const content = readFileSync(absPath, "utf8");
 	let topic = options.topic ?? extractTopic(content);
 	if (!topic) {
-		throw new Error(
-			`No **Source of truth for** banner in ${relPath} — add banner or pass --topic`,
-		);
+		throw new Error(`No **Source of truth for** banner in ${relPath} — add banner or pass --topic`);
 	}
 
 	const registryLink = toRegistryLink(root, absPath);
@@ -164,7 +161,13 @@ export function registerPath(options: RegisterOptions): RegisterResult {
 		throw new Error("Missing .skeleton/config.yaml — run skeleton init first");
 	}
 
-	const { content: updated, action } = upsertRow(registryContent, topic, registryLink, section, root);
+	const { content: updated, action } = upsertRow(
+		registryContent,
+		topic,
+		registryLink,
+		section,
+		root,
+	);
 	registryContent = updated;
 
 	const result: RegisterResult = {

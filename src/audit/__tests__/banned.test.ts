@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { loadConfig } from "../config/load.ts";
 import { collectBannedFiles } from "../core/collect.ts";
-import { runBannedRule } from "../rules/banned.ts";
 import type { AuditContext } from "../core/context.ts";
+import { runBannedRule } from "../rules/banned.ts";
 
 describe("banned rule", () => {
 	it("flags files matching scan.banned globs repo-wide", () => {
@@ -40,10 +40,8 @@ daysUntilStale: 180
 			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const issues = runBannedRule(ctx);
-		expect(
-			issues.some(
-				(i) => i.rule === "banned" && i.file.includes("foo_ANALYSIS.md"),
-			),
-		).toBe(true);
+		expect(issues.some((i) => i.rule === "banned" && i.file.includes("foo_ANALYSIS.md"))).toBe(
+			true,
+		);
 	});
 });

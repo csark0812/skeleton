@@ -23,10 +23,7 @@ describe("resolveCustomize alwaysInclude", () => {
 		try {
 			writeConfig(root, ["shared-agent-references.md"]);
 			mkdirSync(join(root, ".skeleton", "customize"), { recursive: true });
-			writeFileSync(
-				join(root, ".skeleton", "customize", "code-review.md"),
-				"# slug\n",
-			);
+			writeFileSync(join(root, ".skeleton", "customize", "code-review.md"), "# slug\n");
 			writeFileSync(
 				join(root, ".skeleton", "customize", "shared-agent-references.md"),
 				"# shared\n",
@@ -57,9 +54,7 @@ describe("resolveCustomize alwaysInclude", () => {
 
 			const result = resolveCustomize(root, "brand-design");
 			expect(result.content).toContain("# shared only");
-			expect(result.included).toEqual([
-				".skeleton/customize/shared-agent-references.md",
-			]);
+			expect(result.included).toEqual([".skeleton/customize/shared-agent-references.md"]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

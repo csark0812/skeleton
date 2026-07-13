@@ -79,6 +79,8 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 | `skeleton validate changed` | Changed-file validation |
 | `skeleton validate changed --staged` | Pre-commit |
 | `skeleton validate changed --base origin/main` | CI / PR |
+| `skeleton references sync` | Materialize shared references into skills |
+| `skeleton references check` | Verify generated references match sources |
 | `skeleton customize resolve <slug>` | Print merged customize for a skill slug |
 | `skeleton register <path>` | Register a canonical file in registry |
 

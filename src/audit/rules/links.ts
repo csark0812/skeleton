@@ -2,18 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { readFileContent, relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
-import {
-	extractHeadingSlugs,
-	extractLinksFromMarkdown,
-	slugifyAnchor,
-} from "../core/markdown.ts";
-import { resolveSkillPath } from "../core/skill-roots.ts";
+import { extractHeadingSlugs, extractLinksFromMarkdown, slugifyAnchor } from "../core/markdown.ts";
 import { type Issue, issue } from "../core/report.ts";
-import {
-	isExternalLink,
-	isPlaceholderLink,
-	SKILL_LINK_IN_TARGET_RE,
-} from "../core/shared.ts";
+import { isExternalLink, isPlaceholderLink, SKILL_LINK_IN_TARGET_RE } from "../core/shared.ts";
+import { resolveSkillPath } from "../core/skill-roots.ts";
 
 function resolveLink(sourceFile: string, target: string): string {
 	const withoutAnchor = target.split("#")[0]?.split("?")[0] ?? "";
@@ -32,9 +24,7 @@ function validateTarget(
 	if (isPlaceholderLink(target)) return issues;
 
 	const relSource = relPath(sourceFile, ctx.root);
-	const anchor = target.includes("#")
-		? (target.split("#")[1]?.split("?")[0] ?? "")
-		: "";
+	const anchor = target.includes("#") ? (target.split("#")[1]?.split("?")[0] ?? "") : "";
 	const pathPart = target.split("#")[0]?.split("?")[0] ?? "";
 	const resolved = resolveLink(sourceFile, target);
 	const relTarget = relPath(resolved, ctx.root);
@@ -42,14 +32,9 @@ function validateTarget(
 	const skillMatch = SKILL_LINK_IN_TARGET_RE.exec(target);
 	if (skillMatch?.[1] && ctx.retiredSkills.has(skillMatch[1])) {
 		issues.push(
-			issue(
-				"links",
-				relSource,
-				`references retired skill "${skillMatch[1]}/SKILL.md"`,
-				{
-					link: linkLabel,
-				},
-			),
+			issue("links", relSource, `references retired skill "${skillMatch[1]}/SKILL.md"`, {
+				link: linkLabel,
+			}),
 		);
 		return issues;
 	}
@@ -67,15 +52,12 @@ function validateTarget(
 	}
 
 	if (
-		(target.includes(".claude/agents/") ||
-			target.includes(".cursor/agents/")) &&
+		(target.includes(".claude/agents/") || target.includes(".cursor/agents/")) &&
 		target.endsWith(".md")
 	) {
 		const agentPath = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
 		if (!existsSync(agentPath)) {
-			issues.push(
-				issue("links", relSource, "missing agent file", { link: linkLabel }),
-			);
+			issues.push(issue("links", relSource, "missing agent file", { link: linkLabel }));
 		}
 		return issues;
 	}
@@ -95,14 +77,9 @@ function validateTarget(
 		const anchorSlug = slugifyAnchor(anchor);
 		if (!slugs.has(anchorSlug)) {
 			issues.push(
-				issue(
-					"links",
-					relSource,
-					`broken anchor → #${anchor} in ${relTarget}`,
-					{
-						link: linkLabel,
-					},
-				),
+				issue("links", relSource, `broken anchor → #${anchor} in ${relTarget}`, {
+					link: linkLabel,
+				}),
 			);
 		}
 	}

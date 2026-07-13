@@ -19,7 +19,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule | Global |
 |------|--------|
 | links, doc-meta | no |
-| registry, banned, coverage-gaps, scan-roots, skill-index | yes |
+| registry, banned, coverage-gaps, scan-roots, skill-index, generated-references | yes |
 
 ## Config
 

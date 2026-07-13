@@ -1,19 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
-import type { SkeletonConfig } from "../config/types.ts";
 import { mergedExcludes } from "../config/load.ts";
-import { parseRegistryPaths } from "./registry.ts";
-import {
-	buildSkillIndex,
-	skillCollectAugments,
-	type SkillIndex,
-} from "./skill-roots.ts";
-import {
-	extractScanRootsFromInclude,
-	matchesGlobScope,
-	normalizeRelPath,
-} from "./shared.ts";
+import type { SkeletonConfig } from "../config/types.ts";
+import { extractScanRootsFromInclude, matchesGlobScope, normalizeRelPath } from "./shared.ts";
+import { type SkillIndex, skillCollectAugments } from "./skill-roots.ts";
 
 const MARKDOWN_GLOBS = ["**/*.md", "**/*.mdc"];
 
@@ -25,11 +16,7 @@ function shouldExclude(relPath: string, exclude: string[]): boolean {
 	return exclude.some((pattern) => matchesGlobScope(relPath, pattern));
 }
 
-function expandPatterns(
-	root: string,
-	patterns: string[],
-	exclude: string[],
-): string[] {
+function expandPatterns(root: string, patterns: string[], exclude: string[]): string[] {
 	const files = new Set<string>();
 	for (const pattern of patterns) {
 		for (const abs of globSync(pattern, {
@@ -60,10 +47,7 @@ export function collectScanFiles(
 	return expandPatterns(root, includePatterns, exclude);
 }
 
-export function collectBannedFiles(
-	config: SkeletonConfig,
-	root: string,
-): string[] {
+export function collectBannedFiles(config: SkeletonConfig, root: string): string[] {
 	if (config.scan.banned.length === 0) return [];
 	const exclude = mergedExcludes(config);
 	const files = new Set<string>();
@@ -82,10 +66,7 @@ export function collectBannedFiles(
 	return [...files];
 }
 
-export function collectCoverageCandidateFiles(
-	root: string,
-	exclude: string[],
-): string[] {
+export function collectCoverageCandidateFiles(root: string, exclude: string[]): string[] {
 	const files = new Set<string>();
 	for (const pattern of MARKDOWN_GLOBS) {
 		for (const abs of globSync(pattern, {
@@ -110,11 +91,7 @@ export function collectDocMetaPaths(
 ): string[] {
 	const paths: string[] = [];
 
-	for (const abs of expandPatterns(
-		root,
-		["docs/*/README.md"],
-		mergedExcludes(config),
-	)) {
+	for (const abs of expandPatterns(root, ["docs/*/README.md"], mergedExcludes(config))) {
 		paths.push(normalizeRelPath(relative(root, abs)));
 	}
 
@@ -140,10 +117,7 @@ export function collectDocMetaPaths(
 	return [...new Set(paths)];
 }
 
-export function validateScanRoots(
-	config: SkeletonConfig,
-	root: string,
-): string[] {
+export function validateScanRoots(config: SkeletonConfig, root: string): string[] {
 	const missing: string[] = [];
 	for (const tree of extractScanRootsFromInclude(config.scan.include)) {
 		if (!existsSync(join(root, tree))) missing.push(tree);
@@ -151,10 +125,7 @@ export function validateScanRoots(
 	return missing;
 }
 
-export function filterDocMetaPaths(
-	docMetaPaths: string[],
-	paths: string[],
-): string[] {
+export function filterDocMetaPaths(docMetaPaths: string[], paths: string[]): string[] {
 	if (paths.length === 0) return docMetaPaths;
 	const normalizedPaths = paths.map((path) => normalizeRelPath(path));
 	return docMetaPaths.filter((rel) =>
@@ -162,17 +133,11 @@ export function filterDocMetaPaths(
 	);
 }
 
-export function filterToPaths(
-	files: string[],
-	paths: string[],
-	root: string,
-): string[] {
+export function filterToPaths(files: string[], paths: string[], root: string): string[] {
 	const normalizedPaths = paths.map((path) => normalizeRelPath(path));
 	return files.filter((abs) => {
 		const rel = normalizeRelPath(relative(root, abs));
-		return normalizedPaths.some(
-			(path) => rel === path || rel.startsWith(`${path}/`),
-		);
+		return normalizedPaths.some((path) => rel === path || rel.startsWith(`${path}/`));
 	});
 }
 

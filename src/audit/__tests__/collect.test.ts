@@ -1,37 +1,27 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
+import { loadConfig } from "../config/load.ts";
 import {
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
 	validateScanRoots,
 } from "../core/collect.ts";
-import { loadConfig } from "../config/load.ts";
 import { matchesGlobScope } from "../core/shared.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 
 describe("matchesGlobScope", () => {
 	it("matches deploy doc globs", () => {
-		expect(
-			matchesGlobScope("apps/client/DEPLOYMENT.md", "**/DEPLOYMENT.md"),
-		).toBe(true);
+		expect(matchesGlobScope("apps/client/DEPLOYMENT.md", "**/DEPLOYMENT.md")).toBe(true);
 		expect(matchesGlobScope("docs/README.md", "**/DEPLOYMENT.md")).toBe(false);
 	});
 
 	it("matches brace alternation", () => {
-		expect(
-			matchesGlobScope(
-				"apps/x/DEPLOYMENT.md",
-				"**/{DEPLOYMENT,DISTRIBUTION}.md",
-			),
-		).toBe(true);
-		expect(
-			matchesGlobScope(
-				"apps/x/DISTRIBUTION.md",
-				"**/{DEPLOYMENT,DISTRIBUTION}.md",
-			),
-		).toBe(true);
+		expect(matchesGlobScope("apps/x/DEPLOYMENT.md", "**/{DEPLOYMENT,DISTRIBUTION}.md")).toBe(true);
+		expect(matchesGlobScope("apps/x/DISTRIBUTION.md", "**/{DEPLOYMENT,DISTRIBUTION}.md")).toBe(
+			true,
+		);
 	});
 });
 
@@ -64,38 +54,25 @@ describe("validateScanRoots", () => {
 describe("filterDocMetaPaths", () => {
 	it("keeps only doc-meta paths matching explicit --paths", () => {
 		const all = ["docs/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
-		expect(filterDocMetaPaths(all, ["docs/dev/b.md"])).toEqual([
-			"docs/dev/b.md",
-		]);
+		expect(filterDocMetaPaths(all, ["docs/dev/b.md"])).toEqual(["docs/dev/b.md"]);
 	});
 
 	it("keeps doc-meta paths under a directory path", () => {
 		const all = ["docs/dev/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
-		expect(filterDocMetaPaths(all, ["docs/dev"])).toEqual([
-			"docs/dev/a.md",
-			"docs/dev/b.md",
-		]);
+		expect(filterDocMetaPaths(all, ["docs/dev"])).toEqual(["docs/dev/a.md", "docs/dev/b.md"]);
 	});
 });
 
 describe("filterToPaths", () => {
 	it("keeps files matching explicit file paths", () => {
 		const root = FIXTURES;
-		const files = [
-			`${root}/docs/a.md`,
-			`${root}/docs/dev/b.md`,
-			`${root}/apps/client/x.ts`,
-		];
-		expect(filterToPaths(files, ["docs/dev/b.md"], root)).toEqual([
-			`${root}/docs/dev/b.md`,
-		]);
+		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`, `${root}/apps/client/x.ts`];
+		expect(filterToPaths(files, ["docs/dev/b.md"], root)).toEqual([`${root}/docs/dev/b.md`]);
 	});
 
 	it("keeps files under directory paths", () => {
 		const root = FIXTURES;
 		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`];
-		expect(filterToPaths(files, ["docs/dev"], root)).toEqual([
-			`${root}/docs/dev/b.md`,
-		]);
+		expect(filterToPaths(files, ["docs/dev"], root)).toEqual([`${root}/docs/dev/b.md`]);
 	});
 });

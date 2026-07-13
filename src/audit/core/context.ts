@@ -1,11 +1,11 @@
+import { findRepoRoot, loadConfig, retiredSkills } from "../config/load.ts";
+import type { SkeletonConfig } from "../config/types.ts";
 import {
 	collectDocMetaPaths,
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
 } from "./collect.ts";
-import { findRepoRoot, loadConfig, retiredSkills } from "../config/load.ts";
-import type { SkeletonConfig } from "../config/types.ts";
 import { parseRegistry } from "./registry.ts";
 import { buildSkillIndex, type SkillIndex } from "./skill-roots.ts";
 

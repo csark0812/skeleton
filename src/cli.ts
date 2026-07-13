@@ -4,13 +4,9 @@ import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
+import { printSyncResult, runReferencesCheck, runReferencesSync } from "./references/run.ts";
 import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
-import {
-	printSyncResult,
-	runReferencesCheck,
-	runReferencesSync,
-} from "./references/run.ts";
 
 function usage(): void {
 	console.error(`Usage: skeleton <command>

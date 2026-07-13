@@ -2,12 +2,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
+import { type Issue, issue } from "../core/report.ts";
 import {
 	REGISTRY_REL_PATH,
 	SOURCE_OF_TRUTH_BANNER_LINE_RE,
 	SOURCE_OF_TRUTH_BANNER_RE,
 } from "../core/shared.ts";
-import { type Issue, issue } from "../core/report.ts";
 
 export function runRegistryRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];

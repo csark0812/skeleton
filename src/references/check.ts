@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { AuditContext } from "../audit/core/context.ts";
 import { type Issue, issue } from "../audit/core/report.ts";
@@ -62,11 +62,7 @@ export function runGeneratedReferencesCheck(root: string): Issue[] {
 		const generated = readFileSync(targetPath, "utf8");
 		if (!isGeneratedReference(generated)) {
 			issues.push(
-				issue(
-					"generated-references",
-					targetRel,
-					"expected generated-reference provenance header",
-				),
+				issue("generated-references", targetRel, "expected generated-reference provenance header"),
 			);
 			continue;
 		}
@@ -79,11 +75,7 @@ export function runGeneratedReferencesCheck(root: string): Issue[] {
 		const canonicalPath = join(root, sourceRel);
 		if (!existsSync(canonicalPath)) {
 			issues.push(
-				issue(
-					"generated-references",
-					targetRel,
-					`canonical source missing: ${sourceRel}`,
-				),
+				issue("generated-references", targetRel, `canonical source missing: ${sourceRel}`),
 			);
 			continue;
 		}

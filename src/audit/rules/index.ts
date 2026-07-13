@@ -1,3 +1,4 @@
+import { generatedReferencesRule } from "../../references/check.ts";
 import type { AuditContext } from "../core/context.ts";
 import type { Issue } from "../core/report.ts";
 import { bannedRule } from "./banned.ts";
@@ -7,7 +8,6 @@ import { linksRule } from "./links.ts";
 import { registryRule } from "./registry.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
-import { generatedReferencesRule } from "../../references/check.ts";
 
 export interface AuditRule {
 	id: string;

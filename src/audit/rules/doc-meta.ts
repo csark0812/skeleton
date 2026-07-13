@@ -14,13 +14,7 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 		if (!existsSync(abs)) continue;
 		const content = readFileSync(abs, "utf8");
 		if (!DOC_META_RE.test(content)) {
-			issues.push(
-				issue(
-					"doc-meta",
-					relPath,
-					"missing doc-meta comment (owner + last-reviewed)",
-				),
-			);
+			issues.push(issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)"));
 			continue;
 		}
 		const match = DOC_META_LAST_REVIEWED_RE.exec(content);

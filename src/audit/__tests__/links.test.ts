@@ -8,20 +8,14 @@ const FIXTURES = join(import.meta.dir, "fixtures");
 describe("runLinksRule", () => {
 	it("flags broken paths", () => {
 		const ctx = createContext({ root: FIXTURES });
-		ctx.files = [
-			join(FIXTURES, "links-source.md"),
-			join(FIXTURES, "target.md"),
-		];
+		ctx.files = [join(FIXTURES, "links-source.md"), join(FIXTURES, "target.md")];
 		const issues = runLinksRule(ctx);
 		expect(issues.some((i) => i.message.includes("broken link"))).toBe(true);
 	});
 
 	it("accepts valid reference anchors", () => {
 		const ctx = createContext({ root: FIXTURES });
-		ctx.files = [
-			join(FIXTURES, "links-source.md"),
-			join(FIXTURES, "target.md"),
-		];
+		ctx.files = [join(FIXTURES, "links-source.md"), join(FIXTURES, "target.md")];
 		const issues = runLinksRule(ctx);
 		expect(issues.some((i) => i.message.includes("broken anchor"))).toBe(false);
 	});

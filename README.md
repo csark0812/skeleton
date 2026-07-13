@@ -82,6 +82,7 @@ skeleton init [--skills] [--force-hooks]
 skeleton register <path> [--topic=…]
 skeleton audit docs|skills|self [--strict] [--paths=a,b]
 skeleton validate changed [--staged | --base <ref>] [paths…]
+skeleton references sync|check
 skeleton customize resolve <slug>
 ```
 
@@ -132,7 +133,7 @@ One command for humans: `npx skeleton init --skills`.
 
 ## Development
 
-Requires Node ≥ 22. Uses Bun for dev and tests. Agent cold-start: [AGENTS.md](AGENTS.md).
+Requires Bun `1.2.x` and Node ≥ 22. Agent cold-start: [AGENTS.md](AGENTS.md).
 
 ```bash
 bun install
@@ -142,5 +143,6 @@ bun run build
 bun run audit:self
 ```
 
-`validate:changed` is docs/skills only — it skips code/config extensions (see table). All-skip inputs exit non-zero. Use `bun test` and `bun run typecheck` for code.
+`validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table) and skill-body edits need `audit skills`. All-skip / skill-only inputs exit non-zero. Use `bun test`, `bun run typecheck`, and `bun run build` for code.
 
+Optional: `brew install pre-commit` (or `pipx install pre-commit`), then `pre-commit install` to wire `.pre-commit-config.yaml`.

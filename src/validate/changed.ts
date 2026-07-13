@@ -1,10 +1,10 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
-import { spawnSync } from "node:child_process";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
-import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
 import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
+import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
 import { runAudit } from "../audit/run.ts";
 import { gitDiffChangedFiles } from "./git-diff.ts";
 
@@ -61,9 +61,7 @@ function parseJsonContent(content: string): unknown {
 	try {
 		return JSON.parse(content);
 	} catch {
-		const withoutComments = content
-			.replace(/\/\*[\s\S]*?\*\//g, "")
-			.replace(/^\s*\/\/.*$/gm, "");
+		const withoutComments = content.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 		const withoutTrailingCommas = withoutComments.replace(/,\s*([}\]])/g, "$1");
 		return JSON.parse(withoutTrailingCommas);
 	}
@@ -134,10 +132,7 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 	}
 
 	const audited =
-		buckets.docs.length +
-		buckets.skills.length +
-		buckets.shell.length +
-		buckets.json.length;
+		buckets.docs.length + buckets.skills.length + buckets.shell.length + buckets.json.length;
 
 	let exitCode = 0;
 
@@ -177,6 +172,19 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 	}
 
 	if (buckets.skills.length > 0) {
+		const skillsOnly =
+			buckets.docs.length === 0 && buckets.shell.length === 0 && buckets.json.length === 0;
+		// Skill-body rules are all global; path-scoped audit is a no-op for skills.
+		// Without --base (CI globals), require the full skills suite so green doesn't
+		// look like skill coverage.
+		if (skillsOnly && !options.base) {
+			console.error(
+				"validate changed: skill paths need the full skills suite (path-scoped skill rules are empty).\n" +
+					"  Run: skeleton audit skills\n" +
+					"  Or:  skeleton audit self / npm test (toolbox)",
+			);
+			return 1;
+		}
 		const skillExit = runAudit({
 			suite: "skills",
 			strict: false,

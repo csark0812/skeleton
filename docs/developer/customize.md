@@ -10,15 +10,15 @@
 .skeleton/customize/<slug>.md
 ```
 
-`skeleton init` wires IDE hooks to inject customize content on `SKILL.md` read (and Claude `Skill` tool invoke).
+`skeleton init` wires IDE hooks to inject customize content on skill reads (and Claude `Skill` tool invoke).
 
 ## Inject gates
 
 | Triggers inject | Does not inject |
 | --- | --- |
-| `Read` / `read_file` of a path ending in `/SKILL.md` | `Grep`, shell `cat`/`head`, or any non-`SKILL.md` skill file |
-| Claude `Skill` tool (slug from tool input) | Nested `references/*.md` reads |
-| | Missing `node_modules/@csark0812/skeleton` (hooks no-op / fail) |
+| `Read` / `read_file` of a path ending in `/SKILL.md` | `Grep`, shell `cat`/`head` |
+| `Read` / `read_file` under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**` when that skill exists) | Non-skill paths (no resolvable slug) |
+| Claude `Skill` tool (slug from tool input) | Missing `node_modules/@csark0812/skeleton` (hooks no-op / fail) |
 
 ### Host matchers (init templates)
 

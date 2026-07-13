@@ -5,8 +5,7 @@ export const REGISTRY_DIR_REL = ".skeleton";
 
 export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;
-export const SOURCE_OF_TRUTH_BANNER_LINE_RE =
-	/^\s*\*\*Source of truth for\*\*/m;
+export const SOURCE_OF_TRUTH_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*/m;
 export const DOC_META_RE =
 	/<!--\s*doc-meta:\s*owner=[^|]+\|\s*last-reviewed=\d{4}-\d{2}-\d{2}\s*-->/;
 export const DOC_META_LAST_REVIEWED_RE = /last-reviewed=(\d{4}-\d{2}-\d{2})/;
@@ -24,9 +23,7 @@ export function isExternalLink(target: string): boolean {
 }
 
 export function isPlaceholderLink(target: string): boolean {
-	return (
-		!target.includes("/") && !target.includes(".") && !target.startsWith("#")
-	);
+	return !target.includes("/") && !target.includes(".") && !target.startsWith("#");
 }
 
 function escapeRegexLiteral(s: string): string {
@@ -47,10 +44,7 @@ function globToRegex(glob: string): RegExp {
 	return new RegExp(`^${pattern}$`);
 }
 
-export function matchesGlobScope(
-	relPath: string,
-	scope: string | undefined,
-): boolean {
+export function matchesGlobScope(relPath: string, scope: string | undefined): boolean {
 	if (!scope) return true;
 	return globToRegex(scope).test(normalizeRelPath(relPath));
 }

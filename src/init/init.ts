@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-	mergeHookConfigs,
-	mergePackageJsonScripts,
 	type MergeAction,
 	type MergeHookResult,
+	mergeHookConfigs,
+	mergePackageJsonScripts,
 } from "./merge-hooks.ts";
 import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
 import { resolveHookCommand } from "./resolve-hook-command.ts";
@@ -58,8 +58,7 @@ function assertPackageResolvable(cwd: string): void {
 		dependencies?: Record<string, string>;
 	};
 	const hasDep =
-		pkg.devDependencies?.["@csark0812/skeleton"] ||
-		pkg.dependencies?.["@csark0812/skeleton"];
+		pkg.devDependencies?.["@csark0812/skeleton"] || pkg.dependencies?.["@csark0812/skeleton"];
 	if (!hasDep) {
 		try {
 			resolvePackageRoot();

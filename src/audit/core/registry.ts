@@ -1,14 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import {
-	REGISTRY_DIR_REL,
-	REGISTRY_REL_PATH,
-	normalizeRelPath,
-} from "./shared.ts";
+import { normalizeRelPath, REGISTRY_DIR_REL, REGISTRY_REL_PATH } from "./shared.ts";
 
 const REGISTRY_TABLE_ROW_RE = /^\|\s*[^|]+\|\s*\[[^\]]*\]\(([^)]+)\)\s*\|/;
-export const REGISTRY_TABLE_HEADER_RE =
-	/\|\s*Topic\s*\|\s*Canonical file\s*\|/i;
+export const REGISTRY_TABLE_HEADER_RE = /\|\s*Topic\s*\|\s*Canonical file\s*\|/i;
 
 export interface RegistryParseResult {
 	paths: string[];

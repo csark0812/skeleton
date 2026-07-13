@@ -1,15 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import type { AuditContext } from "../core/context.ts";
-import {
-    listSkillSlugs,
-    resolveSkillPath,
-    type SkillIndex
-} from "../core/skill-roots.ts";
-import { type Issue, issue } from "../core/report.ts";
-import { SKILL_LINK_RE } from "../core/shared.ts";
 import { isGeneratedReference } from "../../references/constants.ts";
 import { nonPublicSkills } from "../config/load.ts";
+import type { AuditContext } from "../core/context.ts";
+import { type Issue, issue } from "../core/report.ts";
+import { SKILL_LINK_RE } from "../core/shared.ts";
+import { listSkillSlugs, resolveSkillPath, type SkillIndex } from "../core/skill-roots.ts";
 
 function walkSkillMarkdown(dir: string): string[] {
 	const files: string[] = [];
@@ -42,11 +38,7 @@ function parseReadmeTaxonomySlugs(content: string): string[] {
 	return slugs;
 }
 
-function scanFileForSkillLinks(
-	ctx: AuditContext,
-	filePath: string,
-	index: SkillIndex,
-): Issue[] {
+function scanFileForSkillLinks(ctx: AuditContext, filePath: string, index: SkillIndex): Issue[] {
 	const issues: Issue[] = [];
 	const rel = relative(ctx.root, filePath).replace(/\\/g, "/");
 	const content = readFileSync(filePath, "utf8");
@@ -56,20 +48,12 @@ function scanFileForSkillLinks(
 		if (!slug) continue;
 
 		if (ctx.retiredSkills.has(slug)) {
-			issues.push(
-				issue(
-					"skill-index",
-					rel,
-					`references retired skill "${slug}/SKILL.md"`,
-				),
-			);
+			issues.push(issue("skill-index", rel, `references retired skill "${slug}/SKILL.md"`));
 			continue;
 		}
 
 		if (!resolveSkillPath(index, ctx.root, slug)) {
-			issues.push(
-				issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`),
-			);
+			issues.push(issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`));
 		}
 	}
 	return issues;
@@ -99,13 +83,7 @@ function validateReadmeTaxonomy(
 
 		for (const slug of publicSlugs) {
 			if (!taxonomySlugs.includes(slug)) {
-				issues.push(
-					issue(
-						"skill-index",
-						relReadme,
-						`taxonomy missing public skill "${slug}"`,
-					),
-				);
+				issues.push(issue("skill-index", relReadme, `taxonomy missing public skill "${slug}"`));
 			}
 		}
 
@@ -133,9 +111,7 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 
 	for (const skillRoot of index.roots) {
 		const scanRoot =
-			skillRoot.kind === "nested"
-				? join(ctx.root, skillRoot.relPath)
-				: join(ctx.root);
+			skillRoot.kind === "nested" ? join(ctx.root, skillRoot.relPath) : join(ctx.root);
 		if (skillRoot.kind === "nested" && existsSync(scanRoot)) {
 			for (const skillMd of walkSkillMarkdown(scanRoot)) {
 				issues.push(...scanFileForSkillLinks(ctx, skillMd, index));

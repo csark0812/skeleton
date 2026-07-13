@@ -2,13 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runGeneratedReferencesCheck } from "../check.ts";
+import { isGeneratedReference, stripGeneratedHeader } from "../constants.ts";
 import {
-    discoverSkillReferencePlans,
-    findSharedRefLinks,
-    rewriteSharedRefTarget,
+	discoverSkillReferencePlans,
+	findSharedRefLinks,
+	rewriteSharedRefTarget,
 } from "../discover.ts";
 import { syncReferences } from "../sync.ts";
-import { isGeneratedReference, stripGeneratedHeader } from "../constants.ts";
 
 const FIXTURE = join(import.meta.dir, "fixtures", "reference-sync");
 
@@ -18,26 +18,15 @@ describe("references", () => {
 			"Read [dialogue-contract.md](../references/dialogue-contract.md) and [build.md](../references/planning/build.md).",
 			"crystallize/SKILL.md",
 		);
-		expect(links.map((l) => l.refPath)).toEqual([
-			"dialogue-contract.md",
-			"planning/build.md",
-		]);
+		expect(links.map((l) => l.refPath)).toEqual(["dialogue-contract.md", "planning/build.md"]);
 	});
 
 	it("rewrites shared ref targets relative to source file", () => {
 		expect(
-			rewriteSharedRefTarget(
-				"crystallize/SKILL.md",
-				"crystallize",
-				"dialogue-contract.md",
-			),
+			rewriteSharedRefTarget("crystallize/SKILL.md", "crystallize", "dialogue-contract.md"),
 		).toBe("references/dialogue-contract.md");
 		expect(
-			rewriteSharedRefTarget(
-				"code-review/references/output.md",
-				"code-review",
-				"output-schema.md",
-			),
+			rewriteSharedRefTarget("code-review/references/output.md", "code-review", "output-schema.md"),
 		).toBe("output-schema.md");
 	});
 
@@ -46,23 +35,14 @@ describe("references", () => {
 		rmSync(root, { recursive: true, force: true });
 		mkdirSync(join(root, ".skeleton", "references"), { recursive: true });
 		mkdirSync(join(root, "demo"), { recursive: true });
-		writeFileSync(
-			join(root, ".skeleton", "references", "shared.md"),
-			"# Shared\n",
-		);
-		writeFileSync(
-			join(root, "demo", "SKILL.md"),
-			"See [shared.md](../references/shared.md).\n",
-		);
+		writeFileSync(join(root, ".skeleton", "references", "shared.md"), "# Shared\n");
+		writeFileSync(join(root, "demo", "SKILL.md"), "See [shared.md](../references/shared.md).\n");
 
 		const result = syncReferences({ root });
 		expect(result.written).toEqual(["demo/references/shared.md"]);
 		expect(result.rewritten).toEqual(["demo/SKILL.md"]);
 
-		const generated = readFileSync(
-			join(root, "demo", "references", "shared.md"),
-			"utf8",
-		);
+		const generated = readFileSync(join(root, "demo", "references", "shared.md"), "utf8");
 		expect(isGeneratedReference(generated)).toBe(true);
 		expect(stripGeneratedHeader(generated)).toBe("# Shared\n");
 
@@ -76,14 +56,8 @@ describe("references", () => {
 		rmSync(root, { recursive: true, force: true });
 		mkdirSync(join(root, ".skeleton", "references"), { recursive: true });
 		mkdirSync(join(root, "demo", "references"), { recursive: true });
-		writeFileSync(
-			join(root, ".skeleton", "references", "shared.md"),
-			"# Canonical\n",
-		);
-		writeFileSync(
-			join(root, "demo", "SKILL.md"),
-			"See [shared.md](references/shared.md).\n",
-		);
+		writeFileSync(join(root, ".skeleton", "references", "shared.md"), "# Canonical\n");
+		writeFileSync(join(root, "demo", "SKILL.md"), "See [shared.md](references/shared.md).\n");
 		writeFileSync(
 			join(root, "demo", "references", "shared.md"),
 			`<!-- skeleton: generated-reference
@@ -96,9 +70,7 @@ redundancy: intentional
 		);
 
 		const issues = runGeneratedReferencesCheck(root);
-		expect(issues.some((i) => i.message.includes("stale generated copy"))).toBe(
-			true,
-		);
+		expect(issues.some((i) => i.message.includes("stale generated copy"))).toBe(true);
 	});
 
 	it("plans references per skill from disk", () => {
@@ -120,20 +92,11 @@ redundancy: intentional
 			join(root, ".skeleton", "references", "handoffs.md"),
 			"See [verify.md](planning/verify.md).\n",
 		);
-		writeFileSync(
-			join(root, ".skeleton", "references", "planning", "verify.md"),
-			"# Verify\n",
-		);
-		writeFileSync(
-			join(root, "demo", "SKILL.md"),
-			"See [handoffs.md](references/handoffs.md).\n",
-		);
+		writeFileSync(join(root, ".skeleton", "references", "planning", "verify.md"), "# Verify\n");
+		writeFileSync(join(root, "demo", "SKILL.md"), "See [handoffs.md](references/handoffs.md).\n");
 
 		const plans = discoverSkillReferencePlans(root);
 		expect(plans).toHaveLength(1);
-		expect([...(plans[0]?.refPaths ?? [])].sort()).toEqual([
-			"handoffs.md",
-			"planning/verify.md",
-		]);
+		expect([...(plans[0]?.refPaths ?? [])].sort()).toEqual(["handoffs.md", "planning/verify.md"]);
 	});
 });

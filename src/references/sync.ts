@@ -1,18 +1,14 @@
 import {
 	existsSync,
 	mkdirSync,
-	readFileSync,
 	readdirSync,
+	readFileSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { normalizeRelPath } from "../audit/core/shared.ts";
-import {
-	CANONICAL_REFS_DIR,
-	formatGeneratedHeader,
-	isGeneratedReference,
-} from "./constants.ts";
+import { CANONICAL_REFS_DIR, formatGeneratedHeader, isGeneratedReference } from "./constants.ts";
 import {
 	discoverSkillReferencePlans,
 	generatedRefPath,
@@ -49,10 +45,7 @@ function walkMarkdownFiles(dir: string, root: string): string[] {
 	return files;
 }
 
-function listGeneratedReferenceFiles(
-	skillDir: string,
-	skill: string,
-): string[] {
+function listGeneratedReferenceFiles(skillDir: string, skill: string): string[] {
 	const refsDir = join(skillDir, "references");
 	if (!existsSync(refsDir)) return [];
 
@@ -80,9 +73,7 @@ export function syncReferences(options: SyncOptions = {}): SyncResult {
 	const root = options.root ?? process.cwd();
 	const canonicalDir = join(root, CANONICAL_REFS_DIR);
 	if (!existsSync(canonicalDir)) {
-		throw new Error(
-			`canonical references dir not found: ${CANONICAL_REFS_DIR}`,
-		);
+		throw new Error(`canonical references dir not found: ${CANONICAL_REFS_DIR}`);
 	}
 
 	const result: SyncResult = {
@@ -112,9 +103,7 @@ export function syncReferences(options: SyncOptions = {}): SyncResult {
 				mkdirSync(dirname(targetPath), { recursive: true });
 			}
 
-			const existing = existsSync(targetPath)
-				? readFileSync(targetPath, "utf8")
-				: null;
+			const existing = existsSync(targetPath) ? readFileSync(targetPath, "utf8") : null;
 			if (existing !== nextContent) {
 				if (!options.dryRun) writeFileSync(targetPath, nextContent, "utf8");
 				result.written.push(targetRel);
@@ -135,10 +124,7 @@ export function syncReferences(options: SyncOptions = {}): SyncResult {
 			}
 		}
 
-		for (const generatedRel of listGeneratedReferenceFiles(
-			skillDir,
-			plan.skill,
-		)) {
+		for (const generatedRel of listGeneratedReferenceFiles(skillDir, plan.skill)) {
 			const refPath = generatedRel.slice(`${plan.skill}/references/`.length);
 			if (!plan.refPaths.has(refPath)) {
 				const fullPath = join(root, generatedRel);

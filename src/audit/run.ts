@@ -71,9 +71,7 @@ export function runAudit(options: AuditCliOptions): number {
 		root: options.root,
 		paths: options.paths.length > 0 ? options.paths : undefined,
 	});
-	const rules = rulesForSuite(options.suite).filter(
-		(r) => !options.only || options.only.has(r.id),
-	);
+	const rules = rulesForSuite(options.suite).filter((r) => !options.only || options.only.has(r.id));
 
 	const pathScoped = options.paths.length > 0 && !options.globalOnly;
 	const issues = [];
@@ -87,13 +85,8 @@ export function runAudit(options: AuditCliOptions): number {
 		strict: options.strict,
 		json: options.json,
 		label,
-		fileCount:
-			options.suite === "docs" || options.suite === "self"
-				? ctx.files.length
-				: undefined,
+		fileCount: options.suite === "docs" || options.suite === "self" ? ctx.files.length : undefined,
 		successSuffix:
-			options.suite === "skills"
-				? ` (${skillCountOnDisk(ctx)} skills on disk)`
-				: undefined,
+			options.suite === "skills" ? ` (${skillCountOnDisk(ctx)} skills on disk)` : undefined,
 	});
 }
