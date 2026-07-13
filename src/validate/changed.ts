@@ -133,6 +133,12 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 		buckets[bucket].push(relPath);
 	}
 
+	const audited =
+		buckets.docs.length +
+		buckets.skills.length +
+		buckets.shell.length +
+		buckets.json.length;
+
 	let exitCode = 0;
 
 	if (options.base) {
@@ -146,6 +152,15 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 			globalOnly: true,
 		});
 		if (globalExit !== 0) exitCode = 1;
+	}
+
+	if (skipped > 0 && audited === 0) {
+		console.error(
+			"validate changed: all paths were skipped (code/config). This does not verify TypeScript or app code.\n" +
+				"  In this repo: bun test && bun run typecheck\n" +
+				"  Consumers: run your local code validation gates.",
+		);
+		return 1;
 	}
 
 	if (buckets.docs.length > 0) {

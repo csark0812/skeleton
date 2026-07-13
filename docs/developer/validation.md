@@ -9,19 +9,21 @@
 ```bash
 skeleton validate changed              # git diff HEAD
 skeleton validate changed --staged     # pre-commit
-skeleton validate changed --base main  # CI merge-base diff
+skeleton validate changed --base origin/main  # CI merge-base diff
 ```
 
 ## Path routing
 
-| Path                                         | Action                                      |
-| -------------------------------------------- | ------------------------------------------- |
-| Docs/skills in scan perimeter                | `audit docs` / `audit skills` (path-scoped) |
-| `.sh`, `.bash`, `.zsh`                       | shellcheck or `bash -n`                     |
-| Other `.json`                                | JSONC-tolerant syntax check                 |
-| `.ts`, `.py`, `package.json`, `project.json` | skip                                        |
+| Path                                                              | Action                                      |
+| ----------------------------------------------------------------- | ------------------------------------------- |
+| Docs/skills in scan perimeter                                     | `audit docs` / `audit skills` (path-scoped) |
+| `.sh`, `.bash`, `.zsh`                                            | shellcheck or `bash -n`                     |
+| Other `.json`                                                     | JSONC-tolerant syntax check                 |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)            |
 
-This skip list is intentional: skeleton validates SSOT/docs/skills only. In this repo, code gates are separate:
+Skipped paths are intentional: skeleton validates SSOT/docs/skills only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run. Mixed doc+code paths still skip code and audit the rest.
+
+In this repo, code gates are:
 
 ```bash
 bun test

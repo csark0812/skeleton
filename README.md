@@ -87,12 +87,12 @@ skeleton customize resolve <slug>
 
 **Validate changed** routes git diffs to the right audit:
 
-| Path                                         | Action                      |
-| -------------------------------------------- | --------------------------- |
-| Docs/skills in scan perimeter                | path-scoped audit           |
-| `.sh`, `.bash`, `.zsh`                       | shellcheck or `bash -n`     |
-| Other `.json`                                | JSONC-tolerant syntax check |
-| `.ts`, `.py`, `package.json`, `project.json` | skip                        |
+| Path                                                              | Action                      |
+| ----------------------------------------------------------------- | --------------------------- |
+| Docs/skills in scan perimeter                                     | path-scoped audit           |
+| `.sh`, `.bash`, `.zsh`                                            | shellcheck or `bash -n`     |
+| Other `.json`                                                     | JSONC-tolerant syntax check |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip) |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
 CI: `skeleton validate changed --base origin/main` (global rules first, then changed files).
@@ -142,8 +142,5 @@ bun run build
 bun run audit:self
 ```
 
-`validate:changed` is docs/skills only — it skips `.ts` / `.js` / `package.json`. Use `bun test` and `bun run typecheck` for code.
+`validate:changed` is docs/skills only — it skips code/config extensions (see table). All-skip inputs exit non-zero. Use `bun test` and `bun run typecheck` for code.
 
-### Publishing 1.1.2 (human)
-
-Keep version `1.1.2` until `npm publish`. Preflight: `bun test && bun run typecheck && bun run build && bun run audit:self`. Then publish and tag when ready (npm is still on `1.1.1` until then).

@@ -29,7 +29,7 @@ bun test ./src/audit/__tests__/banned.test.ts
 | Docs / skills / config / registry | `bun run validate:changed -- <path>` or `bun run audit:self` |
 | TypeScript under `src/` | `bun test` (or scoped path) + `bun run typecheck` |
 
-`validate:changed` **skips** `.ts`, `.tsx`, `.js`, `.py`, and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router.
+`validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped, it exits non-zero and points you at `bun test` + `bun run typecheck`.
 
 ## Layout
 

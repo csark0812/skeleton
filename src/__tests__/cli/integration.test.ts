@@ -86,11 +86,31 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(0);
 	});
 
-	it("skips ts paths", () => {
-		const exit = runValidateChanged({
-			root: FLAT_SKILL_ROOT,
-			paths: ["src/cli.ts"],
-		});
-		expect(exit).toBe(0);
+	it("fails when all paths are skipped code", () => {
+		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
+		writeFileSync(tsPath, "export const n = 1;\n");
+		try {
+			const exit = runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["src/example.ts"],
+			});
+			expect(exit).toBe(1);
+		} finally {
+			unlinkSync(tsPath);
+		}
+	});
+
+	it("passes mixed docs and skipped ts", () => {
+		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
+		writeFileSync(tsPath, "export const n = 1;\n");
+		try {
+			const exit = runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["docs/README.md", "src/example.ts"],
+			});
+			expect(exit).toBe(0);
+		} finally {
+			unlinkSync(tsPath);
+		}
 	});
 });
