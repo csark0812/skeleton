@@ -19,6 +19,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun test
+      - run: bun run typecheck
       - run: bun run build
       - run: node dist/cli.js audit self
       - run: npm run validate:ci

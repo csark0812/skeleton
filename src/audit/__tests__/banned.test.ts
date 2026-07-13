@@ -37,6 +37,7 @@ daysUntilStale: 180
 			registryPaths: [],
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
+			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const issues = runBannedRule(ctx);
 		expect(

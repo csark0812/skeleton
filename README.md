@@ -1,5 +1,9 @@
 # Skeleton
 
+**Source of truth for** Package overview.
+
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+
 Single source of truth (SSOT) linter for agent-enabled repos.
 
 Agent repos accumulate skills, rules, registries, and cross-linked docs faster than anyone can keep them straight by hand. Code repos solved this decades ago with ESLint — deterministic checks, CI gates, fix what you can before merge. Skeleton does the same job for documentation architecture: what's canonical, what links where, what must not exist, and whether your skill overrides are wired correctly.
@@ -128,11 +132,18 @@ One command for humans: `npx skeleton init --skills`.
 
 ## Development
 
-Requires Node ≥ 22. Uses Bun for dev and tests.
+Requires Node ≥ 22. Uses Bun for dev and tests. Agent cold-start: [AGENTS.md](AGENTS.md).
 
 ```bash
 bun install
 bun test
+bun run typecheck
 bun run build
 bun run audit:self
 ```
+
+`validate:changed` is docs/skills only — it skips `.ts` / `.js` / `package.json`. Use `bun test` and `bun run typecheck` for code.
+
+### Publishing 1.1.2 (human)
+
+Keep version `1.1.2` until `npm publish`. Preflight: `bun test && bun run typecheck && bun run build && bun run audit:self`. Then publish and tag when ready (npm is still on `1.1.1` until then).

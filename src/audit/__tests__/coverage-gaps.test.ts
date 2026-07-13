@@ -19,6 +19,7 @@ describe("coverageGapsRule", () => {
 			registryPaths: [],
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
+			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const exclude = [...COVERAGE_BUILTIN_EXCLUDES, ...config.scan.exclude];
 		const issues = runCoverageGapsRule(ctx);

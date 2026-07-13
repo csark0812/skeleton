@@ -20,12 +20,13 @@
 		"test": "bun test",
 		"test:audit": "bun test src/audit/__tests__",
 		"test:cli": "bun test src/__tests__/cli",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
 		"validate:changed": "bun src/cli.ts validate changed",
 		"validate:ci": "bun src/cli.ts validate changed --base origin/main",
 		"audit:docs": "bun src/cli.ts audit docs",
 		"audit:skills": "bun src/cli.ts audit skills",
 		"audit:self": "bun src/cli.ts audit self",
-		"prepack": "bun test && bun run build"
+		"prepack": "bun test && bun run typecheck && bun run build"
 	},
 	"dependencies": {
 		"ajv": "^8.17.1",

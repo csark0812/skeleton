@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton validate changed routing.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-11 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
 
 ## Commands
 
@@ -20,6 +20,14 @@ skeleton validate changed --base main  # CI merge-base diff
 | `.sh`, `.bash`, `.zsh`                       | shellcheck or `bash -n`                     |
 | Other `.json`                                | JSONC-tolerant syntax check                 |
 | `.ts`, `.py`, `package.json`, `project.json` | skip                                        |
+
+This skip list is intentional: skeleton validates SSOT/docs/skills only. In this repo, code gates are separate:
+
+```bash
+bun test
+bun run typecheck
+bun run build
+```
 
 ## CI two-pass
 

@@ -90,7 +90,12 @@ function main(): void {
 				console.error("register: path required");
 				process.exit(1);
 			}
-			registerPath(opts);
+			registerPath({
+				path: opts.path,
+				topic: opts.topic,
+				dryRun: opts.dryRun,
+				json: opts.json,
+			});
 			process.exit(0);
 		}
 

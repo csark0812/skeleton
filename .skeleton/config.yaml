@@ -4,11 +4,15 @@ scan:
   include:
     - "docs/**"
     - "README.md"
+    - "AGENTS.md"
     - ".skeleton/registry.md"
     - "skeleton/**"
   exclude:
     - "refs/**"
     - "todo.md"
+    # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
+    - ".agents/**"
+    - ".claude/**"
   banned: []
   retiredSkills: []
 

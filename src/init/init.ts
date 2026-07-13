@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
 	mergeHookConfigs,
 	mergePackageJsonScripts,
+	type MergeAction,
 	type MergeHookResult,
 } from "./merge-hooks.ts";
 import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
@@ -24,7 +25,7 @@ export interface InitOptions {
 export interface InitResult {
 	scaffold: "created" | "skipped";
 	hooks: MergeHookResult[];
-	scripts: "added" | "updated" | "skipped";
+	scripts: MergeAction;
 	skills: "installed" | "skipped";
 }
 

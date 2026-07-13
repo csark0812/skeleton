@@ -25,9 +25,16 @@ describe("registry rule", () => {
 	it("errors when table header exists but 0 rows parsed", () => {
 		const ctx = {
 			root: MALFORMED,
+			config: {
+				scan: { include: [], exclude: [], banned: [] },
+				daysUntilStale: 180,
+			},
 			registryPaths: [],
 			registryHasTableHeader: true,
 			files: [],
+			docMetaPaths: [],
+			retiredSkills: new Set<string>(),
+			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
 		expect(issues).toHaveLength(1);
@@ -39,9 +46,16 @@ describe("registry rule", () => {
 		const noBannerRoot = join(FIXTURES, "no-banner");
 		const ctx = {
 			root: noBannerRoot,
+			config: {
+				scan: { include: [], exclude: [], banned: [] },
+				daysUntilStale: 180,
+			},
 			registryPaths: ["docs/no-banner.md"],
 			registryHasTableHeader: true,
 			files: [],
+			docMetaPaths: [],
+			retiredSkills: new Set<string>(),
+			skillIndex: { roots: [], slugs: [] },
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
 		expect(issues.some((i) => i.message.includes("Source of truth for"))).toBe(

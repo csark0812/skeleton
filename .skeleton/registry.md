@@ -1,6 +1,6 @@
 # Registry
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-11 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
 
 **Source of truth for** topic routing in this repo. Edit rows here; edit content in canonical files only.
 
@@ -9,6 +9,7 @@
 | Topic | Canonical file |
 |-------|----------------|
 | Package overview | [README.md](../README.md) |
+| Agent cold-start | [AGENTS.md](../AGENTS.md) |
 | Authoring conventions | [authoring.md](../docs/authoring.md) |
 | Ecosystem tiers | [tiers.md](../docs/tiers.md) |
 | Install | [install.md](../docs/developer/install.md) |

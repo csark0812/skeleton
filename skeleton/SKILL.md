@@ -50,7 +50,7 @@ Register customize files:
 skeleton register .skeleton/customize/<slug>.md
 ```
 
-Details: [docs/developer/customize.md](../docs/developer/customize.md)
+Details: [docs/developer/customize.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/customize.md)
 
 ## Setup
 
@@ -82,4 +82,4 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 | `skeleton customize resolve <slug>` | Print merged customize for a skill slug |
 | `skeleton register <path>` | Register a canonical file in registry |
 
-Framework docs: [docs/developer/install.md](../docs/developer/install.md)
+Framework docs: [docs/developer/install.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md)
