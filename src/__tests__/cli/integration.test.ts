@@ -1,10 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { unlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAudit } from "../../audit/run.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
 import { registerPath } from "../../register.ts";
-import { runValidateChanged } from "../../validate/changed.ts";
+import { codeValidationHint, runValidateChanged } from "../../validate/changed.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
@@ -128,5 +129,22 @@ describe("validate changed routing", () => {
 			paths: ["docs/does-not-exist.md"],
 		});
 		expect(exit).toBe(1);
+	});
+});
+
+describe("codeValidationHint", () => {
+	it("prefers packageManager field (this repo is bun)", () => {
+		expect(codeValidationHint(join(import.meta.dir, "../../.."))).toContain("bun test");
+	});
+
+	it("uses npm when package-lock.json is present without packageManager", () => {
+		const dir = mkdtempSync(join(tmpdir(), "skeleton-hint-"));
+		try {
+			writeFileSync(join(dir, "package.json"), '{ "name": "x" }\n');
+			writeFileSync(join(dir, "package-lock.json"), "{}\n");
+			expect(codeValidationHint(dir)).toContain("npm test");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
