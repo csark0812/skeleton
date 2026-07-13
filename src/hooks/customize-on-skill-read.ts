@@ -92,7 +92,11 @@ function main(): void {
 			return;
 		}
 
-		const prefix = `\n\n---\nCustomize override for /${slug} (from ${resolved.path ?? ".skeleton/customize"}):\n\n`;
+		const from =
+			resolved.included.length > 0
+				? resolved.included.join(", ")
+				: (resolved.path ?? ".skeleton/customize");
+		const prefix = `\n\n---\nCustomize override for /${slug} (from ${from}):\n\n`;
 		process.stdout.write(formatResponse(payload, prefix + resolved.content));
 	} catch (error) {
 		console.error(`customize hook error: ${error}`);

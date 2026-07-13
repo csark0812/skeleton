@@ -12,3 +12,9 @@ scan:
   retiredSkills: []
 
 daysUntilStale: 180
+
+# Optional: basenames under .skeleton/customize/ appended on every skill inject
+# customize:
+#   alwaysInclude:
+#     - shared-agent-references.md
+

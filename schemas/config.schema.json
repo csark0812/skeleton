@@ -34,6 +34,22 @@
 			"type": "integer",
 			"minimum": 1
 		},
+		"customize": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Customize inject options for IDE hooks and `skeleton customize resolve`",
+			"properties": {
+				"alwaysInclude": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"pattern": "^[a-zA-Z0-9._-]+\\.md$"
+					},
+					"description": "Basenames under .skeleton/customize/ appended whenever a skill customize injects (even if the slug file is missing or empty)"
+				}
+			}
+		},
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },
