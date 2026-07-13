@@ -1,15 +1,56 @@
 ---
 name: skeleton
-description: Agent ops manual for skeleton-enabled repos — init, register, audit, and customize.
+description: Agent ops manual for skeleton-enabled repos — init, register, audit, customize hooks, and toolbox skill overrides. Use when editing .skeleton/, syncing toolbox skills, or running skeleton CLI.
 ---
 
 # Skeleton
 
 **Source of truth for** maintaining a skeleton-enabled repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-11 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
 
-Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links.
+Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has `docs/developer/agent-harness.md`, read it for tier model and migration phase.
+
+## When to use
+
+- Edit `.skeleton/customize/<slug>.md` (project bindings for toolbox skills)
+- Run `skeleton audit`, `skeleton validate`, or `skeleton register`
+- Sync or update skills from an external toolbox repo
+- Avoid editing synced toolbox skill copies in the consumer repo
+
+Not for: normal feature work that only reads toolbox skills (customize injects automatically on `SKILL.md` read via hooks).
+
+## Layout
+
+```
+.skeleton/
+├── config.yaml       # audit scan perimeter
+├── registry.md       # topic index → canonical files
+└── customize/        # per-slug overrides for toolbox-bound skills
+    └── <slug>.md
+```
+
+## Customize hooks
+
+`skeleton init` merges IDE hooks that run `customize-on-skill-read.js` on `SKILL.md` read (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`).
+
+- Hook injects `.skeleton/customize/<slug>.md` as additional context when path ends with `/SKILL.md`
+- **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`
+- Project-specific dispatch overlays (e.g. product-intent council prompts) belong in customize, not in toolbox skill trees
+
+Manual resolve:
+
+```bash
+skeleton customize resolve <slug>
+```
+
+Register customize files:
+
+```bash
+skeleton register .skeleton/customize/<slug>.md
+```
+
+Details: [docs/developer/customize.md](../docs/developer/customize.md)
 
 ## Setup
 
@@ -18,7 +59,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Append any `skills add` flags after `--skills` (e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`).
+`--skills` installs this skill and wires hooks. Append [skills add flags](https://github.com/vercel-labs/skills) after `--skills` (e.g. `-g`, `--all`, `-a codex`, `--copy`).
 
 Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
@@ -28,13 +69,17 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 2. Run `skeleton register <path>`
 3. Run `skeleton audit self`
 
-## Validation
+## CLI
 
-| Context             | Command                                        |
-| ------------------- | ---------------------------------------------- |
-| Local changed files | `skeleton validate changed`                    |
-| Pre-commit          | `skeleton validate changed --staged`           |
-| CI / PR             | `skeleton validate changed --base origin/main` |
-| Full SSOT pass      | `skeleton audit self`                          |
+| Command | Purpose |
+| ------- | ------- |
+| `skeleton audit self` | SSOT / harness audit (`.skeleton/**` + registered docs) |
+| `skeleton audit docs` | Doc audit (configured scan perimeter) |
+| `skeleton audit skills` | Skill audit |
+| `skeleton validate changed` | Changed-file validation |
+| `skeleton validate changed --staged` | Pre-commit |
+| `skeleton validate changed --base origin/main` | CI / PR |
+| `skeleton customize resolve <slug>` | Print merged customize for a skill slug |
+| `skeleton register <path>` | Register a canonical file in registry |
 
-Framework docs live in [docs/developer/install.md](../docs/developer/install.md).
+Framework docs: [docs/developer/install.md](../docs/developer/install.md)
