@@ -23,4 +23,8 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, `scan.banned`, optional `scan.retiredSkills`, `daysUntilStale`. See `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, `scan.banned`, optional `scan.retiredSkills`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`. See `schemas/config.schema.json`.
+
+### `scan.nonPublicSkills`
+
+Skill slugs that exist on disk but must **not** appear in a nested skills README `## Taxonomy` block (consumer-internal skills). Example: `align-commands`.

@@ -3,9 +3,9 @@ import { join, relative } from "node:path";
 import { buildSkillIndex } from "../audit/core/skill-roots.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
 import {
-	CANONICAL_REFS_DIR,
-	SHARED_REF_LINK_RE,
-	isGeneratedReference,
+    CANONICAL_REFS_DIR,
+    SHARED_REF_LINK_RE,
+    isGeneratedReference,
 } from "./constants.ts";
 
 export interface SharedRefLink {
@@ -70,10 +70,19 @@ function findLocalCanonicalLinks(
 
 	const inReferencesDir = /\/references\//.test(sourceFile);
 	if (inReferencesDir) {
+		const refsIdx = sourceFile.lastIndexOf("/references/");
+		const withinRefs = sourceFile.slice(refsIdx + "/references/".length);
+		const withinDir = withinRefs.includes("/")
+			? withinRefs.slice(0, withinRefs.lastIndexOf("/"))
+			: "";
 		const siblingRe = /\((?!https?:|#|\.\.\/)([a-z0-9./_-]+\.md)\)/gi;
 		for (const match of content.matchAll(siblingRe)) {
-			const refPath = normalizeRelPath(match[1] ?? "");
-			if (!refPath || !canonicalExists(root, refPath)) continue;
+			const raw = normalizeRelPath(match[1] ?? "");
+			if (!raw) continue;
+			const refPath = withinDir
+				? normalizeRelPath(join(withinDir, raw))
+				: raw;
+			if (!canonicalExists(root, refPath)) continue;
 			links.push({ refPath, sourceFile });
 		}
 	}
@@ -104,6 +113,29 @@ export function discoverSkillReferencePlans(
 			for (const link of findLocalCanonicalLinks(root, content, relFile)) {
 				refPaths.add(link.refPath);
 				links.push(link);
+			}
+		}
+
+		// Transitive closure: generated copies may link siblings that never appear
+		// in non-generated skill trees (e.g. planning/build.md → planning/verify.md).
+		const queue = [...refPaths];
+		while (queue.length > 0) {
+			const refPath = queue.pop();
+			if (!refPath || !canonicalExists(root, refPath)) continue;
+			const canonicalContent = readFileSync(
+				join(root, CANONICAL_REFS_DIR, refPath),
+				"utf8",
+			);
+			const syntheticSource = generatedRefPath(slug, refPath);
+			for (const link of findLocalCanonicalLinks(
+				root,
+				canonicalContent,
+				syntheticSource,
+			)) {
+				if (refPaths.has(link.refPath)) continue;
+				refPaths.add(link.refPath);
+				links.push(link);
+				queue.push(link.refPath);
 			}
 		}
 

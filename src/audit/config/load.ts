@@ -92,3 +92,7 @@ export function mergedExcludes(config: SkeletonConfig): string[] {
 export function retiredSkills(config: SkeletonConfig): string[] {
 	return config.scan.retiredSkills ?? [];
 }
+
+export function nonPublicSkills(config: SkeletonConfig): string[] {
+	return config.scan.nonPublicSkills ?? [];
+}

@@ -24,9 +24,14 @@
 					"type": "array",
 					"items": { "type": "string" }
 				},
-				"retiredSkills": {
+	"retiredSkills": {
 					"type": "array",
 					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+				},
+				"nonPublicSkills": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+					"description": "Skill slugs that exist on disk but must not appear in README Taxonomy (consumer-internal skills)"
 				}
 			}
 		},

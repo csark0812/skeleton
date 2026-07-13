@@ -9,7 +9,7 @@ description: Agent ops manual for skeleton-enabled repos — init, register, aud
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
 
-Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has `docs/developer/agent-harness.md`, read it for tier model and migration phase.
+Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has a consumer harness playbook (commonly `docs/developer/agent-harness.md`), read it for skill sync perimeter and migration phase.
 
 ## When to use
 

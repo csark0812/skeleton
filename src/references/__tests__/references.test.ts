@@ -3,9 +3,9 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runGeneratedReferencesCheck } from "../check.ts";
 import {
-	discoverSkillReferencePlans,
-	findSharedRefLinks,
-	rewriteSharedRefTarget,
+    discoverSkillReferencePlans,
+    findSharedRefLinks,
+    rewriteSharedRefTarget,
 } from "../discover.ts";
 import { syncReferences } from "../sync.ts";
 import { isGeneratedReference, stripGeneratedHeader } from "../constants.ts";
@@ -107,5 +107,33 @@ redundancy: intentional
 		expect(plans).toHaveLength(1);
 		expect(plans[0]?.skill).toBe("demo");
 		expect([...(plans[0]?.refPaths ?? [])]).toEqual(["shared.md"]);
+	});
+
+	it("plans transitive canonical siblings linked from discovered refs", () => {
+		const root = join(FIXTURE, "case-transitive");
+		rmSync(root, { recursive: true, force: true });
+		mkdirSync(join(root, ".skeleton", "references", "planning"), {
+			recursive: true,
+		});
+		mkdirSync(join(root, "demo"), { recursive: true });
+		writeFileSync(
+			join(root, ".skeleton", "references", "handoffs.md"),
+			"See [verify.md](planning/verify.md).\n",
+		);
+		writeFileSync(
+			join(root, ".skeleton", "references", "planning", "verify.md"),
+			"# Verify\n",
+		);
+		writeFileSync(
+			join(root, "demo", "SKILL.md"),
+			"See [handoffs.md](references/handoffs.md).\n",
+		);
+
+		const plans = discoverSkillReferencePlans(root);
+		expect(plans).toHaveLength(1);
+		expect([...(plans[0]?.refPaths ?? [])].sort()).toEqual([
+			"handoffs.md",
+			"planning/verify.md",
+		]);
 	});
 });

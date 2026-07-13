@@ -45,7 +45,7 @@ On every inject for slug `X`, the hook and `skeleton customize resolve X` concat
 
 If the slug file is missing or empty but `alwaysInclude` resolves content, inject still fires.
 
-Recommended for toolbox consumers: put the PostPrint/`references/*` → docs remap table in `shared-agent-references.md` and list it under `alwaysInclude` so agents do not need a second hop.
+Recommended for toolbox consumers: put the consumer `references/*` → docs remap table in `shared-agent-references.md` and list it under `alwaysInclude` so agents do not need a second hop.
 
 ## Manual resolve
 

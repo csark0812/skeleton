@@ -2,16 +2,14 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import {
-	buildSkillIndex,
-	listSkillSlugs,
-	resolveSkillPath,
-	type SkillIndex,
+    listSkillSlugs,
+    resolveSkillPath,
+    type SkillIndex
 } from "../core/skill-roots.ts";
 import { type Issue, issue } from "../core/report.ts";
 import { SKILL_LINK_RE } from "../core/shared.ts";
 import { isGeneratedReference } from "../../references/constants.ts";
-
-const NON_PUBLIC_SLUGS = new Set(["align-commands"]);
+import { nonPublicSkills } from "../config/load.ts";
 
 function walkSkillMarkdown(dir: string): string[] {
 	const files: string[] = [];
@@ -83,6 +81,7 @@ function validateReadmeTaxonomy(
 	diskSlugs: string[],
 ): Issue[] {
 	const issues: Issue[] = [];
+	const nonPublic = new Set(nonPublicSkills(ctx.config));
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind !== "nested") continue;
 		const readmePath = join(ctx.root, skillRoot.relPath, "README.md");
@@ -95,9 +94,7 @@ function validateReadmeTaxonomy(
 		const nestedSlugs = diskSlugs.filter((slug) =>
 			existsSync(join(ctx.root, skillRoot.relPath, slug, "SKILL.md")),
 		);
-		const publicSlugs = nestedSlugs.filter(
-			(slug) => !NON_PUBLIC_SLUGS.has(slug),
-		);
+		const publicSlugs = nestedSlugs.filter((slug) => !nonPublic.has(slug));
 		const relReadme = `${skillRoot.relPath}/README.md`;
 
 		for (const slug of publicSlugs) {

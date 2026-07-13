@@ -3,6 +3,8 @@ export interface ScanConfig {
 	exclude: string[];
 	banned: string[];
 	retiredSkills?: string[];
+	/** Slugs present on disk but excluded from README Taxonomy (internal skills). */
+	nonPublicSkills?: string[];
 }
 
 export interface CustomizeConfig {
