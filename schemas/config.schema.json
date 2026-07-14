@@ -24,7 +24,7 @@
 					"type": "array",
 					"items": { "type": "string" }
 				},
-	"retiredSkills": {
+				"retiredSkills": {
 					"type": "array",
 					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
 				},
@@ -58,7 +58,12 @@
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },
-			"description": "Plugin entry paths relative to .skeleton/ (v1.5 — unused in v1)"
+			"description": "Plugin entry paths relative to .skeleton/; each entry must have a built sibling .mjs (run skeleton build-plugin)"
+		},
+		"draftPathPrefixes": {
+			"type": "array",
+			"items": { "type": "string", "minLength": 1 },
+			"description": "Allow-list prefixes for draft-marker prose-policy placement (plus _draft-*.md filenames). Not scan.exclude."
 		}
 	}
 }

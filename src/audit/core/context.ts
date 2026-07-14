@@ -1,5 +1,6 @@
 import { findRepoRoot, loadConfig, retiredSkills } from "../config/load.ts";
 import type { SkeletonConfig } from "../config/types.ts";
+import type { PolicyFile } from "../policies/types.ts";
 import {
 	collectDocMetaPaths,
 	collectScanFiles,
@@ -18,12 +19,15 @@ export interface AuditContext {
 	registryHasTableHeader: boolean;
 	retiredSkills: Set<string>;
 	skillIndex: SkillIndex;
+	/** Compiled prose policies from plugins (empty when no plugins / no policy globs). */
+	policies: PolicyFile[];
 }
 
 export interface AuditOptions {
 	root?: string;
 	changed?: boolean;
 	paths?: string[];
+	policies?: PolicyFile[];
 }
 
 export function createContext(options: AuditOptions = {}): AuditContext {
@@ -51,5 +55,6 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		registryHasTableHeader: registry.hasTableHeader,
 		retiredSkills: new Set(retiredSkills(config)),
 		skillIndex,
+		policies: options.policies ?? [],
 	};
 }

@@ -1,4 +1,6 @@
+import { loadPlugins } from "../plugins/load.ts";
 import { createContext } from "./core/context.ts";
+import { applyFixes, parseFixKinds } from "./core/fix.ts";
 import { printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillCountOnDisk } from "./rules/skill-index.ts";
@@ -12,14 +14,18 @@ export interface AuditCliOptions {
 	root?: string;
 	globalOnly?: boolean;
 	pathScopedOnly?: boolean;
+	fix?: string | true | null;
+	dryRun?: boolean;
 }
 
 export function parseAuditArgs(argv: string[]): AuditCliOptions {
 	let suite = "docs";
 	let strict = false;
 	let json = false;
+	let dryRun = false;
 	let paths: string[] = [];
 	let only: Set<string> | null = null;
+	let fix: string | true | null = null;
 
 	for (const arg of argv) {
 		if (arg.startsWith("--suite=")) {
@@ -28,6 +34,12 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 			strict = true;
 		} else if (arg === "--json") {
 			json = true;
+		} else if (arg === "--dry-run") {
+			dryRun = true;
+		} else if (arg === "--fix") {
+			fix = true;
+		} else if (arg.startsWith("--fix=")) {
+			fix = arg.slice("--fix=".length);
 		} else if (arg.startsWith("--paths=")) {
 			paths = arg
 				.slice("--paths=".length)
@@ -39,7 +51,7 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 		}
 	}
 
-	return { suite, strict, json, paths, only };
+	return { suite, strict, json, paths, only, fix, dryRun };
 }
 
 function labelForSuite(suite: string): string {
@@ -66,12 +78,35 @@ function shouldRunRule(
 	return true;
 }
 
-export function runAudit(options: AuditCliOptions): number {
-	const ctx = createContext({
+export async function runAudit(options: AuditCliOptions): Promise<number> {
+	const base = createContext({
 		root: options.root,
 		paths: options.paths.length > 0 ? options.paths : undefined,
 	});
-	const rules = rulesForSuite(options.suite).filter((r) => !options.only || options.only.has(r.id));
+	const loaded = await loadPlugins(base.root, base.config);
+	const ctx = { ...base, policies: loaded.policies };
+
+	if (options.fix !== null && options.fix !== undefined) {
+		if (options.suite !== "docs") {
+			console.error("--fix is supported only for audit docs");
+			return 1;
+		}
+		const kinds = parseFixKinds(options.fix);
+		applyFixes(ctx, { kinds, dryRun: options.dryRun });
+		// Re-create path-scoped context after writes so subsequent rules see new content.
+		if (!options.dryRun) {
+			const refreshed = createContext({
+				root: options.root,
+				paths: options.paths.length > 0 ? options.paths : undefined,
+				policies: loaded.policies,
+			});
+			Object.assign(ctx, refreshed);
+		}
+	}
+
+	const rules = rulesForSuite(options.suite, loaded.rules).filter(
+		(r) => !options.only || options.only.has(r.id),
+	);
 
 	const pathScoped = options.paths.length > 0 && !options.globalOnly;
 	const issues = [];

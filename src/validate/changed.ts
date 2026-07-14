@@ -136,7 +136,7 @@ export function codeValidationHint(root: string): string {
 	}
 }
 
-export function runValidateChanged(options: ValidateChangedOptions = {}): number {
+export async function runValidateChanged(options: ValidateChangedOptions = {}): Promise<number> {
 	const root = options.root ?? findRepoRoot();
 	const relPaths = resolvePaths(options);
 
@@ -182,7 +182,7 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 	}
 
 	if (options.base) {
-		const globalExit = runAudit({
+		const globalExit = await runAudit({
 			suite: "self",
 			strict: false,
 			json: false,
@@ -203,7 +203,7 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 	}
 
 	if (buckets.docs.length > 0) {
-		const docExit = runAudit({
+		const docExit = await runAudit({
 			suite: "docs",
 			strict: false,
 			json: false,
@@ -228,7 +228,7 @@ export function runValidateChanged(options: ValidateChangedOptions = {}): number
 			);
 			return 1;
 		}
-		const skillExit = runAudit({
+		const skillExit = await runAudit({
 			suite: "skills",
 			strict: false,
 			json: false,

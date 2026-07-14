@@ -51,8 +51,8 @@ describe("customize resolve", () => {
 });
 
 describe("audit global scoping", () => {
-	it("skips global rules on path-scoped docs audit", () => {
-		const exit = runAudit({
+	it("skips global rules on path-scoped docs audit", async () => {
+		const exit = await runAudit({
 			suite: "docs",
 			strict: false,
 			json: false,
@@ -64,8 +64,8 @@ describe("audit global scoping", () => {
 		expect(exit).toBe(0);
 	});
 
-	it("runs global rules when globalOnly", () => {
-		const exit = runAudit({
+	it("runs global rules when globalOnly", async () => {
+		const exit = await runAudit({
 			suite: "self",
 			strict: false,
 			json: false,
@@ -79,19 +79,19 @@ describe("audit global scoping", () => {
 });
 
 describe("validate changed routing", () => {
-	it("validates explicit doc path", () => {
-		const exit = runValidateChanged({
+	it("validates explicit doc path", async () => {
+		const exit = await runValidateChanged({
 			root: FLAT_SKILL_ROOT,
 			paths: ["docs/README.md"],
 		});
 		expect(exit).toBe(0);
 	});
 
-	it("fails when all paths are skipped code", () => {
+	it("fails when all paths are skipped code", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
-			const exit = runValidateChanged({
+			const exit = await runValidateChanged({
 				root: FLAT_SKILL_ROOT,
 				paths: ["src/example.ts"],
 			});
@@ -101,11 +101,11 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("passes mixed docs and skipped ts", () => {
+	it("passes mixed docs and skipped ts", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
-			const exit = runValidateChanged({
+			const exit = await runValidateChanged({
 				root: FLAT_SKILL_ROOT,
 				paths: ["docs/README.md", "src/example.ts"],
 			});
@@ -115,16 +115,16 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("fails skill-only paths without --base and points at audit skills", () => {
-		const exit = runValidateChanged({
+	it("fails skill-only paths without --base and points at audit skills", async () => {
+		const exit = await runValidateChanged({
 			root: FLAT_SKILL_ROOT,
 			paths: ["multi/SKILL.md"],
 		});
 		expect(exit).toBe(1);
 	});
 
-	it("fails when all explicit paths are missing on disk", () => {
-		const exit = runValidateChanged({
+	it("fails when all explicit paths are missing on disk", async () => {
+		const exit = await runValidateChanged({
 			root: FLAT_SKILL_ROOT,
 			paths: ["docs/does-not-exist.md"],
 		});

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../../../../../schemas/config.schema.json
+
+scan:
+  include:
+    - "docs/**"
+    - "src/audit/__tests__/fixtures/plugins/**"
+  exclude: []
+  banned: []
+
+daysUntilStale: 180
+
+plugins:
+  - plugins/example/example.ts
+
+draftPathPrefixes:
+  - drafts/

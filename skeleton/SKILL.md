@@ -26,6 +26,7 @@ Not for: normal feature work that only reads toolbox skills (customize injects a
 .skeleton/
 ├── config.yaml       # audit scan perimeter
 ├── registry.md       # topic index → canonical files
+├── plugins/          # optional audit plugins (.ts + .mjs)
 └── customize/        # per-slug overrides for toolbox-bound skills
     └── <slug>.md
 ```
@@ -71,17 +72,21 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
 ## CLI
 
-| Command | Purpose |
-| ------- | ------- |
-| `skeleton audit self` | SSOT / harness audit (`.skeleton/**` + registered docs) |
-| `skeleton audit docs` | Doc audit (configured scan perimeter) |
-| `skeleton audit skills` | Skill audit |
-| `skeleton validate changed` | Changed-file validation |
-| `skeleton validate changed --staged` | Pre-commit |
-| `skeleton validate changed --base origin/main` | CI / PR |
-| `skeleton references sync` | Materialize shared references into skills |
-| `skeleton references check` | Verify generated references match sources |
-| `skeleton customize resolve <slug>` | Print merged customize for a skill slug |
-| `skeleton register <path>` | Register a canonical file in registry |
+| Command                                        | Purpose                                                 |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| `skeleton audit self`                          | SSOT / harness audit (`.skeleton/**` + registered docs) |
+| `skeleton audit docs`                          | Doc audit (configured scan perimeter)                   |
+| `skeleton audit docs --fix`                    | Autofix doc-meta + anchors, then re-audit               |
+| `skeleton audit skills`                        | Skill audit                                             |
+| `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
+| `skeleton validate changed`                    | Changed-file validation                                 |
+| `skeleton validate changed --staged`           | Pre-commit                                              |
+| `skeleton validate changed --base origin/main` | CI / PR                                                 |
+| `skeleton references sync`                     | Materialize shared references into skills               |
+| `skeleton references check`                    | Verify generated references match sources               |
+| `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
+| `skeleton register <path>`                     | Register a canonical file in registry                   |
+
+Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 
 Framework docs: [docs/developer/install.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md)

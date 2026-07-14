@@ -8,3 +8,4 @@ dist/
 .env
 .env.*
 !.env.example
+src/audit/__tests__/fixtures/plugins/**/*.mjs
