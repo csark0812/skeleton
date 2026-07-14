@@ -128,3 +128,15 @@ export function parseFixKinds(raw: string | true): FixKind[] {
 			throw new Error(`Unknown --fix kind: ${raw}. Use doc-meta or anchors.`);
 	}
 }
+
+/** Owning audit rule id for each fix kind (used to scope `--fix` under `--only`). */
+export const FIX_KIND_RULE: Record<FixKind, string> = {
+	"doc-meta": "doc-meta",
+	anchors: "links",
+};
+
+/** When `--only` is set, keep fix kinds whose owning rules are selected. */
+export function fixKindsForOnly(kinds: FixKind[], only: Set<string> | null): FixKind[] {
+	if (!only) return kinds;
+	return kinds.filter((kind) => only.has(FIX_KIND_RULE[kind]));
+}

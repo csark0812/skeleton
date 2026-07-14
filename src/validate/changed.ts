@@ -279,6 +279,17 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		if (validatePolicy(relPath, root) !== 0) exitCode = 1;
 	}
 
+	// Schema-only is not prose enforcement: new/changed patterns must be checked
+	// against the docs scan (including skills). Fail closed when no docs co-changed.
+	if (buckets.policy.length > 0 && buckets.docs.length === 0) {
+		console.error(
+			"validate changed: policy YAML changes need a docs prose-policy pass (schema-only is not enough).\n" +
+				"  Run: skeleton audit docs\n" +
+				"  Or:  skeleton audit self",
+		);
+		return 1;
+	}
+
 	if (exitCode === 0) {
 		const note = skipped > 0 ? ` (${skipped} path(s) skipped)` : "";
 		console.log(`validate changed passed${note}.`);

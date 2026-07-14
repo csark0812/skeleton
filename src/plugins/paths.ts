@@ -1,4 +1,5 @@
-import { join, resolve, sep } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, join, resolve, sep } from "node:path";
 
 export function skeletonDir(root: string): string {
 	return join(root, ".skeleton");
@@ -11,13 +12,44 @@ export function mjsPathForTs(tsPath: string): string {
 	return `${tsPath}.mjs`;
 }
 
+function underBase(pathAbs: string, baseAbs: string): boolean {
+	return pathAbs !== baseAbs && pathAbs.startsWith(baseAbs + sep);
+}
+
 /** Paths must be strictly under base (equality with base is rejected). */
 function assertUnderBase(abs: string, base: string, label: string): void {
 	const baseAbs = resolve(base);
 	const pathAbs = resolve(abs);
-	if (pathAbs === baseAbs || !pathAbs.startsWith(baseAbs + sep)) {
+	if (!underBase(pathAbs, baseAbs)) {
 		throw new Error(`${label} must stay under .skeleton/: ${abs}`);
 	}
+}
+
+/**
+ * Refuse symlink escapes: lexical path under `.skeleton/` is not enough when a
+ * parent directory is a symlink pointing outside (e.g. build-plugin --outfile).
+ */
+function assertRealUnderBase(abs: string, baseReal: string, label: string): void {
+	const pathAbs = resolve(abs);
+	if (existsSync(pathAbs)) {
+		const real = realpathSync(pathAbs);
+		if (!underBase(real, baseReal)) {
+			throw new Error(`${label} must stay under .skeleton/: ${abs}`);
+		}
+		return;
+	}
+	const parent = dirname(pathAbs);
+	if (existsSync(parent)) {
+		const parentReal = realpathSync(parent);
+		if (parentReal !== baseReal && !underBase(parentReal, baseReal)) {
+			throw new Error(`${label} must stay under .skeleton/: ${abs}`);
+		}
+	}
+}
+
+function skeletonRealPath(root: string): string {
+	const base = resolve(skeletonDir(root));
+	return existsSync(base) ? realpathSync(base) : base;
 }
 
 /**
@@ -43,10 +75,15 @@ export function resolvePluginTsPath(root: string, entry: string): string {
 	}
 	const mjsAbs = mjsPathForTs(abs);
 	assertUnderBase(mjsAbs, base, "Plugin output");
+	const baseReal = skeletonRealPath(root);
+	assertRealUnderBase(abs, baseReal, "Plugin path");
+	assertRealUnderBase(mjsAbs, baseReal, "Plugin output");
 	return abs;
 }
 
 /** Ensure an absolute path resolved from a policy glob stays under `.skeleton/`. */
 export function assertUnderSkeleton(root: string, absPath: string): void {
-	assertUnderBase(absPath, skeletonDir(root), "Policy file");
+	const base = resolve(skeletonDir(root));
+	assertUnderBase(absPath, base, "Policy file");
+	assertRealUnderBase(absPath, skeletonRealPath(root), "Policy file");
 }

@@ -8,7 +8,7 @@
 
 ```bash
 skeleton audit docs     # links, doc-meta, registry (when full pass), prose-policy (when plugins supply policies)
-skeleton audit skills   # skill-index, multi-root detection
+skeleton audit skills   # skill-index, multi-root detection, prose-policy (when plugins supply policies)
 skeleton audit self     # config + all rules
 ```
 

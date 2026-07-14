@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	symlinkSync,
+	utimesSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../../audit/config/load.ts";
@@ -12,6 +20,13 @@ import { resolvePluginTsPath } from "../paths.ts";
 const CONSUMER = join(import.meta.dir, "../../audit/__tests__/fixtures/plugins/consumer");
 
 describe("assembleRules", () => {
+	it("includes core prose-policy in docs and skills suites", () => {
+		const { docs, skills, self } = assembleRules([]);
+		expect(docs.some((r) => r.id === "prose-policy")).toBe(true);
+		expect(skills.some((r) => r.id === "prose-policy")).toBe(true);
+		expect(self.filter((r) => r.id === "prose-policy")).toHaveLength(1);
+	});
+
 	it("appends plugin rules to docs by default", () => {
 		const pluginRule = {
 			id: "plugin-demo",
@@ -174,6 +189,44 @@ describe("plugin load + build", () => {
 		expect(exit).toBe(1);
 	});
 
+	it("skills suite path-scoped prose-policy hits SKILL.md", async () => {
+		const dir = join(tmpdir(), `skel-skill-prose-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, "skill-a"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/policies/banned.yaml"),
+			`name: skill-banned\nentries:\n  - id: hub\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, "skill-a/SKILL.md"),
+			"---\nname: skill-a\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			const exit = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: true,
+				paths: ["skill-a/SKILL.md"],
+				only: new Set(["prose-policy"]),
+				root: dir,
+				pathScopedOnly: true,
+			});
+			expect(exit).toBe(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("no plugins → no prose hits on flat fixture", async () => {
 		const flat = join(import.meta.dir, "../../audit/__tests__/fixtures/flat-skill-root");
 		const exit = await runAudit({
@@ -240,6 +293,21 @@ describe("plugin path containment", () => {
 			await runBuildPlugin({ root: dir });
 			const config = loadConfig(dir);
 			await expect(loadPlugins(dir, config)).rejects.toThrow(/under \.skeleton/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects directory symlink escapes under .skeleton/", () => {
+		const dir = join(tmpdir(), `skel-plugin-symlink-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
+		mkdirSync(join(dir, "src"), { recursive: true });
+		writeFileSync(join(dir, "src/index.ts"), "export const keep = true;\n");
+		symlinkSync(dir, join(dir, ".skeleton/plugins/shadow"));
+		try {
+			expect(() => resolvePluginTsPath(dir, "plugins/shadow/src/index.ts")).toThrow(
+				/under \.skeleton/,
+			);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

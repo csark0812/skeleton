@@ -7,6 +7,7 @@ import {
 	applyFixes,
 	coalesceFixEdits,
 	type FixEdit,
+	fixKindsForOnly,
 	parseFixKinds,
 	resolveWritePath,
 } from "../core/fix.ts";
@@ -20,6 +21,20 @@ describe("parseFixKinds", () => {
 		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
+	});
+});
+
+describe("fixKindsForOnly", () => {
+	it("keeps all kinds when --only is unset", () => {
+		expect(fixKindsForOnly(["doc-meta", "anchors"], null)).toEqual(["doc-meta", "anchors"]);
+	});
+
+	it("maps --only=links to anchors only", () => {
+		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
+	});
+
+	it("returns empty when --only has no fix-owning rules", () => {
+		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["banned"]))).toEqual([]);
 	});
 });
 
@@ -67,6 +82,12 @@ describe("findBestAnchorMatch", () => {
 
 	it("still scores hyphen-bounded extensions as perfect", () => {
 		expect(findBestAnchorMatch("getting-started", ["getting-started-guide"])?.score).toBe(1);
+	});
+
+	it("does not rewrite single-token or low-overlap fragments via coverage", () => {
+		expect(findBestAnchorMatch("start", ["quick-start"])).toBeNull();
+		expect(findBestAnchorMatch("guide", ["user-guide"])).toBeNull();
+		expect(findBestAnchorMatch("authentication-flow", ["authorization-flow"])).toBeNull();
 	});
 });
 
@@ -288,14 +309,15 @@ describe("applyFixes dry-run", () => {
 	it("collectAnchorFixes finds match", () => {
 		const dir = join(tmpdir(), `fix2-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });
-		writeFileSync(join(dir, "docs/target.md"), "# Hello World\n\nBody\n");
-		writeFileSync(join(dir, "docs/source.md"), "See [x](./target.md#hello-worl).\n");
+		writeFileSync(join(dir, "docs/target.md"), "# Hello World Guide\n\nBody\n");
+		writeFileSync(join(dir, "docs/source.md"), "See [x](./target.md#hello-world).\n");
 		const ctx = {
 			root: dir,
 			files: [join(dir, "docs/source.md")],
 		} as ReturnType<typeof createContext>;
 		const edits = collectAnchorFixes(ctx);
-		expect(edits[0]?.content).toContain("#hello-world");
+		expect(edits[0]?.content).toContain("#hello-world-guide");
+		rmSync(dir, { recursive: true, force: true });
 	});
 
 	it("logs autofix progress to stderr, not stdout", () => {

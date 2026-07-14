@@ -14,15 +14,16 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 ## Path routing
 
-| Path                                                              | Action                                      |
-| ----------------------------------------------------------------- | ------------------------------------------- |
-| Docs in scan perimeter                                            | `audit docs` (path-scoped)                  |
-| Skill trees (`SKILL.md` perimeter)                                | exits non-zero → run `audit skills` (or CI `--base` globals) |
-| `.sh`, `.bash`, `.zsh`                                            | shellcheck or `bash -n`                     |
-| Other `.json`                                                     | JSONC-tolerant syntax check                 |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)            |
+| Path                                                                                | Action                                                                                                                               |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Docs in scan perimeter                                                              | `audit docs` (path-scoped)                                                                                                           |
+| Skill trees (`SKILL.md` perimeter)                                                  | exits non-zero → run `audit skills` (or CI `--base` globals); path-scoped skills include `prose-policy` when plugins supply policies |
+| `.skeleton/plugins/**` policy YAML                                                  | schema check, then exits non-zero unless docs co-changed → run `audit docs` / `audit self`                                           |
+| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                                                                                              |
+| Other `.json`                                                                       | JSONC-tolerant syntax check                                                                                                          |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)                                                                                                                     |
 
-Skipped paths are intentional: skeleton validates SSOT/docs only on the path-scoped lane. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run. Skill-only paths also exit non-zero (skill-body rules are global). Mixed doc+code paths still skip code and audit the rest.
+Skipped paths are intentional: skeleton validates SSOT/docs only on the path-scoped lane. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run. Skill-only paths also exit non-zero (skill-body rules are global). Policy-only paths schema-check then exit non-zero (prose-policy needs a full docs/self pass). Mixed doc+code paths still skip code and audit the rest.
 
 In this repo, code gates are:
 

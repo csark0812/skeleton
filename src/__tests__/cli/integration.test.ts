@@ -152,13 +152,19 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(1);
 	});
 
-	it("validates plugin policy YAML and passes policy-only changes", async () => {
+	it("schema-checks policy YAML then fail-closes policy-only changes", async () => {
 		const CONSUMER = join(FIXTURES, "plugins/consumer");
-		const exit = await runValidateChanged({
-			root: CONSUMER,
-			paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
-		});
-		expect(exit).toBe(0);
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: CONSUMER,
+				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
+			});
+			expect(exit).toBe(1);
+			expect(err.mock.calls.flat().join("\n")).toContain("audit docs");
+		} finally {
+			err.mockRestore();
+		}
 	});
 
 	it("fails invalid plugin policy severity", async () => {

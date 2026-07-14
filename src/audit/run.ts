@@ -1,6 +1,6 @@
 import { loadPlugins } from "../plugins/load.ts";
 import { createContext } from "./core/context.ts";
-import { applyFixes, parseFixKinds } from "./core/fix.ts";
+import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import { printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillCountOnDisk } from "./rules/skill-index.ts";
@@ -91,7 +91,13 @@ export async function runAudit(options: AuditCliOptions): Promise<number> {
 			console.error("--fix is supported only for audit docs");
 			return 1;
 		}
-		const kinds = parseFixKinds(options.fix);
+		const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
+		if (kinds.length === 0) {
+			console.error(
+				"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links).",
+			);
+			return 1;
+		}
 		applyFixes(ctx, { kinds, dryRun: options.dryRun });
 		// Re-create path-scoped context after writes so subsequent rules see new content.
 		if (!options.dryRun) {

@@ -1,4 +1,4 @@
-export const ANCHOR_MATCH_MIN_SCORE = 0.5;
+export const ANCHOR_MATCH_MIN_SCORE = 2 / 3;
 export const ANCHOR_MATCH_MIN_MARGIN = 0.15;
 
 export interface AnchorMatch {
@@ -32,16 +32,8 @@ export function scoreAnchorMatch(brokenSlug: string, candidateSlug: string): num
 	if (brokenSlug.startsWith(candidateSlug) && brokenSlug.length > candidateSlug.length) {
 		return 0;
 	}
-	const a = tokenize(brokenSlug);
-	const b = tokenize(candidateSlug);
-	const j = jaccard(a, b);
-	let intersection = 0;
-	for (const token of a) {
-		if (b.has(token)) intersection++;
-	}
-	const minSize = Math.min(a.size, b.size);
-	const coverage = minSize === 0 ? 0 : intersection / minSize;
-	return Math.max(j, coverage);
+	// Jaccard only — token coverage (`start` ⊂ `quick-start`) is too aggressive for autofix.
+	return jaccard(tokenize(brokenSlug), tokenize(candidateSlug));
 }
 
 export function findBestAnchorMatch(
