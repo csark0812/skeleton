@@ -63,7 +63,7 @@
 		"draftPathPrefixes": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },
-			"description": "Allow-list directory prefixes for draft-marker prose-policy placement (plus _draft-*.md filenames). Trailing / is implied. Not scan.exclude."
+			"description": "Allow-list directory prefixes for draft-marker prose-policy placement (plus _draft-*.md filenames). Trailing / is implied. Repo-relative only (e.g. drafts/) — not ., ./, or /. Not scan.exclude."
 		}
 	}
 }

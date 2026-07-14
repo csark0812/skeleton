@@ -5,7 +5,7 @@ import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
-import { runBuildPlugin } from "./plugins/build.ts";
+import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
 import { printSyncResult, runReferencesCheck, runReferencesSync } from "./references/run.ts";
 import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
@@ -68,13 +68,7 @@ async function main(): Promise<void> {
 		}
 
 		if (command === "build-plugin") {
-			const rest = argv.slice(1);
-			let check = false;
-			let entry: string | undefined;
-			for (const arg of rest) {
-				if (arg === "--check") check = true;
-				else if (!arg.startsWith("-") && !entry) entry = arg;
-			}
+			const { entry, check } = parseBuildPluginArgs(argv.slice(1));
 			const root = findRepoRoot();
 			const result = await runBuildPlugin({ root, entry, check });
 			if (check) {

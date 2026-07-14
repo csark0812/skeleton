@@ -13,11 +13,27 @@ import { join } from "node:path";
 import { loadConfig } from "../../audit/config/load.ts";
 import { type AuditSuite, assembleRules } from "../../audit/rules/index.ts";
 import { runAudit } from "../../audit/run.ts";
-import { runBuildPlugin } from "../build.ts";
+import { parseBuildPluginArgs, runBuildPlugin } from "../build.ts";
 import { loadPlugins, normalizeExport } from "../load.ts";
 import { resolveAbsolutePluginTsPath, resolvePluginTsPath } from "../paths.ts";
 
 const CONSUMER = join(import.meta.dir, "../../audit/__tests__/fixtures/plugins/consumer");
+
+describe("parseBuildPluginArgs", () => {
+	it("parses --check and entry", () => {
+		expect(parseBuildPluginArgs([])).toEqual({ check: false, entry: undefined });
+		expect(parseBuildPluginArgs(["--check"])).toEqual({ check: true, entry: undefined });
+		expect(parseBuildPluginArgs(["plugins/x.ts", "--check"])).toEqual({
+			check: true,
+			entry: "plugins/x.ts",
+		});
+	});
+
+	it("fails closed on --check=value and unknown flags", () => {
+		expect(() => parseBuildPluginArgs(["--check=true"])).toThrow(/boolean flag/);
+		expect(() => parseBuildPluginArgs(["--force"])).toThrow(/unknown flag/);
+	});
+});
 
 describe("assembleRules", () => {
 	it("includes core prose-policy in docs and skills suites", () => {

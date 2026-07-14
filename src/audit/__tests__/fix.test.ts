@@ -14,6 +14,7 @@ import {
 import { collectAnchorFixes, replaceExactLinkTarget } from "../fix/anchors.ts";
 import { bumpDocMetaLastReviewed } from "../fix/doc-meta.ts";
 import { findBestAnchorMatch } from "../fix/match-anchor.ts";
+import { parseAuditArgs } from "../run.ts";
 
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
@@ -21,6 +22,20 @@ describe("parseFixKinds", () => {
 		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
+	});
+});
+
+describe("parseAuditArgs --fix", () => {
+	it("accepts --fix=kind and space-separated kind", () => {
+		expect(parseAuditArgs(["--fix"]).fix).toBe(true);
+		expect(parseAuditArgs(["--fix=doc-meta"]).fix).toBe("doc-meta");
+		expect(parseAuditArgs(["--fix", "doc-meta"]).fix).toBe("doc-meta");
+		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).fix).toBe("anchors");
+		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).dryRun).toBe(true);
+	});
+
+	it("rejects unknown space-separated --fix kinds", () => {
+		expect(() => parseAuditArgs(["--fix", "nope"])).toThrow(/Unknown --fix kind/);
 	});
 });
 
@@ -348,6 +363,33 @@ describe("applyFixes dry-run", () => {
 		expect(next).toContain("`./target.md#hello-world`");
 		expect(next).toContain("```\n./target.md#hello-world\n```");
 		expect(next.match(/\.\/target\.md#hello-world(?!-guide)/g)?.length).toBe(2);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes does not use .mdc fence headings as targets or rewrite fence links", () => {
+		const dir = join(tmpdir(), `fix-mdc-${Date.now()}`);
+		mkdirSync(join(dir, "rules"), { recursive: true });
+		writeFileSync(
+			join(dir, "rules/target.mdc"),
+			["# Main", "", "```md", "## Getting Started Guide", "```", ""].join("\n"),
+		);
+		writeFileSync(
+			join(dir, "rules/source.mdc"),
+			[
+				"See [guide](./target.mdc#getting-started).",
+				"",
+				"```",
+				"[example](./target.mdc#getting-started)",
+				"```",
+				"",
+			].join("\n"),
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "rules/source.mdc")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(0);
 		rmSync(dir, { recursive: true, force: true });
 	});
 

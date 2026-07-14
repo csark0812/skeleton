@@ -17,6 +17,24 @@ export interface BuildPluginResult {
 	checked: string[];
 }
 
+/** Parse `build-plugin` argv after the command name. Fail closed on unknown flags. */
+export function parseBuildPluginArgs(argv: string[]): { entry?: string; check: boolean } {
+	let check = false;
+	let entry: string | undefined;
+	for (const arg of argv) {
+		if (arg === "--check") {
+			check = true;
+		} else if (arg.startsWith("--check=")) {
+			throw new Error("build-plugin: use --check (boolean flag), not --check=<value>");
+		} else if (arg.startsWith("-")) {
+			throw new Error(`build-plugin: unknown flag ${arg}`);
+		} else if (!entry) {
+			entry = arg;
+		}
+	}
+	return { entry, check };
+}
+
 function collectPluginEntries(root: string, config: SkeletonConfig, entry?: string): string[] {
 	if (entry) {
 		const abs =

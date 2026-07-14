@@ -4,9 +4,23 @@ import { normalizeRelPath } from "./shared.ts";
 export const DRAFT_FILENAME_RE = /(^|\/)_draft-[^/]+\.md$/i;
 
 /** Treat configured prefixes as directories (trailing `/` implied). */
-function normalizeDraftPrefix(prefix: string): string {
+export function normalizeDraftPrefix(prefix: string): string {
 	const normalized = normalizeRelPath(prefix);
-	return normalized.endsWith("/") ? normalized : `${normalized}/`;
+	const withSlash = normalized.endsWith("/") ? normalized : `${normalized}/`;
+	if (withSlash === "/" || withSlash === "./") {
+		throw new Error(
+			`Invalid draftPathPrefixes entry ${JSON.stringify(prefix)}: must be a repo-relative directory (e.g. drafts/), not ${JSON.stringify(prefix)}`,
+		);
+	}
+	return withSlash;
+}
+
+/** Fail closed on prefixes that would never match repo-relative paths. */
+export function validateDraftPathPrefixes(prefixes: string[] | undefined): void {
+	if (!prefixes) return;
+	for (const prefix of prefixes) {
+		normalizeDraftPrefix(prefix);
+	}
 }
 
 /**

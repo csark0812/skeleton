@@ -27,7 +27,8 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 	let only: Set<string> | null = null;
 	let fix: string | true | null = null;
 
-	for (const arg of argv) {
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i] ?? "";
 		if (arg.startsWith("--suite=")) {
 			suite = arg.slice("--suite=".length);
 		} else if (arg === "--strict") {
@@ -37,7 +38,18 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 		} else if (arg === "--dry-run") {
 			dryRun = true;
 		} else if (arg === "--fix") {
-			fix = true;
+			const next = argv[i + 1];
+			if (next && !next.startsWith("-")) {
+				if (next !== "doc-meta" && next !== "anchors") {
+					throw new Error(
+						`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, or --fix=anchors.`,
+					);
+				}
+				fix = next;
+				i++;
+			} else {
+				fix = true;
+			}
 		} else if (arg.startsWith("--fix=")) {
 			fix = arg.slice("--fix=".length);
 		} else if (arg.startsWith("--paths=")) {

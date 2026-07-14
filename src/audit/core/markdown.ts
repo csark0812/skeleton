@@ -15,9 +15,7 @@ export interface ExtractedLink {
 	urlEnd?: number;
 }
 
-const MARKDOWN_LINK_RE = /(?<!!)\[([^\]]*)\]\(([^)]+)\)/g;
 const REFERENCE_DEF_RE = /^\[([^\]]+)\]:\s+(\S+)/;
-const HEADING_LINE_RE = /^(#{1,6})\s+(.+)$/;
 
 const processor = remark().use(remarkGfm);
 
@@ -88,11 +86,8 @@ function findReferenceDefUrlSpan(
 	return undefined;
 }
 
-export function extractLinksFromMarkdown(content: string, filePath: string): ExtractedLink[] {
-	if (filePath.endsWith(".mdc")) {
-		return extractLinksRegex(content);
-	}
-
+export function extractLinksFromMarkdown(content: string, _filePath?: string): ExtractedLink[] {
+	// Use remark for both .md and .mdc so fenced/inline code is not treated as links.
 	const tree = processor.parse(content) as MarkdownRoot;
 	const refDefs = new Map<string, string>();
 	const links: ExtractedLink[] = [];
@@ -138,37 +133,8 @@ export function extractLinksFromMarkdown(content: string, filePath: string): Ext
 	return links;
 }
 
-export function extractLinksRegex(content: string): ExtractedLink[] {
-	const links: ExtractedLink[] = [];
-	const lines = content.split("\n");
-	let offset = 0;
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i] ?? "";
-		for (const match of line.matchAll(MARKDOWN_LINK_RE)) {
-			const target = match[2]?.trim();
-			if (!target || match.index === undefined) continue;
-			const full = match[0];
-			const paren = `](${target})`;
-			const parenIdx = full.lastIndexOf(paren);
-			if (parenIdx === -1) continue;
-			const urlStart = offset + match.index + parenIdx + 2;
-			links.push({
-				target,
-				line: i + 1,
-				urlStart,
-				urlEnd: urlStart + target.length,
-			});
-		}
-		offset += line.length + 1;
-	}
-	return links;
-}
-
-export function extractHeadingSlugs(content: string, filePath: string): Set<string> {
-	if (filePath.endsWith(".mdc")) {
-		return extractHeadingSlugsLineBased(content);
-	}
-
+export function extractHeadingSlugs(content: string, _filePath?: string): Set<string> {
+	// Use remark for both .md and .mdc so headings inside fences are not valid targets.
 	const slugger = new GithubSlugger();
 	const slugs = new Set<string>();
 	const tree = processor.parse(content) as MarkdownRoot;
@@ -183,16 +149,6 @@ export function extractHeadingSlugs(content: string, filePath: string): Set<stri
 		}
 	});
 
-	return slugs;
-}
-
-function extractHeadingSlugsLineBased(content: string): Set<string> {
-	const slugger = new GithubSlugger();
-	const slugs = new Set<string>();
-	for (const line of content.split("\n")) {
-		const match = HEADING_LINE_RE.exec(line);
-		if (match?.[2]) slugs.add(slugger.slug(match[2]));
-	}
 	return slugs;
 }
 

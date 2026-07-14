@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { SkeletonConfig } from "../config/types.ts";
 import type { AuditContext } from "../core/context.ts";
-import { isDraftPlacementAllowed } from "../core/draft.ts";
+import { isDraftPlacementAllowed, normalizeDraftPrefix } from "../core/draft.ts";
 import { compilePolicy, loadPolicyFile, policiesForFile } from "../policies/load.ts";
 import { runProsePolicyRule } from "../rules/prose-policy.ts";
 
@@ -108,6 +108,13 @@ describe("isDraftPlacementAllowed", () => {
 
 	it("rejects elsewhere", () => {
 		expect(isDraftPlacementAllowed("docs/readme.md", ["drafts/"])).toBe(false);
+	});
+
+	it("rejects no-op prefixes that never match repo-relative paths", () => {
+		expect(() => normalizeDraftPrefix("./")).toThrow(/Invalid draftPathPrefixes/);
+		expect(() => normalizeDraftPrefix(".")).toThrow(/Invalid draftPathPrefixes/);
+		expect(() => normalizeDraftPrefix("/")).toThrow(/Invalid draftPathPrefixes/);
+		expect(() => isDraftPlacementAllowed("docs/x.md", ["./"])).toThrow(/Invalid draftPathPrefixes/);
 	});
 });
 
