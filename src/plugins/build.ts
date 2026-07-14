@@ -59,11 +59,13 @@ export function localImportPaths(tsAbs: string, content: string): string[] {
 	return deps;
 }
 
-function latestSourceMtime(tsAbs: string): number {
+function latestSourceMtime(tsAbs: string, seen = new Set<string>()): number {
+	if (seen.has(tsAbs)) return 0;
+	seen.add(tsAbs);
 	let latest = statSync(tsAbs).mtimeMs;
 	const content = readFileSync(tsAbs, "utf8");
 	for (const dep of localImportPaths(tsAbs, content)) {
-		latest = Math.max(latest, latestSourceMtime(dep));
+		latest = Math.max(latest, latestSourceMtime(dep, seen));
 	}
 	return latest;
 }

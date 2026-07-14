@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import { lastGitCommitDate } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { DOC_META_LAST_REVIEWED_RE, DOC_META_RE } from "../core/shared.ts";
+import { DOC_META_RE, docMetaLastReviewed } from "../core/shared.ts";
 
 export function runDocMetaRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
@@ -17,9 +17,9 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 			issues.push(issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)"));
 			continue;
 		}
-		const match = DOC_META_LAST_REVIEWED_RE.exec(content);
-		if (!match?.[1]) continue;
-		const reviewed = new Date(`${match[1]}T00:00:00Z`);
+		const reviewedStr = docMetaLastReviewed(content);
+		if (!reviewedStr) continue;
+		const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
 		if (Number.isNaN(reviewed.getTime())) continue;
 		const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
 		if (ageDays > ctx.config.daysUntilStale) {
@@ -27,7 +27,7 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 				issue(
 					"doc-meta",
 					relPath,
-					`doc-meta last-reviewed ${match[1]} is stale (>${ctx.config.daysUntilStale} days)`,
+					`doc-meta last-reviewed ${reviewedStr} is stale (>${ctx.config.daysUntilStale} days)`,
 					{ severity: "warning" },
 				),
 			);
@@ -42,7 +42,7 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 				issue(
 					"doc-meta",
 					relPath,
-					`content changed after last-reviewed ${match[1]} (git: ${gitDate}) — bump last-reviewed or confirm review`,
+					`content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — bump last-reviewed or confirm review`,
 					{ severity: "warning" },
 				),
 			);

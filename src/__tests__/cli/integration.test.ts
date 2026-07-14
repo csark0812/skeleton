@@ -130,6 +130,33 @@ describe("validate changed routing", () => {
 		});
 		expect(exit).toBe(1);
 	});
+
+	it("validates plugin policy YAML and passes policy-only changes", async () => {
+		const CONSUMER = join(FIXTURES, "plugins/consumer");
+		const exit = await runValidateChanged({
+			root: CONSUMER,
+			paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
+		});
+		expect(exit).toBe(0);
+	});
+
+	it("fails invalid plugin policy severity", async () => {
+		const CONSUMER = join(FIXTURES, "plugins/consumer");
+		const badPath = join(CONSUMER, ".skeleton/plugins/example/policies/_tmp-bad-severity.yaml");
+		writeFileSync(
+			badPath,
+			`name: bad\nentries:\n  - id: a\n    pattern: foo\n    message: m\n    severity: critical\n`,
+		);
+		try {
+			const exit = await runValidateChanged({
+				root: CONSUMER,
+				paths: [".skeleton/plugins/example/policies/_tmp-bad-severity.yaml"],
+			});
+			expect(exit).toBe(1);
+		} finally {
+			unlinkSync(badPath);
+		}
+	});
 });
 
 describe("codeValidationHint", () => {

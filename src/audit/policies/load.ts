@@ -1,7 +1,37 @@
-import { basename, extname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, dirname, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import Ajv from "ajv";
 import { parse as parseYaml } from "yaml";
 import { matchesGlobScope } from "../core/shared.ts";
 import type { MatchedPolicyEntry, PolicyEntry, PolicyFile, PolicyFileYaml } from "./types.ts";
+
+const SCHEMA_CANDIDATES = [
+	// src/audit/policies/load.ts → ../../../schemas
+	join(dirname(fileURLToPath(import.meta.url)), "../../../schemas/policy-file.schema.json"),
+	// dist/cli.js → ../schemas
+	join(dirname(fileURLToPath(import.meta.url)), "../schemas/policy-file.schema.json"),
+	// dist/hooks → ../../schemas
+	join(dirname(fileURLToPath(import.meta.url)), "../../schemas/policy-file.schema.json"),
+];
+
+function resolvePolicySchemaPath(): string {
+	for (const candidate of SCHEMA_CANDIDATES) {
+		if (existsSync(candidate)) return candidate;
+	}
+	throw new Error("Missing schemas/policy-file.schema.json in package");
+}
+
+function validatePolicyYaml(raw: unknown, label: string): PolicyFileYaml {
+	const schema = JSON.parse(readFileSync(resolvePolicySchemaPath(), "utf8"));
+	const ajv = new Ajv({ allErrors: true, strict: false });
+	const validate = ajv.compile(schema);
+	if (!validate(raw)) {
+		const detail = validate.errors?.map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
+		throw new Error(`Invalid policy ${label}: ${detail ?? "schema validation failed"}`);
+	}
+	return raw as PolicyFileYaml;
+}
 
 function parsePolicyYaml(content: string, fileStem: string): PolicyFileYaml {
 	const parsed = parseYaml(content) as PolicyFileYaml | PolicyEntry[];
@@ -10,10 +40,10 @@ function parsePolicyYaml(content: string, fileStem: string): PolicyFileYaml {
 			`Policy ${fileStem}.yaml must use Policy File shape (name + entries) — see schemas/policy-file.schema.json`,
 		);
 	}
-	if (!parsed?.entries || !Array.isArray(parsed.entries)) {
+	if (!parsed || typeof parsed !== "object") {
 		throw new Error(`Policy ${fileStem}.yaml missing required 'entries' array`);
 	}
-	return parsed;
+	return validatePolicyYaml(parsed, `${fileStem}.yaml`);
 }
 
 /**

@@ -72,6 +72,23 @@ describe("compilePolicy", () => {
 			/Policy File shape/,
 		);
 	});
+
+	it("rejects invalid severity at load", () => {
+		expect(() =>
+			loadPolicyFile(
+				"/tmp/bad-sev.yaml",
+				`name: sample\nentries:\n  - id: a\n    pattern: foo\n    message: m\n    severity: critical\n`,
+			),
+		).toThrow(/Invalid policy/);
+	});
+
+	it("loads valid error and warning severities", () => {
+		const policy = loadPolicyFile(
+			"/tmp/ok-sev.yaml",
+			`name: sample\nentries:\n  - id: a\n    pattern: foo\n    message: m\n    severity: warning\n`,
+		);
+		expect(policy.entries[0]?.severity).toBe("warning");
+	});
 });
 
 describe("isDraftPlacementAllowed", () => {

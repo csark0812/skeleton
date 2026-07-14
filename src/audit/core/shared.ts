@@ -9,6 +9,23 @@ export const SOURCE_OF_TRUTH_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*/m
 export const DOC_META_RE =
 	/<!--\s*doc-meta:\s*owner=[^|]+\|\s*last-reviewed=\d{4}-\d{2}-\d{2}\s*-->/;
 export const DOC_META_LAST_REVIEWED_RE = /last-reviewed=(\d{4}-\d{2}-\d{2})/;
+
+/** Extract last-reviewed date from the doc-meta comment only (ignore prose examples). */
+export function docMetaLastReviewed(content: string): string | null {
+	const meta = DOC_META_RE.exec(content);
+	if (!meta?.[0]) return null;
+	const match = DOC_META_LAST_REVIEWED_RE.exec(meta[0]);
+	return match?.[1] ?? null;
+}
+
+/** Replace last-reviewed inside the doc-meta comment only. Returns null if unchanged/missing. */
+export function replaceDocMetaLastReviewed(content: string, date: string): string | null {
+	const meta = DOC_META_RE.exec(content);
+	if (!meta?.[0] || meta.index === undefined) return null;
+	const updatedComment = meta[0].replace(DOC_META_LAST_REVIEWED_RE, `last-reviewed=${date}`);
+	if (updatedComment === meta[0]) return null;
+	return content.slice(0, meta.index) + updatedComment + content.slice(meta.index + meta[0].length);
+}
 export const SKILL_LINK_IN_TARGET_RE =
 	/(?:\.claude\/skills\/|\.agents\/skills\/|(?:\.\.\/)+)([a-z0-9-]+)\/SKILL\.md/;
 export const SKILL_LINK_RE =

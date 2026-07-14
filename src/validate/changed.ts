@@ -5,10 +5,12 @@ import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
+import { loadPolicyFile } from "../audit/policies/load.ts";
 import { runAudit } from "../audit/run.ts";
 import { gitDiffChangedFiles } from "./git-diff.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
+const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
 const SHELL_EXTENSIONS = new Set([".sh", ".bash", ".zsh"]);
 const SKIP_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
 const COMMAND_CONFIG_NAMES = new Set(["package.json", "project.json"]);
@@ -20,7 +22,14 @@ export interface ValidateChangedOptions {
 	root?: string;
 }
 
-type Bucket = "docs" | "skills" | "shell" | "json" | "skip";
+type Bucket = "docs" | "skills" | "shell" | "json" | "policy" | "skip";
+
+function isPluginPolicyPath(normalized: string, ext: string): boolean {
+	return (
+		POLICY_EXTENSIONS.has(ext) &&
+		(normalized.startsWith(".skeleton/plugins/") || normalized.startsWith(".skeleton/plugins\\"))
+	);
+}
 
 function bucketFor(relPath: string, root: string): Bucket {
 	const normalized = normalizeRelPath(relPath);
@@ -29,6 +38,8 @@ function bucketFor(relPath: string, root: string): Bucket {
 
 	if (SKIP_EXTENSIONS.has(ext)) return "skip";
 	if (COMMAND_CONFIG_NAMES.has(name)) return "skip";
+
+	if (isPluginPolicyPath(normalized, ext)) return "policy";
 
 	const skillIndex = buildSkillIndex(root);
 	if (isSkillPath(normalized, skillIndex)) return "skills";
@@ -74,6 +85,17 @@ function validateJson(relPath: string, root: string): number {
 		return 0;
 	} catch (error) {
 		console.error(`validate changed: invalid JSON in ${relPath}: ${error}`);
+		return 1;
+	}
+}
+
+function validatePolicy(relPath: string, root: string): number {
+	const abs = join(root, relPath);
+	try {
+		loadPolicyFile(abs, readFileSync(abs, "utf8"));
+		return 0;
+	} catch (error) {
+		console.error(`validate changed: invalid policy ${relPath}: ${error}`);
 		return 1;
 	}
 }
@@ -150,6 +172,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		skills: [],
 		shell: [],
 		json: [],
+		policy: [],
 	};
 	let missing = 0;
 	let skipped = 0;
@@ -170,7 +193,11 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	}
 
 	const audited =
-		buckets.docs.length + buckets.skills.length + buckets.shell.length + buckets.json.length;
+		buckets.docs.length +
+		buckets.skills.length +
+		buckets.shell.length +
+		buckets.json.length +
+		buckets.policy.length;
 
 	let exitCode = 0;
 
@@ -217,7 +244,10 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 
 	if (buckets.skills.length > 0) {
 		const skillsOnly =
-			buckets.docs.length === 0 && buckets.shell.length === 0 && buckets.json.length === 0;
+			buckets.docs.length === 0 &&
+			buckets.shell.length === 0 &&
+			buckets.json.length === 0 &&
+			buckets.policy.length === 0;
 		// Skill-body rules are global; path-scoped skill audit does not cover them.
 		// Without --base (CI globals), fail and redirect so green is not mistaken for coverage.
 		if (skillsOnly && !options.base) {
@@ -246,6 +276,10 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 
 	for (const relPath of buckets.json) {
 		if (validateJson(relPath, root) !== 0) exitCode = 1;
+	}
+
+	for (const relPath of buckets.policy) {
+		if (validatePolicy(relPath, root) !== 0) exitCode = 1;
 	}
 
 	if (exitCode === 0) {

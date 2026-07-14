@@ -104,6 +104,29 @@ describe("plugin load + build", () => {
 		}
 	});
 
+	it("build-plugin --check survives circular local imports", async () => {
+		const dir = join(tmpdir(), `skel-plugin-cycle-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/cycle"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/cycle/a.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/cycle/a.ts"),
+			`import { b } from "./b.js";\nexport const a = 1;\nexport default { rules: [] };\nvoid b;\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/cycle/b.ts"),
+			`import { a } from "./a.js";\nexport const b = a;\n`,
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			await runBuildPlugin({ root: dir, check: true });
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("fails closed when declared policy globs match no YAML", async () => {
 		const dir = join(tmpdir(), `skel-plugin-nopolicy-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
@@ -188,6 +211,18 @@ describe("plugin path containment", () => {
 		const root = "/tmp/skel-root";
 		expect(() => resolvePluginTsPath(root, "../evil.ts")).toThrow(/under \.skeleton/);
 		expect(() => resolvePluginTsPath(root, "/tmp/x.ts")).toThrow(/relative to \.skeleton/);
+	});
+
+	it("rejects entries that resolve to .skeleton/ itself", () => {
+		const root = "/tmp/skel-root";
+		for (const entry of [".", "./", ".skeleton/", ".skeleton/."]) {
+			expect(() => resolvePluginTsPath(root, entry)).toThrow(/under \.skeleton/);
+		}
+	});
+
+	it("rejects non-.ts plugin entries under .skeleton/", () => {
+		const root = "/tmp/skel-root";
+		expect(() => resolvePluginTsPath(root, "plugins/example")).toThrow(/\.ts file/);
 	});
 
 	it("rejects policy globs that escape .skeleton", async () => {

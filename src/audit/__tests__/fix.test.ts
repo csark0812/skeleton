@@ -34,6 +34,14 @@ describe("bumpDocMetaLastReviewed", () => {
 		const content = "<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\n";
 		expect(bumpDocMetaLastReviewed(content, "2024-06-01")).toBeNull();
 	});
+
+	it("does not rewrite prose last-reviewed before the doc-meta comment", () => {
+		const content =
+			"Write last-reviewed=2020-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n";
+		const updated = bumpDocMetaLastReviewed(content, "2024-06-01");
+		expect(updated).toContain("Write last-reviewed=2020-01-01 in prose.");
+		expect(updated).toContain("<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->");
+	});
 });
 
 describe("findBestAnchorMatch", () => {
@@ -50,6 +58,15 @@ describe("findBestAnchorMatch", () => {
 	it("does not rewrite broken fragments onto shorter heading prefixes", () => {
 		expect(findBestAnchorMatch("getting-started", ["getting"])).toBeNull();
 		expect(findBestAnchorMatch("getting-started", ["get"])).toBeNull();
+	});
+
+	it("does not score raw string prefixes as perfect matches", () => {
+		expect(findBestAnchorMatch("cli", ["client"])?.score ?? 0).toBeLessThan(1);
+		expect(findBestAnchorMatch("get", ["getting-started"])).toBeNull();
+	});
+
+	it("still scores hyphen-bounded extensions as perfect", () => {
+		expect(findBestAnchorMatch("getting-started", ["getting-started-guide"])?.score).toBe(1);
 	});
 });
 
