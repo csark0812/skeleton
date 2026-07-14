@@ -123,7 +123,7 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(1);
 	});
 
-	it("fails skill+policy paths without --base and points at audit skills", async () => {
+	it("fails skill+policy paths without --base after schema-check (redirects to full suite)", async () => {
 		const policyDir = join(FLAT_SKILL_ROOT, ".skeleton/plugins/example/policies");
 		mkdirSync(policyDir, { recursive: true });
 		const policyRel = ".skeleton/plugins/example/policies/_tmp-skill-policy.yaml";
@@ -136,7 +136,9 @@ describe("validate changed routing", () => {
 				paths: ["multi/SKILL.md", policyRel],
 			});
 			expect(exit).toBe(1);
-			expect(err.mock.calls.flat().join("\n")).toContain("audit skills");
+			const msg = err.mock.calls.flat().join("\n");
+			// Policy lane fail-closes to docs/self (covers skills prose too).
+			expect(msg).toContain("audit docs");
 		} finally {
 			err.mockRestore();
 			unlinkSync(policyAbs);
@@ -164,6 +166,49 @@ describe("validate changed routing", () => {
 			expect(err.mock.calls.flat().join("\n")).toContain("audit docs");
 		} finally {
 			err.mockRestore();
+		}
+	});
+
+	it("fail-closes policy YAML even when docs co-change (path-scoped is not prose coverage)", async () => {
+		const CONSUMER = join(FIXTURES, "plugins/consumer");
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: CONSUMER,
+				paths: [
+					".skeleton/plugins/example/policies/sample-banned-phrase.yaml",
+					"docs/clean.md",
+				],
+			});
+			expect(exit).toBe(1);
+			expect(err.mock.calls.flat().join("\n")).toMatch(/full prose-policy pass|audit docs/);
+		} finally {
+			err.mockRestore();
+		}
+	});
+
+	it("schema-checks shared .skeleton/policies YAML then fail-closes", async () => {
+		const CONSUMER = join(FIXTURES, "plugins/consumer");
+		const policyDir = join(CONSUMER, ".skeleton/policies");
+		mkdirSync(policyDir, { recursive: true });
+		const policyRel = ".skeleton/policies/_tmp-shared.yaml";
+		const policyAbs = join(CONSUMER, policyRel);
+		writeFileSync(
+			policyAbs,
+			`name: shared\nentries:\n  - id: a\n    pattern: foo\n    message: m\n`,
+		);
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: CONSUMER,
+				paths: [policyRel, "docs/clean.md"],
+			});
+			expect(exit).toBe(1);
+			expect(err.mock.calls.flat().join("\n")).toContain("audit docs");
+		} finally {
+			err.mockRestore();
+			unlinkSync(policyAbs);
+			rmSync(policyDir, { recursive: true, force: true });
 		}
 	});
 

@@ -24,11 +24,15 @@ export interface ValidateChangedOptions {
 
 type Bucket = "docs" | "skills" | "shell" | "json" | "policy" | "skip";
 
-function isPluginPolicyPath(normalized: string, ext: string): boolean {
-	return (
-		POLICY_EXTENSIONS.has(ext) &&
-		(normalized.startsWith(".skeleton/plugins/") || normalized.startsWith(".skeleton/plugins\\"))
-	);
+/** Policy YAML loadable under `.skeleton/` (matches plugin globs; not config.yaml). */
+function isSkeletonPolicyPath(normalized: string, ext: string): boolean {
+	if (!POLICY_EXTENSIONS.has(ext)) return false;
+	if (!(normalized.startsWith(".skeleton/") || normalized.startsWith(".skeleton\\"))) {
+		return false;
+	}
+	const name = basename(normalized).toLowerCase();
+	if (name === "config.yaml" || name === "config.yml") return false;
+	return true;
 }
 
 function bucketFor(relPath: string, root: string): Bucket {
@@ -39,7 +43,7 @@ function bucketFor(relPath: string, root: string): Bucket {
 	if (SKIP_EXTENSIONS.has(ext)) return "skip";
 	if (COMMAND_CONFIG_NAMES.has(name)) return "skip";
 
-	if (isPluginPolicyPath(normalized, ext)) return "policy";
+	if (isSkeletonPolicyPath(normalized, ext)) return "policy";
 
 	const skillIndex = buildSkillIndex(root);
 	if (isSkillPath(normalized, skillIndex)) return "skills";
@@ -244,7 +248,10 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 
 	if (buckets.skills.length > 0) {
 		const skillsOnly =
-			buckets.docs.length === 0 && buckets.shell.length === 0 && buckets.json.length === 0;
+			buckets.docs.length === 0 &&
+			buckets.shell.length === 0 &&
+			buckets.json.length === 0 &&
+			buckets.policy.length === 0;
 		// Skill-body rules are global; path-scoped skill audit does not cover them.
 		// Without --base (CI globals), fail and redirect so green is not mistaken for coverage.
 		if (skillsOnly && !options.base) {
@@ -279,14 +286,16 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		if (validatePolicy(relPath, root) !== 0) exitCode = 1;
 	}
 
-	// Schema-only is not prose enforcement: new/changed patterns must be checked
-	// against the docs scan (including skills). Fail closed when no docs co-changed.
-	if (buckets.policy.length > 0 && buckets.docs.length === 0) {
-		console.error(
-			"validate changed: policy YAML changes need a docs prose-policy pass (schema-only is not enough).\n" +
-				"  Run: skeleton audit docs\n" +
-				"  Or:  skeleton audit self",
-		);
+	// Schema-only and path-scoped co-changed docs are not prose enforcement for
+	// pattern *definitions*: rest of scan + skills must be checked. Always fail closed.
+	if (buckets.policy.length > 0) {
+		if (exitCode === 0) {
+			console.error(
+				"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
+					"  Run: skeleton audit docs\n" +
+					"  Or:  skeleton audit self",
+			);
+		}
 		return 1;
 	}
 
