@@ -32,22 +32,38 @@ function findUrlSpanInSlice(
 	url: string,
 ): { urlStart: number; urlEnd: number } | undefined {
 	const slice = content.slice(nodeStart, nodeEnd);
-	const paren = `](${url})`;
-	const parenIdx = slice.lastIndexOf(paren);
-	if (parenIdx !== -1) {
-		const urlStart = nodeStart + parenIdx + 2;
-		return { urlStart, urlEnd: urlStart + url.length };
+	// Bind destination after `](` so titled links (`](url "…")`) and label/title
+	// copies of `<url>` cannot steal the span.
+	const openParen = slice.lastIndexOf("](");
+	if (openParen !== -1) {
+		const after = openParen + 2;
+		if (slice.startsWith(`<${url}>`, after)) {
+			const urlStart = nodeStart + after + 1;
+			return { urlStart, urlEnd: urlStart + url.length };
+		}
+		if (slice.startsWith(url, after)) {
+			const next = slice[after + url.length];
+			if (next === ")" || (next !== undefined && /\s/.test(next))) {
+				const urlStart = nodeStart + after;
+				return { urlStart, urlEnd: urlStart + url.length };
+			}
+		}
 	}
+	// Autolink / bare URL nodes — whole slice only (never search the label).
 	const auto = `<${url}>`;
-	const autoIdx = slice.indexOf(auto);
-	if (autoIdx !== -1) {
-		const urlStart = nodeStart + autoIdx + 1;
-		return { urlStart, urlEnd: urlStart + url.length };
+	if (slice === auto) {
+		return { urlStart: nodeStart + 1, urlEnd: nodeStart + 1 + url.length };
 	}
 	if (slice === url) {
 		return { urlStart: nodeStart, urlEnd: nodeEnd };
 	}
 	const trimmed = slice.trim();
+	if (trimmed === auto) {
+		const lead = slice.indexOf(auto);
+		if (lead !== -1) {
+			return { urlStart: nodeStart + lead + 1, urlEnd: nodeStart + lead + 1 + url.length };
+		}
+	}
 	if (trimmed === url) {
 		const lead = slice.indexOf(url);
 		if (lead !== -1) {

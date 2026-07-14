@@ -395,6 +395,48 @@ describe("applyFixes dry-run", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it("collectAnchorFixes rewrites titled inline destination, not a <url> copy in title/label", () => {
+		const dir = join(tmpdir(), `fix-inline-title-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			'[Getting started](./t.md#getting-started "See <./t.md#getting-started>")\n',
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toContain(
+			'[Getting started](./t.md#getting-started-guide "See <./t.md#getting-started>")',
+		);
+		expect(edits[0]?.content).not.toContain('"See <./t.md#getting-started-guide>"');
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites titled inline destination when label embeds <url>", () => {
+		const dir = join(tmpdir(), `fix-inline-label-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			'[see <./t.md#getting-started>](./t.md#getting-started "title")\n',
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toContain(
+			'[see <./t.md#getting-started>](./t.md#getting-started-guide "title")',
+		);
+		expect(edits[0]?.content).not.toContain("[see <./t.md#getting-started-guide>]");
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it("collectAnchorFixes does not rewrite valid links to emphasized heading slugs", () => {
 		const dir = join(tmpdir(), `fix-em-heading-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });

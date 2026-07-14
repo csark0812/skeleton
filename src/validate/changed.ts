@@ -292,7 +292,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 			console.error(
 				"validate changed: skill paths need the full skills suite (path-scoped skill rules are empty).\n" +
 					"  Run: skeleton audit skills\n" +
-					"  Or:  skeleton audit self",
+					"  (audit self covers docs + .skeleton; excluded skill trees still need audit skills)",
 			);
 			return 1;
 		}

@@ -122,11 +122,20 @@ describe("validate changed routing", () => {
 	});
 
 	it("fails skill-only paths without --base and points at audit skills", async () => {
-		const exit = await runValidateChanged({
-			root: FLAT_SKILL_ROOT,
-			paths: ["multi/SKILL.md"],
-		});
-		expect(exit).toBe(1);
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["multi/SKILL.md"],
+			});
+			expect(exit).toBe(1);
+			const msg = err.mock.calls.flat().join("\n");
+			expect(msg).toContain("audit skills");
+			expect(msg).toContain("excluded skill trees still need audit skills");
+			expect(msg).not.toMatch(/Or:\s+skeleton audit self/);
+		} finally {
+			err.mockRestore();
+		}
 	});
 
 	it("fails skill+unwired-policy paths as orphan policy (not wired by plugin globs)", async () => {
