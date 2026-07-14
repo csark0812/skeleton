@@ -11,6 +11,10 @@
 		"templates",
 		"schemas"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/csark0812/skeleton.git"
+	},
 	"license": "MIT",
 	"engines": {
 		"node": ">=22"
