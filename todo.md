@@ -54,19 +54,31 @@ Check off when done.
 
 ### Implement — phase work
 
-| ID  | Item                                                             | Phase | Notes                                                                                      |
-| --- | ---------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------ |
-| H1  | **`global` rule flag + CI two-pass**                             | 1b    | done — D1: `--base` runs global then path-scoped; `--staged`/HEAD path-scoped only         |
-| H2  | **`scan-roots`** — fail when declared scan trees missing on disk | 1a    | done — PostPrint `validateScanRoots()`; globs alone match nothing silently                 |
-| H3  | **`links` full port checklist**                                  | 1a    | done — `#anchor`, agent-file links, placeholder skip, `retiredSkills` refs                 |
-| H4  | **`scan.retiredSkills` config**                                  | 1a    | done in schema + links; skill-index deferred to 1b                                         |
-| H5  | **Nested skill exclusions**                                      | 1b    | done — exclude `references`, `_shared`; `align-commands` non-public                        |
-| H6  | **doc-meta hardcoded targets**                                   | 1a    | done — registry-listed docs, hub READMEs, files with existing doc-meta                     |
-| H7  | **`draftPathPrefixes` semantics**                                | 1.5   | PostPrint uses as prose-policy _allow-list_ for draft markers — not same as `scan.exclude` |
-| H8  | **PostPrint git-diff delegation**                                | 3     | Wrapper forwards `--base`; keeps routing buckets                                           |
-| H9  | **Integration tests: global-rule scoping**                       | 1b    | done — path-scoped skips global; `--base` two-pass per D1                                  |
-| H10 | **Plugin prose-policy engine**                                   | 1.5   | Generic matcher in core; PostPrint YAML in plugin                                          |
-| H11 | **PostPrint migration plan expansion**                           | 3     | File lists, rollback, PR breakdown                                                         |
+| ID  | Item                                                             | Phase | Notes                                                                              |
+| --- | ---------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| H1  | **`global` rule flag + CI two-pass**                             | 1b    | done — D1: `--base` runs global then path-scoped; `--staged`/HEAD path-scoped only |
+| H2  | **`scan-roots`** — fail when declared scan trees missing on disk | 1a    | done — PostPrint `validateScanRoots()`; globs alone match nothing silently         |
+| H3  | **`links` full port checklist**                                  | 1a    | done — `#anchor`, agent-file links, placeholder skip, `retiredSkills` refs         |
+| H4  | **`scan.retiredSkills` config**                                  | 1a    | done in schema + links; skill-index deferred to 1b                                 |
+| H5  | **Nested skill exclusions**                                      | 1b    | done — exclude `references`, `_shared`; `align-commands` non-public                |
+| H6  | **doc-meta hardcoded targets**                                   | 1a    | done — registry-listed docs, hub READMEs, files with existing doc-meta             |
+| H7  | **`draftPathPrefixes` semantics**                                | 1.5   | done — allow-list for draft-marker; not `scan.exclude`                             |
+| H8  | **PostPrint git-diff delegation**                                | 3     | Wrapper forwards `--base`; keeps routing buckets                                   |
+| H9  | **Integration tests: global-rule scoping**                       | 1b    | done — path-scoped skips global; `--base` two-pass per D1                          |
+| H10 | **Plugin prose-policy engine**                                   | 1.5   | done — generic matcher in core; policy YAML via plugins                            |
+| H11 | **PostPrint migration plan expansion**                           | 3     | File lists, rollback, PR breakdown                                                 |
+
+---
+
+## Phase 1.5 checklist
+
+- [x] Config `plugins` + `draftPathPrefixes`; `AuditRule.suites`; `@csark0812/skeleton/plugin-types`
+- [x] Core `prose-policy` + policy YAML load/compile (idle without policies)
+- [x] `skeleton build-plugin` / `--check` + `.mjs` loader
+- [x] Fixture consumer plugin + unit/CLI tests
+- [x] Audit `--fix` / `--dry-run` (doc-meta + anchors)
+- [x] Docs (`plugins.md`), registry, README, skill
+- [ ] Publish `@csark0812/skeleton@1.5.0` (+ tag)
 
 ---
 

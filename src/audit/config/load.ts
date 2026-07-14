@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 import { parse as parseYaml } from "yaml";
+import { validateDraftPathPrefixes } from "../core/draft.ts";
 import type { SkeletonConfig } from "./types.ts";
 
 const SCHEMA_CANDIDATES = [
@@ -54,7 +55,9 @@ function validateConfig(raw: unknown): SkeletonConfig {
 		const detail = validate.errors?.map((e) => `${e.instancePath || "/"} ${e.message}`).join("; ");
 		throw new Error(`Invalid .skeleton/config.yaml: ${detail ?? "schema validation failed"}`);
 	}
-	return raw as SkeletonConfig;
+	const config = raw as SkeletonConfig;
+	validateDraftPathPrefixes(config.draftPathPrefixes);
+	return config;
 }
 
 export function loadConfig(root: string): SkeletonConfig {

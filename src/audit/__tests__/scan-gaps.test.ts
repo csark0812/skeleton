@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { COVERAGE_BUILTIN_EXCLUDES, loadConfig } from "../config/load.ts";
 import { collectCoverageCandidateFiles } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
-import { runCoverageGapsRule } from "../rules/coverage-gaps.ts";
+import { runCoverageGapsRule } from "../rules/scan-gaps.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 
@@ -19,6 +19,7 @@ describe("coverageGapsRule", () => {
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			policies: [],
 		} as AuditContext;
 		const exclude = [...COVERAGE_BUILTIN_EXCLUDES, ...config.scan.exclude];
 		const issues = runCoverageGapsRule(ctx);

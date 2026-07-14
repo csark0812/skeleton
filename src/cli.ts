@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
+import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
+import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
 import { printSyncResult, runReferencesCheck, runReferencesSync } from "./references/run.ts";
 import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
@@ -14,6 +16,8 @@ function usage(): void {
 Commands:
   init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
+                         [--fix[=doc-meta|anchors]] [--dry-run]
+  build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
   register <path> [--topic=…] [--dry-run] [--json]
   customize resolve <slug> [--json]
@@ -42,7 +46,7 @@ function parseRegisterArgs(argv: string[]): {
 	return { path, topic, dryRun, json };
 }
 
-function main(): void {
+async function main(): Promise<void> {
 	const argv = process.argv.slice(2);
 	const command = argv[0];
 
@@ -60,7 +64,27 @@ function main(): void {
 			}
 			const options = parseAuditArgs(argv.slice(2));
 			options.suite = sub;
-			process.exit(runAudit(options));
+			process.exit(await runAudit(options));
+		}
+
+		if (command === "build-plugin") {
+			const { entry, check } = parseBuildPluginArgs(argv.slice(1));
+			const root = findRepoRoot();
+			const result = await runBuildPlugin({ root, entry, check });
+			if (check) {
+				console.log(
+					result.checked.length === 0
+						? "build-plugin --check: no plugins configured."
+						: `build-plugin --check: ${result.checked.length} plugin(s) up to date.`,
+				);
+			} else {
+				console.log(
+					result.built.length === 0
+						? "build-plugin: no plugins configured."
+						: `build-plugin: built ${result.built.length} plugin(s).`,
+				);
+			}
+			process.exit(0);
 		}
 
 		if (command === "validate" && argv[1] === "changed") {
@@ -77,7 +101,7 @@ function main(): void {
 				else if (arg && !arg.startsWith("-")) paths.push(arg);
 			}
 
-			process.exit(runValidateChanged({ paths, staged, base }));
+			process.exit(await runValidateChanged({ paths, staged, base }));
 		}
 
 		if (command === "register") {
@@ -146,4 +170,4 @@ function main(): void {
 	}
 }
 
-main();
+void main();

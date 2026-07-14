@@ -1,4 +1,6 @@
+import { loadPlugins } from "../plugins/load.ts";
 import { createContext } from "./core/context.ts";
+import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import { printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillCountOnDisk } from "./rules/skill-index.ts";
@@ -12,22 +14,46 @@ export interface AuditCliOptions {
 	root?: string;
 	globalOnly?: boolean;
 	pathScopedOnly?: boolean;
+	fix?: string | true | null;
+	dryRun?: boolean;
 }
 
 export function parseAuditArgs(argv: string[]): AuditCliOptions {
 	let suite = "docs";
 	let strict = false;
 	let json = false;
+	let dryRun = false;
 	let paths: string[] = [];
 	let only: Set<string> | null = null;
+	let fix: string | true | null = null;
 
-	for (const arg of argv) {
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i] ?? "";
 		if (arg.startsWith("--suite=")) {
 			suite = arg.slice("--suite=".length);
 		} else if (arg === "--strict") {
 			strict = true;
 		} else if (arg === "--json") {
 			json = true;
+		} else if (arg === "--dry-run") {
+			dryRun = true;
+		} else if (arg.startsWith("--dry-run=")) {
+			throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
+		} else if (arg === "--fix") {
+			const next = argv[i + 1];
+			if (next && !next.startsWith("-")) {
+				if (next !== "doc-meta" && next !== "anchors") {
+					throw new Error(
+						`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, or --fix=anchors.`,
+					);
+				}
+				fix = next;
+				i++;
+			} else {
+				fix = true;
+			}
+		} else if (arg.startsWith("--fix=")) {
+			fix = arg.slice("--fix=".length);
 		} else if (arg.startsWith("--paths=")) {
 			paths = arg
 				.slice("--paths=".length)
@@ -39,7 +65,7 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 		}
 	}
 
-	return { suite, strict, json, paths, only };
+	return { suite, strict, json, paths, only, fix, dryRun };
 }
 
 function labelForSuite(suite: string): string {
@@ -66,17 +92,50 @@ function shouldRunRule(
 	return true;
 }
 
-export function runAudit(options: AuditCliOptions): number {
-	const ctx = createContext({
+export async function runAudit(options: AuditCliOptions): Promise<number> {
+	const pathScoped = options.paths.length > 0;
+	const base = createContext({
 		root: options.root,
-		paths: options.paths.length > 0 ? options.paths : undefined,
+		paths: pathScoped ? options.paths : undefined,
+		// Bare skills suite: include skill trees even under scan.exclude so skill-scoped
+		// prose-policy matches path-scoped / validate --base prove (not a silent no-op).
+		includeExcludedSkillTrees: options.suite === "skills" && !pathScoped,
 	});
-	const rules = rulesForSuite(options.suite).filter((r) => !options.only || options.only.has(r.id));
+	const loaded = await loadPlugins(base.root, base.config);
+	const ctx = { ...base, policies: loaded.policies };
 
-	const pathScoped = options.paths.length > 0 && !options.globalOnly;
+	if (options.fix !== null && options.fix !== undefined) {
+		if (options.suite !== "docs") {
+			console.error("--fix is supported only for audit docs");
+			return 1;
+		}
+		const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
+		if (kinds.length === 0) {
+			console.error(
+				"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links).",
+			);
+			return 1;
+		}
+		applyFixes(ctx, { kinds, dryRun: options.dryRun });
+		// Re-create path-scoped context after writes so subsequent rules see new content.
+		if (!options.dryRun) {
+			const refreshed = createContext({
+				root: options.root,
+				paths: options.paths.length > 0 ? options.paths : undefined,
+				policies: loaded.policies,
+			});
+			Object.assign(ctx, refreshed);
+		}
+	}
+
+	const rules = rulesForSuite(options.suite, loaded.rules).filter(
+		(r) => !options.only || options.only.has(r.id),
+	);
+
+	const skipGlobalsForPaths = pathScoped && !options.globalOnly;
 	const issues = [];
 	for (const rule of rules) {
-		if (!shouldRunRule(rule, options, pathScoped)) continue;
+		if (!shouldRunRule(rule, options, skipGlobalsForPaths)) continue;
 		issues.push(...rule.run(ctx));
 	}
 

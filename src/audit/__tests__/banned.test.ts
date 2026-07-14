@@ -38,6 +38,7 @@ daysUntilStale: 180
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			policies: [],
 		} as AuditContext;
 		const issues = runBannedRule(ctx);
 		expect(issues.some((i) => i.rule === "banned" && i.file.includes("foo_ANALYSIS.md"))).toBe(

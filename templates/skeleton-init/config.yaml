@@ -18,3 +18,7 @@ daysUntilStale: 180
 #   alwaysInclude:
 #     - shared-agent-references.md
 
+# Optional: plugin `.ts` entries relative to .skeleton/ (built sibling `.mjs` required)
+# plugins: []
+# Optional: draft-marker allow-list prefixes (plus `_draft-*.md` filenames)
+# draftPathPrefixes: []

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "command": "dist/hooks/customize-on-skill-read.js",
+        "matcher": "Read"
+      }
+    ]
+  }
+}
