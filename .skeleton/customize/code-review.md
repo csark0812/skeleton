@@ -10,11 +10,12 @@ Injected on skill read. Prefer this overlay over portable thinned sections when 
 
 Match [AGENTS.md](../../AGENTS.md) validation split:
 
-| Change type                   | Run before claiming validate / merge-ready                                                                                         |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript under `src/`       | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check` when breadth warrants)    |
-| Docs / config / registry      | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                       |
-| Skill body (`SKILL.md` trees) | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees) |
+| Change type                                 | Run before claiming validate / merge-ready                                                                                                                 |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check` when breadth warrants)                            |
+| Docs / config / registry (non-policy)       | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
+| Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
+| Skill body (`SKILL.md` trees)               | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees)                         |
 
 `validate:changed` skips code and command-config JSON by design. Code-only green from that command is not coverage.
 

@@ -458,6 +458,42 @@ describe("applyFixes dry-run", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it("collectAnchorFixes rewrites link href when linked image src equals href", () => {
+		const dir = join(tmpdir(), `fix-linked-image-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			"[![thumb](./t.md#getting-started)](./t.md#getting-started)\n",
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toBe(
+			"[![thumb](./t.md#getting-started)](./t.md#getting-started-guide)\n",
+		);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites link href when linked image src differs", () => {
+		const dir = join(tmpdir(), `fix-linked-image-diff-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(join(dir, "docs/thumb.md"), "# Thumb\n");
+		writeFileSync(join(dir, "docs/source.md"), "[![thumb](./thumb.md)](./t.md#getting-started)\n");
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toBe("[![thumb](./thumb.md)](./t.md#getting-started-guide)\n");
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it("collectAnchorFixes does not rewrite valid links to emphasized heading slugs", () => {
 		const dir = join(tmpdir(), `fix-em-heading-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });

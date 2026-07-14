@@ -24,6 +24,34 @@ function lineFromOffset(content: string, offset: number | undefined): number | u
 	return content.slice(0, offset).split("\n").length;
 }
 
+/**
+ * True when `afterDest` is the end of an inline link destination (+ optional
+ * title) that consumes through the closing `)` at the end of `slice`.
+ * Rejects nested `](` in labels (linked images) and title-embedded `](url)`.
+ */
+function destinationConsumesToSliceEnd(slice: string, afterDest: number): boolean {
+	let i = afterDest;
+	if (i >= slice.length) return false;
+	if (slice[i] === ")") {
+		return i === slice.length - 1;
+	}
+	if (!/\s/.test(slice[i]!)) return false;
+	while (i < slice.length && /\s/.test(slice[i]!)) i++;
+	if (i >= slice.length) return false;
+	if (slice[i] === ")") {
+		return i === slice.length - 1;
+	}
+	const open = slice[i];
+	if (open !== '"' && open !== "'" && open !== "(") return false;
+	const close = open === "(" ? ")" : open;
+	i++;
+	while (i < slice.length && slice[i] !== close) i++;
+	if (i >= slice.length) return false;
+	i++;
+	while (i < slice.length && /\s/.test(slice[i]!)) i++;
+	return i === slice.length - 1 && slice[i] === ")";
+}
+
 /** Locate the URL span inside a markdown link/autolink node slice. */
 function findUrlSpanInSlice(
 	content: string,
@@ -32,22 +60,30 @@ function findUrlSpanInSlice(
 	url: string,
 ): { urlStart: number; urlEnd: number } | undefined {
 	const slice = content.slice(nodeStart, nodeEnd);
-	// Bind destination after the first `](` (label close). Prefer indexOf over
-	// lastIndexOf so a title that embeds `](same-url)` cannot steal the span.
-	const openParen = slice.indexOf("](");
-	if (openParen !== -1) {
+	// Bind the link destination — not the first `](` (linked images put a
+	// destination in the label) and not the last (titles may embed `](url)`).
+	// Prefer the candidate whose dest (+ optional title) consumes to slice end.
+	let searchFrom = 0;
+	while (searchFrom < slice.length) {
+		const openParen = slice.indexOf("](", searchFrom);
+		if (openParen === -1) break;
 		const after = openParen + 2;
 		if (slice.startsWith(`<${url}>`, after)) {
-			const urlStart = nodeStart + after + 1;
-			return { urlStart, urlEnd: urlStart + url.length };
-		}
-		if (slice.startsWith(url, after)) {
-			const next = slice[after + url.length];
-			if (next === ")" || (next !== undefined && /\s/.test(next))) {
-				const urlStart = nodeStart + after;
+			const afterDest = after + 2 + url.length;
+			if (destinationConsumesToSliceEnd(slice, afterDest)) {
+				const urlStart = nodeStart + after + 1;
 				return { urlStart, urlEnd: urlStart + url.length };
 			}
+		} else if (slice.startsWith(url, after)) {
+			const next = slice[after + url.length];
+			if (next === ")" || (next !== undefined && /\s/.test(next))) {
+				if (destinationConsumesToSliceEnd(slice, after + url.length)) {
+					const urlStart = nodeStart + after;
+					return { urlStart, urlEnd: urlStart + url.length };
+				}
+			}
 		}
+		searchFrom = openParen + 1;
 	}
 	// Autolink / bare URL nodes — whole slice only (never search the label).
 	const auto = `<${url}>`;
