@@ -67,12 +67,16 @@ function findReferenceDefUrlSpan(
 	let offset = 0;
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i] ?? "";
+		const leadWs = line.length - line.trimStart().length;
 		const trimmed = line.trimStart();
 		if (trimmed.toLowerCase().startsWith(needle)) {
-			const match = REFERENCE_DEF_RE.exec(line.trim());
+			const match = REFERENCE_DEF_RE.exec(trimmed);
 			if (match?.[2] === url) {
-				const urlInLine = line.lastIndexOf(url);
-				if (urlInLine !== -1) {
+				// Bind the destination token immediately after `[id]:`, not a later title copy.
+				const afterLabel = trimmed.slice(needle.length);
+				const urlOffsetInTrimmed = needle.length + afterLabel.search(/\S/);
+				const urlInLine = leadWs + urlOffsetInTrimmed;
+				if (line.slice(urlInLine, urlInLine + url.length) === url) {
 					return {
 						urlStart: offset + urlInLine,
 						urlEnd: offset + urlInLine + url.length,
@@ -133,6 +137,24 @@ export function extractLinksFromMarkdown(content: string, _filePath?: string): E
 	return links;
 }
 
+type PhrasingNode = HeadingInline & { children?: PhrasingNode[] };
+
+/** Join remark phrasing (text, code, emphasis, strong, links, …) for GitHub-style heading slugs. */
+function phrasingText(nodes: PhrasingNode[] | undefined): string {
+	if (!nodes?.length) return "";
+	let out = "";
+	for (const node of nodes) {
+		if (node.type === "text" || node.type === "inlineCode") {
+			out += "value" in node && node.value !== undefined ? String(node.value) : "";
+			continue;
+		}
+		if (node.children?.length) {
+			out += phrasingText(node.children);
+		}
+	}
+	return out;
+}
+
 export function extractHeadingSlugs(content: string, _filePath?: string): Set<string> {
 	// Use remark for both .md and .mdc so headings inside fences are not valid targets.
 	const slugger = new GithubSlugger();
@@ -141,10 +163,7 @@ export function extractHeadingSlugs(content: string, _filePath?: string): Set<st
 
 	visit(tree, (node) => {
 		if (node.type === "heading" && "children" in node) {
-			const text = node.children
-				.filter((c: HeadingInline) => c.type === "text" || c.type === "inlineCode")
-				.map((c: HeadingInline) => ("value" in c ? String(c.value) : ""))
-				.join("");
+			const text = phrasingText(node.children as PhrasingNode[]);
 			if (text) slugs.add(slugger.slug(text));
 		}
 	});

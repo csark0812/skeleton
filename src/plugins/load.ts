@@ -34,8 +34,23 @@ export function normalizeExport(mod: unknown): PluginModule {
 	const defaultRules = def && Array.isArray(def.rules) ? (def.rules as AuditRule[]) : undefined;
 	const defaultPoliciesRaw = def && "policies" in def ? def.policies : undefined;
 
-	// Default is primary; named fills missing fields. Conflicting policies fail closed.
-	const rules = defaultRules ?? namedRules;
+	// Default is primary; named fills missing fields. Conflicting dual exports fail closed.
+	let rules: AuditRule[] | undefined;
+	if (defaultRules !== undefined && namedRules !== undefined) {
+		if (
+			defaultRules.length !== namedRules.length ||
+			defaultRules.some(
+				(rule, i) => rule.id !== namedRules[i]?.id || rule.run !== namedRules[i]?.run,
+			)
+		) {
+			throw new Error(
+				"Plugin exports disagree on rules: default and named `rules` must match when both are set",
+			);
+		}
+		rules = defaultRules;
+	} else {
+		rules = defaultRules ?? namedRules;
+	}
 
 	let policies: unknown;
 	if (defaultPoliciesRaw !== undefined && namedPoliciesRaw !== undefined) {

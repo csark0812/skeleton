@@ -105,10 +105,16 @@ export function collectAnchorFixes(ctx: AuditContext): FixEdit[] {
 
 		if (pending.length === 0) continue;
 
-		pending.sort((a, b) => b.urlStart - a.urlStart);
+		// Multiple linkReference uses share one definition span — rewrite that span once.
+		const uniqueBySpan = new Map<string, Pending>();
+		for (const edit of pending) {
+			uniqueBySpan.set(`${edit.urlStart}:${edit.urlEnd}:${edit.from}`, edit);
+		}
+		const uniquePending = [...uniqueBySpan.values()];
+		uniquePending.sort((a, b) => b.urlStart - a.urlStart);
 		let updated = content;
 		const descriptions: string[] = [];
-		for (const edit of pending) {
+		for (const edit of uniquePending) {
 			if (updated.slice(edit.urlStart, edit.urlEnd) !== edit.from) continue;
 			updated = updated.slice(0, edit.urlStart) + edit.to + updated.slice(edit.urlEnd);
 			descriptions.push(edit.description);

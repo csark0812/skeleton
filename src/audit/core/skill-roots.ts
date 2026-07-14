@@ -208,6 +208,19 @@ export function skillCollectAugments(index: SkillIndex): string[] {
 	return patterns;
 }
 
+/**
+ * Repo-relative SKILL.md paths for every detected skill (including under scan.exclude trees).
+ * Used by validate --base policy prove so skill-scoped prose still runs.
+ */
+export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[] {
+	const paths: string[] = [];
+	for (const slug of index.slugs) {
+		const rel = resolveSkillPath(index, root, slug);
+		if (rel) paths.push(rel);
+	}
+	return paths.sort();
+}
+
 export function listSkillSlugs(index: SkillIndex): string[] {
 	return index.slugs;
 }

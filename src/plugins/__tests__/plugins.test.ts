@@ -318,6 +318,25 @@ describe("plugin module export validation", () => {
 		});
 		expect(normalized.policies).toEqual(globs);
 	});
+
+	it("fails closed when default and named rules disagree", () => {
+		const named = { id: "named", run: () => [] };
+		expect(() =>
+			normalizeExport({
+				rules: [named],
+				default: { rules: [], policies: [] },
+			}),
+		).toThrow(/disagree on rules/);
+	});
+
+	it("accepts matching default and named rules", () => {
+		const rule = { id: "shared", run: () => [] };
+		const normalized = normalizeExport({
+			rules: [rule],
+			default: { rules: [rule], policies: [] },
+		});
+		expect(normalized.rules).toEqual([rule]);
+	});
 });
 
 describe("plugin path containment", () => {

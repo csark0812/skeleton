@@ -37,6 +37,12 @@ describe("parseAuditArgs --fix", () => {
 	it("rejects unknown space-separated --fix kinds", () => {
 		expect(() => parseAuditArgs(["--fix", "nope"])).toThrow(/Unknown --fix kind/);
 	});
+
+	it("rejects --dry-run=<value> forms", () => {
+		expect(() => parseAuditArgs(["--fix", "anchors", "--dry-run=true"])).toThrow(
+			/--dry-run \(boolean flag\)/,
+		);
+	});
 });
 
 describe("fixKindsForOnly", () => {
@@ -332,6 +338,61 @@ describe("applyFixes dry-run", () => {
 		} as ReturnType<typeof createContext>;
 		const edits = collectAnchorFixes(ctx);
 		expect(edits[0]?.content).toContain("#hello-world-guide");
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites a shared reference definition only once", () => {
+		const dir = join(tmpdir(), `fix-ref-multi-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			"See [a][x] and [b][x].\n\n[x]: ./t.md#getting-started\n",
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toContain("[x]: ./t.md#getting-started-guide\n");
+		expect(edits[0]?.content).not.toContain("getting-started-guide-guide");
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites reference destination, not a duplicated title URL", () => {
+		const dir = join(tmpdir(), `fix-ref-title-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/guide.md"), "## Setup Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			'[link][ref]\n\n[ref]: ./guide.md#setup "See ./guide.md#setup"\n',
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toContain('[ref]: ./guide.md#setup-guide "See ./guide.md#setup"');
+		expect(edits[0]?.content).not.toContain('"See ./guide.md#setup-guide"');
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes does not rewrite valid links to emphasized heading slugs", () => {
+		const dir = join(tmpdir(), `fix-em-heading-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/target.md"), "## Getting **Started** Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			"See [x](./target.md#getting-started-guide).\n",
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(0);
 		rmSync(dir, { recursive: true, force: true });
 	});
 

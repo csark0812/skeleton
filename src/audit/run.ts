@@ -37,6 +37,8 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 			json = true;
 		} else if (arg === "--dry-run") {
 			dryRun = true;
+		} else if (arg.startsWith("--dry-run=")) {
+			throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
 		} else if (arg === "--fix") {
 			const next = argv[i + 1];
 			if (next && !next.startsWith("-")) {

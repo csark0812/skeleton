@@ -4,7 +4,7 @@ import { basename, extname, join } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
-import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
+import { buildSkillIndex, isSkillPath, listSkillMarkdownPaths } from "../audit/core/skill-roots.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { runAudit } from "../audit/run.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
@@ -333,6 +333,22 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 				root,
 			});
 			if (proseExit !== 0) exitCode = 1;
+
+			// Docs corpus is collectScanFiles only — skill trees under scan.exclude never appear.
+			// Path-augment skills so skill-scoped policy entries still prove against bodies.
+			const skillPaths = listSkillMarkdownPaths(root, buildSkillIndex(root));
+			if (skillPaths.length > 0) {
+				const skillProseExit = await runAudit({
+					suite: "skills",
+					strict: false,
+					json: false,
+					paths: skillPaths,
+					only: null,
+					root,
+					pathScopedOnly: true,
+				});
+				if (skillProseExit !== 0) exitCode = 1;
+			}
 		} else {
 			if (exitCode === 0) {
 				console.error(
