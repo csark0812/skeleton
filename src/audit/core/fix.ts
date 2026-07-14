@@ -3,7 +3,7 @@ import { dirname, resolve, sep } from "node:path";
 import { collectAnchorFixes } from "../fix/anchors.ts";
 import { collectDocMetaFixes } from "../fix/doc-meta.ts";
 import type { AuditContext } from "./context.ts";
-import { DOC_META_LAST_REVIEWED_RE, replaceDocMetaLastReviewed } from "./shared.ts";
+import { docMetaLastReviewed, replaceDocMetaLastReviewed } from "./shared.ts";
 
 export type FixKind = "doc-meta" | "anchors";
 
@@ -59,9 +59,9 @@ export function coalesceFixEdits(metaEdits: FixEdit[], anchorEdits: FixEdit[]): 
 }
 
 function overlayLastReviewed(targetContent: string, metaContent: string): string {
-	const match = DOC_META_LAST_REVIEWED_RE.exec(metaContent);
-	if (!match?.[1]) return targetContent;
-	return replaceDocMetaLastReviewed(targetContent, match[1]) ?? targetContent;
+	const date = docMetaLastReviewed(metaContent);
+	if (!date) return targetContent;
+	return replaceDocMetaLastReviewed(targetContent, date) ?? targetContent;
 }
 
 function underRoot(rootAbs: string, candidateAbs: string): boolean {

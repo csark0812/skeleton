@@ -100,6 +100,12 @@ describe("isDraftPlacementAllowed", () => {
 		expect(isDraftPlacementAllowed("drafts/wip.md", ["drafts/"])).toBe(true);
 	});
 
+	it("treats prefixes without trailing slash as directories", () => {
+		expect(isDraftPlacementAllowed("drafts/wip.md", ["drafts"])).toBe(true);
+		expect(isDraftPlacementAllowed("drafts-archive/x.md", ["drafts"])).toBe(false);
+		expect(isDraftPlacementAllowed("draftstuff.md", ["drafts"])).toBe(false);
+	});
+
 	it("rejects elsewhere", () => {
 		expect(isDraftPlacementAllowed("docs/readme.md", ["drafts/"])).toBe(false);
 	});

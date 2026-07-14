@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { describe, expect, it, spyOn } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAudit } from "../../audit/run.ts";
@@ -121,6 +121,27 @@ describe("validate changed routing", () => {
 			paths: ["multi/SKILL.md"],
 		});
 		expect(exit).toBe(1);
+	});
+
+	it("fails skill+policy paths without --base and points at audit skills", async () => {
+		const policyDir = join(FLAT_SKILL_ROOT, ".skeleton/plugins/example/policies");
+		mkdirSync(policyDir, { recursive: true });
+		const policyRel = ".skeleton/plugins/example/policies/_tmp-skill-policy.yaml";
+		const policyAbs = join(FLAT_SKILL_ROOT, policyRel);
+		writeFileSync(policyAbs, `name: tmp\nentries:\n  - id: a\n    pattern: foo\n    message: m\n`);
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["multi/SKILL.md", policyRel],
+			});
+			expect(exit).toBe(1);
+			expect(err.mock.calls.flat().join("\n")).toContain("audit skills");
+		} finally {
+			err.mockRestore();
+			unlinkSync(policyAbs);
+			rmSync(join(FLAT_SKILL_ROOT, ".skeleton/plugins"), { recursive: true, force: true });
+		}
 	});
 
 	it("fails when all explicit paths are missing on disk", async () => {

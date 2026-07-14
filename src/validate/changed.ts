@@ -244,10 +244,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 
 	if (buckets.skills.length > 0) {
 		const skillsOnly =
-			buckets.docs.length === 0 &&
-			buckets.shell.length === 0 &&
-			buckets.json.length === 0 &&
-			buckets.policy.length === 0;
+			buckets.docs.length === 0 && buckets.shell.length === 0 && buckets.json.length === 0;
 		// Skill-body rules are global; path-scoped skill audit does not cover them.
 		// Without --base (CI globals), fail and redirect so green is not mistaken for coverage.
 		if (skillsOnly && !options.base) {

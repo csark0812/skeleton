@@ -91,6 +91,29 @@ describe("coalesceFixEdits", () => {
 		expect(merged[0]?.description).toContain("last-reviewed");
 		expect(merged[0]?.description).toContain("#alpha");
 	});
+
+	it("prefers doc-meta date over prose last-reviewed when coalescing", () => {
+		const meta: FixEdit = {
+			file: "docs/source.md",
+			description: "last-reviewed 2024-06-01 → 2026-07-13",
+			content:
+				"Write last-reviewed=2099-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->\n",
+		};
+		const anchors: FixEdit = {
+			file: "docs/source.md",
+			description: "docs/source.md:4 #a → #alpha",
+			content:
+				"Write last-reviewed=2099-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\n\nSee [t](./t.md#alpha).\n",
+		};
+		const merged = coalesceFixEdits([meta], [anchors]);
+		expect(merged).toHaveLength(1);
+		expect(merged[0]?.content).toContain("Write last-reviewed=2099-01-01 in prose.");
+		expect(merged[0]?.content).toContain("<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->");
+		expect(merged[0]?.content).not.toContain(
+			"<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->",
+		);
+		expect(merged[0]?.content).toContain("#alpha");
+	});
 });
 
 describe("replaceExactLinkTarget", () => {
