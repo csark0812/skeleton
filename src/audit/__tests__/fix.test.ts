@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, it, spyOn } from "bun:test";
+import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createContext } from "../core/context.ts";
@@ -45,6 +45,11 @@ describe("findBestAnchorMatch", () => {
 	it("returns null when ambiguous", () => {
 		const match = findBestAnchorMatch("ab", ["abc", "abd"]);
 		expect(match).toBeNull();
+	});
+
+	it("does not rewrite broken fragments onto shorter heading prefixes", () => {
+		expect(findBestAnchorMatch("getting-started", ["getting"])).toBeNull();
+		expect(findBestAnchorMatch("getting-started", ["get"])).toBeNull();
 	});
 });
 
@@ -94,6 +99,23 @@ describe("resolveWritePath", () => {
 
 	it("allows paths under the root", () => {
 		expect(resolveWritePath("/tmp/repo", "docs/a.md")).toBe(resolve("/tmp/repo", "docs/a.md"));
+	});
+
+	it("refuses symlink write-through outside the repo", () => {
+		const dir = join(tmpdir(), `fix-symlink-${Date.now()}`);
+		const outside = join(tmpdir(), `fix-outside-${Date.now()}.md`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(outside, "outside original\n");
+		symlinkSync(outside, join(dir, "docs/source.md"));
+		try {
+			expect(() => resolveWritePath(dir, "docs/source.md")).toThrow(
+				/Refusing autofix outside repo root/,
+			);
+			expect(readFileSync(outside, "utf8")).toBe("outside original\n");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+			rmSync(outside, { force: true });
+		}
 	});
 });
 
@@ -210,5 +232,40 @@ describe("applyFixes dry-run", () => {
 		} as ReturnType<typeof createContext>;
 		const edits = collectAnchorFixes(ctx);
 		expect(edits[0]?.content).toContain("#hello-world");
+	});
+
+	it("logs autofix progress to stderr, not stdout", () => {
+		const dir = join(tmpdir(), `fix-stderr-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/registry.md"),
+			`# Registry\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** stderr fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
+		);
+		writeFileSync(
+			join(dir, "docs/target.md"),
+			`# Target\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
+		);
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			`# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started).\n`,
+		);
+
+		const logSpy = spyOn(console, "log").mockImplementation(() => {});
+		const errSpy = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const ctx = createContext({ root: dir });
+			applyFixes(ctx, { kinds: ["anchors"], dryRun: true });
+			expect(logSpy).not.toHaveBeenCalled();
+			expect(errSpy.mock.calls.some((c) => String(c[0]).includes("Doc audit autofix"))).toBe(true);
+		} finally {
+			logSpy.mockRestore();
+			errSpy.mockRestore();
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

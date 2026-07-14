@@ -22,8 +22,15 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 
 export function scoreAnchorMatch(brokenSlug: string, candidateSlug: string): number {
 	if (brokenSlug === candidateSlug) return 1;
-	if (brokenSlug.startsWith(candidateSlug) || candidateSlug.startsWith(brokenSlug)) {
+	// Longer extensions of the broken slug are perfect matches
+	// (`getting-started` → `getting-started-guide`).
+	if (candidateSlug.startsWith(brokenSlug) && candidateSlug.length > brokenSlug.length) {
 		return 1;
+	}
+	// Never rewrite onto a shorter heading that is only a string prefix of the
+	// broken fragment (`getting-started` → `getting` / `get`).
+	if (brokenSlug.startsWith(candidateSlug) && brokenSlug.length > candidateSlug.length) {
+		return 0;
 	}
 	const a = tokenize(brokenSlug);
 	const b = tokenize(candidateSlug);

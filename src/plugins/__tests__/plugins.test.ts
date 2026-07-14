@@ -76,6 +76,54 @@ describe("plugin load + build", () => {
 		await runBuildPlugin({ root: CONSUMER });
 	});
 
+	it("build-plugin --check fails when local .js→.ts dep is newer", async () => {
+		const dir = join(tmpdir(), `skel-plugin-jsdep-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/multi"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/multi/entry.ts\n`,
+		);
+		writeFileSync(join(dir, ".skeleton/plugins/multi/util.ts"), `export const marker = "util";\n`);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/multi/entry.ts"),
+			`import { marker } from "./util.js";\nexport default { rules: [], policies: undefined };\nvoid marker;\n`,
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			const mjs = join(dir, ".skeleton/plugins/multi/entry.mjs");
+			const util = join(dir, ".skeleton/plugins/multi/util.ts");
+			const old = new Date(Date.now() - 60_000);
+			const newer = new Date();
+			utimesSync(mjs, old, old);
+			utimesSync(util, newer, newer);
+			await expect(runBuildPlugin({ root: dir, check: true })).rejects.toThrow(/stale/);
+			await runBuildPlugin({ root: dir });
+			await expect(runBuildPlugin({ root: dir, check: true })).resolves.toBeDefined();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("fails closed when declared policy globs match no YAML", async () => {
+		const dir = join(tmpdir(), `skel-plugin-nopolicy-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/empty-pol.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/empty-pol.ts"),
+			`export default { rules: [], policies: ["plugins/missing/*.yaml"] };\n`,
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			const config = loadConfig(dir);
+			await expect(loadPlugins(dir, config)).rejects.toThrow(/matched no YAML/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("surfaces scoped prose-policy hits via runAudit", async () => {
 		await runBuildPlugin({ root: CONSUMER });
 		const exit = await runAudit({

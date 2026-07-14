@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
@@ -24,19 +25,30 @@ function collectPluginEntries(root: string, config: SkeletonConfig, entry?: stri
 	return (config.plugins ?? []).map((e) => resolvePluginTsPath(root, e));
 }
 
-function localImportPaths(tsAbs: string, content: string): string[] {
+/** Resolve local relative imports for stale-check (incl. `./x.js` → `x.ts`). */
+export function localImportPaths(tsAbs: string, content: string): string[] {
 	const dir = dirname(tsAbs);
 	const deps: string[] = [];
 	const re = /from\s+["'](\.[^"']+)["']/g;
 	for (const match of content.matchAll(re)) {
 		const spec = match[1];
 		if (!spec) continue;
-		const candidates = [
-			resolve(dir, spec),
-			resolve(dir, `${spec}.ts`),
-			resolve(dir, `${spec}.js`),
-			resolve(dir, spec, "index.ts"),
-		];
+		const candidates: string[] = [];
+		if (spec.endsWith(".js")) {
+			const withoutJs = spec.slice(0, -".js".length);
+			candidates.push(
+				resolve(dir, `${withoutJs}.ts`),
+				resolve(dir, spec),
+				resolve(dir, withoutJs, "index.ts"),
+			);
+		} else {
+			candidates.push(
+				resolve(dir, spec),
+				resolve(dir, `${spec}.ts`),
+				resolve(dir, `${spec}.js`),
+				resolve(dir, spec, "index.ts"),
+			);
+		}
 		for (const candidate of candidates) {
 			if (existsSync(candidate) && candidate.endsWith(".ts")) {
 				deps.push(candidate);
@@ -61,32 +73,24 @@ async function buildOne(tsAbs: string): Promise<string> {
 	if (!existsSync(tsAbs)) {
 		throw new Error(`Plugin source not found: ${tsAbs}`);
 	}
-	if (typeof Bun === "undefined") {
-		throw new Error(
-			"skeleton build-plugin requires Bun (bun build). Install Bun 1.2.x or run from a Bun environment.",
-		);
-	}
 
-	const proc = Bun.spawn(
-		[
-			"bun",
-			"build",
-			tsAbs,
-			"--target=node",
-			"--format=esm",
-			`--outfile=${mjsAbs}`,
-			"--packages=external",
-		],
-		{ stdout: "pipe", stderr: "pipe" },
+	const proc = spawnSync(
+		"bun",
+		["build", tsAbs, "--target=node", "--format=esm", `--outfile=${mjsAbs}`, "--packages=external"],
+		{ encoding: "utf8" },
 	);
-	const [stdout, stderr, exitCode] = await Promise.all([
-		new Response(proc.stdout).text(),
-		new Response(proc.stderr).text(),
-		proc.exited,
-	]);
-	if (exitCode !== 0) {
+	if (proc.error) {
+		const code = (proc.error as NodeJS.ErrnoException).code;
+		if (code === "ENOENT") {
+			throw new Error(
+				"skeleton build-plugin requires the bun binary on PATH (bun build). Install Bun 1.2.x.",
+			);
+		}
+		throw new Error(`skeleton build-plugin failed to spawn bun: ${proc.error.message}`);
+	}
+	if (proc.status !== 0) {
 		throw new Error(
-			`skeleton build-plugin failed for ${tsAbs}:\n${stderr || stdout || `exit ${exitCode}`}`,
+			`skeleton build-plugin failed for ${tsAbs}:\n${proc.stderr || proc.stdout || `exit ${proc.status}`}`,
 		);
 	}
 	return mjsAbs;

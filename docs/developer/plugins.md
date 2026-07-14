@@ -49,9 +49,11 @@ skeleton build-plugin plugins/foo.ts
 skeleton build-plugin --check      # CI: fail if .mjs missing or stale
 ```
 
+`build-plugin` shells out to the `bun` binary on `PATH` (`bun build …`), so the Node-published bin works when Bun 1.2.x is installed. `--check` is Bun-free (mtime only).
+
 Recipe: `bun build <entry.ts> --target=node --format=esm --outfile=<entry.mjs> --packages=external`.
 
-Runtime loader imports **only** the `.mjs`. Missing artifact → loud error with `skeleton build-plugin` hint.
+Runtime loader imports **only** the `.mjs`. Missing artifact → loud error with `skeleton build-plugin` hint. Declared `policies` globs that match no YAML fail closed at load.
 
 ## Prose policies
 

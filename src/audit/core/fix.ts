@@ -1,5 +1,5 @@
-import { writeFileSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { existsSync, realpathSync, writeFileSync } from "node:fs";
+import { dirname, resolve, sep } from "node:path";
 import { collectAnchorFixes } from "../fix/anchors.ts";
 import { collectDocMetaFixes } from "../fix/doc-meta.ts";
 import type { AuditContext } from "./context.ts";
@@ -66,12 +66,34 @@ function overlayLastReviewed(targetContent: string, metaContent: string): string
 	return targetContent.replace(DOC_META_LAST_REVIEWED_RE, `last-reviewed=${date}`);
 }
 
-/** Resolve a write path and refuse escapes outside the repo root. */
+function underRoot(rootAbs: string, candidateAbs: string): boolean {
+	return candidateAbs === rootAbs || candidateAbs.startsWith(rootAbs + sep);
+}
+
+/** Resolve a write path and refuse escapes outside the repo root (incl. symlinks). */
 export function resolveWritePath(root: string, relFile: string): string {
-	const rootAbs = resolve(root);
-	const abs = resolve(rootAbs, relFile);
-	if (abs !== rootAbs && !abs.startsWith(rootAbs + sep)) {
+	const rootResolved = resolve(root);
+	const abs = resolve(rootResolved, relFile);
+	if (!underRoot(rootResolved, abs)) {
 		throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+	}
+
+	const rootReal = existsSync(rootResolved) ? realpathSync(rootResolved) : rootResolved;
+
+	if (existsSync(abs)) {
+		const real = realpathSync(abs);
+		if (!underRoot(rootReal, real)) {
+			throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+		}
+		return abs;
+	}
+
+	const parent = dirname(abs);
+	if (existsSync(parent)) {
+		const parentReal = realpathSync(parent);
+		if (!underRoot(rootReal, parentReal)) {
+			throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+		}
 	}
 	return abs;
 }
@@ -82,16 +104,16 @@ export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): Apply
 	const modifiedFiles: string[] = [];
 
 	if (edits.length > 0) {
-		console.log("Doc audit autofix:\n");
+		console.error("Doc audit autofix:\n");
 		for (const edit of edits) {
-			console.log(`- ${edit.file}: ${edit.description}`);
+			console.error(`- ${edit.file}: ${edit.description}`);
 			if (!options.dryRun) {
 				const abs = resolveWritePath(ctx.root, edit.file);
 				writeFileSync(abs, edit.content, "utf8");
 				modifiedFiles.push(edit.file);
 			}
 		}
-		console.log("");
+		console.error("");
 	}
 
 	return { edits, modifiedFiles };

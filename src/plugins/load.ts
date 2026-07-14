@@ -76,6 +76,11 @@ function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
 		assertUnderSkeleton(root, abs);
 		policies.push(loadPolicyFile(abs, readFileSync(abs, "utf8")));
 	}
+	if (globs.length > 0 && policies.length === 0) {
+		throw new Error(
+			`Plugin policies matched no YAML under .skeleton/: ${globs.join(", ")}. Fix the glob or add policy files.`,
+		);
+	}
 	return policies;
 }
 
