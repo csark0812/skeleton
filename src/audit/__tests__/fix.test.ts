@@ -566,6 +566,106 @@ describe("applyFixes dry-run", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it("collectAnchorFixes does not rewrite onto YAML frontmatter setext false slugs", () => {
+		const dir = join(tmpdir(), `fix-frontmatter-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, "docs/t.md"),
+			["---", "title: Getting Started", "---", "", "## Installation", ""].join("\n"),
+		);
+		writeFileSync(join(dir, "docs/source.md"), "See [x](./t.md#getting-started).\n");
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(0);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes does not rewrite onto .mdc frontmatter setext false slugs", () => {
+		const dir = join(tmpdir(), `fix-mdc-frontmatter-${Date.now()}`);
+		mkdirSync(join(dir, "rules"), { recursive: true });
+		writeFileSync(
+			join(dir, "rules/t.mdc"),
+			[
+				"---",
+				"description: Getting Started",
+				"globs:",
+				"alwaysApply: false",
+				"---",
+				"",
+				"# Installation",
+				"",
+			].join("\n"),
+		);
+		writeFileSync(join(dir, "rules/source.mdc"), "See [x](./t.mdc#getting-started).\n");
+		const ctx = {
+			root: dir,
+			files: [join(dir, "rules/source.mdc")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(0);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites the live reference def, not a fenced example copy", () => {
+		const dir = join(tmpdir(), `fix-ref-fence-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			[
+				"```",
+				"[ref]: ./t.md#getting-started",
+				"```",
+				"",
+				"See [a][ref].",
+				"",
+				"[ref]: ./t.md#getting-started",
+				"",
+			].join("\n"),
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		const next = edits[0]?.content ?? "";
+		expect(next).toContain("```\n[ref]: ./t.md#getting-started\n```");
+		expect(next).toContain("[ref]: ./t.md#getting-started-guide\n");
+		expect(next.match(/\[ref\]: \.\/t\.md#getting-started(?!-guide)/g)?.length).toBe(1);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it("collectAnchorFixes rewrites the live reference def, not an indented-code copy", () => {
+		const dir = join(tmpdir(), `fix-ref-indent-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			[
+				"    [ref]: ./t.md#getting-started",
+				"",
+				"See [a][ref].",
+				"",
+				"[ref]: ./t.md#getting-started",
+				"",
+			].join("\n"),
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		const next = edits[0]?.content ?? "";
+		expect(next).toContain("    [ref]: ./t.md#getting-started\n");
+		expect(next).toContain("[ref]: ./t.md#getting-started-guide\n");
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it("logs autofix progress to stderr, not stdout", () => {
 		const dir = join(tmpdir(), `fix-stderr-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });

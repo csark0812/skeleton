@@ -81,4 +81,23 @@ describe("skill-roots", () => {
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});
+
+	it("lists same-slug trees under both .claude and .agents when not symlinked", () => {
+		const dir = join(tmpdir(), `skill-dual-root-${Date.now()}`);
+		mkdirSync(join(dir, ".claude/skills/foo/references"), { recursive: true });
+		mkdirSync(join(dir, ".agents/skills/foo/references"), { recursive: true });
+		writeFileSync(join(dir, ".claude/skills/foo/SKILL.md"), "claude body\n");
+		writeFileSync(join(dir, ".claude/skills/foo/references/note.md"), "claude note\n");
+		writeFileSync(join(dir, ".agents/skills/foo/SKILL.md"), "AGENTS_ONLY_TOKEN\n");
+		writeFileSync(join(dir, ".agents/skills/foo/references/agents.md"), "agents note\n");
+		try {
+			const paths = listSkillMarkdownPaths(dir, buildSkillIndex(dir));
+			expect(paths).toContain(".claude/skills/foo/SKILL.md");
+			expect(paths).toContain(".claude/skills/foo/references/note.md");
+			expect(paths).toContain(".agents/skills/foo/SKILL.md");
+			expect(paths).toContain(".agents/skills/foo/references/agents.md");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });

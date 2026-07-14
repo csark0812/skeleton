@@ -15,13 +15,23 @@ export interface ExtractedLink {
 	urlEnd?: number;
 }
 
-const REFERENCE_DEF_RE = /^\[([^\]]+)\]:\s+(\S+)/;
-
 const processor = remark().use(remarkGfm);
 
 function lineFromOffset(content: string, offset: number | undefined): number | undefined {
 	if (offset === undefined) return undefined;
 	return content.slice(0, offset).split("\n").length;
+}
+
+/**
+ * Strip leading YAML frontmatter so a closing `---` is not parsed as a setext
+ * underline (which yields false heading slugs like `title-getting-started`).
+ */
+export function stripYamlFrontmatter(content: string): string {
+	const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(content);
+	if (match) return content.slice(match[0].length);
+	const eof = /^---\r?\n([\s\S]*?)\r?\n---\s*$/.exec(content);
+	if (eof) return "";
+	return content;
 }
 
 /**
@@ -109,51 +119,72 @@ function findUrlSpanInSlice(
 	return undefined;
 }
 
-function findReferenceDefUrlSpan(
+type ReferenceDef = {
+	url: string;
+	urlStart: number;
+	urlEnd: number;
+	line: number;
+};
+
+/** Locate the destination token inside a remark `definition` node slice. */
+function findUrlInDefinitionSlice(
 	content: string,
-	identifier: string,
+	nodeStart: number,
+	nodeEnd: number,
 	url: string,
-): { urlStart: number; urlEnd: number; line: number } | undefined {
-	const lines = content.split("\n");
-	const needle = `[${identifier}]:`.toLowerCase();
-	let offset = 0;
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i] ?? "";
-		const leadWs = line.length - line.trimStart().length;
-		const trimmed = line.trimStart();
-		if (trimmed.toLowerCase().startsWith(needle)) {
-			const match = REFERENCE_DEF_RE.exec(trimmed);
-			if (match?.[2] === url) {
-				// Bind the destination token immediately after `[id]:`, not a later title copy.
-				const afterLabel = trimmed.slice(needle.length);
-				const urlOffsetInTrimmed = needle.length + afterLabel.search(/\S/);
-				const urlInLine = leadWs + urlOffsetInTrimmed;
-				if (line.slice(urlInLine, urlInLine + url.length) === url) {
-					return {
-						urlStart: offset + urlInLine,
-						urlEnd: offset + urlInLine + url.length,
-						line: i + 1,
-					};
-				}
-			}
-		}
-		offset += line.length + 1;
+): { urlStart: number; urlEnd: number } | undefined {
+	const slice = content.slice(nodeStart, nodeEnd);
+	const labelEnd = slice.indexOf("]:");
+	if (labelEnd === -1) return undefined;
+	let i = labelEnd + 2;
+	while (i < slice.length && /\s/.test(slice[i] ?? "")) i++;
+	if (slice.startsWith(`<${url}>`, i)) {
+		const urlStart = nodeStart + i + 1;
+		return { urlStart, urlEnd: urlStart + url.length };
+	}
+	if (slice.startsWith(url, i)) {
+		const urlStart = nodeStart + i;
+		return { urlStart, urlEnd: urlStart + url.length };
 	}
 	return undefined;
+}
+
+/**
+ * Structural reference definitions only (remark `definition` nodes).
+ * Skips fenced/indented code and HTML comments; first definition wins.
+ */
+function collectReferenceDefinitions(
+	content: string,
+	tree: MarkdownRoot,
+): Map<string, ReferenceDef> {
+	const defs = new Map<string, ReferenceDef>();
+	visit(tree, (node) => {
+		if (node.type !== "definition") return;
+		if (!("identifier" in node) || !("url" in node)) return;
+		const id = String(node.identifier).toLowerCase();
+		if (defs.has(id)) return;
+		const url = typeof node.url === "string" ? node.url : "";
+		if (!url) return;
+		const start = node.position?.start.offset;
+		const end = node.position?.end.offset;
+		if (start === undefined || end === undefined) return;
+		const span = findUrlInDefinitionSlice(content, start, end, url);
+		if (!span) return;
+		defs.set(id, {
+			url,
+			urlStart: span.urlStart,
+			urlEnd: span.urlEnd,
+			line: lineFromOffset(content, start) ?? 1,
+		});
+	});
+	return defs;
 }
 
 export function extractLinksFromMarkdown(content: string, _filePath?: string): ExtractedLink[] {
 	// Use remark for both .md and .mdc so fenced/inline code is not treated as links.
 	const tree = processor.parse(content) as MarkdownRoot;
-	const refDefs = new Map<string, string>();
+	const refDefs = collectReferenceDefinitions(content, tree);
 	const links: ExtractedLink[] = [];
-
-	for (const line of content.split("\n")) {
-		const match = REFERENCE_DEF_RE.exec(line.trim());
-		if (match?.[1] && match[2]) {
-			refDefs.set(match[1].toLowerCase(), match[2]);
-		}
-	}
 
 	visit(tree, (node) => {
 		if (node.type === "link" && "url" in node && typeof node.url === "string") {
@@ -173,14 +204,13 @@ export function extractLinksFromMarkdown(content: string, _filePath?: string): E
 		}
 		if (node.type === "linkReference" && "identifier" in node) {
 			const id = String(node.identifier).toLowerCase();
-			const url = refDefs.get(id);
-			if (url) {
-				const span = findReferenceDefUrlSpan(content, String(node.identifier), url);
+			const def = refDefs.get(id);
+			if (def) {
 				links.push({
-					target: url.trim(),
-					line: span?.line ?? lineFromOffset(content, node.position?.start.offset),
-					urlStart: span?.urlStart,
-					urlEnd: span?.urlEnd,
+					target: def.url.trim(),
+					line: def.line,
+					urlStart: def.urlStart,
+					urlEnd: def.urlEnd,
 				});
 			}
 		}
@@ -209,9 +239,11 @@ function phrasingText(nodes: PhrasingNode[] | undefined): string {
 
 export function extractHeadingSlugs(content: string, _filePath?: string): Set<string> {
 	// Use remark for both .md and .mdc so headings inside fences are not valid targets.
+	// Strip YAML frontmatter first — closing `---` is otherwise a setext underline.
+	const body = stripYamlFrontmatter(content);
 	const slugger = new GithubSlugger();
 	const slugs = new Set<string>();
-	const tree = processor.parse(content) as MarkdownRoot;
+	const tree = processor.parse(body) as MarkdownRoot;
 
 	visit(tree, (node) => {
 		if (node.type === "heading" && "children" in node) {
