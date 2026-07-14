@@ -11,6 +11,7 @@ import {
 import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
+const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
 
 describe("normalizeRelPath", () => {
 	it("strips leading ./ segments and normalizes slashes", () => {
@@ -46,6 +47,13 @@ describe("collectScanFiles", () => {
 		expect(rels).toContain("docs/README.md");
 		expect(rels).toContain("docs/developer/validation.md");
 		expect(rels.some((r) => r.includes("packages/outlier"))).toBe(false);
+	});
+
+	it("collects customize markdown without an explicit scan.include", () => {
+		const config = loadConfig(NESTED_SKILLS_CUSTOMIZE);
+		const files = collectScanFiles(config, NESTED_SKILLS_CUSTOMIZE);
+		const rels = files.map((f) => f.replace(`${NESTED_SKILLS_CUSTOMIZE}/`, ""));
+		expect(rels).toContain(".skeleton/customize/code-review.md");
 	});
 });
 

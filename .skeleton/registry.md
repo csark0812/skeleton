@@ -19,3 +19,9 @@
 | Plugins               | [plugins.md](../docs/developer/plugins.md)       |
 | Customize             | [customize.md](../docs/developer/customize.md)   |
 | Skeleton skill        | [SKILL.md](../skeleton/SKILL.md)                 |
+
+## Customizations
+
+| Topic                                                                                                  | Canonical file                             |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| Customize: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar). | [code-review.md](customize/code-review.md) |

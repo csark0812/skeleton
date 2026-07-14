@@ -37,6 +37,7 @@ describe("register", () => {
 			dryRun: true,
 		});
 		expect(result.topic.startsWith("Customize:")).toBe(true);
+		expect(result.warnOutsideScan).toBe(false);
 	});
 });
 

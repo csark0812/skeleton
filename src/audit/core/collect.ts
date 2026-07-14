@@ -7,6 +7,7 @@ import { extractScanRootsFromInclude, matchesGlobScope, normalizeRelPath } from 
 import { type SkillIndex, skillCollectAugments } from "./skill-roots.ts";
 
 const MARKDOWN_GLOBS = ["**/*.md", "**/*.mdc"];
+const BUILTIN_INCLUDE_PATTERNS = [".skeleton/customize/**"];
 
 function isMarkdownFile(absPath: string): boolean {
 	return absPath.endsWith(".md") || absPath.endsWith(".mdc");
@@ -40,7 +41,7 @@ export function collectScanFiles(
 	skillIndex?: SkillIndex,
 ): string[] {
 	const exclude = mergedExcludes(config);
-	const includePatterns = [...config.scan.include];
+	const includePatterns = [...BUILTIN_INCLUDE_PATTERNS, ...config.scan.include];
 	if (skillIndex) {
 		includePatterns.push(...skillCollectAugments(skillIndex));
 	}
