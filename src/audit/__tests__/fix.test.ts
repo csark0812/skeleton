@@ -128,6 +128,30 @@ describe("replaceExactLinkTarget", () => {
 		expect(next).toContain("[b](./t.md#getting-started-guide)");
 		expect(next).not.toContain("getting-started-guide-guide");
 	});
+
+	it("does not rewrite path-suffix targets with a hyphen prefix", () => {
+		const content = "[a](target.md#getting-started) and [b](other-target.md#getting-started)";
+		const next = replaceExactLinkTarget(
+			content,
+			"target.md#getting-started",
+			"target.md#getting-started-guide",
+		);
+		expect(next).toContain("[a](target.md#getting-started-guide)");
+		expect(next).toContain("[b](other-target.md#getting-started)");
+		expect(next).not.toContain("other-target.md#getting-started-guide");
+	});
+
+	it("does not rewrite path-suffix targets under a directory", () => {
+		const content = "[a](target.md#getting-started) and [b](foo/target.md#getting-started)";
+		const next = replaceExactLinkTarget(
+			content,
+			"target.md#getting-started",
+			"target.md#getting-started-guide",
+		);
+		expect(next).toContain("[a](target.md#getting-started-guide)");
+		expect(next).toContain("[b](foo/target.md#getting-started)");
+		expect(next).not.toContain("foo/target.md#getting-started-guide");
+	});
 });
 
 describe("resolveWritePath", () => {

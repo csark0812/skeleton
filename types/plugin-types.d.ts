@@ -83,7 +83,7 @@ export interface SkillRoot {
 
 export interface SkillIndex {
 	roots: SkillRoot[];
-	slugs: Map<string, string>;
+	slugs: string[];
 }
 
 export interface AuditContext {

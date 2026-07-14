@@ -35,10 +35,13 @@ function replaceExactLinkTarget(content: string, from: string, to: string): stri
 			break;
 		}
 		const end = idx + from.length;
+		const prev = idx > 0 ? content[idx - 1] : undefined;
 		const next = content[end];
+		// Do not treat `target.md#…` as a match inside `other-target.md#…` / `foo/target.md#…`.
+		const leftOk = prev === undefined || /[^A-Za-z0-9_./-]/.test(prev);
 		// Do not treat `#getting-started` as a match inside `#getting-started-guide`.
-		const safe = next === undefined || /[^A-Za-z0-9_-]/.test(next);
-		if (safe) {
+		const rightOk = next === undefined || /[^A-Za-z0-9_-]/.test(next);
+		if (leftOk && rightOk) {
 			out += content.slice(i, idx) + to;
 			i = end;
 		} else {
