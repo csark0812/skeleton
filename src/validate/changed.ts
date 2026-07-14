@@ -200,24 +200,24 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	const orphans: string[] = [];
 
 	for (const relPath of relPaths) {
-		const abs = join(root, relPath);
+		const normalized = normalizeRelPath(relPath);
+		const abs = join(root, normalized);
 		if (!existsSync(abs)) {
 			missing++;
 			console.error(`validate changed: path not found: ${relPath}`);
 			continue;
 		}
-		const normalized = normalizeRelPath(relPath);
 		const ext = extname(normalized).toLowerCase();
 		if (isSkeletonYamlCandidate(normalized, ext) && !wiredPolicies.has(normalized)) {
 			orphans.push(normalized);
 			continue;
 		}
-		const bucket = bucketFor(relPath, root, wiredPolicies);
+		const bucket = bucketFor(normalized, root, wiredPolicies);
 		if (bucket === "skip") {
 			skipped++;
 			continue;
 		}
-		buckets[bucket].push(relPath);
+		buckets[bucket].push(normalized);
 	}
 
 	if (orphans.length > 0) {

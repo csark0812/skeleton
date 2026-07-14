@@ -69,9 +69,26 @@ export function resolvePluginTsPath(root: string, entry: string): string {
 	}
 	const base = resolve(skeletonDir(root));
 	const abs = resolve(base, cleaned);
+	return assertPluginTsUnderSkeleton(root, abs, entry);
+}
+
+/**
+ * Resolve an absolute CLI plugin entry. Lexical paths under `.skeleton/` are accepted
+ * only when realpath (and the sibling `.mjs` output path) stay under the real `.skeleton/`.
+ */
+export function resolveAbsolutePluginTsPath(root: string, absEntry: string): string {
+	if (!(absEntry.startsWith("/") || /^[A-Za-z]:[\\/]/.test(absEntry))) {
+		throw new Error(`Expected absolute plugin path: ${absEntry}`);
+	}
+	const abs = resolve(absEntry);
+	return assertPluginTsUnderSkeleton(root, abs, absEntry);
+}
+
+function assertPluginTsUnderSkeleton(root: string, abs: string, label: string): string {
+	const base = resolve(skeletonDir(root));
 	assertUnderBase(abs, base, "Plugin path");
 	if (!abs.endsWith(".ts")) {
-		throw new Error(`Plugin path must be a .ts file under .skeleton/: ${entry}`);
+		throw new Error(`Plugin path must be a .ts file under .skeleton/: ${label}`);
 	}
 	const mjsAbs = mjsPathForTs(abs);
 	assertUnderBase(mjsAbs, base, "Plugin output");

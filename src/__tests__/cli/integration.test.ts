@@ -186,6 +186,23 @@ describe("validate changed routing", () => {
 		}
 	});
 
+	it("fail-closes ./prefixed wired policy paths the same as plain .skeleton/ paths", async () => {
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: PLUGIN_CONSUMER,
+				paths: [
+					"./.skeleton/plugins/example/policies/sample-banned-phrase.yaml",
+					"./docs/clean.md",
+				],
+			});
+			expect(exit).toBe(1);
+			expect(err.mock.calls.flat().join("\n")).toMatch(/full prose-policy pass|audit docs/);
+		} finally {
+			err.mockRestore();
+		}
+	});
+
 	it("fails orphan .skeleton/policies YAML not exported by a plugin", async () => {
 		const policyDir = join(PLUGIN_CONSUMER, ".skeleton/policies");
 		mkdirSync(policyDir, { recursive: true });
@@ -226,6 +243,48 @@ describe("validate changed routing", () => {
 		} finally {
 			err.mockRestore();
 			log.mockRestore();
+		}
+	});
+
+	it("under --base, path-scoped skills still audit excluded .claude skills", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-skill-exclude-"));
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/foo"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/policies/banned.yaml"),
+			`name: skill-banned\nentries:\n  - id: hub\n    scope: ".claude/skills/**"\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/foo/SKILL.md"),
+			"---\nname: foo\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(join(dir, "docs/a.md"), "# A\n");
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		try {
+			await runBuildPlugin({ root: dir });
+			const exit = await runValidateChanged({
+				root: dir,
+				base: "HEAD",
+				paths: [".claude/skills/foo/SKILL.md"],
+			});
+			expect(exit).toBe(1);
+			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
+			expect(msg).toMatch(/no hub token|Skill index audit failed|Audit failed/i);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
+			rmSync(dir, { recursive: true, force: true });
 		}
 	});
 

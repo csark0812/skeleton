@@ -31,8 +31,18 @@ export const SKILL_LINK_IN_TARGET_RE =
 export const SKILL_LINK_RE =
 	/(?:\.claude\/skills\/|\.agents\/skills\/|\.\.\/|\.\/)?([a-z0-9-]+)\/SKILL\.md/g;
 
+/**
+ * Normalize repo-relative paths for bucket / filter matching.
+ * Converts backslashes and strips leading `./` segments. Absolute paths are left as-is
+ * (callers that accept only repo-relative paths must reject or remap them separately).
+ */
 export function normalizeRelPath(p: string): string {
-	return p.replace(/\\/g, "/");
+	let out = p.replace(/\\/g, "/");
+	if (out.startsWith("/")) return out;
+	while (out.startsWith("./")) {
+		out = out.slice(2);
+	}
+	return out;
 }
 
 export function isExternalLink(target: string): boolean {

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
-import { mjsPathForTs, resolvePluginTsPath } from "./paths.ts";
+import { mjsPathForTs, resolveAbsolutePluginTsPath, resolvePluginTsPath } from "./paths.ts";
 
 export interface BuildPluginOptions {
 	root?: string;
@@ -19,7 +19,10 @@ export interface BuildPluginResult {
 
 function collectPluginEntries(root: string, config: SkeletonConfig, entry?: string): string[] {
 	if (entry) {
-		const abs = entry.startsWith("/") ? entry : resolvePluginTsPath(root, entry);
+		const abs =
+			entry.startsWith("/") || /^[A-Za-z]:[\\/]/.test(entry)
+				? resolveAbsolutePluginTsPath(root, entry)
+				: resolvePluginTsPath(root, entry);
 		return [abs];
 	}
 	return (config.plugins ?? []).map((e) => resolvePluginTsPath(root, e));

@@ -7,9 +7,21 @@ import {
 	filterToPaths,
 	validateScanRoots,
 } from "../core/collect.ts";
-import { matchesGlobScope } from "../core/shared.ts";
+import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
+
+describe("normalizeRelPath", () => {
+	it("strips leading ./ segments and normalizes slashes", () => {
+		expect(normalizeRelPath("./.skeleton/plugins/x.yaml")).toBe(".skeleton/plugins/x.yaml");
+		expect(normalizeRelPath(".\\.skeleton\\plugins\\x.yaml")).toBe(".skeleton/plugins/x.yaml");
+		expect(normalizeRelPath("././docs/a.md")).toBe("docs/a.md");
+	});
+
+	it("leaves absolute paths unchanged aside from separators", () => {
+		expect(normalizeRelPath("/tmp/repo/docs/a.md")).toBe("/tmp/repo/docs/a.md");
+	});
+});
 
 describe("matchesGlobScope", () => {
 	it("matches deploy doc globs", () => {
@@ -68,6 +80,13 @@ describe("filterToPaths", () => {
 		const root = FIXTURES;
 		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`, `${root}/apps/client/x.ts`];
 		expect(filterToPaths(files, ["docs/dev/b.md"], root)).toEqual([`${root}/docs/dev/b.md`]);
+	});
+
+	it("matches ./prefixed explicit file and directory paths", () => {
+		const root = FIXTURES;
+		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`];
+		expect(filterToPaths(files, ["./docs/dev/b.md"], root)).toEqual([`${root}/docs/dev/b.md`]);
+		expect(filterToPaths(files, ["./docs/dev"], root)).toEqual([`${root}/docs/dev/b.md`]);
 	});
 
 	it("keeps files under directory paths", () => {

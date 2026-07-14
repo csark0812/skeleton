@@ -20,27 +20,52 @@ export interface LoadedPlugins {
 }
 
 export function normalizeExport(mod: unknown): PluginModule {
-	const candidate =
-		mod && typeof mod === "object" && "default" in mod
-			? (mod as { default: unknown }).default
-			: mod;
-	const source =
-		candidate && typeof candidate === "object"
-			? (candidate as PluginModule)
-			: (mod as PluginModule);
-
-	if (!source || !Array.isArray(source.rules)) {
+	if (!mod || typeof mod !== "object") {
 		throw new Error("Plugin module must export { rules: AuditRule[]; policies?: string[] }");
 	}
 
-	for (const rule of source.rules) {
+	const record = mod as Record<string, unknown>;
+	const namedRules = Array.isArray(record.rules) ? (record.rules as AuditRule[]) : undefined;
+	const namedPoliciesRaw = "policies" in record ? record.policies : undefined;
+	const def =
+		"default" in record && record.default && typeof record.default === "object"
+			? (record.default as Record<string, unknown>)
+			: null;
+	const defaultRules = def && Array.isArray(def.rules) ? (def.rules as AuditRule[]) : undefined;
+	const defaultPoliciesRaw = def && "policies" in def ? def.policies : undefined;
+
+	// Default is primary; named fills missing fields. Conflicting policies fail closed.
+	const rules = defaultRules ?? namedRules;
+
+	let policies: unknown;
+	if (defaultPoliciesRaw !== undefined && namedPoliciesRaw !== undefined) {
+		if (
+			!Array.isArray(defaultPoliciesRaw) ||
+			!Array.isArray(namedPoliciesRaw) ||
+			defaultPoliciesRaw.length !== namedPoliciesRaw.length ||
+			defaultPoliciesRaw.some((p, i) => p !== namedPoliciesRaw[i])
+		) {
+			throw new Error(
+				"Plugin exports disagree on policies: default and named `policies` must match when both are set",
+			);
+		}
+		policies = defaultPoliciesRaw;
+	} else {
+		policies = defaultPoliciesRaw ?? namedPoliciesRaw;
+	}
+
+	if (!Array.isArray(rules)) {
+		throw new Error("Plugin module must export { rules: AuditRule[]; policies?: string[] }");
+	}
+
+	for (const rule of rules) {
 		if (!rule || typeof rule.id !== "string" || typeof rule.run !== "function") {
 			throw new Error("Plugin rules must each have string id and run()");
 		}
 	}
 
-	if (source.policies !== undefined) {
-		if (!Array.isArray(source.policies) || source.policies.some((p) => typeof p !== "string")) {
+	if (policies !== undefined) {
+		if (!Array.isArray(policies) || policies.some((p) => typeof p !== "string")) {
 			throw new Error(
 				"Plugin policies must be string[] (globs relative to .skeleton/) — got non-array",
 			);
@@ -48,8 +73,8 @@ export function normalizeExport(mod: unknown): PluginModule {
 	}
 
 	return {
-		rules: source.rules,
-		policies: source.policies,
+		rules,
+		policies: policies as string[] | undefined,
 	};
 }
 

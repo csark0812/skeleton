@@ -141,6 +141,25 @@ export function filterToPaths(files: string[], paths: string[], root: string): s
 	});
 }
 
+/**
+ * When path-scoped, ensure explicitly requested markdown files on disk are present even if
+ * `scan.exclude` dropped them from the normal scan set (e.g. `.claude/skills/**`).
+ */
+export function includeExplicitMarkdownPaths(
+	files: string[],
+	paths: string[],
+	root: string,
+): string[] {
+	const out = new Set(files);
+	for (const raw of paths) {
+		const rel = normalizeRelPath(raw);
+		if (!isMarkdownFile(rel)) continue;
+		const abs = join(root, rel);
+		if (existsSync(abs)) out.add(abs);
+	}
+	return [...out];
+}
+
 export function readFileContent(absPath: string): string {
 	return readFileSync(absPath, "utf8");
 }

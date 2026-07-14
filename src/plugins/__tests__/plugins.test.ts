@@ -15,7 +15,7 @@ import { type AuditSuite, assembleRules } from "../../audit/rules/index.ts";
 import { runAudit } from "../../audit/run.ts";
 import { runBuildPlugin } from "../build.ts";
 import { loadPlugins, normalizeExport } from "../load.ts";
-import { resolvePluginTsPath } from "../paths.ts";
+import { resolveAbsolutePluginTsPath, resolvePluginTsPath } from "../paths.ts";
 
 const CONSUMER = join(import.meta.dir, "../../audit/__tests__/fixtures/plugins/consumer");
 
@@ -275,6 +275,33 @@ describe("plugin module export validation", () => {
 			}),
 		).toThrow(/policies must be string\[\]/);
 	});
+
+	it("fills named policies when default omits them", () => {
+		const normalized = normalizeExport({
+			policies: ["plugins/example/policies/*.yaml"],
+			default: { rules: [] },
+		});
+		expect(normalized.policies).toEqual(["plugins/example/policies/*.yaml"]);
+		expect(normalized.rules).toEqual([]);
+	});
+
+	it("fails closed when default and named policies disagree", () => {
+		expect(() =>
+			normalizeExport({
+				policies: ["plugins/a/*.yaml"],
+				default: { rules: [], policies: ["plugins/b/*.yaml"] },
+			}),
+		).toThrow(/disagree on policies/);
+	});
+
+	it("accepts matching default and named policies", () => {
+		const globs = ["plugins/example/policies/*.yaml"];
+		const normalized = normalizeExport({
+			policies: globs,
+			default: { rules: [], policies: globs },
+		});
+		expect(normalized.policies).toEqual(globs);
+	});
 });
 
 describe("plugin path containment", () => {
@@ -324,6 +351,27 @@ describe("plugin path containment", () => {
 		symlinkSync(dir, join(dir, ".skeleton/plugins/shadow"));
 		try {
 			expect(() => resolvePluginTsPath(dir, "plugins/shadow/src/index.ts")).toThrow(
+				/under \.skeleton/,
+			);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects absolute entries that escape via directory symlink", async () => {
+		const dir = join(tmpdir(), `skel-plugin-abs-symlink-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		mkdirSync(join(dir, "outside"), { recursive: true });
+		writeFileSync(join(dir, "outside/x.ts"), "export default { rules: [] };\n");
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+		);
+		symlinkSync(join(dir, "outside"), join(dir, ".skeleton/plugins"));
+		const absEntry = join(dir, ".skeleton/plugins/x.ts");
+		try {
+			expect(() => resolveAbsolutePluginTsPath(dir, absEntry)).toThrow(/under \.skeleton/);
+			await expect(runBuildPlugin({ root: dir, entry: absEntry })).rejects.toThrow(
 				/under \.skeleton/,
 			);
 		} finally {

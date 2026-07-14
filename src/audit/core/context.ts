@@ -6,6 +6,7 @@ import {
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
+	includeExplicitMarkdownPaths,
 } from "./collect.ts";
 import { parseRegistry } from "./registry.ts";
 import { buildSkillIndex, type SkillIndex } from "./skill-roots.ts";
@@ -37,6 +38,7 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 	let files = collectScanFiles(config, root, skillIndex);
 
 	if (options.paths && options.paths.length > 0) {
+		files = includeExplicitMarkdownPaths(files, options.paths, root);
 		files = filterToPaths(files, options.paths, root);
 	}
 
