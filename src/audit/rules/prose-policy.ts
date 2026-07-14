@@ -21,8 +21,7 @@ export function runProsePolicyRule(ctx: AuditContext): Issue[] {
 		const policies = policiesForFile(ctx.policies, rel);
 
 		for (const entry of policies) {
-			// PostPrint cold-start fingerprints live in a separate duplication rule.
-			if (entry.policyName === "cold-start-duplication") continue;
+			// Fingerprint entries belong in consumer duplication rules, not core matching.
 			if (entry.mode === "fingerprint") continue;
 			if (!entry.regex) continue;
 

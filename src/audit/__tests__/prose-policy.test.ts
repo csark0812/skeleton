@@ -147,6 +147,36 @@ describe("prose-policy rule", () => {
 		}
 	});
 
+	it("still matches pattern entries under cold-start-duplication policy name", () => {
+		const policy = compilePolicy("cold-start-duplication", [
+			{ id: "banned", pattern: "BADWORD", message: "no BADWORD" },
+			{ id: "fp", mode: "fingerprint", message: "fp", canonical: "a.md" },
+		]);
+		const dir = join(tmpdir(), `prose-csd-${Date.now()}`);
+		const file = join(dir, "docs/a.md");
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(file, "hello BADWORD there\n");
+		try {
+			const issues = runProsePolicyRule(
+				makeCtx({
+					root: dir,
+					files: [file],
+					policies: [policy],
+				}),
+			);
+			expect(issues).toHaveLength(1);
+			expect(issues[0]?.message).toContain("BADWORD");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects pattern-less entries at schema load", () => {
+		expect(() =>
+			loadPolicyFile("/tmp/no-pattern.yaml", `name: sample\nentries:\n  - id: a\n    message: m\n`),
+		).toThrow(/Invalid policy/);
+	});
+
 	it("allows draft-marker under prefixes", () => {
 		const policy = compilePolicy("deprecated-prose", [
 			{

@@ -320,6 +320,37 @@ describe("applyFixes dry-run", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it("collectAnchorFixes does not rewrite the same target in fences or inline code", () => {
+		const dir = join(tmpdir(), `fix-fence-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/target.md"), "# Hello World Guide\n\nBody\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			[
+				"See [x](./target.md#hello-world).",
+				"",
+				"Example: `./target.md#hello-world`",
+				"",
+				"```",
+				"./target.md#hello-world",
+				"```",
+				"",
+			].join("\n"),
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		const next = edits[0]?.content ?? "";
+		expect(next).toContain("[x](./target.md#hello-world-guide)");
+		expect(next).toContain("`./target.md#hello-world`");
+		expect(next).toContain("```\n./target.md#hello-world\n```");
+		expect(next.match(/\.\/target\.md#hello-world(?!-guide)/g)?.length).toBe(2);
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it("logs autofix progress to stderr, not stdout", () => {
 		const dir = join(tmpdir(), `fix-stderr-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });

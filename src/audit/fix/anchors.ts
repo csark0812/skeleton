@@ -58,9 +58,17 @@ export function collectAnchorFixes(ctx: AuditContext): FixEdit[] {
 	for (const filePath of ctx.files) {
 		const content = readFileContent(filePath);
 		const links = extractLinksFromMarkdown(content, filePath);
-		let updated = content;
+		type Pending = {
+			urlStart: number;
+			urlEnd: number;
+			from: string;
+			to: string;
+			description: string;
+		};
+		const pending: Pending[] = [];
+		const relFile = relPath(filePath, ctx.root);
 
-		for (const { target, line } of links) {
+		for (const { target, line, urlStart, urlEnd } of links) {
 			if (isExternalLink(target) && !target.startsWith("#")) continue;
 			if (isPlaceholderLink(target)) continue;
 
@@ -80,20 +88,33 @@ export function collectAnchorFixes(ctx: AuditContext): FixEdit[] {
 
 			const nextTarget = replaceAnchorInTarget(target, anchor, match.slug);
 			if (nextTarget === target) continue;
-			if (!updated.includes(target)) continue;
 
-			const nextUpdated = replaceExactLinkTarget(updated, target, nextTarget);
-			if (nextUpdated === updated) continue;
-			updated = nextUpdated;
-			const relFile = relPath(filePath, ctx.root);
 			const lineLabel = line ? `${relFile}:${line}` : relFile;
-			const entry = editsByFile.get(filePath) ?? { content: updated, descriptions: [] };
-			entry.content = updated;
-			entry.descriptions.push(
-				`${lineLabel} #${anchor} → #${match.slug} (score ${match.score.toFixed(2)})`,
-			);
-			editsByFile.set(filePath, entry);
+			const description = `${lineLabel} #${anchor} → #${match.slug} (score ${match.score.toFixed(2)})`;
+
+			if (
+				urlStart !== undefined &&
+				urlEnd !== undefined &&
+				content.slice(urlStart, urlEnd) === target
+			) {
+				pending.push({ urlStart, urlEnd, from: target, to: nextTarget, description });
+			}
+
+			// Offset unknown (shouldn't happen for md/mdc extractors) — refuse whole-file rewrite.
 		}
+
+		if (pending.length === 0) continue;
+
+		pending.sort((a, b) => b.urlStart - a.urlStart);
+		let updated = content;
+		const descriptions: string[] = [];
+		for (const edit of pending) {
+			if (updated.slice(edit.urlStart, edit.urlEnd) !== edit.from) continue;
+			updated = updated.slice(0, edit.urlStart) + edit.to + updated.slice(edit.urlEnd);
+			descriptions.push(edit.description);
+		}
+		if (updated === content || descriptions.length === 0) continue;
+		editsByFile.set(filePath, { content: updated, descriptions });
 	}
 
 	const edits: FixEdit[] = [];

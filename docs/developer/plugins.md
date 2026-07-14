@@ -79,6 +79,7 @@ entries:
 
 | Behavior       | Detail                                                                                       |
 | -------------- | -------------------------------------------------------------------------------------------- |
+| Pattern        | Required unless `mode: fingerprint` (schema + runtime)                                       |
 | Scope          | `matchesGlobScope` on `entry.scope`; omit = all scanned files                                |
 | Case           | Case-insensitive unless policy `name` is `skill-hub-duplication`, or pattern starts with `^` |
 | Multiline      | Pattern containing `[\\s\\S]` tests whole file                                               |

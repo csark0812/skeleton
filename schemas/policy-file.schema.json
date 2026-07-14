@@ -29,7 +29,13 @@
 				"scope": { "type": "string" },
 				"severity": { "enum": ["error", "warning"] },
 				"canonical": { "type": "string" }
-			}
+			},
+			"if": {
+				"properties": { "mode": { "const": "fingerprint" } },
+				"required": ["mode"]
+			},
+			"then": true,
+			"else": { "required": ["pattern"] }
 		}
 	}
 }

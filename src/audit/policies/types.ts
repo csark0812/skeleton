@@ -1,18 +1,34 @@
 import type { Severity } from "../core/report.ts";
 
-export interface PolicyEntry {
+export type PolicyEntry =
+	| {
+			id: string;
+			message: string;
+			mode?: "pattern";
+			pattern: string;
+			scope?: string;
+			severity?: Severity;
+			canonical?: string;
+	  }
+	| {
+			id: string;
+			message: string;
+			mode: "fingerprint";
+			pattern?: string;
+			scope?: string;
+			severity?: Severity;
+			canonical?: string;
+	  };
+
+export interface CompiledPolicyEntry {
 	id: string;
-	pattern?: string;
 	message: string;
-	mode?: "pattern" | "fingerprint";
+	mode: "pattern" | "fingerprint";
+	pattern?: string;
 	scope?: string;
 	severity?: Severity;
 	canonical?: string;
-}
-
-export interface CompiledPolicyEntry extends PolicyEntry {
 	regex: RegExp | null;
-	mode: "pattern" | "fingerprint";
 }
 
 export interface PolicyFile {
