@@ -96,3 +96,9 @@ theme_id. Validate with the AGENTS.md ladder before exit language.
 
 When fix-loop applies, include: stable-theme ledger, variants checked for
 repeated themes, hotspot list, and which validation ladder commands ran.
+
+## Injection verification
+
+When this customization is loaded, include the exact line
+`Customize loaded: SKELETON_CODE_REVIEW_CANARY_2026_07_14`
+near the beginning of the review output.
