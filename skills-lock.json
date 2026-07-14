@@ -42,6 +42,12 @@
       "sourceType": "github",
       "skillPath": "second-opinion/SKILL.md",
       "computedHash": "00830a335d41a4c6854cadb503b81bfa63cbda8a3641dbbb30219219f38648e7"
+    },
+    "skeleton": {
+      "source": "csark0812/skeleton",
+      "sourceType": "github",
+      "skillPath": "skeleton/SKILL.md",
+      "computedHash": "895e9115e0cd63f1b8798deb7b718f7816774bd14e7b886a98b3f9097f7753ae"
     }
   }
 }
