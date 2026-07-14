@@ -223,6 +223,22 @@ describe("resolveWritePath", () => {
 			rmSync(outside, { force: true });
 		}
 	});
+
+	it("refuses nested missing dirs under a symlink escape", () => {
+		const dir = join(tmpdir(), `fix-nested-symlink-${Date.now()}`);
+		const outside = join(tmpdir(), `fix-outside-dir-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		mkdirSync(outside, { recursive: true });
+		symlinkSync(outside, join(dir, "docs/link"));
+		try {
+			expect(() => resolveWritePath(dir, "docs/link/newdir/x.md")).toThrow(
+				/Refusing autofix outside repo root/,
+			);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+			rmSync(outside, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("applyFixes dry-run", () => {
@@ -383,10 +399,7 @@ describe("applyFixes dry-run", () => {
 		const dir = join(tmpdir(), `fix-em-heading-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(join(dir, "docs/target.md"), "## Getting **Started** Guide\n");
-		writeFileSync(
-			join(dir, "docs/source.md"),
-			"See [x](./target.md#getting-started-guide).\n",
-		);
+		writeFileSync(join(dir, "docs/source.md"), "See [x](./target.md#getting-started-guide).\n");
 		const ctx = {
 			root: dir,
 			files: [join(dir, "docs/source.md")],

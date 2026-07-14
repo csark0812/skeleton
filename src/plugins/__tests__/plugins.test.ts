@@ -393,6 +393,18 @@ describe("plugin path containment", () => {
 		}
 	});
 
+	it("rejects nested missing dirs under a symlink escape", () => {
+		const dir = join(tmpdir(), `skel-plugin-nested-symlink-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		mkdirSync(join(dir, "outside"), { recursive: true });
+		symlinkSync(join(dir, "outside"), join(dir, ".skeleton/link"));
+		try {
+			expect(() => resolvePluginTsPath(dir, "link/newdir/x.ts")).toThrow(/under \.skeleton/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("rejects absolute entries that escape via directory symlink", async () => {
 		const dir = join(tmpdir(), `skel-plugin-abs-symlink-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });

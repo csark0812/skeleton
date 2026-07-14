@@ -28,22 +28,24 @@ function assertUnderBase(abs: string, base: string, label: string): void {
 /**
  * Refuse symlink escapes: lexical path under `.skeleton/` is not enough when a
  * parent directory is a symlink pointing outside (e.g. build-plugin --outfile).
+ * Walks ancestors so missing nested dirs under a symlink cannot fail open.
  */
 function assertRealUnderBase(abs: string, baseReal: string, label: string): void {
 	const pathAbs = resolve(abs);
-	if (existsSync(pathAbs)) {
-		const real = realpathSync(pathAbs);
-		if (!underBase(real, baseReal)) {
+	let cursor = pathAbs;
+	while (true) {
+		if (existsSync(cursor)) {
+			const real = realpathSync(cursor);
+			if (real !== baseReal && !underBase(real, baseReal)) {
+				throw new Error(`${label} must stay under .skeleton/: ${abs}`);
+			}
+			return;
+		}
+		const parent = dirname(cursor);
+		if (parent === cursor) {
 			throw new Error(`${label} must stay under .skeleton/: ${abs}`);
 		}
-		return;
-	}
-	const parent = dirname(pathAbs);
-	if (existsSync(parent)) {
-		const parentReal = realpathSync(parent);
-		if (parentReal !== baseReal && !underBase(parentReal, baseReal)) {
-			throw new Error(`${label} must stay under .skeleton/: ${abs}`);
-		}
+		cursor = parent;
 	}
 }
 

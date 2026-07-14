@@ -1,9 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	buildSkillIndex,
 	detectSkillRoots,
 	isSkillPath,
+	listSkillMarkdownPaths,
 	resolveSkillPath,
 	slugFromPath,
 } from "../core/skill-roots.ts";
@@ -61,5 +64,21 @@ describe("skill-roots", () => {
 		expect(index.slugs).not.toContain("references");
 		expect(index.slugs).not.toContain("_shared");
 		expect(roots.some((r) => r.relPath === ".claude/skills")).toBe(true);
+	});
+
+	it("lists all skill-tree markdown including references/", () => {
+		const dir = join(tmpdir(), `skill-md-paths-${Date.now()}`);
+		mkdirSync(join(dir, ".claude/skills/foo/references"), { recursive: true });
+		writeFileSync(join(dir, ".claude/skills/foo/SKILL.md"), "---\nname: foo\n---\n");
+		writeFileSync(join(dir, ".claude/skills/foo/references/note.md"), "# note\n");
+		writeFileSync(join(dir, ".claude/skills/foo/references/extra.mdc"), "# extra\n");
+		try {
+			const paths = listSkillMarkdownPaths(dir, buildSkillIndex(dir));
+			expect(paths).toContain(".claude/skills/foo/SKILL.md");
+			expect(paths).toContain(".claude/skills/foo/references/note.md");
+			expect(paths).toContain(".claude/skills/foo/references/extra.mdc");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

@@ -78,22 +78,23 @@ export function resolveWritePath(root: string, relFile: string): string {
 
 	const rootReal = existsSync(rootResolved) ? realpathSync(rootResolved) : rootResolved;
 
-	if (existsSync(abs)) {
-		const real = realpathSync(abs);
-		if (!underRoot(rootReal, real)) {
-			throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+	// Walk ancestors so missing nested dirs under a symlink cannot fail open.
+	// Stop at the repo root — new paths under a missing root are lexically OK.
+	let cursor = abs;
+	while (true) {
+		if (existsSync(cursor)) {
+			const real = realpathSync(cursor);
+			if (!underRoot(rootReal, real)) {
+				throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+			}
+			return abs;
 		}
-		return abs;
-	}
-
-	const parent = dirname(abs);
-	if (existsSync(parent)) {
-		const parentReal = realpathSync(parent);
-		if (!underRoot(rootReal, parentReal)) {
-			throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+		const parent = dirname(cursor);
+		if (parent === cursor || (!underRoot(rootResolved, parent) && parent !== rootResolved)) {
+			return abs;
 		}
+		cursor = parent;
 	}
-	return abs;
 }
 
 export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): ApplyFixesResult {

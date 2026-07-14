@@ -335,7 +335,8 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 			if (proseExit !== 0) exitCode = 1;
 
 			// Docs corpus is collectScanFiles only — skill trees under scan.exclude never appear.
-			// Path-augment skills so skill-scoped policy entries still prove against bodies.
+			// Path-augment all skill-tree markdown (SKILL.md + references/**) so skill-scoped
+			// policy entries still prove against bodies.
 			const skillPaths = listSkillMarkdownPaths(root, buildSkillIndex(root));
 			if (skillPaths.length > 0) {
 				const skillProseExit = await runAudit({
@@ -354,7 +355,8 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 				console.error(
 					"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
 						"  Run: skeleton audit docs\n" +
-						"  Or:  skeleton audit self",
+						"  And: skeleton audit skills\n" +
+						"  (audit self covers docs + .skeleton; excluded skill trees still need audit skills)",
 				);
 			}
 			return 1;
