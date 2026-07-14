@@ -5,11 +5,25 @@ import {
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
+	includeExplicitMarkdownPaths,
 	validateScanRoots,
 } from "../core/collect.ts";
-import { matchesGlobScope } from "../core/shared.ts";
+import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
+const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
+
+describe("normalizeRelPath", () => {
+	it("strips leading ./ segments and normalizes slashes", () => {
+		expect(normalizeRelPath("./.skeleton/plugins/x.yaml")).toBe(".skeleton/plugins/x.yaml");
+		expect(normalizeRelPath(".\\.skeleton\\plugins\\x.yaml")).toBe(".skeleton/plugins/x.yaml");
+		expect(normalizeRelPath("././docs/a.md")).toBe("docs/a.md");
+	});
+
+	it("leaves absolute paths unchanged aside from separators", () => {
+		expect(normalizeRelPath("/tmp/repo/docs/a.md")).toBe("/tmp/repo/docs/a.md");
+	});
+});
 
 describe("matchesGlobScope", () => {
 	it("matches deploy doc globs", () => {
@@ -33,6 +47,13 @@ describe("collectScanFiles", () => {
 		expect(rels).toContain("docs/README.md");
 		expect(rels).toContain("docs/developer/validation.md");
 		expect(rels.some((r) => r.includes("packages/outlier"))).toBe(false);
+	});
+
+	it("collects customize markdown without an explicit scan.include", () => {
+		const config = loadConfig(NESTED_SKILLS_CUSTOMIZE);
+		const files = collectScanFiles(config, NESTED_SKILLS_CUSTOMIZE);
+		const rels = files.map((f) => f.replace(`${NESTED_SKILLS_CUSTOMIZE}/`, ""));
+		expect(rels).toContain(".skeleton/customize/code-review.md");
 	});
 });
 
@@ -63,11 +84,33 @@ describe("filterDocMetaPaths", () => {
 	});
 });
 
+describe("includeExplicitMarkdownPaths", () => {
+	it("includes markdown files and expands directory paths", () => {
+		const root = FIXTURES;
+		const files: string[] = [];
+		const included = includeExplicitMarkdownPaths(
+			files,
+			["docs/developer/validation.md", "docs"],
+			root,
+		);
+		const rels = included.map((f) => f.replace(`${root}/`, ""));
+		expect(rels).toContain("docs/developer/validation.md");
+		expect(rels).toContain("docs/README.md");
+	});
+});
+
 describe("filterToPaths", () => {
 	it("keeps files matching explicit file paths", () => {
 		const root = FIXTURES;
 		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`, `${root}/apps/client/x.ts`];
 		expect(filterToPaths(files, ["docs/dev/b.md"], root)).toEqual([`${root}/docs/dev/b.md`]);
+	});
+
+	it("matches ./prefixed explicit file and directory paths", () => {
+		const root = FIXTURES;
+		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`];
+		expect(filterToPaths(files, ["./docs/dev/b.md"], root)).toEqual([`${root}/docs/dev/b.md`]);
+		expect(filterToPaths(files, ["./docs/dev"], root)).toEqual([`${root}/docs/dev/b.md`]);
 	});
 
 	it("keeps files under directory paths", () => {

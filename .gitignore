@@ -1,7 +1,13 @@
 node_modules/
 dist/
 .test-tmp/
+.agents/
 .DS_Store
 .agents/
 .claude/
 *.tgz
+.env
+.env.*
+!.env.example
+src/audit/__tests__/fixtures/plugins/**/*.mjs
+src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp

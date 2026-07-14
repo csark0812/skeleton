@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["src/**", "package.json", "tsconfig.json", "biome.json"]
+		"includes": ["src/**", "tests/**", "package.json", "tsconfig.json", "biome.json"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -16,7 +16,7 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true,
+			"preset": "recommended",
 			"complexity": {
 				"noUselessFragments": "error"
 			},

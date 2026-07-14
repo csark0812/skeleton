@@ -35,6 +35,7 @@ describe("registry rule", () => {
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
 		expect(issues).toHaveLength(1);
@@ -56,6 +57,7 @@ describe("registry rule", () => {
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
 		expect(issues.some((i) => i.message.includes("Source of truth for"))).toBe(true);

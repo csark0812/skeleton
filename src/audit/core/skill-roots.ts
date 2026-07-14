@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
 import { join, relative } from "node:path";
+import { globSync } from "tinyglobby";
 import { normalizeRelPath } from "./shared.ts";
 
 export const NESTED_SKILL_ROOTS = [".claude/skills", ".agents/skills"] as const;
@@ -206,6 +207,36 @@ export function skillCollectAugments(index: SkillIndex): string[] {
 		}
 	}
 	return patterns;
+}
+
+/**
+ * Repo-relative markdown paths for every detected skill tree (SKILL.md + references/**,
+ * including under scan.exclude). Used by validate --base policy prove so skill-scoped
+ * prose still runs against the full skill body, not just SKILL.md.
+ *
+ * Walks each nested root independently so the same slug under both `.claude/skills`
+ * and `.agents/skills` (distinct dirs) is fully covered — not first-wins only.
+ */
+export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[] {
+	const paths = new Set<string>();
+	for (const skillRoot of index.roots) {
+		const slugs =
+			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
+		for (const slug of slugs) {
+			const absDir =
+				skillRoot.kind === "nested" ? join(root, skillRoot.relPath, slug) : join(root, slug);
+			if (!existsSync(absDir)) continue;
+			for (const abs of globSync("**/*.{md,mdc}", {
+				cwd: absDir,
+				absolute: true,
+				onlyFiles: true,
+				dot: true,
+			})) {
+				paths.add(normalizeRelPath(relative(root, abs)));
+			}
+		}
+	}
+	return [...paths].sort();
 }
 
 export function listSkillSlugs(index: SkillIndex): string[] {
