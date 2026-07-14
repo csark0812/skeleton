@@ -33,7 +33,7 @@ export const docsRules: AuditRule[] = [
 export const skillsRules: AuditRule[] = [
 	{ ...skillIndexRule, global: true },
 	{ ...generatedReferencesRule, global: true },
-	// Path-scoped: skill bodies are in the docs scan set; ship lanes use audit skills.
+	// Path-scoped: bare audit skills unions excluded skill trees into the corpus.
 	prosePolicyRule,
 ];
 

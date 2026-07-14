@@ -1,19 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import {
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	rmSync,
-	symlinkSync,
-	utimesSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../../audit/config/load.ts";
 import { type AuditSuite, assembleRules } from "../../audit/rules/index.ts";
 import { runAudit } from "../../audit/run.ts";
-import { parseBuildPluginArgs, runBuildPlugin } from "../build.ts";
+import { parseBuildPluginArgs, runBuildPlugin, stampPathForMjs } from "../build.ts";
 import { loadPlugins, normalizeExport } from "../load.ts";
 import { resolveAbsolutePluginTsPath, resolvePluginTsPath } from "../paths.ts";
 
@@ -113,19 +105,26 @@ describe("plugin load + build", () => {
 		expect(loaded.policies[0]?.name).toBe("sample-banned-phrase");
 	});
 
-	it("build-plugin --check fails when stale", async () => {
+	it("build-plugin --check fails when source content drifts (equal mtimes)", async () => {
 		await runBuildPlugin({ root: CONSUMER });
 		const ts = join(CONSUMER, ".skeleton/plugins/example/example.ts");
-		const mjs = join(CONSUMER, ".skeleton/plugins/example/example.mjs");
-		const old = new Date(Date.now() - 60_000);
-		const newer = new Date();
-		utimesSync(mjs, old, old);
-		utimesSync(ts, newer, newer);
+		const original = readFileSync(ts, "utf8");
+		writeFileSync(ts, `${original}\n// content drift\n`);
 		await expect(runBuildPlugin({ root: CONSUMER, check: true })).rejects.toThrow(/stale/);
+		writeFileSync(ts, original);
+		await runBuildPlugin({ root: CONSUMER });
+		await expect(runBuildPlugin({ root: CONSUMER, check: true })).resolves.toBeDefined();
+	});
+
+	it("build-plugin --check fails when stamp is missing", async () => {
+		await runBuildPlugin({ root: CONSUMER });
+		const mjs = join(CONSUMER, ".skeleton/plugins/example/example.mjs");
+		rmSync(stampPathForMjs(mjs), { force: true });
+		await expect(runBuildPlugin({ root: CONSUMER, check: true })).rejects.toThrow(/stamp/);
 		await runBuildPlugin({ root: CONSUMER });
 	});
 
-	it("build-plugin --check fails when local .js→.ts dep is newer", async () => {
+	it("build-plugin --check fails when local .js→.ts dep content drifts", async () => {
 		const dir = join(tmpdir(), `skel-plugin-jsdep-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton/plugins/multi"), { recursive: true });
 		writeFileSync(
@@ -139,12 +138,8 @@ describe("plugin load + build", () => {
 		);
 		try {
 			await runBuildPlugin({ root: dir });
-			const mjs = join(dir, ".skeleton/plugins/multi/entry.mjs");
 			const util = join(dir, ".skeleton/plugins/multi/util.ts");
-			const old = new Date(Date.now() - 60_000);
-			const newer = new Date();
-			utimesSync(mjs, old, old);
-			utimesSync(util, newer, newer);
+			writeFileSync(util, `export const marker = "util-changed";\n`);
 			await expect(runBuildPlugin({ root: dir, check: true })).rejects.toThrow(/stale/);
 			await runBuildPlugin({ root: dir });
 			await expect(runBuildPlugin({ root: dir, check: true })).resolves.toBeDefined();
@@ -191,6 +186,53 @@ describe("plugin load + build", () => {
 			await runBuildPlugin({ root: dir });
 			const config = loadConfig(dir);
 			await expect(loadPlugins(dir, config)).rejects.toThrow(/matched no YAML/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("bare audit skills catches excluded skill-scoped prose hits", async () => {
+		const dir = join(tmpdir(), `skel-skills-exclude-bare-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/foo"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/policies/banned.yaml"),
+			`name: skill-banned\nentries:\n  - id: hub\n    scope: ".claude/skills/**"\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/foo/SKILL.md"),
+			"---\nname: foo\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(join(dir, "docs/a.md"), "# A\n");
+		try {
+			await runBuildPlugin({ root: dir });
+			const bare = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [],
+				only: new Set(["prose-policy"]),
+				root: dir,
+			});
+			expect(bare).toBe(1);
+			const scoped = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [".claude/skills/foo/SKILL.md"],
+				only: new Set(["prose-policy"]),
+				root: dir,
+			});
+			expect(scoped).toBe(1);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

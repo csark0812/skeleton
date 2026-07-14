@@ -2,14 +2,14 @@
 
 **Source of truth for** skeleton audit suites and rule scoping.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 ## Suites
 
 ```bash
 skeleton audit docs     # links, doc-meta, registry (when full pass), prose-policy (when plugins supply policies)
-skeleton audit skills   # skill-index, multi-root detection, prose-policy (when plugins supply policies)
-skeleton audit self     # config + all rules
+skeleton audit skills   # skill-index, multi-root detection, prose-policy (incl. skill trees under scan.exclude)
+skeleton audit self     # config + all rules (scan corpus; excluded skill trees → use audit skills)
 ```
 
 Autofix (docs only):

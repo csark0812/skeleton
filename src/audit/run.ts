@@ -93,9 +93,13 @@ function shouldRunRule(
 }
 
 export async function runAudit(options: AuditCliOptions): Promise<number> {
+	const pathScoped = options.paths.length > 0;
 	const base = createContext({
 		root: options.root,
-		paths: options.paths.length > 0 ? options.paths : undefined,
+		paths: pathScoped ? options.paths : undefined,
+		// Bare skills suite: include skill trees even under scan.exclude so skill-scoped
+		// prose-policy matches path-scoped / validate --base prove (not a silent no-op).
+		includeExcludedSkillTrees: options.suite === "skills" && !pathScoped,
 	});
 	const loaded = await loadPlugins(base.root, base.config);
 	const ctx = { ...base, policies: loaded.policies };
@@ -128,10 +132,10 @@ export async function runAudit(options: AuditCliOptions): Promise<number> {
 		(r) => !options.only || options.only.has(r.id),
 	);
 
-	const pathScoped = options.paths.length > 0 && !options.globalOnly;
+	const skipGlobalsForPaths = pathScoped && !options.globalOnly;
 	const issues = [];
 	for (const rule of rules) {
-		if (!shouldRunRule(rule, options, pathScoped)) continue;
+		if (!shouldRunRule(rule, options, skipGlobalsForPaths)) continue;
 		issues.push(...rule.run(ctx));
 	}
 

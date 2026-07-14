@@ -9,7 +9,7 @@ import {
 	includeExplicitMarkdownPaths,
 } from "./collect.ts";
 import { parseRegistry } from "./registry.ts";
-import { buildSkillIndex, type SkillIndex } from "./skill-roots.ts";
+import { buildSkillIndex, listSkillMarkdownPaths, type SkillIndex } from "./skill-roots.ts";
 
 export interface AuditContext {
 	root: string;
@@ -29,6 +29,12 @@ export interface AuditOptions {
 	changed?: boolean;
 	paths?: string[];
 	policies?: PolicyFile[];
+	/**
+	 * Union skill-tree markdown (SKILL.md + references/**) into the corpus even when
+	 * `scan.exclude` dropped them. Used by bare `audit skills` so skill-scoped prose
+	 * matches path-scoped / validate `--base` prove.
+	 */
+	includeExcludedSkillTrees?: boolean;
 }
 
 export function createContext(options: AuditOptions = {}): AuditContext {
@@ -36,6 +42,10 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 	const config = loadConfig(root);
 	const skillIndex = buildSkillIndex(root);
 	let files = collectScanFiles(config, root, skillIndex);
+
+	if (options.includeExcludedSkillTrees) {
+		files = includeExplicitMarkdownPaths(files, listSkillMarkdownPaths(root, skillIndex), root);
+	}
 
 	if (options.paths && options.paths.length > 0) {
 		files = includeExplicitMarkdownPaths(files, options.paths, root);

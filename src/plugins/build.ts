@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, resolve } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { mjsPathForTs, resolveAbsolutePluginTsPath, resolvePluginTsPath } from "./paths.ts";
@@ -80,15 +81,35 @@ export function localImportPaths(tsAbs: string, content: string): string[] {
 	return deps;
 }
 
-function latestSourceMtime(tsAbs: string, seen = new Set<string>()): number {
-	if (seen.has(tsAbs)) return 0;
-	seen.add(tsAbs);
-	let latest = statSync(tsAbs).mtimeMs;
-	const content = readFileSync(tsAbs, "utf8");
-	for (const dep of localImportPaths(tsAbs, content)) {
-		latest = Math.max(latest, latestSourceMtime(dep, seen));
+/** Sidecar next to `.mjs` recording the source graph fingerprint from last build. */
+export function stampPathForMjs(mjsAbs: string): string {
+	return `${mjsAbs}.stamp`;
+}
+
+/**
+ * Content fingerprint of the plugin entry and transitive local `.ts` imports.
+ * Bun-free; used by `--check` so equal-mtime / post-checkout content drift still fails.
+ */
+export function sourceFingerprint(tsAbs: string, seen = new Set<string>()): string {
+	const hash = createHash("sha256");
+	function walk(abs: string): void {
+		if (seen.has(abs)) return;
+		seen.add(abs);
+		const content = readFileSync(abs, "utf8");
+		hash.update(basename(abs));
+		hash.update("\0");
+		hash.update(content);
+		hash.update("\0");
+		for (const dep of localImportPaths(abs, content).sort()) {
+			walk(dep);
+		}
 	}
-	return latest;
+	walk(tsAbs);
+	return hash.digest("hex");
+}
+
+function writeStamp(tsAbs: string, mjsAbs: string): void {
+	writeFileSync(stampPathForMjs(mjsAbs), `${sourceFingerprint(tsAbs)}\n`, "utf8");
 }
 
 async function buildOne(tsAbs: string): Promise<string> {
@@ -116,6 +137,7 @@ async function buildOne(tsAbs: string): Promise<string> {
 			`skeleton build-plugin failed for ${tsAbs}:\n${proc.stderr || proc.stdout || `exit ${proc.status}`}`,
 		);
 	}
+	writeStamp(tsAbs, mjsAbs);
 	return mjsAbs;
 }
 
@@ -127,11 +149,15 @@ function checkOne(tsAbs: string): void {
 	if (!existsSync(tsAbs)) {
 		throw new Error(`Plugin source not found: ${tsAbs}`);
 	}
-	const sourceMtime = latestSourceMtime(tsAbs);
-	const mjsMtime = statSync(mjsAbs).mtimeMs;
-	if (mjsMtime < sourceMtime) {
+	const stampAbs = stampPathForMjs(mjsAbs);
+	if (!existsSync(stampAbs)) {
+		throw new Error(`Plugin stale: ${mjsAbs} has no fingerprint stamp. Run: skeleton build-plugin`);
+	}
+	const expected = readFileSync(stampAbs, "utf8").trim();
+	const actual = sourceFingerprint(tsAbs);
+	if (expected !== actual) {
 		throw new Error(
-			`Plugin stale: ${mjsAbs} is older than ${tsAbs} (or local imports). Run: skeleton build-plugin`,
+			`Plugin stale: ${mjsAbs} does not match ${tsAbs} (or local imports). Run: skeleton build-plugin`,
 		);
 	}
 }

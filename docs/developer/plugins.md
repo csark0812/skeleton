@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton plugin authoring (build, load, suites, prose policies).
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 Skeleton plugins extend audit with consumer-specific rules and prose-policy YAML. Core stays thin; product policies live in plugins (e.g. PostPrint later).
 
@@ -46,10 +46,10 @@ Authors commit TypeScript source **and** a sibling `.mjs` (Option C).
 ```bash
 skeleton build-plugin              # all config.plugins
 skeleton build-plugin plugins/foo.ts
-skeleton build-plugin --check      # CI: fail if .mjs missing or stale
+skeleton build-plugin --check      # CI: fail if .mjs missing, unstamped, or content-stale
 ```
 
-`build-plugin` shells out to the `bun` binary on `PATH` (`bun build …`), so the Node-published bin works when Bun 1.2.x is installed. `--check` is Bun-free (mtime only).
+`build-plugin` shells out to the `bun` binary on `PATH` (`bun build …`), so the Node-published bin works when Bun 1.2.x is installed. `--check` is Bun-free: it compares a sidecar `.mjs.stamp` fingerprint of the entry + local `.ts` imports (not mtime), so post-checkout equal-mtime drift still fails.
 
 Recipe: `bun build <entry.ts> --target=node --format=esm --outfile=<entry.mjs> --packages=external`.
 

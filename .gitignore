@@ -9,3 +9,4 @@ dist/
 .env.*
 !.env.example
 src/audit/__tests__/fixtures/plugins/**/*.mjs
+src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
