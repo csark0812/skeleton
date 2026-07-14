@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
 import { mergedExcludes } from "../config/load.ts";
@@ -7,6 +7,7 @@ import { extractScanRootsFromInclude, matchesGlobScope, normalizeRelPath } from 
 import { type SkillIndex, skillCollectAugments } from "./skill-roots.ts";
 
 const MARKDOWN_GLOBS = ["**/*.md", "**/*.mdc"];
+const BUILTIN_INCLUDE_PATTERNS = [".skeleton/customize/**"];
 
 function isMarkdownFile(absPath: string): boolean {
 	return absPath.endsWith(".md") || absPath.endsWith(".mdc");
@@ -40,7 +41,7 @@ export function collectScanFiles(
 	skillIndex?: SkillIndex,
 ): string[] {
 	const exclude = mergedExcludes(config);
-	const includePatterns = [...config.scan.include];
+	const includePatterns = [...BUILTIN_INCLUDE_PATTERNS, ...config.scan.include];
 	if (skillIndex) {
 		includePatterns.push(...skillCollectAugments(skillIndex));
 	}
@@ -139,6 +140,45 @@ export function filterToPaths(files: string[], paths: string[], root: string): s
 		const rel = normalizeRelPath(relative(root, abs));
 		return normalizedPaths.some((path) => rel === path || rel.startsWith(`${path}/`));
 	});
+}
+
+/**
+ * When path-scoped, ensure explicitly requested markdown files on disk are present even if
+ * `scan.exclude` dropped them from the normal scan set (e.g. `.claude/skills/**`).
+ * Directory paths expand to all markdown under that tree.
+ */
+export function includeExplicitMarkdownPaths(
+	files: string[],
+	paths: string[],
+	root: string,
+): string[] {
+	const out = new Set(files);
+	for (const raw of paths) {
+		const rel = normalizeRelPath(raw);
+		const abs = join(root, rel);
+		if (!existsSync(abs)) continue;
+
+		if (isMarkdownFile(rel)) {
+			out.add(abs);
+			continue;
+		}
+
+		try {
+			if (!statSync(abs).isDirectory()) continue;
+		} catch {
+			continue;
+		}
+
+		for (const md of globSync("**/*.{md,mdc}", {
+			cwd: abs,
+			absolute: true,
+			onlyFiles: true,
+			dot: true,
+		})) {
+			out.add(md);
+		}
+	}
+	return [...out];
 }
 
 export function readFileContent(absPath: string): string {

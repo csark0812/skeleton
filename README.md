@@ -47,6 +47,7 @@ See [install](docs/developer/install.md) for flags and options.
 - **Banned paths** — session artifacts and other files that must not exist
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
 - **Doc meta + stale dates** — owner and `last-reviewed` on index and registry-listed files
+- **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
 Code validation (TypeScript, Python, Nx, pytest) stays in your repo. Skeleton handles SSOT-adjacent paths only.
@@ -57,6 +58,7 @@ Code validation (TypeScript, Python, Nx, pytest) stays in your repo. Skeleton ha
 .skeleton/
 ├── config.yaml      # scan perimeter (required)
 ├── registry.md      # topic → canonical file (required)
+├── plugins/         # optional consumer audit plugins (.ts + built .mjs)
 └── customize/       # project-specific skill overrides (optional)
     └── code-review.md
 ```
@@ -80,7 +82,8 @@ Synced toolbox skills stay pristine. Project overrides live in `.skeleton/custom
 ```bash
 skeleton init [--skills] [--force-hooks]
 skeleton register <path> [--topic=…]
-skeleton audit docs|skills|self [--strict] [--paths=a,b]
+skeleton audit docs|skills|self [--strict] [--paths=a,b] [--fix[=doc-meta|anchors]] [--dry-run]
+skeleton build-plugin [path] [--check]
 skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton references sync|check
 skeleton customize resolve <slug>
@@ -129,6 +132,7 @@ One command for humans: `npx skeleton init --skills`.
 - [Doc system](docs/developer/doc-system.md)
 - [Validation](docs/developer/validation.md)
 - [Audit rules](docs/developer/audit.md)
+- [Plugins](docs/developer/plugins.md)
 - [Customize](docs/developer/customize.md)
 - [Authoring conventions](docs/authoring.md)
 

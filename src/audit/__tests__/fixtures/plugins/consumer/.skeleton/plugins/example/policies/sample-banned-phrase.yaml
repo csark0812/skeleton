@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../../../../../../../schemas/policy-file.schema.json
+
+name: sample-banned-phrase
+entries:
+  - id: banned-fixture-phrase
+    scope: "src/audit/__tests__/fixtures/plugins/**"
+    pattern: "SKELETON_FIXTURE_BANNED_PHRASE"
+    message: "fixture banned phrase (scoped)"
+  - id: draft-marker
+    pattern: "^\\s*<!--\\s*status:\\s*draft\\s*-->\\s*$"
+    message: "`<!-- status: draft -->` only allowed in `_draft-*.md` or draftPathPrefixes"
+  - id: fingerprint-skip
+    mode: fingerprint
+    message: "should never fire from prose-policy"
+    canonical: docs/clean.md

@@ -11,22 +11,24 @@
 ```
 
 `skeleton init` wires IDE hooks to inject customize content on skill reads (and Claude `Skill` tool invoke).
+Customize Markdown is always included in skeleton's audit corpus; consumers do
+not add `.skeleton/customize/**` to `scan.include`.
 
 ## Inject gates
 
-| Triggers inject | Does not inject |
-| --- | --- |
-| `Read` / `read_file` of a path ending in `/SKILL.md` | `Grep`, shell `cat`/`head` |
-| `Read` / `read_file` under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**` when that skill exists) | Non-skill paths (no resolvable slug) |
-| Claude `Skill` tool (slug from tool input) | Missing `node_modules/@csark0812/skeleton` (hooks no-op / fail) |
+| Triggers inject                                                                                                                                         | Does not inject                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `Read` / `read_file` of a path ending in `/SKILL.md`                                                                                                    | `Grep`, shell `cat`/`head`                                      |
+| `Read` / `read_file` under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**` when that skill exists) | Non-skill paths (no resolvable slug)                            |
+| Claude `Skill` tool (slug from tool input)                                                                                                              | Missing `node_modules/@csark0812/skeleton` (hooks no-op / fail) |
 
 ### Host matchers (init templates)
 
-| Host | Matcher(s) |
-| --- | --- |
-| Cursor | `Read` only (no Claude-style Skill tool) |
-| Claude Code | `Read` + `Skill` |
-| Codex | `read_file` only |
+| Host        | Matcher(s)                               |
+| ----------- | ---------------------------------------- |
+| Cursor      | `Read` only (no Claude-style Skill tool) |
+| Claude Code | `Read` + `Skill`                         |
+| Codex       | `read_file` only                         |
 
 ## `alwaysInclude`
 
