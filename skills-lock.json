@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "skills": {
+    "code-review": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "code-review/SKILL.md",
+      "computedHash": "20d17cc25bc6fc3b90dc7fd29453c530c271e726822f258d045c7c9920dce50c"
+    },
+    "crystallize": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "crystallize/SKILL.md",
+      "computedHash": "6ae2934ef06cc725487415d292993faa7cbbdc573ce7b21ffe9717e60da55d8d"
+    },
+    "grill": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "grill/SKILL.md",
+      "computedHash": "9bd47aa3404e3f55a797a603ffcf6a15880b409bc822306d53b57c24c407a8eb"
+    },
+    "handoff": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "handoff/SKILL.md",
+      "computedHash": "36ef07a6aaa05ffbe7f0d83de2a6d116b65ad675396eec90f5c38f9d9c844189"
+    },
+    "investigate": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "investigate/SKILL.md",
+      "computedHash": "57695421f4d391eb26dbd8eabcd8380c7340292ce10a74eb8d09e8cfc2f534dd"
+    },
+    "multi": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "multi/SKILL.md",
+      "computedHash": "f20738bed31bb3c90c6f2aadc84ed7d06ec183a57cd297438633e99f2ba87e3d"
+    },
+    "second-opinion": {
+      "source": "csark0812/toolbox",
+      "sourceType": "github",
+      "skillPath": "second-opinion/SKILL.md",
+      "computedHash": "00830a335d41a4c6854cadb503b81bfa63cbda8a3641dbbb30219219f38648e7"
+    }
+  }
+}
