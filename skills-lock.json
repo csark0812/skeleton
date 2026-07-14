@@ -2,10 +2,9 @@
   "version": 1,
   "skills": {
     "skeleton": {
-      "source": "csark0812/skeleton",
-      "sourceType": "github",
-      "skillPath": "skeleton/SKILL.md",
-      "computedHash": "be2f1cafc0f71eb46de09983784ffe593498f2654493055f0d93bbdb385c0a2e"
+      "source": "/home/runner/work/skeleton/skeleton",
+      "sourceType": "local",
+      "computedHash": "895e9115e0cd63f1b8798deb7b718f7816774bd14e7b886a98b3f9097f7753ae"
     }
   }
 }
