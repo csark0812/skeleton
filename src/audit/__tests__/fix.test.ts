@@ -416,6 +416,27 @@ describe("applyFixes dry-run", () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it("collectAnchorFixes rewrites destination when title embeds ](same-url)", () => {
+		const dir = join(tmpdir(), `fix-title-paren-${Date.now()}`);
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(join(dir, "docs/t.md"), "## Getting Started Guide\n");
+		writeFileSync(
+			join(dir, "docs/source.md"),
+			'[text](./t.md#getting-started "Title with ](./t.md#getting-started) inside")\n',
+		);
+		const ctx = {
+			root: dir,
+			files: [join(dir, "docs/source.md")],
+		} as ReturnType<typeof createContext>;
+		const edits = collectAnchorFixes(ctx);
+		expect(edits).toHaveLength(1);
+		expect(edits[0]?.content).toContain(
+			'[text](./t.md#getting-started-guide "Title with ](./t.md#getting-started) inside")',
+		);
+		expect(edits[0]?.content).not.toContain('"Title with ](./t.md#getting-started-guide) inside"');
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it("collectAnchorFixes rewrites titled inline destination when label embeds <url>", () => {
 		const dir = join(tmpdir(), `fix-inline-label-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });

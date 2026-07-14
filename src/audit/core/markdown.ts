@@ -32,9 +32,9 @@ function findUrlSpanInSlice(
 	url: string,
 ): { urlStart: number; urlEnd: number } | undefined {
 	const slice = content.slice(nodeStart, nodeEnd);
-	// Bind destination after `](` so titled links (`](url "…")`) and label/title
-	// copies of `<url>` cannot steal the span.
-	const openParen = slice.lastIndexOf("](");
+	// Bind destination after the first `](` (label close). Prefer indexOf over
+	// lastIndexOf so a title that embeds `](same-url)` cannot steal the span.
+	const openParen = slice.indexOf("](");
 	if (openParen !== -1) {
 		const after = openParen + 2;
 		if (slice.startsWith(`<${url}>`, after)) {

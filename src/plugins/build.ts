@@ -47,11 +47,14 @@ function collectPluginEntries(root: string, config: SkeletonConfig, entry?: stri
 	return (config.plugins ?? []).map((e) => resolvePluginTsPath(root, e));
 }
 
-/** Resolve local relative imports for stale-check (incl. `./x.js` → `x.ts`). */
+/**
+ * Resolve local relative imports for stale-check (incl. `./x.js` → `x.ts`).
+ * Covers `from "…"`, side-effect `import "…"`, and dynamic `import("…")`.
+ */
 export function localImportPaths(tsAbs: string, content: string): string[] {
 	const dir = dirname(tsAbs);
 	const deps: string[] = [];
-	const re = /from\s+["'](\.[^"']+)["']/g;
+	const re = /(?:from\s+|import\s*\(\s*|import\s+)["'](\.[^"']+)["']/g;
 	for (const match of content.matchAll(re)) {
 		const spec = match[1];
 		if (!spec) continue;

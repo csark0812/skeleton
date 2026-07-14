@@ -148,6 +148,33 @@ describe("plugin load + build", () => {
 		}
 	});
 
+	it("build-plugin --check fails when side-effect or dynamic local import drifts", async () => {
+		const dir = join(tmpdir(), `skel-plugin-sidefx-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/side"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/side/entry.ts\n`,
+		);
+		writeFileSync(join(dir, ".skeleton/plugins/side/side.ts"), `export const side = 1;\n`);
+		writeFileSync(join(dir, ".skeleton/plugins/side/dyn.ts"), `export const dyn = 1;\n`);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/side/entry.ts"),
+			`import "./side.js";\nvoid import("./dyn.js");\nexport default { rules: [] };\n`,
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			writeFileSync(join(dir, ".skeleton/plugins/side/side.ts"), `export const side = 2;\n`);
+			await expect(runBuildPlugin({ root: dir, check: true })).rejects.toThrow(/stale/);
+			await runBuildPlugin({ root: dir });
+			writeFileSync(join(dir, ".skeleton/plugins/side/dyn.ts"), `export const dyn = 2;\n`);
+			await expect(runBuildPlugin({ root: dir, check: true })).rejects.toThrow(/stale/);
+			await runBuildPlugin({ root: dir });
+			await expect(runBuildPlugin({ root: dir, check: true })).resolves.toBeDefined();
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("build-plugin --check survives circular local imports", async () => {
 		const dir = join(tmpdir(), `skel-plugin-cycle-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton/plugins/cycle"), { recursive: true });

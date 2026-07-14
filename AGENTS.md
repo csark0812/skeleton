@@ -30,11 +30,11 @@ bun test ./tests/smoke.test.ts
 
 ## Validation split
 
-| Change type                   | Run                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Docs / config / registry      | `bun run validate:changed -- <path>` or `bun run audit:self`                                              |
-| Skill body (`SKILL.md` trees) | `bun run audit:skills` or `bun run audit:self` (path-scoped validate exits non-zero and redirects here)   |
-| TypeScript under `src/`       | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check`) |
+| Change type                   | Run                                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Docs / config / registry      | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                      |
+| Skill body (`SKILL.md` trees) | `bun run audit:skills` (path-scoped validate exits non-zero and redirects here; `audit self` does not cover excluded skill trees) |
+| TypeScript under `src/`       | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check`)                         |
 
 `validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped, it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Skill-only paths exit non-zero and point at `audit skills`. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over all skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
