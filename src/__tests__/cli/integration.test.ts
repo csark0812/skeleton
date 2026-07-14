@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { runAudit } from "../../audit/run.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
 import { registerPath } from "../../register.ts";
@@ -89,6 +89,8 @@ describe("validate changed routing", () => {
 
 	it("fails when all paths are skipped code", () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
+		const tsDir = dirname(tsPath);
+		mkdirSync(tsDir, { recursive: true });
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
 			const exit = runValidateChanged({
@@ -97,12 +99,14 @@ describe("validate changed routing", () => {
 			});
 			expect(exit).toBe(1);
 		} finally {
-			unlinkSync(tsPath);
+			rmSync(tsDir, { recursive: true, force: true });
 		}
 	});
 
 	it("passes mixed docs and skipped ts", () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
+		const tsDir = dirname(tsPath);
+		mkdirSync(tsDir, { recursive: true });
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
 			const exit = runValidateChanged({
@@ -111,7 +115,7 @@ describe("validate changed routing", () => {
 			});
 			expect(exit).toBe(0);
 		} finally {
-			unlinkSync(tsPath);
+			rmSync(tsDir, { recursive: true, force: true });
 		}
 	});
 
