@@ -5,6 +5,7 @@ import {
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
+	includeExplicitMarkdownPaths,
 	validateScanRoots,
 } from "../core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
@@ -72,6 +73,21 @@ describe("filterDocMetaPaths", () => {
 	it("keeps doc-meta paths under a directory path", () => {
 		const all = ["docs/dev/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
 		expect(filterDocMetaPaths(all, ["docs/dev"])).toEqual(["docs/dev/a.md", "docs/dev/b.md"]);
+	});
+});
+
+describe("includeExplicitMarkdownPaths", () => {
+	it("includes markdown files and expands directory paths", () => {
+		const root = FIXTURES;
+		const files: string[] = [];
+		const included = includeExplicitMarkdownPaths(
+			files,
+			["docs/developer/validation.md", "docs"],
+			root,
+		);
+		const rels = included.map((f) => f.replace(`${root}/`, ""));
+		expect(rels).toContain("docs/developer/validation.md");
+		expect(rels).toContain("docs/README.md");
 	});
 });
 

@@ -233,6 +233,16 @@ describe("plugin load + build", () => {
 				root: dir,
 			});
 			expect(scoped).toBe(1);
+			const scopedDir = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [".claude/skills/foo"],
+				only: new Set(["prose-policy"]),
+				root: dir,
+				pathScopedOnly: true,
+			});
+			expect(scopedDir).toBe(1);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

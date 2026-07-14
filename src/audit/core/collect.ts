@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
 import { mergedExcludes } from "../config/load.ts";
@@ -144,6 +144,7 @@ export function filterToPaths(files: string[], paths: string[], root: string): s
 /**
  * When path-scoped, ensure explicitly requested markdown files on disk are present even if
  * `scan.exclude` dropped them from the normal scan set (e.g. `.claude/skills/**`).
+ * Directory paths expand to all markdown under that tree.
  */
 export function includeExplicitMarkdownPaths(
 	files: string[],
@@ -153,9 +154,28 @@ export function includeExplicitMarkdownPaths(
 	const out = new Set(files);
 	for (const raw of paths) {
 		const rel = normalizeRelPath(raw);
-		if (!isMarkdownFile(rel)) continue;
 		const abs = join(root, rel);
-		if (existsSync(abs)) out.add(abs);
+		if (!existsSync(abs)) continue;
+
+		if (isMarkdownFile(rel)) {
+			out.add(abs);
+			continue;
+		}
+
+		try {
+			if (!statSync(abs).isDirectory()) continue;
+		} catch {
+			continue;
+		}
+
+		for (const md of globSync("**/*.{md,mdc}", {
+			cwd: abs,
+			absolute: true,
+			onlyFiles: true,
+			dot: true,
+		})) {
+			out.add(md);
+		}
 	}
 	return [...out];
 }
