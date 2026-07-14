@@ -61,8 +61,17 @@ export function assembleRules(pluginRules: AuditRule[] = []): {
 	const skills = [...skillsRules];
 	for (const rule of pluginRules) {
 		const suites = rule.suites ?? ["docs"];
-		if (suites.includes("docs")) docs.push(rule);
-		if (suites.includes("skills")) skills.push(rule);
+		const inDocs = suites.includes("docs");
+		const inSkills = suites.includes("skills");
+		if (!inDocs && !inSkills) {
+			const listed = suites.length === 0 ? "(empty)" : suites.join(", ");
+			throw new Error(
+				`Plugin rule "${rule.id}" suites attach to no known suite (got ${listed}; allowed: docs, skills). ` +
+					`"self" is the union of docs+skills — put the rule in docs and/or skills.`,
+			);
+		}
+		if (inDocs) docs.push(rule);
+		if (inSkills) skills.push(rule);
 	}
 
 	const selfById = new Map<string, AuditRule>();

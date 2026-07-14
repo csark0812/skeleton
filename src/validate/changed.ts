@@ -7,6 +7,7 @@ import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import { buildSkillIndex, isSkillPath } from "../audit/core/skill-roots.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { runAudit } from "../audit/run.ts";
+import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import { gitDiffChangedFiles } from "./git-diff.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
@@ -24,8 +25,11 @@ export interface ValidateChangedOptions {
 
 type Bucket = "docs" | "skills" | "shell" | "json" | "policy" | "skip";
 
-/** Policy YAML loadable under `.skeleton/` (matches plugin globs; not config.yaml). */
-function isSkeletonPolicyPath(normalized: string, ext: string): boolean {
+/**
+ * Candidate policy YAML under `.skeleton/` (not config.yaml).
+ * Wired vs orphan is decided against plugin `policies` globs.
+ */
+function isSkeletonYamlCandidate(normalized: string, ext: string): boolean {
 	if (!POLICY_EXTENSIONS.has(ext)) return false;
 	if (!(normalized.startsWith(".skeleton/") || normalized.startsWith(".skeleton\\"))) {
 		return false;
@@ -35,7 +39,7 @@ function isSkeletonPolicyPath(normalized: string, ext: string): boolean {
 	return true;
 }
 
-function bucketFor(relPath: string, root: string): Bucket {
+function bucketFor(relPath: string, root: string, wiredPolicies: Set<string>): Bucket {
 	const normalized = normalizeRelPath(relPath);
 	const ext = extname(normalized).toLowerCase();
 	const name = basename(normalized);
@@ -43,7 +47,11 @@ function bucketFor(relPath: string, root: string): Bucket {
 	if (SKIP_EXTENSIONS.has(ext)) return "skip";
 	if (COMMAND_CONFIG_NAMES.has(name)) return "skip";
 
-	if (isSkeletonPolicyPath(normalized, ext)) return "policy";
+	if (isSkeletonYamlCandidate(normalized, ext)) {
+		if (wiredPolicies.has(normalized)) return "policy";
+		// Caller treats this as orphan (loud fail); use a sentinel skip that we never emit.
+		return "skip";
+	}
 
 	const skillIndex = buildSkillIndex(root);
 	if (isSkillPath(normalized, skillIndex)) return "skills";
@@ -171,6 +179,15 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		return 0;
 	}
 
+	const config = loadConfig(root);
+	let wiredPolicies: Set<string>;
+	try {
+		wiredPolicies = await collectWiredPolicyRelPaths(root, config);
+	} catch (error) {
+		console.error(`validate changed: ${error instanceof Error ? error.message : error}`);
+		return 1;
+	}
+
 	const buckets: Record<Exclude<Bucket, "skip">, string[]> = {
 		docs: [],
 		skills: [],
@@ -180,6 +197,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	};
 	let missing = 0;
 	let skipped = 0;
+	const orphans: string[] = [];
 
 	for (const relPath of relPaths) {
 		const abs = join(root, relPath);
@@ -188,12 +206,28 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 			console.error(`validate changed: path not found: ${relPath}`);
 			continue;
 		}
-		const bucket = bucketFor(relPath, root);
+		const normalized = normalizeRelPath(relPath);
+		const ext = extname(normalized).toLowerCase();
+		if (isSkeletonYamlCandidate(normalized, ext) && !wiredPolicies.has(normalized)) {
+			orphans.push(normalized);
+			continue;
+		}
+		const bucket = bucketFor(relPath, root, wiredPolicies);
 		if (bucket === "skip") {
 			skipped++;
 			continue;
 		}
 		buckets[bucket].push(relPath);
+	}
+
+	if (orphans.length > 0) {
+		for (const orphan of orphans) {
+			console.error(
+				`validate changed: ${orphan} is under .skeleton/ but not referenced by any plugin policies glob.\n` +
+					"  Export it from a plugin `policies` array (see docs/developer/plugins.md), or remove the file.",
+			);
+		}
+		return 1;
 	}
 
 	const audited =
@@ -286,17 +320,29 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		if (validatePolicy(relPath, root) !== 0) exitCode = 1;
 	}
 
-	// Schema-only and path-scoped co-changed docs are not prose enforcement for
-	// pattern *definitions*: rest of scan + skills must be checked. Always fail closed.
+	// Pattern *definitions* need a full docs prose pass (path-scoped co-changed docs are not enough).
+	// Local/pre-commit: fail closed + redirect. CI `--base`: prove coverage inline.
 	if (buckets.policy.length > 0) {
-		if (exitCode === 0) {
-			console.error(
-				"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
-					"  Run: skeleton audit docs\n" +
-					"  Or:  skeleton audit self",
-			);
+		if (options.base) {
+			const proseExit = await runAudit({
+				suite: "docs",
+				strict: false,
+				json: false,
+				paths: [],
+				only: null,
+				root,
+			});
+			if (proseExit !== 0) exitCode = 1;
+		} else {
+			if (exitCode === 0) {
+				console.error(
+					"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
+						"  Run: skeleton audit docs\n" +
+						"  Or:  skeleton audit self",
+				);
+			}
+			return 1;
 		}
-		return 1;
 	}
 
 	if (exitCode === 0) {

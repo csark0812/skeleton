@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import { globSync } from "tinyglobby";
 import type { SkeletonConfig } from "../audit/config/types.ts";
+import { normalizeRelPath } from "../audit/core/shared.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import type { PolicyFile } from "../audit/policies/types.ts";
 import type { AuditRule } from "../audit/rules/index.ts";
@@ -52,7 +53,8 @@ export function normalizeExport(mod: unknown): PluginModule {
 	};
 }
 
-function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
+/** Expand plugin policy globs under `.skeleton/` to absolute YAML paths. */
+export function expandPolicyGlobs(root: string, globs: string[]): string[] {
 	const base = skeletonDir(root);
 	const files = new Set<string>();
 	for (const pattern of globs) {
@@ -66,13 +68,18 @@ function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
 		});
 		for (const match of matches) {
 			assertUnderSkeleton(root, match);
-			files.add(match);
+			if (match.endsWith(".yaml") || match.endsWith(".yml")) {
+				files.add(match);
+			}
 		}
 	}
+	return [...files].sort();
+}
 
+function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
+	const files = expandPolicyGlobs(root, globs);
 	const policies: PolicyFile[] = [];
-	for (const abs of [...files].sort()) {
-		if (!abs.endsWith(".yaml") && !abs.endsWith(".yml")) continue;
+	for (const abs of files) {
 		assertUnderSkeleton(root, abs);
 		policies.push(loadPolicyFile(abs, readFileSync(abs, "utf8")));
 	}
@@ -82,6 +89,37 @@ function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
 		);
 	}
 	return policies;
+}
+
+/**
+ * Relpaths (from repo root) of YAML matched by any configured plugin `policies` glob.
+ * Used by `validate changed` so the policy bucket matches the runtime load path.
+ */
+export async function collectWiredPolicyRelPaths(
+	root: string,
+	config: SkeletonConfig,
+): Promise<Set<string>> {
+	const entries = config.plugins ?? [];
+	const wired = new Set<string>();
+	if (entries.length === 0) return wired;
+
+	for (const entry of entries) {
+		const tsAbs = resolvePluginTsPath(root, entry);
+		const mjsAbs = mjsPathForTs(tsAbs);
+		if (!existsSync(mjsAbs)) {
+			const rel = relative(skeletonDir(root), tsAbs) || entry;
+			throw new Error(
+				`Plugin not built: ${rel} (missing ${relative(root, mjsAbs) || mjsAbs}). Run: skeleton build-plugin`,
+			);
+		}
+		const mod = await import(pathToFileURL(mjsAbs).href);
+		const normalized = normalizeExport(mod);
+		if (!normalized.policies?.length) continue;
+		for (const abs of expandPolicyGlobs(root, normalized.policies)) {
+			wired.add(normalizeRelPath(relative(root, abs)));
+		}
+	}
+	return wired;
 }
 
 /**

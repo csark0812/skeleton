@@ -1,15 +1,17 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runAudit } from "../../audit/run.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
+import { runBuildPlugin } from "../../plugins/build.ts";
 import { registerPath } from "../../register.ts";
 import { codeValidationHint, runValidateChanged } from "../../validate/changed.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
 const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
+const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
 
 describe("register", () => {
 	it("registers a doc with banner topic", () => {
@@ -79,6 +81,10 @@ describe("audit global scoping", () => {
 });
 
 describe("validate changed routing", () => {
+	beforeAll(async () => {
+		await runBuildPlugin({ root: PLUGIN_CONSUMER });
+	});
+
 	it("validates explicit doc path", async () => {
 		const exit = await runValidateChanged({
 			root: FLAT_SKILL_ROOT,
@@ -123,7 +129,7 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(1);
 	});
 
-	it("fails skill+policy paths without --base after schema-check (redirects to full suite)", async () => {
+	it("fails skill+unwired-policy paths as orphan policy (not wired by plugin globs)", async () => {
 		const policyDir = join(FLAT_SKILL_ROOT, ".skeleton/plugins/example/policies");
 		mkdirSync(policyDir, { recursive: true });
 		const policyRel = ".skeleton/plugins/example/policies/_tmp-skill-policy.yaml";
@@ -136,9 +142,7 @@ describe("validate changed routing", () => {
 				paths: ["multi/SKILL.md", policyRel],
 			});
 			expect(exit).toBe(1);
-			const msg = err.mock.calls.flat().join("\n");
-			// Policy lane fail-closes to docs/self (covers skills prose too).
-			expect(msg).toContain("audit docs");
+			expect(err.mock.calls.flat().join("\n")).toMatch(/not referenced by any plugin policies/);
 		} finally {
 			err.mockRestore();
 			unlinkSync(policyAbs);
@@ -154,12 +158,11 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(1);
 	});
 
-	it("schema-checks policy YAML then fail-closes policy-only changes", async () => {
-		const CONSUMER = join(FIXTURES, "plugins/consumer");
+	it("schema-checks wired policy YAML then fail-closes without --base", async () => {
 		const err = spyOn(console, "error").mockImplementation(() => {});
 		try {
 			const exit = await runValidateChanged({
-				root: CONSUMER,
+				root: PLUGIN_CONSUMER,
 				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
 			});
 			expect(exit).toBe(1);
@@ -169,16 +172,12 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("fail-closes policy YAML even when docs co-change (path-scoped is not prose coverage)", async () => {
-		const CONSUMER = join(FIXTURES, "plugins/consumer");
+	it("fail-closes wired policy YAML even when docs co-change (path-scoped is not prose coverage)", async () => {
 		const err = spyOn(console, "error").mockImplementation(() => {});
 		try {
 			const exit = await runValidateChanged({
-				root: CONSUMER,
-				paths: [
-					".skeleton/plugins/example/policies/sample-banned-phrase.yaml",
-					"docs/clean.md",
-				],
+				root: PLUGIN_CONSUMER,
+				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml", "docs/clean.md"],
 			});
 			expect(exit).toBe(1);
 			expect(err.mock.calls.flat().join("\n")).toMatch(/full prose-policy pass|audit docs/);
@@ -187,12 +186,11 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("schema-checks shared .skeleton/policies YAML then fail-closes", async () => {
-		const CONSUMER = join(FIXTURES, "plugins/consumer");
-		const policyDir = join(CONSUMER, ".skeleton/policies");
+	it("fails orphan .skeleton/policies YAML not exported by a plugin", async () => {
+		const policyDir = join(PLUGIN_CONSUMER, ".skeleton/policies");
 		mkdirSync(policyDir, { recursive: true });
 		const policyRel = ".skeleton/policies/_tmp-shared.yaml";
-		const policyAbs = join(CONSUMER, policyRel);
+		const policyAbs = join(PLUGIN_CONSUMER, policyRel);
 		writeFileSync(
 			policyAbs,
 			`name: shared\nentries:\n  - id: a\n    pattern: foo\n    message: m\n`,
@@ -200,11 +198,11 @@ describe("validate changed routing", () => {
 		const err = spyOn(console, "error").mockImplementation(() => {});
 		try {
 			const exit = await runValidateChanged({
-				root: CONSUMER,
+				root: PLUGIN_CONSUMER,
 				paths: [policyRel, "docs/clean.md"],
 			});
 			expect(exit).toBe(1);
-			expect(err.mock.calls.flat().join("\n")).toContain("audit docs");
+			expect(err.mock.calls.flat().join("\n")).toMatch(/not referenced by any plugin policies/);
 		} finally {
 			err.mockRestore();
 			unlinkSync(policyAbs);
@@ -212,16 +210,76 @@ describe("validate changed routing", () => {
 		}
 	});
 
+	it("under --base, proves full docs prose for wired policy changes (no redirect)", async () => {
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: PLUGIN_CONSUMER,
+				base: "HEAD",
+				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
+			});
+			expect(exit).toBe(1);
+			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
+			expect(msg).not.toMatch(/need a full prose-policy pass/);
+			expect(msg).toMatch(/fixture banned phrase|Doc audit failed|Audit failed/i);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
+		}
+	});
+
+	it("under --base, wired clean policy can pass validate when docs audit is green", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-policy-base-"));
+		mkdirSync(join(dir, ".skeleton/plugins/demo"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/demo/demo.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/registry.md"),
+			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
+		);
+		writeFileSync(
+			join(dir, "docs/a.md"),
+			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/demo/demo.ts"),
+			`export const rules = [];\nexport const policies = ["plugins/demo/policies/*.yaml"];\nexport default { rules, policies };\n`,
+		);
+		mkdirSync(join(dir, ".skeleton/plugins/demo/policies"), { recursive: true });
+		const policyRel = ".skeleton/plugins/demo/policies/clean.yaml";
+		writeFileSync(
+			join(dir, policyRel),
+			`name: clean\nentries:\n  - id: never\n    pattern: "ZZZ_NEVER_MATCH_POLICY_TOKEN"\n    message: "should not fire"\n`,
+		);
+		try {
+			await runBuildPlugin({ root: dir });
+			const exit = await runValidateChanged({
+				root: dir,
+				base: "HEAD",
+				paths: [policyRel],
+			});
+			expect(exit).toBe(0);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("fails invalid plugin policy severity", async () => {
-		const CONSUMER = join(FIXTURES, "plugins/consumer");
-		const badPath = join(CONSUMER, ".skeleton/plugins/example/policies/_tmp-bad-severity.yaml");
+		const badPath = join(
+			PLUGIN_CONSUMER,
+			".skeleton/plugins/example/policies/_tmp-bad-severity.yaml",
+		);
 		writeFileSync(
 			badPath,
 			`name: bad\nentries:\n  - id: a\n    pattern: foo\n    message: m\n    severity: critical\n`,
 		);
 		try {
 			const exit = await runValidateChanged({
-				root: CONSUMER,
+				root: PLUGIN_CONSUMER,
 				paths: [".skeleton/plugins/example/policies/_tmp-bad-severity.yaml"],
 			});
 			expect(exit).toBe(1);

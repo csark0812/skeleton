@@ -51,6 +51,24 @@ describe("assembleRules", () => {
 	it("fails on duplicate rule ids", () => {
 		expect(() => assembleRules([{ id: "links", run: () => [] }])).toThrow(/Duplicate/);
 	});
+
+	it("fails when suites is empty", () => {
+		expect(() => assembleRules([{ id: "plugin-empty-suites", suites: [], run: () => [] }])).toThrow(
+			/no known suite/,
+		);
+	});
+
+	it("fails when suites are only unknown names", () => {
+		expect(() =>
+			assembleRules([
+				{
+					id: "plugin-self-suite",
+					suites: ["self"] as unknown as AuditSuite[],
+					run: () => [],
+				},
+			]),
+		).toThrow(/no known suite/);
+	});
 });
 
 describe("plugin load + build", () => {
