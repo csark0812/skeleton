@@ -79,10 +79,7 @@ describe("skill-index rule", () => {
 			mkdirSync(join(skillRoot, "foreign"), { recursive: true });
 			writeFileSync(join(skillRoot, "owned", "SKILL.md"), "# owned\n");
 			writeFileSync(join(skillRoot, "foreign", "SKILL.md"), "# foreign\n");
-			writeFileSync(
-				join(skillRoot, "README.md"),
-				"## Taxonomy\n\n- [owned](owned/SKILL.md)\n",
-			);
+			writeFileSync(join(skillRoot, "README.md"), "## Taxonomy\n\n- [owned](owned/SKILL.md)\n");
 
 			const config = loadConfig(root);
 			const skillIndex = buildSkillIndex(root, { foreignSlugs: ["foreign"] });
@@ -100,9 +97,9 @@ describe("skill-index rule", () => {
 			} as AuditContext;
 
 			const issues = runSkillIndexRule(ctx);
-			expect(
-				issues.some((i) => i.message === 'taxonomy missing public skill "foreign"'),
-			).toBe(false);
+			expect(issues.some((i) => i.message === 'taxonomy missing public skill "foreign"')).toBe(
+				false,
+			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

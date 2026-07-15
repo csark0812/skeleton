@@ -84,9 +84,7 @@ function validateReadmeTaxonomy(
 			existsSync(join(ctx.root, skillRoot.relPath, slug, "SKILL.md")),
 		);
 		const foreign = new Set(index.foreignSlugs);
-		const publicSlugs = nestedSlugs.filter(
-			(slug) => !nonPublic.has(slug) && !foreign.has(slug),
-		);
+		const publicSlugs = nestedSlugs.filter((slug) => !nonPublic.has(slug) && !foreign.has(slug));
 		const relReadme = `${skillRoot.relPath}/README.md`;
 
 		for (const slug of publicSlugs) {

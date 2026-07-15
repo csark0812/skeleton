@@ -130,10 +130,7 @@ redundancy: intentional
 			expect(plans.map((p) => p.skill)).toEqual(["owned-skill"]);
 
 			const withoutOwnership = discoverSkillReferencePlans(root);
-			expect(withoutOwnership.map((p) => p.skill).sort()).toEqual([
-				"foreign-skill",
-				"owned-skill",
-			]);
+			expect(withoutOwnership.map((p) => p.skill).sort()).toEqual(["foreign-skill", "owned-skill"]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
