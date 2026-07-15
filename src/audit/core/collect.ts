@@ -4,7 +4,7 @@ import { globSync } from "tinyglobby";
 import { mergedExcludes } from "../config/load.ts";
 import type { SkeletonConfig } from "../config/types.ts";
 import { extractScanRootsFromInclude, matchesGlobScope, normalizeRelPath } from "./shared.ts";
-import { type SkillIndex, skillCollectAugments } from "./skill-roots.ts";
+import { isForeignSkillPath, type SkillIndex, skillCollectAugments } from "./skill-roots.ts";
 
 const MARKDOWN_GLOBS = ["**/*.md", "**/*.mdc"];
 const BUILTIN_INCLUDE_PATTERNS = [".skeleton/customize/**"];
@@ -59,7 +59,14 @@ export function collectScanFiles(
 	if (skillIndex) {
 		includePatterns.push(...skillCollectAugments(skillIndex));
 	}
-	return expandPatterns(root, includePatterns, exclude);
+	const files = expandPatterns(root, includePatterns, exclude);
+	// scan.include globs (e.g. `.claude/skills/**`) can still match foreign lockfile
+	// trees; drop those so body lint stays with the owning repo.
+	if (!skillIndex) return files;
+	return files.filter((abs) => {
+		const rel = normalizeRelPath(relative(root, abs));
+		return !isForeignSkillPath(rel, skillIndex);
+	});
 }
 
 export function collectBannedFiles(config: SkeletonConfig, root: string): string[] {
