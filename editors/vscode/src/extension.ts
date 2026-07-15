@@ -2,6 +2,7 @@ import { relative } from "node:path";
 import * as vscode from "vscode";
 import { clearDiagnostics, publishReport } from "./diagnostics";
 import {
+	isAuditablePath,
 	isConfigOrRegistry,
 	isMarkdownPath,
 	isPluginPolicy,
@@ -69,8 +70,13 @@ export function activate(context: vscode.ExtensionContext): void {
 		if (!folder) return;
 
 		const root = folder.uri.fsPath;
-		const generation = bumpGeneration(root);
 		const path = relativePath(folder, uri);
+		// Only bump generation for paths that actually run an audit. Bumping for
+		// every open/save (e.g. package.json) would invalidate in-flight markdown
+		// audits and leave Problems empty.
+		if (!isAuditablePath(path, uri.path)) return;
+
+		const generation = bumpGeneration(root);
 		const scope = isMarkdownPath(uri.path) ? uri : undefined;
 
 		await enqueue(root, async () => {
@@ -92,8 +98,6 @@ export function activate(context: vscode.ExtensionContext): void {
 					publishReport(diagnostics, root, report);
 					return;
 				}
-
-				if (!isMarkdownPath(uri.path)) return;
 
 				const suite = isSkillTreePath(path, root) ? "skills" : "docs";
 				report = await runSkeleton(
