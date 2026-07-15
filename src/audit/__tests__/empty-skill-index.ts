@@ -4,6 +4,7 @@ import type { SkillIndex } from "../core/skill-roots.ts";
 export const EMPTY_SKILL_INDEX: SkillIndex = {
 	roots: [],
 	slugs: [],
+	flatSlugs: [],
 	ownedSlugs: [],
 	foreignSlugs: [],
 	provenance: { lockfile: null, entries: {}, warnings: [] },

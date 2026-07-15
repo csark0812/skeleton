@@ -213,4 +213,44 @@ describe("skill-roots", () => {
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});
+
+	it("does not let nested-only foreign slugs claim top-level dirs when a flat skill exists", () => {
+		const dir = join(tmpdir(), `skill-flat-nested-collision-${Date.now()}`);
+		mkdirSync(join(dir, "skeleton"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/code-review"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/multi"), { recursive: true });
+		mkdirSync(join(dir, "code-review"), { recursive: true });
+		mkdirSync(join(dir, "multi"), { recursive: true });
+		writeFileSync(join(dir, "skeleton/SKILL.md"), "owned flat\n");
+		writeFileSync(join(dir, ".claude/skills/code-review/SKILL.md"), "foreign nested\n");
+		writeFileSync(join(dir, ".claude/skills/multi/SKILL.md"), "foreign nested\n");
+		writeFileSync(join(dir, "code-review/notes.md"), "# not a skill tree\n");
+		writeFileSync(join(dir, "multi/README.md"), "# not a skill tree\n");
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					"code-review": { source: "org/toolbox", sourceType: "github" },
+					multi: { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		try {
+			const index = buildSkillIndex(dir);
+			expect(index.flatSlugs).toEqual(["skeleton"]);
+			expect(index.foreignSlugs.sort()).toEqual(["code-review", "multi"]);
+			// Top-level dirs sharing nested foreign slug names must stay non-skill.
+			expect(isSkillPath("code-review/notes.md", index)).toBe(false);
+			expect(isForeignSkillPath("code-review/notes.md", index)).toBe(false);
+			expect(isSkillPath("multi/README.md", index)).toBe(false);
+			expect(isForeignSkillPath("multi/README.md", index)).toBe(false);
+			// Nested foreign trees and flat owned trees stay classified correctly.
+			expect(isForeignSkillPath(".claude/skills/code-review/SKILL.md", index)).toBe(true);
+			expect(isSkillPath("skeleton/SKILL.md", index)).toBe(true);
+			expect(isForeignSkillPath("skeleton/SKILL.md", index)).toBe(false);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });

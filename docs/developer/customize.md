@@ -2,7 +2,7 @@
 
 **Source of truth for** skill customize overrides via hooks.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
 Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md).
 
@@ -12,7 +12,10 @@ Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysIn
 .skeleton/customize/<slug>.md
 ```
 
-`skeleton init` wires IDE hooks to run `skeleton hook customize` (the `skeleton` bin, reading the host payload on stdin) and inject customize content on skill reads (and Claude `Skill` tool invoke). Inside this repo the hook runs `bun src/cli.ts hook customize`.
+`skeleton init` wires IDE hooks to a cwd-local
+`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` (so runners that
+lack `node_modules/.bin` on `PATH` still work). Inside this repo the hook runs
+`bun src/cli.ts hook customize`.
 Customize Markdown is always included in skeleton's audit corpus; consumers do
 not add `.skeleton/customize/**` to `scan.include`.
 
@@ -22,7 +25,7 @@ not add `.skeleton/customize/**` to `scan.include`.
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `Read` / `read_file` of a path ending in `/SKILL.md`                                                                                                    | `Grep`, shell `cat`/`head`                                      |
 | `Read` / `read_file` under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**` when that skill exists) | Non-skill paths (no resolvable slug)                            |
-| Claude `Skill` tool (slug from tool input)                                                                                                              | Missing/unresolvable `skeleton` bin (hooks no-op / fail)        |
+| Claude `Skill` tool (slug from tool input)                                                                                                              | Missing/unresolvable local package CLI (hooks no-op / fail)     |
 
 ### Host matchers (init templates)
 

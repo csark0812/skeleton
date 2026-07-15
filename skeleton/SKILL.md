@@ -7,7 +7,7 @@ description: Agent ops manual for skeleton-enabled repos — init, register, aud
 
 **Source of truth for** maintaining a skeleton-enabled repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
 Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has a consumer harness playbook (commonly `docs/developer/agent-harness.md`), read it for skill sync perimeter and migration phase.
 
@@ -35,7 +35,10 @@ Not for: normal feature work that only reads toolbox skills (customize injects a
 
 ## Customize hooks
 
-`skeleton init` merges IDE hooks that run `skeleton hook customize` on skill reads (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`). Inside this repo the hook runs `bun src/cli.ts hook customize`.
+`skeleton init` merges IDE hooks that run a cwd-local
+`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` on skill reads
+(Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`). Inside this repo the
+hook runs `bun src/cli.ts hook customize`.
 
 - Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**`); Grep/shell still skip
 - **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`

@@ -43,17 +43,23 @@ afterEach(() => {
 });
 
 describe("skeleton init helpers", () => {
-	it("emits the published `skeleton hook customize` command for consumer repos", () => {
+	it("emits a cwd-local node cli hook when the package is installed", () => {
 		const cwd = makeRepo();
+		mkdirSync(join(cwd, "node_modules/@csark0812/skeleton/dist"), { recursive: true });
+		writeFileSync(join(cwd, "node_modules/@csark0812/skeleton/dist/cli.js"), "// stub\n");
+		writeFileSync(
+			join(cwd, "node_modules/@csark0812/skeleton/package.json"),
+			JSON.stringify({ name: "@csark0812/skeleton", type: "module" }),
+		);
 		const command = resolveHookCommand(cwd);
-		expect(command).toBe("skeleton hook customize");
+		expect(command).toBe("node node_modules/@csark0812/skeleton/dist/cli.js hook customize");
 	});
 
-	it("emits the same CLI command when the package is missing from node_modules", () => {
+	it("falls back to a cwd-local node path when the package is missing", () => {
 		const cwd = mkdtempSync(join(tmpdir(), "skeleton-init-fallback-"));
 		tempDirs.push(cwd);
 		const command = resolveHookCommand(cwd);
-		expect(command).toBe("skeleton hook customize");
+		expect(command).toBe("node node_modules/@csark0812/skeleton/dist/cli.js hook customize");
 	});
 
 	it("resolveHookCommand returns a detectable skeleton customize hook", () => {
@@ -66,6 +72,9 @@ describe("skeleton init helpers", () => {
 	it("detects both the CLI form and the legacy standalone hook", () => {
 		expect(isSkeletonHookCommand("skeleton hook customize")).toBe(true);
 		expect(isSkeletonHookCommand("bun src/cli.ts hook customize")).toBe(true);
+		expect(
+			isSkeletonHookCommand("node node_modules/@csark0812/skeleton/dist/cli.js hook customize"),
+		).toBe(true);
 		expect(
 			isSkeletonHookCommand(
 				"node node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",

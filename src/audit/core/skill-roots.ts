@@ -43,6 +43,12 @@ export interface SkillIndex {
 	roots: SkillRoot[];
 	/** All discovered skill slugs (owned + foreign) — used for link resolution. */
 	slugs: string[];
+	/**
+	 * Slugs that exist as flat trees (`<slug>/SKILL.md` at repo root).
+	 * Flat path matching must use this set — never the union `slugs` — so a
+	 * nested-only foreign slug cannot poison top-level dirs with the same name.
+	 */
+	flatSlugs: string[];
 	/** Skill slugs whose bodies this repo owns and should lint. */
 	ownedSlugs: string[];
 	/** Synced / lockfile foreign skills — skipped for body lint. */
@@ -126,10 +132,11 @@ export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig):
 	const roots = detectSkillRoots(root);
 	const slugSet = new Set<string>();
 	const slugs: string[] = [];
+	const flatSlugs = listFlatSlugs(root);
 
 	for (const skillRoot of roots) {
 		const rootSlugs =
-			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
+			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : flatSlugs;
 		for (const slug of rootSlugs) {
 			if (!slugSet.has(slug)) {
 				slugSet.add(slug);
@@ -142,7 +149,7 @@ export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig):
 	const provenance = loadSkillsLock(root, lockfileRel);
 	const { ownedSlugs, foreignSlugs } = resolveOwnershipForSlugs(slugs, provenance, ownership);
 
-	return { roots, slugs, ownedSlugs, foreignSlugs, provenance };
+	return { roots, slugs, flatSlugs, ownedSlugs, foreignSlugs, provenance };
 }
 
 export function isOwnedSkillSlug(index: SkillIndex, slug: string): boolean {
@@ -167,17 +174,7 @@ export function resolveSkillPath(index: SkillIndex, root: string, slug: string):
 }
 
 export function isSkillPath(relPath: string, index: SkillIndex): boolean {
-	const normalized = normalizeRelPath(relPath);
-	for (const skillRoot of index.roots) {
-		if (skillRoot.kind === "nested") {
-			const prefix = `${skillRoot.relPath}/`;
-			if (normalized.startsWith(prefix)) return true;
-			continue;
-		}
-		const first = normalized.split("/")[0];
-		if (first && index.slugs.includes(first)) return true;
-	}
-	return false;
+	return skillSlugForPath(relPath, index) !== null;
 }
 
 /**
@@ -185,10 +182,12 @@ export function isSkillPath(relPath: string, index: SkillIndex): boolean {
  * tree. Covers every file under the tree (SKILL.md, references/**, and any other
  * markdown), not just SKILL.md/references — so foreign classification is complete
  * for flat layouts. Returns null for non-skill paths and slug collisions
- * (e.g. `docs/<slug>/...` when `docs` is not a skill root).
+ * (e.g. `docs/<slug>/...` when `docs` is not a skill root, or top-level
+ * `<nested-only-slug>/...` when that slug only exists under `.claude/skills`).
  */
 export function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
 	const normalized = normalizeRelPath(relPath);
+	const flat = new Set(index.flatSlugs);
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
 			const prefix = `${skillRoot.relPath}/`;
@@ -198,7 +197,8 @@ export function skillSlugForPath(relPath: string, index: SkillIndex): string | n
 			continue;
 		}
 		const first = normalized.split("/")[0];
-		if (first && index.slugs.includes(first)) return first;
+		// Flat membership only — nested-only slugs must not claim top-level dirs.
+		if (first && flat.has(first)) return first;
 	}
 	return null;
 }
@@ -262,7 +262,7 @@ export function skillCollectAugments(index: SkillIndex): string[] {
 				patterns.push(`${skillRoot.relPath}/${slug}/**`);
 			}
 		} else {
-			for (const slug of index.slugs) {
+			for (const slug of index.flatSlugs) {
 				if (!owned.has(slug)) continue;
 				patterns.push(`${slug}/**`);
 			}
