@@ -4,6 +4,7 @@ import type { AuditContext } from "../core/context.ts";
 import { lastGitCommitDate } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
 import { DOC_META_RE, docMetaLastReviewed } from "../core/shared.ts";
+import { slugFromPath } from "../core/skill-roots.ts";
 
 export function runDocMetaRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
@@ -32,6 +33,11 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 				),
 			);
 		}
+
+		// Synced skills carry their review cadence upstream; consumer git dates only
+		// reflect when they were synced, so the git-date freshness check is noise here.
+		const slug = slugFromPath(relPath, ctx.root);
+		if (slug !== null && ctx.lockedSkillSlugs.has(slug)) continue;
 
 		const gitDate = lastGitCommitDate(relPath, ctx.root);
 		if (!gitDate) continue;

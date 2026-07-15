@@ -27,6 +27,7 @@ function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditCont
 		registryHasTableHeader: true,
 		retiredSkills: new Set(),
 		skillIndex: emptySkillIndex,
+		lockedSkillSlugs: new Set(),
 		policies: [],
 		...overrides,
 	};

@@ -35,6 +35,7 @@ describe("registry rule", () => {
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
@@ -57,6 +58,7 @@ describe("registry rule", () => {
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
 			skillIndex: { roots: [], slugs: [] },
+			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "bun:test";
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../config/load.ts";
 import {
@@ -9,6 +11,7 @@ import {
 	validateScanRoots,
 } from "../core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
+import { buildSkillIndex } from "../core/skill-roots.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
@@ -54,6 +57,32 @@ describe("collectScanFiles", () => {
 		const files = collectScanFiles(config, NESTED_SKILLS_CUSTOMIZE);
 		const rels = files.map((f) => f.replace(`${NESTED_SKILLS_CUSTOMIZE}/`, ""));
 		expect(rels).toContain(".skeleton/customize/code-review.md");
+	});
+
+	it("dedupes a skill reached through a per-slug symlinked root", () => {
+		const root = join(tmpdir(), `skeleton-symlink-${Date.now()}`);
+		try {
+			mkdirSync(join(root, ".agents/skills/foo"), { recursive: true });
+			writeFileSync(
+				join(root, ".agents/skills/foo/SKILL.md"),
+				"# Foo\n\n**Source of truth for** foo.\n",
+			);
+			mkdirSync(join(root, ".claude/skills"), { recursive: true });
+			symlinkSync("../../.agents/skills/foo", join(root, ".claude/skills/foo"));
+
+			const config = {
+				scan: { include: [".agents/skills/**"], exclude: [], banned: [] },
+				daysUntilStale: 180,
+			} as ReturnType<typeof loadConfig>;
+			const files = collectScanFiles(config, root, buildSkillIndex(root));
+			const skillMd = files.filter((f) => f.endsWith("foo/SKILL.md"));
+
+			expect(skillMd).toHaveLength(1);
+			expect(skillMd[0]).toContain(".agents/skills/foo/SKILL.md");
+			expect(files.some((f) => f.includes(".claude/skills/foo"))).toBe(false);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });
 

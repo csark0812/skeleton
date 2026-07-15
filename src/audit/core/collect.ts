@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
 import { mergedExcludes } from "../config/load.ts";
@@ -18,7 +18,10 @@ function shouldExclude(relPath: string, exclude: string[]): boolean {
 }
 
 function expandPatterns(root: string, patterns: string[], exclude: string[]): string[] {
-	const files = new Set<string>();
+	// Key by real path so the same file reached through symlinked skill roots
+	// (e.g. per-slug `.claude/skills/<slug>` → `.agents/skills/<slug>`) collapses
+	// to one entry instead of being audited twice under both paths.
+	const byReal = new Map<string, string>();
 	for (const pattern of patterns) {
 		for (const abs of globSync(pattern, {
 			cwd: root,
@@ -29,10 +32,21 @@ function expandPatterns(root: string, patterns: string[], exclude: string[]): st
 			if (!isMarkdownFile(abs)) continue;
 			const rel = normalizeRelPath(relative(root, abs));
 			if (shouldExclude(rel, exclude)) continue;
-			files.add(abs);
+			let real: string;
+			try {
+				real = realpathSync(abs);
+			} catch {
+				real = abs;
+			}
+			const existing = byReal.get(real);
+			if (existing === undefined || (abs === real && existing !== real)) {
+				// Prefer the canonical (non-symlinked) path when a real file is also
+				// reachable through a symlink, so issues report the source location.
+				byReal.set(real, abs);
+			}
 		}
 	}
-	return [...files];
+	return [...byReal.values()];
 }
 
 export function collectScanFiles(
