@@ -38,14 +38,23 @@ function clearRoot(collection: vscode.DiagnosticCollection, root: string): void 
 	});
 }
 
+/** Clear diagnostics for one file or the whole workspace root. */
+export function clearDiagnostics(
+	collection: vscode.DiagnosticCollection,
+	root: string,
+	scope?: vscode.Uri,
+): void {
+	if (scope) collection.delete(scope);
+	else clearRoot(collection, root);
+}
+
 export function publishReport(
 	collection: vscode.DiagnosticCollection,
 	root: string,
 	report: SkeletonReport,
 	scope?: vscode.Uri,
 ): void {
-	if (scope) collection.delete(scope);
-	else clearRoot(collection, root);
+	clearDiagnostics(collection, root, scope);
 
 	const grouped = new Map<string, { uri: vscode.Uri; diagnostics: vscode.Diagnostic[] }>();
 	for (const issue of report.issues) {

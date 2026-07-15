@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
-The extension surfaces Skeleton audit issues in the editor Problems panel and as squiggles on Markdown files. It runs the same `skeleton` CLI you use in CI — no duplicate audit logic.
+The extension surfaces Skeleton audit issues in the editor Problems panel and as squiggles on Markdown files. It shells out to the same `skeleton` CLI binaries — no duplicate audit logic. Suite choice still follows the [validation](validation.md) split (`docs` vs `skills` vs `self`); path-scoped skill edits do not replace a bare `audit skills` prove for global skill-index rules.
 
 Works in **VS Code** and **Cursor** (both use the same extension format).
 
@@ -72,13 +72,15 @@ Build the CLI first: `bun run build` (from the skeleton repo root).
 
 Open a skeleton-enabled workspace. The extension activates when `.skeleton/config.yaml` exists or when you open Markdown.
 
-| Trigger                                                         | Behavior                                       |
-| --------------------------------------------------------------- | ---------------------------------------------- |
-| Open / save `.md` / `.mdc`                                      | Path-scoped `audit docs --paths=<file> --json` |
-| Change `.skeleton/config.yaml`, registry, or plugin policy YAML | `audit self --json`                            |
-| **Skeleton: Audit Current File**                                | Re-run audit for the active file               |
-| **Skeleton: Audit Workspace**                                   | Full self audit                                |
-| **Skeleton: Show Output**                                       | CLI command log and parse errors               |
+| Trigger                                              | Behavior                                                               |
+| ---------------------------------------------------- | ---------------------------------------------------------------------- |
+| Open / save docs `.md` / `.mdc`                      | Path-scoped `audit docs --paths=<file> --json`                         |
+| Open / save skill-tree Markdown (`SKILL.md`, etc.)   | Path-scoped `audit skills --paths=<file> --json`                       |
+| Change `.skeleton/config.yaml` or registry           | `audit self --json`                                                    |
+| Change plugin policy YAML under `.skeleton/plugins/` | Full `audit docs` **and** `audit skills` (merged)                      |
+| **Skeleton: Audit Current File**                     | Re-run the matching suite for the active file                          |
+| **Skeleton: Audit Workspace**                        | `audit self` **and** bare `audit skills` (covers excluded skill trees) |
+| **Skeleton: Show Output**                            | CLI command log and parse errors                                       |
 
 Diagnostics appear in **Problems**. Supported quick fixes call existing CLI fixers (`--fix=doc-meta`, `--fix=anchors`).
 
