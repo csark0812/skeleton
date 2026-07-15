@@ -2,7 +2,7 @@
 
 **Source of truth for** day-one Skeleton setup in a consumer repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
@@ -60,6 +60,12 @@ scan:
 daysUntilStale: 180
 ```
 
+Skill ownership is inferred from `skills-lock.json`: local skills are owned,
+while synced skills (for example, `sourceType: github`) are foreign. Consumer
+validation skips foreign skill bodies; lint those in the owning skills or
+toolbox repo. Use `skillOwnership.ownedSlugs` / `foreignSlugs` for exceptions;
+see [config](config.md#skillownership).
+
 Plugin-enabled example and more keys: [config](config.md).
 
 ## 3. Write a canonical doc
@@ -91,7 +97,10 @@ npx skeleton audit self
 npx skeleton validate changed --staged
 ```
 
-Audits pass → you're set. Stale `last-reviewed` warnings are OK until you bump dates. Failures → [troubleshooting](troubleshooting.md).
+Audits pass → you're set. A foreign-only skill change can pass because synced
+skill bodies are validated in their owning repo; `validate changed` prints each
+skip. Stale `last-reviewed` warnings are OK until you bump dates. Failures →
+[troubleshooting](troubleshooting.md).
 
 ## 6. Optional pre-commit
 

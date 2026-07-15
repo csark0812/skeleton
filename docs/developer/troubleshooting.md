@@ -20,9 +20,9 @@ bun run build
 
 (or the equivalent npm/Nx scripts). Pass docs/skill paths if you intended SSOT validation.
 
-## Skill-only paths exit non-zero
+## Owned skill-only paths exit non-zero
 
-**Cause:** Changes under a skill tree (`SKILL.md` or skill-tree markdown) are not covered by path-scoped docs audit.
+**Cause:** Changes under an owned skill tree (`SKILL.md` or skill-tree markdown) are not covered by path-scoped docs audit.
 
 **Fix:**
 
@@ -31,6 +31,11 @@ skeleton audit skills
 ```
 
 Under CI, `skeleton validate changed --base origin/main` still applies global skill rules.
+
+Foreign / lockfile-synced skill bodies are skipped with a log message because
+their owning skills or toolbox repo is responsible for linting them. Ownership
+comes from `skills-lock.json` and optional `skillOwnership` overrides; see
+[config](config.md#skillownership).
 
 ## Plugin policy YAML redirects
 

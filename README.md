@@ -2,7 +2,7 @@
 
 **Source of truth for** Package overview.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
@@ -112,13 +112,14 @@ skeleton customize resolve <slug>
 
 **Validate changed** routes git diffs to the right audit:
 
-| Path                                                                                | Action                      |
-| ----------------------------------------------------------------------------------- | --------------------------- |
-| Docs in scan perimeter                                                              | path-scoped audit           |
-| Skill bodies (`SKILL.md` trees)                                                     | exit 1 → run `audit skills` |
-| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`     |
-| Other `.json`                                                                       | JSONC-tolerant syntax check |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)  |
+| Path                                                                                | Action                                                        |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Docs in scan perimeter                                                              | path-scoped audit                                             |
+| Owned skill bodies (`SKILL.md` trees)                                               | exit 1 → run `audit skills`                                   |
+| Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo                 |
+| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                       |
+| Other `.json`                                                                       | JSONC-tolerant syntax check                                   |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)                                    |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
 
