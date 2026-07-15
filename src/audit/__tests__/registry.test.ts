@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import { parseRegistry } from "../core/registry.ts";
 import { runRegistryRule } from "../rules/registry.ts";
+import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 const MALFORMED = join(FIXTURES, "malformed");
@@ -34,7 +35,8 @@ describe("registry rule", () => {
 			files: [],
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
-			skillIndex: { roots: [], slugs: [] },
+			skillIndex: EMPTY_SKILL_INDEX,
+			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);
@@ -56,7 +58,8 @@ describe("registry rule", () => {
 			files: [],
 			docMetaPaths: [],
 			retiredSkills: new Set<string>(),
-			skillIndex: { roots: [], slugs: [] },
+			skillIndex: EMPTY_SKILL_INDEX,
+			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;
 		const issues = runRegistryRule(ctx);

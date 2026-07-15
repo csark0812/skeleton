@@ -7,9 +7,11 @@ description: Agent ops manual for skeleton-enabled repos — init, register, aud
 
 **Source of truth for** maintaining a skeleton-enabled repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
 Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has a consumer harness playbook (commonly `docs/developer/agent-harness.md`), read it for skill sync perimeter and migration phase.
+
+Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [config](https://github.com/csark0812/skeleton/blob/main/docs/developer/config.md) · [troubleshooting](https://github.com/csark0812/skeleton/blob/main/docs/developer/troubleshooting.md).
 
 ## When to use
 
@@ -33,7 +35,10 @@ Not for: normal feature work that only reads toolbox skills (customize injects a
 
 ## Customize hooks
 
-`skeleton init` merges IDE hooks that run `customize-on-skill-read.js` on skill reads (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`).
+`skeleton init` merges IDE hooks that run a cwd-local
+`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` on skill reads
+(Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`). Inside this repo the
+hook runs `bun src/cli.ts hook customize`.
 
 - Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**`); Grep/shell still skip
 - **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`
@@ -89,4 +94,4 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 
-Framework docs: [docs/developer/install.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md)
+Framework docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [install](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md) · [validation](https://github.com/csark0812/skeleton/blob/main/docs/developer/validation.md)

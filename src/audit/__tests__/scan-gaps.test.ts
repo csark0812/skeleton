@@ -4,6 +4,7 @@ import { COVERAGE_BUILTIN_EXCLUDES, loadConfig } from "../config/load.ts";
 import { collectCoverageCandidateFiles } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import { runCoverageGapsRule } from "../rules/scan-gaps.ts";
+import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 
@@ -18,7 +19,8 @@ describe("coverageGapsRule", () => {
 			registryPaths: [],
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
-			skillIndex: { roots: [], slugs: [] },
+			skillIndex: EMPTY_SKILL_INDEX,
+			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;
 		const exclude = [...COVERAGE_BUILTIN_EXCLUDES, ...config.scan.exclude];

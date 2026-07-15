@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
+import { readFileSync } from "node:fs";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
+import { runCustomizeHook } from "./hooks/run.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
@@ -21,6 +23,7 @@ Commands:
   validate changed [paths…] [--staged] [--base <ref>]
   register <path> [--topic=…] [--dry-run] [--json]
   customize resolve <slug> [--json]
+  hook customize            (reads a host hook payload on stdin)
   references sync [--dry-run] [--no-rewrite-links]
   references check [--json] [--strict]`);
 }
@@ -132,6 +135,15 @@ async function main(): Promise<void> {
 			} else if (result.content) {
 				process.stdout.write(result.content);
 			}
+			process.exit(0);
+		}
+
+		if (command === "hook") {
+			if (argv[1] !== "customize") {
+				usage();
+				process.exit(1);
+			}
+			process.stdout.write(runCustomizeHook(readFileSync(0, "utf8")));
 			process.exit(0);
 		}
 

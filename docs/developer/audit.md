@@ -4,12 +4,14 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
+When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
+
 ## Suites
 
 ```bash
 skeleton audit docs     # links, doc-meta, registry (when full pass), prose-policy (when plugins supply policies)
-skeleton audit skills   # skill-index, multi-root detection, prose-policy (incl. skill trees under scan.exclude)
-skeleton audit self     # config + all rules (scan corpus; excluded skill trees → use audit skills)
+skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
+skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
 Autofix (docs only):
@@ -31,9 +33,27 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, `scan.banned`, optional `scan.retiredSkills`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `plugins`, optional `draftPathPrefixes`. See `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, `scan.banned`, optional `scan.retiredSkills`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
 
 Plugins: [plugins.md](plugins.md).
+
+### Skill ownership (consumer vs toolbox)
+
+Lint skill **bodies** where they are authored:
+
+| Repo role             | What to audit                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| Skills / toolbox repo | All (or owned) `SKILL.md` trees via `audit skills`                                   |
+| Consumer app repo     | `.skeleton/customize/**`, config/registry/policies; skip foreign synced skill bodies |
+
+Classification (defaults work with no config):
+
+1. `skillOwnership.ownedSlugs` → owned
+2. `skillOwnership.foreignSlugs` → foreign
+3. `skills-lock.json` entry with `sourceType` other than `local` (e.g. `github`) → foreign
+4. Otherwise → owned
+
+Foreign skills remain discoverable for link resolution and customize inject, but are omitted from docs/self/skills corpora and CI policy skill proves.
 
 ### `scan.nonPublicSkills`
 

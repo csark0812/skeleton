@@ -2,17 +2,25 @@
 
 **Source of truth for** Package overview.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
-Single source of truth (SSOT) linter for agent-enabled repos.
+Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
-Agent repos accumulate skills, rules, registries, and cross-linked docs faster than anyone can keep them straight by hand. Code repos solved this decades ago with ESLint — deterministic checks, CI gates, fix what you can before merge. Skeleton does the same job for documentation architecture: what's canonical, what links where, what must not exist, and whether your skill overrides are wired correctly.
+Skeleton is an SSOT linter for that layer. You define the contract once; Skeleton checks it locally and in CI.
 
-Skeleton is **not** a runtime agent harness. It does not execute tools, enforce permissions, or manage agent memory. It is a CLI that audits docs, skills, and registries, and fails CI when invariants break.
+If a canonical doc disappears, a registry drifts, a skill index stops matching disk, or a generated reference gets edited by hand, the audit fails before merge.
 
-## Why
+Think ESLint, but for the docs and skills your agents rely on.
 
-Code has linters. Agent repos need the same thing for docs and SSOT.
+Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, or manage memory. It checks whether the repo around those systems still holds together.
+
+## Why this matters
+
+Agents can read the repo. They can't reliably infer which of three conflicting docs wins, whether a synced skill should be edited here, or which validation command actually proves a change.
+
+That stuff needs to be explicit. More importantly, it needs to stay true after the next 50 PRs.
+
+Skeleton turns those repo conventions into checks:
 
 | Code repos                                              | Agent repos                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -20,7 +28,20 @@ Code has linters. Agent repos need the same thing for docs and SSOT.
 | `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs and skills                                 |
 | Pre-commit + CI gate                                    | `--staged` pre-commit + `--base` CI gate                                               |
 
-Skill linters (skillmark, agentlint, skillscheck) answer: _"Is this SKILL.md well-formed?"_ Skeleton answers: _"Does this repo's documentation system hold together?"_
+Skill linters answer: _"Is this SKILL.md well-formed?"_
+
+Skeleton answers the repo-level question: _"Does this whole thing still agree with itself?"_
+
+## What the research says
+
+Research here is still early, but the direction is useful: more context isn't automatically better.
+
+- A [2026 study of repo-level context files](https://doi.org/10.48550/arxiv.2602.11988) tested 438 coding tasks. Human-written files improved resolution by 4% on average; generated files reduced it by 3%. Both increased inference cost by more than 20%. The recommendation was pretty direct: keep instructions minimal and include what the agent can't infer.
+- A [2025 METR randomized trial](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found experienced open-source developers took 19% longer with early-2025 AI tools while believing they were faster.
+
+Neither study proves Skeleton improves task success. That needs a Skeleton-specific benchmark.
+
+What they do support is the constraint Skeleton is built around: keep the useful context small, make ownership clear, and verify the rest instead of trusting that it stayed correct.
 
 ## Quick start
 
@@ -29,7 +50,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `.skeleton/`, merges validate scripts into `package.json`, and wires customize hooks for Cursor, Claude Code, and Codex.
+That writes `.skeleton/`, adds the validation scripts, and wires customize hooks for Cursor, Claude Code, and Codex.
 
 Edit `.skeleton/config.yaml` for your repo layout, then verify:
 
@@ -37,7 +58,7 @@ Edit `.skeleton/config.yaml` for your repo layout, then verify:
 npx skeleton audit self
 ```
 
-See [install](docs/developer/install.md) for flags and options.
+Flag details: [install](docs/developer/install.md).
 
 ## What it checks
 
@@ -50,7 +71,7 @@ See [install](docs/developer/install.md) for flags and options.
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
-Code validation (TypeScript, Python, Nx, pytest) stays in your repo. Skeleton handles SSOT-adjacent paths only.
+Skeleton doesn't replace your code gates. Keep TypeScript, Python, Nx, pytest, etc. in the repo that owns them.
 
 ## The `.skeleton/` contract
 
@@ -75,7 +96,7 @@ Register it:
 skeleton register docs/developer/api.md
 ```
 
-Synced toolbox skills stay pristine. Project overrides live in `.skeleton/customize/<slug>.md` and inject via IDE hooks on skill read — no editing synced `SKILL.md` files.
+Synced skills stay pristine. Project overrides live in `.skeleton/customize/<slug>.md` and inject when the skill is read. No editing copied `SKILL.md` files.
 
 ## Commands
 
@@ -91,29 +112,30 @@ skeleton customize resolve <slug>
 
 **Validate changed** routes git diffs to the right audit:
 
-| Path                                                                                | Action                      |
-| ----------------------------------------------------------------------------------- | --------------------------- |
-| Docs in scan perimeter                                                              | path-scoped audit           |
-| Skill bodies (`SKILL.md` trees)                                                     | exit 1 → run `audit skills` |
-| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`     |
-| Other `.json`                                                                       | JSONC-tolerant syntax check |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)  |
+| Path                                                                                | Action                                                        |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Docs in scan perimeter                                                              | path-scoped audit                                             |
+| Owned skill bodies (`SKILL.md` trees)                                               | exit 1 → run `audit skills`                                   |
+| Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo                 |
+| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                       |
+| Other `.json`                                                                       | JSONC-tolerant syntax check                                   |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)                                    |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
+
 CI: `skeleton validate changed --base origin/main` (global rules first, then changed files).
 
 ## Ecosystem
 
-Skeleton is the shared validation layer in a three-tier setup:
+The model is simple:
 
-| Repo                 | Role                                               |
-| -------------------- | -------------------------------------------------- |
-| **skeleton**         | SSOT audit CLI (this repo)                         |
-| **toolbox**          | Team skills + public agent preferences             |
-| **personal-toolbox** | Private skills + personal preferences              |
-| **Consumer apps**    | Call skeleton for SSOT; keep code validation local |
+| Layer             | Role                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| **Skeleton**      | Defines and checks the SSOT contract                                                           |
+| **Shared skills** | Reusable team or public skills. [toolbox](https://github.com/csark0812/toolbox) is one example |
+| **Consumer apps** | Pull in the skills, run Skeleton on SSOT paths, and keep their own code gates                  |
 
-Skeleton never calls Nx or other task runners — consumers call skeleton for doc and skill paths, then handle code paths themselves.
+Skeleton never calls Nx or another app task runner. Consumer repos keep ownership of test, typecheck, and build.
 
 See [tiers](docs/tiers.md).
 
@@ -147,6 +169,8 @@ bun install
 bun run check
 ```
 
-`bun run check` runs lint, test, typecheck, build, and `audit:self`. `validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table) and skill-body edits need `audit skills`. All-skip / skill-only / missing paths exit non-zero. Use `bun test`, `bun run typecheck`, and `bun run build` for code.
+`bun run check` = lint + test + typecheck + build + `audit:self`.
+
+`validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table above). Owned skill-body edits need `audit skills`. All-skip, owned skill paths (alone or mixed with docs), and missing paths exit non-zero. For code: `bun test`, `bun run typecheck`, `bun run build`.
 
 Optional: `brew install pre-commit` (or `pipx install pre-commit`), then `pre-commit install` to wire `.pre-commit-config.yaml`.

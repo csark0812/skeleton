@@ -34,12 +34,15 @@ bun test ./tests/smoke.test.ts
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Docs / config / registry (non-policy)       | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
-| Skill body (`SKILL.md` trees)               | `bun run audit:skills` (path-scoped validate exits non-zero and redirects here; `audit self` does not cover excluded skill trees)                          |
+| Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` (path-scoped validate exits non-zero for owned skill paths — alone or mixed with docs — and redirects here; `audit self` does not cover excluded skill trees) |
+| Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)                                                                   |
 | TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check`)                                                  |
 
-`validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped, it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Skill-only paths exit non-zero and point at `audit skills`. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over all skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+`validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped, it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
 Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`.
+
+Consumer-facing decision table and routing: [docs/developer/validation.md](docs/developer/validation.md). Common failures: [docs/developer/troubleshooting.md](docs/developer/troubleshooting.md). Day-one setup: [docs/developer/getting-started.md](docs/developer/getting-started.md).
 
 ## Layout
 
@@ -51,4 +54,4 @@ Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew insta
 
 ## Docs
 
-[README](README.md) · [validation](docs/developer/validation.md) · [audit](docs/developer/audit.md) · [install](docs/developer/install.md)
+[README](README.md) · [getting started](docs/developer/getting-started.md) · [config](docs/developer/config.md) · [validation](docs/developer/validation.md) · [troubleshooting](docs/developer/troubleshooting.md) · [audit](docs/developer/audit.md) · [install](docs/developer/install.md)

@@ -15,13 +15,13 @@ npx skeleton init --skills
 
 Init writes `.skeleton/`, merges IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts.
 
-## Edit config
+## Config
 
-Open `.skeleton/config.yaml` and set `scan.include` / `scan.exclude` / `scan.banned` for your repo layout. See [doc-system](doc-system.md).
+Open `.skeleton/config.yaml` and set `scan.include` / `scan.exclude` / `scan.banned` for your layout. See [doc-system](doc-system.md).
 
 ## Pre-commit (optional)
 
-Install the [pre-commit](https://pre-commit.com/) tool once per machine (`brew install pre-commit` or `pipx install pre-commit`), then in the consumer repo:
+Install [pre-commit](https://pre-commit.com/) once per machine (`brew install pre-commit` or `pipx install pre-commit`), then in the consumer repo:
 
 ```bash
 pre-commit install

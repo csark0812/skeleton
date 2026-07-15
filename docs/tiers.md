@@ -1,16 +1,16 @@
 # Tiers
 
-**Source of truth for** the three-tier agent harness ecosystem.
+**Source of truth for** the three-tier agent ecosystem.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-11 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 | Repo | Role |
 |------|------|
-| **skeleton** | SSOT audit CLI + validation harness |
+| **skeleton** | Single source of truth (SSOT) audit CLI |
 | **toolbox** | Team skills + public agent preferences |
 | **personal-toolbox** | Private skills + personal preferences |
-| **Consumer apps** | Call skeleton; keep code validation local |
+| **Consumer apps** | Call skeleton for SSOT; keep code validation local |
 
 Skeleton never calls Nx or other task runners — consumers call skeleton for SSOT paths.
 
-See [install](developer/install.md) and [validation](developer/validation.md).
+See [getting started](developer/getting-started.md), [install](developer/install.md), and [validation](developer/validation.md).

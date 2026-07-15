@@ -3,7 +3,7 @@
   "hooks": {
     "postToolUse": [
       {
-        "command": "dist/hooks/customize-on-skill-read.js",
+        "command": "bun src/cli.ts hook customize",
         "matcher": "Read"
       }
     ]

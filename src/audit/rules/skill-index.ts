@@ -5,7 +5,12 @@ import { nonPublicSkills } from "../config/load.ts";
 import type { AuditContext } from "../core/context.ts";
 import { type Issue, issue } from "../core/report.ts";
 import { SKILL_LINK_RE } from "../core/shared.ts";
-import { listSkillSlugs, resolveSkillPath, type SkillIndex } from "../core/skill-roots.ts";
+import {
+	listOwnedSkillSlugs,
+	listSkillSlugs,
+	resolveSkillPath,
+	type SkillIndex,
+} from "../core/skill-roots.ts";
 
 function walkSkillMarkdown(dir: string): string[] {
 	const files: string[] = [];
@@ -78,7 +83,8 @@ function validateReadmeTaxonomy(
 		const nestedSlugs = diskSlugs.filter((slug) =>
 			existsSync(join(ctx.root, skillRoot.relPath, slug, "SKILL.md")),
 		);
-		const publicSlugs = nestedSlugs.filter((slug) => !nonPublic.has(slug));
+		const foreign = new Set(index.foreignSlugs);
+		const publicSlugs = nestedSlugs.filter((slug) => !nonPublic.has(slug) && !foreign.has(slug));
 		const relReadme = `${skillRoot.relPath}/README.md`;
 
 		for (const slug of publicSlugs) {
@@ -107,24 +113,41 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 	const index = ctx.skillIndex;
 	const diskSlugs = listSkillSlugs(index);
 
+	for (const warning of index.provenance.warnings) {
+		issues.push(
+			issue(
+				"skill-index",
+				index.provenance.lockfile ?? "skills-lock.json",
+				`skill provenance: ${warning}`,
+				{
+					severity: "warning",
+				},
+			),
+		);
+	}
+
 	issues.push(...validateReadmeTaxonomy(ctx, index, diskSlugs));
 
+	const owned = new Set(index.ownedSlugs);
 	for (const skillRoot of index.roots) {
-		const scanRoot =
-			skillRoot.kind === "nested" ? join(ctx.root, skillRoot.relPath) : join(ctx.root);
-		if (skillRoot.kind === "nested" && existsSync(scanRoot)) {
-			for (const skillMd of walkSkillMarkdown(scanRoot)) {
-				issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
-			}
-		}
-		if (skillRoot.kind === "flat") {
-			for (const slug of index.slugs) {
-				const skillDir = join(ctx.root, slug);
-				if (existsSync(skillDir)) {
-					for (const skillMd of walkSkillMarkdown(skillDir)) {
-						issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
-					}
+		if (skillRoot.kind === "nested") {
+			for (const slug of index.ownedSlugs) {
+				const skillDir = join(ctx.root, skillRoot.relPath, slug);
+				if (!existsSync(skillDir)) continue;
+				for (const skillMd of walkSkillMarkdown(skillDir)) {
+					issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
 				}
+			}
+			continue;
+		}
+		// Flat walks must use flatSlugs ∩ owned — never union ownedSlugs — so a
+		// nested-only owned slug cannot poison a same-named top-level directory.
+		for (const slug of index.flatSlugs) {
+			if (!owned.has(slug)) continue;
+			const skillDir = join(ctx.root, slug);
+			if (!existsSync(skillDir)) continue;
+			for (const skillMd of walkSkillMarkdown(skillDir)) {
+				issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
 			}
 		}
 	}
@@ -135,5 +158,13 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 export const skillIndexRule = { id: "skill-index", run: runSkillIndexRule };
 
 export function skillCountOnDisk(ctx: AuditContext): number {
-	return listSkillSlugs(ctx.skillIndex).length;
+	return listOwnedSkillSlugs(ctx.skillIndex).length;
+}
+
+/** Success-suffix detail: owned audited vs foreign ignored. */
+export function skillAuditSuffix(ctx: AuditContext): string {
+	const owned = listOwnedSkillSlugs(ctx.skillIndex).length;
+	const foreign = ctx.skillIndex.foreignSlugs.length;
+	if (foreign === 0) return ` (${owned} skills on disk)`;
+	return ` (${owned} owned skills audited, ${foreign} foreign ignored)`;
 }

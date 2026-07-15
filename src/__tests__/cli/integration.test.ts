@@ -141,6 +141,24 @@ describe("validate changed routing", () => {
 		}
 	});
 
+	it("fails docs+owned-skill mixes without --base (path-scoped skills are not coverage)", async () => {
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["docs/README.md", "multi/SKILL.md"],
+			});
+			expect(exit).toBe(1);
+			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
+			expect(msg).toContain("audit skills");
+			expect(msg).toMatch(/skill paths need the full skills suite/i);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
+		}
+	});
+
 	it("fails skill+unwired-policy paths as orphan policy (not wired by plugin globs)", async () => {
 		const policyDir = join(FLAT_SKILL_ROOT, ".skeleton/plugins/example/policies");
 		mkdirSync(policyDir, { recursive: true });
@@ -436,6 +454,107 @@ describe("validate changed routing", () => {
 			});
 			expect(exit).toBe(0);
 		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("skips foreign locked skill paths in validate changed", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-foreign-skip-"));
+		mkdirSync(join(dir, ".claude/skills/foreign"), { recursive: true });
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\n`,
+		);
+		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
+		writeFileSync(
+			join(dir, ".claude/skills/foreign/SKILL.md"),
+			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					foreign: { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: dir,
+				paths: [".claude/skills/foreign/SKILL.md"],
+			});
+			expect(exit).toBe(0);
+			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
+			expect(msg).toMatch(/skipping foreign skill|foreign skill/);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("under --base, policy prove ignores foreign locked skill prose hits", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-policy-foreign-"));
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/foreign"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/mine"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/registry.md"),
+			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
+		);
+		writeFileSync(
+			join(dir, "docs/a.md"),
+			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		const policyRel = ".skeleton/plugins/example/policies/banned.yaml";
+		writeFileSync(
+			join(dir, policyRel),
+			`name: skill-banned\nentries:\n  - id: hub\n    scope: ".claude/skills/**"\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/foreign/SKILL.md"),
+			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/mine/SKILL.md"),
+			"---\nname: mine\ndescription: x\n---\n\nclean\n",
+		);
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					foreign: { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		try {
+			await runBuildPlugin({ root: dir });
+			const exit = await runValidateChanged({
+				root: dir,
+				base: "HEAD",
+				paths: [policyRel],
+			});
+			expect(exit).toBe(0);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});

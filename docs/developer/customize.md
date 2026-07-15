@@ -2,7 +2,9 @@
 
 **Source of truth for** skill customize overrides via hooks.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
+
+Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md).
 
 ## Layout
 
@@ -10,7 +12,10 @@
 .skeleton/customize/<slug>.md
 ```
 
-`skeleton init` wires IDE hooks to inject customize content on skill reads (and Claude `Skill` tool invoke).
+`skeleton init` wires IDE hooks to a cwd-local
+`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` (so runners that
+lack `node_modules/.bin` on `PATH` still work). Inside this repo the hook runs
+`bun src/cli.ts hook customize`.
 Customize Markdown is always included in skeleton's audit corpus; consumers do
 not add `.skeleton/customize/**` to `scan.include`.
 
@@ -20,7 +25,7 @@ not add `.skeleton/customize/**` to `scan.include`.
 | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `Read` / `read_file` of a path ending in `/SKILL.md`                                                                                                    | `Grep`, shell `cat`/`head`                                      |
 | `Read` / `read_file` under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**` when that skill exists) | Non-skill paths (no resolvable slug)                            |
-| Claude `Skill` tool (slug from tool input)                                                                                                              | Missing `node_modules/@csark0812/skeleton` (hooks no-op / fail) |
+| Claude `Skill` tool (slug from tool input)                                                                                                              | Missing/unresolvable local package CLI (hooks no-op / fail)     |
 
 ### Host matchers (init templates)
 
@@ -66,3 +71,7 @@ skeleton register .skeleton/customize/code-review.md
 ```
 
 Do not edit synced toolbox `SKILL.md` files — override in `.skeleton/customize/`.
+
+Synced foreign skill bodies (declared in `skills-lock.json` with non-`local` provenance) are skipped by consumer `audit skills` / validate routing; the owning toolbox repo runs skill-body lint. Customize overlays and `.skeleton` config stay in this repo's audit corpus — see [config](config.md#skillownership).
+
+If resolve works but IDE inject does not, see [troubleshooting](troubleshooting.md#customize-hook-not-injecting).

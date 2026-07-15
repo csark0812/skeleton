@@ -12,9 +12,12 @@
 | Agent cold-start      | [AGENTS.md](../AGENTS.md)                                    |
 | Authoring conventions | [authoring.md](../docs/authoring.md)                         |
 | Ecosystem tiers       | [tiers.md](../docs/tiers.md)                                 |
+| Getting started       | [getting-started.md](../docs/developer/getting-started.md)   |
 | Install               | [install.md](../docs/developer/install.md)                   |
 | Editor extension      | [editor-extension.md](../docs/developer/editor-extension.md) |
+| Config                | [config.md](../docs/developer/config.md)                     |
 | Validation            | [validation.md](../docs/developer/validation.md)             |
+| Troubleshooting       | [troubleshooting.md](../docs/developer/troubleshooting.md)   |
 | Doc system            | [doc-system.md](../docs/developer/doc-system.md)             |
 | Audit                 | [audit.md](../docs/developer/audit.md)                       |
 | Plugins               | [plugins.md](../docs/developer/plugins.md)                   |

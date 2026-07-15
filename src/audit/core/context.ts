@@ -20,6 +20,11 @@ export interface AuditContext {
 	registryHasTableHeader: boolean;
 	retiredSkills: Set<string>;
 	skillIndex: SkillIndex;
+	/**
+	 * Foreign (synced) skill slugs — same as `skillIndex.foreignSlugs`.
+	 * Used by doc-meta to skip consumer-side git-date freshness on upstream bodies.
+	 */
+	lockedSkillSlugs: Set<string>;
 	/** Compiled prose policies from plugins (empty when no plugins / no policy globs). */
 	policies: PolicyFile[];
 }
@@ -40,7 +45,7 @@ export interface AuditOptions {
 export function createContext(options: AuditOptions = {}): AuditContext {
 	const root = options.root ?? findRepoRoot();
 	const config = loadConfig(root);
-	const skillIndex = buildSkillIndex(root);
+	const skillIndex = buildSkillIndex(root, config.skillOwnership);
 	let files = collectScanFiles(config, root, skillIndex);
 
 	if (options.includeExcludedSkillTrees) {
@@ -67,6 +72,7 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		registryHasTableHeader: registry.hasTableHeader,
 		retiredSkills: new Set(retiredSkills(config)),
 		skillIndex,
+		lockedSkillSlugs: new Set(skillIndex.foreignSlugs),
 		policies: options.policies ?? [],
 	};
 }
