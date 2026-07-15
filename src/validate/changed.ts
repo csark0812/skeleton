@@ -302,31 +302,28 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	}
 
 	if (buckets.skills.length > 0) {
-		const skillsOnly =
-			buckets.docs.length === 0 &&
-			buckets.shell.length === 0 &&
-			buckets.json.length === 0 &&
-			buckets.policy.length === 0;
-		// Skill-body rules are global; path-scoped skill audit does not cover them.
-		// Without --base (CI globals), fail and redirect so green is not mistaken for coverage.
-		if (skillsOnly && !options.base) {
+		// Skill-body globals (skill-index, generated-references) are skipped under
+		// pathScopedOnly. Without --base, any owned skill path must fail closed —
+		// including docs+skills mixes — so green is never mistaken for coverage.
+		if (!options.base) {
 			console.error(
 				"validate changed: skill paths need the full skills suite (path-scoped skill rules are empty).\n" +
 					"  Run: skeleton audit skills\n" +
 					"  (audit self covers docs + .skeleton; excluded skill trees still need audit skills)",
 			);
-			return 1;
+			exitCode = 1;
+		} else {
+			const skillExit = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: buckets.skills,
+				only: null,
+				root,
+				pathScopedOnly: true,
+			});
+			if (skillExit !== 0) exitCode = 1;
 		}
-		const skillExit = await runAudit({
-			suite: "skills",
-			strict: false,
-			json: false,
-			paths: buckets.skills,
-			only: null,
-			root,
-			pathScopedOnly: true,
-		});
-		if (skillExit !== 0) exitCode = 1;
 	}
 
 	for (const relPath of buckets.shell) {
@@ -372,14 +369,12 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 				if (skillProseExit !== 0) exitCode = 1;
 			}
 		} else {
-			if (exitCode === 0) {
-				console.error(
-					"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
-						"  Run: skeleton audit docs\n" +
-						"  And: skeleton audit skills\n" +
-						"  (audit self covers docs + .skeleton; excluded skill trees still need audit skills)",
-				);
-			}
+			console.error(
+				"validate changed: policy YAML changes need a full prose-policy pass (path-scoped docs are not enough).\n" +
+					"  Run: skeleton audit docs\n" +
+					"  And: skeleton audit skills\n" +
+					"  (audit self covers docs + .skeleton; excluded skill trees still need audit skills)",
+			);
 			return 1;
 		}
 	}

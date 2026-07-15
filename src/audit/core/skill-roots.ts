@@ -168,20 +168,23 @@ export function resolveSkillPath(index: SkillIndex, root: string, slug: string):
 
 export function isSkillPath(relPath: string, index: SkillIndex): boolean {
 	const normalized = normalizeRelPath(relPath);
-	if (normalized.endsWith("/SKILL.md")) return true;
 	for (const skillRoot of index.roots) {
-		const prefix = skillRoot.kind === "nested" ? `${skillRoot.relPath}/` : "";
-		if (prefix && normalized.startsWith(prefix)) return true;
-		if (skillRoot.kind === "flat") {
-			const first = normalized.split("/")[0];
-			if (first && index.slugs.includes(first)) return true;
+		if (skillRoot.kind === "nested") {
+			const prefix = `${skillRoot.relPath}/`;
+			if (normalized.startsWith(prefix)) return true;
+			continue;
 		}
+		const first = normalized.split("/")[0];
+		if (first && index.slugs.includes(first)) return true;
 	}
 	return false;
 }
 
 /** True when path is under a skill tree classified foreign for body lint. */
 export function isForeignSkillPath(relPath: string, index: SkillIndex): boolean {
+	// Require real skill-tree membership so docs/<foreign-slug>/references/**
+	// (and similar slug collisions) are not dropped from the audit corpus.
+	if (!isSkillPath(relPath, index)) return false;
 	const slug = slugFromPath(relPath) ?? slugFromSkillPath(relPath);
 	if (!slug) return false;
 	return isForeignSkillSlug(index, slug);

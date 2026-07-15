@@ -30,7 +30,7 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 | Path                                                                                | Action                                                                                                                                                      |
 | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Docs in scan perimeter                                                              | `audit docs` (path-scoped)                                                                                                                                  |
-| Owned skill trees (`SKILL.md` perimeter)                                            | exits non-zero → run `audit skills` (or CI `--base` globals); path-scoped skills include `prose-policy` when plugins supply policies                        |
+| Owned skill trees (`SKILL.md` perimeter)                                            | without `--base`, exits non-zero → run `audit skills` (including when mixed with docs); path-scoped skills include `prose-policy` when plugins supply policies under CI `--base` |
 | Foreign skill trees (`skills-lock.json` github / non-local provenance)              | skip with a log line — body lint belongs upstream                                                                                                           |
 | Plugin-wired policy YAML under `.skeleton/`                                         | Schema check; local → exit non-zero (run `audit docs` **and** `audit skills`); `--base` → full docs + path-scoped skills over **owned** skill-tree markdown |
 | Other `.skeleton/**` YAML (not `config.yaml`, not plugin-wired)                     | exits non-zero — not referenced by any plugin `policies` glob                                                                                               |
@@ -54,7 +54,7 @@ Mixed doc+code paths still skip code and audit the docs portion.
 
 ### Skill-body paths
 
-Skill bodies are not path-scoped on the docs lane. **Owned** skill-only changes exit non-zero and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
+Skill bodies are not path-scoped on the docs lane. **Owned** skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
 
 **Foreign** skills (typically `skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos do not double-lint synced toolbox copies. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
 

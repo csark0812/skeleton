@@ -154,4 +154,31 @@ describe("skill-roots", () => {
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});
+
+	it("does not classify docs/<foreign-slug>/ paths as skill or foreign", () => {
+		const dir = join(tmpdir(), `skill-docs-collision-${Date.now()}`);
+		mkdirSync(join(dir, "docs/code-review/references"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/code-review"), { recursive: true });
+		writeFileSync(join(dir, "docs/code-review/references/note.md"), "# Note\n");
+		writeFileSync(join(dir, "docs/code-review/SKILL.md"), "not a skill tree\n");
+		writeFileSync(join(dir, ".claude/skills/code-review/SKILL.md"), "foreign\n");
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					"code-review": { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		try {
+			const index = buildSkillIndex(dir);
+			expect(isSkillPath("docs/code-review/SKILL.md", index)).toBe(false);
+			expect(isSkillPath("docs/code-review/references/note.md", index)).toBe(false);
+			expect(isForeignSkillPath("docs/code-review/references/note.md", index)).toBe(false);
+			expect(isForeignSkillPath(".claude/skills/code-review/SKILL.md", index)).toBe(true);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });

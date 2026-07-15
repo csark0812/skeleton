@@ -1,3 +1,4 @@
+import { loadConfig } from "../audit/config/load.ts";
 import { printReport } from "../audit/core/report.ts";
 import { runGeneratedReferencesCheck } from "./check.ts";
 import { type SyncOptions, type SyncResult, syncReferences } from "./sync.ts";
@@ -14,7 +15,13 @@ export function runReferencesSync(options: SyncOptions = {}): SyncResult {
 
 export function runReferencesCheck(options: ReferencesCheckOptions = {}): number {
 	const root = options.root ?? process.cwd();
-	const issues = runGeneratedReferencesCheck(root);
+	let ownership: ReturnType<typeof loadConfig>["skillOwnership"];
+	try {
+		ownership = loadConfig(root).skillOwnership;
+	} catch {
+		ownership = undefined;
+	}
+	const issues = runGeneratedReferencesCheck(root, ownership);
 	return printReport(issues, {
 		strict: options.strict,
 		json: options.json,

@@ -99,4 +99,36 @@ redundancy: intentional
 		expect(plans).toHaveLength(1);
 		expect([...(plans[0]?.refPaths ?? [])].sort()).toEqual(["handoffs.md", "planning/verify.md"]);
 	});
+
+	it("skips foreign lockfile skills when ownership is provided", () => {
+		const root = join(FIXTURE, "case-ownership");
+		rmSync(root, { recursive: true, force: true });
+		mkdirSync(join(root, ".skeleton", "references"), { recursive: true });
+		mkdirSync(join(root, "foreign-skill"), { recursive: true });
+		mkdirSync(join(root, "owned-skill"), { recursive: true });
+		writeFileSync(join(root, ".skeleton", "references", "shared.md"), "# Shared\n");
+		writeFileSync(
+			join(root, "foreign-skill", "SKILL.md"),
+			"See [shared.md](../references/shared.md).\n",
+		);
+		writeFileSync(
+			join(root, "owned-skill", "SKILL.md"),
+			"See [shared.md](../references/shared.md).\n",
+		);
+		writeFileSync(
+			join(root, "custom-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					"foreign-skill": { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+
+		const plans = discoverSkillReferencePlans(root, { lockfile: "custom-lock.json" });
+		expect(plans.map((p) => p.skill)).toEqual(["owned-skill"]);
+
+		const withoutOwnership = discoverSkillReferencePlans(root);
+		expect(withoutOwnership.map((p) => p.skill).sort()).toEqual(["foreign-skill", "owned-skill"]);
+	});
 });

@@ -141,6 +141,24 @@ describe("validate changed routing", () => {
 		}
 	});
 
+	it("fails docs+owned-skill mixes without --base (path-scoped skills are not coverage)", async () => {
+		const err = spyOn(console, "error").mockImplementation(() => {});
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		try {
+			const exit = await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["docs/README.md", "multi/SKILL.md"],
+			});
+			expect(exit).toBe(1);
+			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
+			expect(msg).toContain("audit skills");
+			expect(msg).toMatch(/skill paths need the full skills suite/i);
+		} finally {
+			err.mockRestore();
+			log.mockRestore();
+		}
+	});
+
 	it("fails skill+unwired-policy paths as orphan policy (not wired by plugin globs)", async () => {
 		const policyDir = join(FLAT_SKILL_ROOT, ".skeleton/plugins/example/policies");
 		mkdirSync(policyDir, { recursive: true });

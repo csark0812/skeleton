@@ -145,6 +145,6 @@ bun install
 bun run check
 ```
 
-`bun run check` runs lint, test, typecheck, build, and `audit:self`. `validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table) and skill-body edits need `audit skills`. All-skip / skill-only / missing paths exit non-zero. Use `bun test`, `bun run typecheck`, and `bun run build` for code.
+`bun run check` runs lint, test, typecheck, build, and `audit:self`. `validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table) and owned skill-body edits need `audit skills`. All-skip / owned skill paths (alone or mixed with docs) / missing paths exit non-zero. Use `bun test`, `bun run typecheck`, and `bun run build` for code.
 
 Optional: `brew install pre-commit` (or `pipx install pre-commit`), then `pre-commit install` to wire `.pre-commit-config.yaml`.

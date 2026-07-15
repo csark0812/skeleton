@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import type { SkillOwnershipConfig } from "../audit/config/types.ts";
 import type { AuditContext } from "../audit/core/context.ts";
 import { type Issue, issue } from "../audit/core/report.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
@@ -33,12 +34,15 @@ function listAllGeneratedFiles(root: string): string[] {
 	return files;
 }
 
-export function runGeneratedReferencesCheck(root: string): Issue[] {
+export function runGeneratedReferencesCheck(
+	root: string,
+	ownership?: SkillOwnershipConfig,
+): Issue[] {
 	const issues: Issue[] = [];
 	const canonicalDir = join(root, CANONICAL_REFS_DIR);
 	if (!existsSync(canonicalDir)) return issues;
 
-	const plans = discoverSkillReferencePlans(root);
+	const plans = discoverSkillReferencePlans(root, ownership);
 	const needed = new Set<string>();
 	for (const plan of plans) {
 		for (const refPath of plan.refPaths) {
@@ -136,7 +140,7 @@ export function runGeneratedReferencesCheck(root: string): Issue[] {
 }
 
 export function runGeneratedReferencesRule(ctx: AuditContext): Issue[] {
-	return runGeneratedReferencesCheck(ctx.root);
+	return runGeneratedReferencesCheck(ctx.root, ctx.config.skillOwnership);
 }
 
 export const generatedReferencesRule = {
