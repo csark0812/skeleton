@@ -1,0 +1,18 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build-skeleton-extension",
+			"type": "shell",
+			"command": "bun run build && npm --prefix editors/vscode run build",
+			"problemMatcher": ["$tsc"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "silent"
+			}
+		}
+	]
+}

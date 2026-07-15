@@ -11,7 +11,7 @@ import {
 	validateScanRoots,
 } from "../core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../core/shared.ts";
-import { buildSkillIndex } from "../core/skill-roots.ts";
+import { buildSkillIndex, isForeignSkillPath } from "../core/skill-roots.ts";
 
 const FIXTURES = join(import.meta.dir, "fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
@@ -80,6 +80,108 @@ describe("collectScanFiles", () => {
 			expect(skillMd).toHaveLength(1);
 			expect(skillMd[0]).toContain(".agents/skills/foo/SKILL.md");
 			expect(files.some((f) => f.includes(".claude/skills/foo"))).toBe(false);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not collect foreign github-locked skill trees via skill augments", () => {
+		const root = join(tmpdir(), `skeleton-foreign-collect-${Date.now()}`);
+		try {
+			mkdirSync(join(root, ".claude/skills/foreign"), { recursive: true });
+			mkdirSync(join(root, ".claude/skills/mine"), { recursive: true });
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			mkdirSync(join(root, "docs"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/config.yaml"),
+				`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			);
+			writeFileSync(join(root, "docs/a.md"), "# A\n");
+			writeFileSync(join(root, ".claude/skills/foreign/SKILL.md"), "foreign\n");
+			writeFileSync(join(root, ".claude/skills/mine/SKILL.md"), "mine\n");
+			writeFileSync(
+				join(root, "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						foreign: { source: "org/toolbox", sourceType: "github" },
+					},
+				}),
+			);
+			const config = loadConfig(root);
+			const files = collectScanFiles(config, root, buildSkillIndex(root, config.skillOwnership));
+			const rels = files.map((f) => f.replace(`${root}/`, ""));
+			expect(rels).toContain(".claude/skills/mine/SKILL.md");
+			expect(rels).not.toContain(".claude/skills/foreign/SKILL.md");
+			expect(rels).toContain("docs/a.md");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not collect foreign skills matched by scan.include globs", () => {
+		const root = join(tmpdir(), `skeleton-foreign-include-${Date.now()}`);
+		try {
+			mkdirSync(join(root, ".claude/skills/foreign"), { recursive: true });
+			mkdirSync(join(root, ".claude/skills/mine"), { recursive: true });
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/config.yaml"),
+				`scan:\n  include: [".claude/skills/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			);
+			writeFileSync(join(root, ".claude/skills/foreign/SKILL.md"), "foreign\n");
+			writeFileSync(join(root, ".claude/skills/mine/SKILL.md"), "mine\n");
+			writeFileSync(
+				join(root, "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						foreign: { source: "org/toolbox", sourceType: "github" },
+					},
+				}),
+			);
+			const config = loadConfig(root);
+			const files = collectScanFiles(config, root, buildSkillIndex(root, config.skillOwnership));
+			const rels = files.map((f) => f.replace(`${root}/`, ""));
+			expect(rels).toContain(".claude/skills/mine/SKILL.md");
+			expect(rels).not.toContain(".claude/skills/foreign/SKILL.md");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not treat docs/<foreign-slug>/references as a foreign skill path", () => {
+		const root = join(tmpdir(), `skeleton-foreign-docs-collision-${Date.now()}`);
+		try {
+			mkdirSync(join(root, "docs/code-review/references"), { recursive: true });
+			mkdirSync(join(root, ".claude/skills/code-review"), { recursive: true });
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/config.yaml"),
+				`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			);
+			writeFileSync(join(root, "docs/code-review/references/note.md"), "# Note\n");
+			writeFileSync(join(root, "docs/ok.md"), "# OK\n");
+			writeFileSync(join(root, ".claude/skills/code-review/SKILL.md"), "foreign\n");
+			writeFileSync(
+				join(root, "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						"code-review": { source: "org/toolbox", sourceType: "github" },
+					},
+				}),
+			);
+			const config = loadConfig(root);
+			const index = buildSkillIndex(root, config.skillOwnership);
+			expect(isForeignSkillPath("docs/code-review/references/note.md", index)).toBe(false);
+			expect(isForeignSkillPath("docs/code-review/SKILL.md", index)).toBe(false);
+			expect(isForeignSkillPath(".claude/skills/code-review/SKILL.md", index)).toBe(true);
+			const files = collectScanFiles(config, root, index);
+			const rels = files.map((f) => f.replace(`${root}/`, ""));
+			expect(rels).toContain("docs/code-review/references/note.md");
+			expect(rels).toContain("docs/ok.md");
+			expect(rels).not.toContain(".claude/skills/code-review/SKILL.md");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

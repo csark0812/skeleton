@@ -1,7 +1,14 @@
 import { existsSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
+import type { SkillOwnershipConfig } from "../config/types.ts";
 import { normalizeRelPath } from "./shared.ts";
+import {
+	DEFAULT_SKILLS_LOCKFILE,
+	loadSkillsLock,
+	resolveOwnershipForSlugs,
+	type SkillProvenanceMap,
+} from "./skill-provenance.ts";
 
 export const NESTED_SKILL_ROOTS = [".claude/skills", ".agents/skills"] as const;
 
@@ -34,7 +41,19 @@ export interface SkillRoot {
 
 export interface SkillIndex {
 	roots: SkillRoot[];
+	/** All discovered skill slugs (owned + foreign) — used for link resolution. */
 	slugs: string[];
+	/**
+	 * Slugs that exist as flat trees (`<slug>/SKILL.md` at repo root).
+	 * Flat path matching must use this set — never the union `slugs` — so a
+	 * nested-only foreign slug cannot poison top-level dirs with the same name.
+	 */
+	flatSlugs: string[];
+	/** Skill slugs whose bodies this repo owns and should lint. */
+	ownedSlugs: string[];
+	/** Synced / lockfile foreign skills — skipped for body lint. */
+	foreignSlugs: string[];
+	provenance: SkillProvenanceMap;
 }
 
 const NESTED_EXCLUDED_DIRS = new Set(["references", "_shared"]);
@@ -109,14 +128,15 @@ export function detectSkillRoots(root: string): SkillRoot[] {
 	return roots;
 }
 
-export function buildSkillIndex(root: string): SkillIndex {
+export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig): SkillIndex {
 	const roots = detectSkillRoots(root);
 	const slugSet = new Set<string>();
 	const slugs: string[] = [];
+	const flatSlugs = listFlatSlugs(root);
 
 	for (const skillRoot of roots) {
 		const rootSlugs =
-			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
+			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : flatSlugs;
 		for (const slug of rootSlugs) {
 			if (!slugSet.has(slug)) {
 				slugSet.add(slug);
@@ -125,7 +145,19 @@ export function buildSkillIndex(root: string): SkillIndex {
 		}
 	}
 
-	return { roots, slugs };
+	const lockfileRel = ownership?.lockfile ?? DEFAULT_SKILLS_LOCKFILE;
+	const provenance = loadSkillsLock(root, lockfileRel);
+	const { ownedSlugs, foreignSlugs } = resolveOwnershipForSlugs(slugs, provenance, ownership);
+
+	return { roots, slugs, flatSlugs, ownedSlugs, foreignSlugs, provenance };
+}
+
+export function isOwnedSkillSlug(index: SkillIndex, slug: string): boolean {
+	return index.ownedSlugs.includes(slug);
+}
+
+export function isForeignSkillSlug(index: SkillIndex, slug: string): boolean {
+	return index.foreignSlugs.includes(slug);
 }
 
 export function resolveSkillPath(index: SkillIndex, root: string, slug: string): string | null {
@@ -142,17 +174,43 @@ export function resolveSkillPath(index: SkillIndex, root: string, slug: string):
 }
 
 export function isSkillPath(relPath: string, index: SkillIndex): boolean {
+	return skillSlugForPath(relPath, index) !== null;
+}
+
+/**
+ * Resolve the owning skill slug for a path that lives inside a detected skill
+ * tree. Covers every file under the tree (SKILL.md, references/**, and any other
+ * markdown), not just SKILL.md/references — so foreign classification is complete
+ * for flat layouts. Returns null for non-skill paths and slug collisions
+ * (e.g. `docs/<slug>/...` when `docs` is not a skill root, or top-level
+ * `<nested-only-slug>/...` when that slug only exists under `.claude/skills`).
+ */
+export function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
 	const normalized = normalizeRelPath(relPath);
-	if (normalized.endsWith("/SKILL.md")) return true;
+	const flat = new Set(index.flatSlugs);
 	for (const skillRoot of index.roots) {
-		const prefix = skillRoot.kind === "nested" ? `${skillRoot.relPath}/` : "";
-		if (prefix && normalized.startsWith(prefix)) return true;
-		if (skillRoot.kind === "flat") {
-			const first = normalized.split("/")[0];
-			if (first && index.slugs.includes(first)) return true;
+		if (skillRoot.kind === "nested") {
+			const prefix = `${skillRoot.relPath}/`;
+			if (!normalized.startsWith(prefix)) continue;
+			const slug = normalized.slice(prefix.length).split("/")[0];
+			if (slug && index.slugs.includes(slug)) return slug;
+			continue;
 		}
+		const first = normalized.split("/")[0];
+		// Flat membership only — nested-only slugs must not claim top-level dirs.
+		if (first && flat.has(first)) return first;
 	}
-	return false;
+	return null;
+}
+
+/** True when path is under a skill tree classified foreign for body lint. */
+export function isForeignSkillPath(relPath: string, index: SkillIndex): boolean {
+	// Resolve the slug via real skill-root membership so docs/<foreign-slug>/**
+	// (and similar collisions) are not dropped, while every file under a foreign
+	// tree — not only SKILL.md/references — is classified foreign.
+	const slug = skillSlugForPath(relPath, index);
+	if (!slug) return false;
+	return isForeignSkillSlug(index, slug);
 }
 
 const NESTED_SKILL_SLUG_RE = /(?:^|\/)\.(?:claude|agents)\/skills\/([a-z0-9-]+)\//;
@@ -196,12 +254,16 @@ export function slugFromPath(filePath: string, workspaceRoot?: string): string |
 }
 
 export function skillCollectAugments(index: SkillIndex): string[] {
+	const owned = new Set(index.ownedSlugs);
 	const patterns: string[] = [];
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
-			patterns.push(`${skillRoot.relPath}/**`);
+			for (const slug of index.ownedSlugs) {
+				patterns.push(`${skillRoot.relPath}/${slug}/**`);
+			}
 		} else {
-			for (const slug of index.slugs) {
+			for (const slug of index.flatSlugs) {
+				if (!owned.has(slug)) continue;
 				patterns.push(`${slug}/**`);
 			}
 		}
@@ -210,7 +272,7 @@ export function skillCollectAugments(index: SkillIndex): string[] {
 }
 
 /**
- * Repo-relative markdown paths for every detected skill tree (SKILL.md + references/**,
+ * Repo-relative markdown paths for owned skill trees (SKILL.md + references/**,
  * including under scan.exclude). Used by validate --base policy prove so skill-scoped
  * prose still runs against the full skill body, not just SKILL.md.
  *
@@ -218,11 +280,13 @@ export function skillCollectAugments(index: SkillIndex): string[] {
  * and `.agents/skills` (distinct dirs) is fully covered — not first-wins only.
  */
 export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[] {
+	const owned = new Set(index.ownedSlugs);
 	const paths = new Set<string>();
 	for (const skillRoot of index.roots) {
 		const slugs =
 			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
 		for (const slug of slugs) {
+			if (!owned.has(slug)) continue;
 			const absDir =
 				skillRoot.kind === "nested" ? join(root, skillRoot.relPath, slug) : join(root, slug);
 			if (!existsSync(absDir)) continue;
@@ -241,4 +305,8 @@ export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[
 
 export function listSkillSlugs(index: SkillIndex): string[] {
 	return index.slugs;
+}
+
+export function listOwnedSkillSlugs(index: SkillIndex): string[] {
+	return index.ownedSlugs;
 }

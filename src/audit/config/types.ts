@@ -12,10 +12,24 @@ export interface CustomizeConfig {
 	alwaysInclude?: string[];
 }
 
+/**
+ * Ownership policy for skill-body linting.
+ * Lockfile `sourceType` other than `local` (e.g. `github`) marks skills foreign by default.
+ */
+export interface SkillOwnershipConfig {
+	/** Repo-relative path to skills-lock.json (default: skills-lock.json). */
+	lockfile?: string;
+	/** Force these slugs owned even if the lockfile marks them foreign. */
+	ownedSlugs?: string[];
+	/** Force these slugs foreign even if absent from the lockfile / local. */
+	foreignSlugs?: string[];
+}
+
 export interface SkeletonConfig {
 	scan: ScanConfig;
 	daysUntilStale: number;
 	customize?: CustomizeConfig;
+	skillOwnership?: SkillOwnershipConfig;
 	/**
 	 * Plugin entry paths relative to `.skeleton/` (e.g. `plugins/example.ts`).
 	 * Each entry must have a built sibling `.mjs` (`skeleton build-plugin`).

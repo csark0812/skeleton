@@ -3,7 +3,7 @@ import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import { printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
-import { skillCountOnDisk } from "./rules/skill-index.ts";
+import { skillAuditSuffix } from "./rules/skill-index.ts";
 
 export interface AuditCliOptions {
 	suite: string;
@@ -145,7 +145,6 @@ export async function runAudit(options: AuditCliOptions): Promise<number> {
 		json: options.json,
 		label,
 		fileCount: options.suite === "docs" || options.suite === "self" ? ctx.files.length : undefined,
-		successSuffix:
-			options.suite === "skills" ? ` (${skillCountOnDisk(ctx)} skills on disk)` : undefined,
+		successSuffix: options.suite === "skills" ? skillAuditSuffix(ctx) : undefined,
 	});
 }

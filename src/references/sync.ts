@@ -7,6 +7,8 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
+import { loadConfig } from "../audit/config/load.ts";
+import type { SkillOwnershipConfig } from "../audit/config/types.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
 import { CANONICAL_REFS_DIR, formatGeneratedHeader, isGeneratedReference } from "./constants.ts";
 import {
@@ -19,6 +21,8 @@ export interface SyncOptions {
 	root?: string;
 	dryRun?: boolean;
 	rewriteLinks?: boolean;
+	/** Override config skillOwnership (defaults to loadConfig(root).skillOwnership). */
+	ownership?: SkillOwnershipConfig;
 }
 
 export interface SyncResult {
@@ -26,6 +30,18 @@ export interface SyncResult {
 	rewritten: string[];
 	removed: string[];
 	skipped: string[];
+}
+
+function resolveOwnership(
+	root: string,
+	override?: SkillOwnershipConfig,
+): SkillOwnershipConfig | undefined {
+	if (override !== undefined) return override;
+	try {
+		return loadConfig(root).skillOwnership;
+	} catch {
+		return undefined;
+	}
 }
 
 function walkMarkdownFiles(dir: string, root: string): string[] {
@@ -82,7 +98,7 @@ export function syncReferences(options: SyncOptions = {}): SyncResult {
 		removed: [],
 		skipped: [],
 	};
-	const plans = discoverSkillReferencePlans(root);
+	const plans = discoverSkillReferencePlans(root, resolveOwnership(root, options.ownership));
 
 	for (const plan of plans) {
 		const skillDir = join(root, plan.skill);

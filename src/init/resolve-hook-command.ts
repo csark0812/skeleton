@@ -1,31 +1,45 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join, relative, resolve } from "node:path";
 import { resolvePackageRoot } from "./package-paths.ts";
 
 const PACKAGE_NAME = "@csark0812/skeleton";
-const HOOK_DIST = "dist/hooks/customize-on-skill-read.js";
-const HOOK_SRC = "src/hooks/customize-on-skill-read.ts";
+const CLI_DIST = "dist/cli.js";
 const PACKAGE_ROOT = resolvePackageRoot();
 
+/** Dev command inside this package (mirrors package scripts). */
+const DEV_HOOK_COMMAND = "bun src/cli.ts hook customize";
+
+/** Fallback when the package is not yet installed under cwd. */
+const FALLBACK_HOOK_COMMAND = `node node_modules/${PACKAGE_NAME}/${CLI_DIST} hook customize`;
+
+function safeRealpath(path: string): string {
+	try {
+		return realpathSync(path);
+	} catch {
+		return path;
+	}
+}
+
 export function toRepoRelative(cwd: string, absPath: string): string {
-	const rel = relative(cwd, absPath).replace(/\\/g, "/");
+	// realpath both sides so macOS /var → /private/var does not force an absolute path.
+	const rel = relative(safeRealpath(cwd), safeRealpath(absPath)).replace(/\\/g, "/");
 	return rel.startsWith("..") ? absPath.replace(/\\/g, "/") : rel;
 }
 
-function tryResolvePublished(cwd: string): string | null {
+function tryResolvePublishedCli(cwd: string): string | null {
 	try {
 		const req = createRequire(join(cwd, "package.json"));
-		return req.resolve(`${PACKAGE_NAME}/${HOOK_DIST}`);
+		return req.resolve(`${PACKAGE_NAME}/${CLI_DIST}`);
 	} catch {
 		return null;
 	}
 }
 
-function walkNodeModules(cwd: string): string | null {
+function walkNodeModulesCli(cwd: string): string | null {
 	let dir = cwd;
 	while (true) {
-		const candidate = join(dir, "node_modules", PACKAGE_NAME, HOOK_DIST);
+		const candidate = join(dir, "node_modules", PACKAGE_NAME, CLI_DIST);
 		if (existsSync(candidate)) return candidate;
 		const parent = dirname(dir);
 		if (parent === dir) break;
@@ -39,28 +53,31 @@ function isInsidePackageRoot(cwd: string): boolean {
 	return rel === "" || (!rel.startsWith("..") && !rel.startsWith("/"));
 }
 
+function nodeCliHookCommand(cliPath: string): string {
+	return `node ${cliPath} hook customize`;
+}
+
+/**
+ * Resolve the customize-hook command for `skeleton init`.
+ * Prefer a cwd-local `node …/dist/cli.js hook customize` so IDE runners that
+ * lack `node_modules/.bin` on PATH still work after a local install.
+ */
 export function resolveHookCommand(cwd: string): string {
-	const published = tryResolvePublished(cwd);
-	if (published) return toRepoRelative(cwd, published);
+	if (isInsidePackageRoot(cwd)) return DEV_HOOK_COMMAND;
 
-	const hoisted = walkNodeModules(cwd);
-	if (hoisted) return toRepoRelative(cwd, hoisted);
+	const published = tryResolvePublishedCli(cwd);
+	if (published) return nodeCliHookCommand(toRepoRelative(cwd, published));
 
-	if (isInsidePackageRoot(cwd)) {
-		const distHook = join(PACKAGE_ROOT, HOOK_DIST);
-		if (existsSync(distHook)) return toRepoRelative(cwd, distHook);
+	const hoisted = walkNodeModulesCli(cwd);
+	if (hoisted) return nodeCliHookCommand(toRepoRelative(cwd, hoisted));
 
-		const srcHook = join(PACKAGE_ROOT, HOOK_SRC);
-		if (existsSync(srcHook)) {
-			const rel = toRepoRelative(cwd, srcHook);
-			return rel.includes("/") ? `bun ${rel}` : `bun ./${rel}`;
-		}
-	}
-
-	return `node node_modules/${PACKAGE_NAME}/${HOOK_DIST}`;
+	return FALLBACK_HOOK_COMMAND;
 }
 
 export function isSkeletonHookCommand(command: string | undefined): boolean {
 	if (!command) return false;
+	// New CLI form (`… hook customize`, including bare `skeleton hook customize`)…
+	if (/\bhook\s+customize\b/.test(command)) return true;
+	// …and the legacy standalone entrypoint, so re-init upgrades it in place.
 	return /customize-on-skill-read\.(js|ts)\b/.test(command);
 }

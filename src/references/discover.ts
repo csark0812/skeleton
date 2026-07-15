@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import type { SkillOwnershipConfig } from "../audit/config/types.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
 import { buildSkillIndex } from "../audit/core/skill-roots.ts";
 import { CANONICAL_REFS_DIR, isGeneratedReference, SHARED_REF_LINK_RE } from "./constants.ts";
@@ -81,11 +82,14 @@ function findLocalCanonicalLinks(
 	return links;
 }
 
-export function discoverSkillReferencePlans(root: string): SkillReferencePlan[] {
-	const index = buildSkillIndex(root);
+export function discoverSkillReferencePlans(
+	root: string,
+	ownership?: SkillOwnershipConfig,
+): SkillReferencePlan[] {
+	const index = buildSkillIndex(root, ownership);
 	const plans: SkillReferencePlan[] = [];
 
-	for (const slug of index.slugs) {
+	for (const slug of index.ownedSlugs) {
 		const skillDir = join(root, slug);
 		if (!existsSync(join(skillDir, "SKILL.md"))) continue;
 
