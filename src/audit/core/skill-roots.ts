@@ -180,12 +180,35 @@ export function isSkillPath(relPath: string, index: SkillIndex): boolean {
 	return false;
 }
 
+/**
+ * Resolve the owning skill slug for a path that lives inside a detected skill
+ * tree. Covers every file under the tree (SKILL.md, references/**, and any other
+ * markdown), not just SKILL.md/references — so foreign classification is complete
+ * for flat layouts. Returns null for non-skill paths and slug collisions
+ * (e.g. `docs/<slug>/...` when `docs` is not a skill root).
+ */
+export function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
+	const normalized = normalizeRelPath(relPath);
+	for (const skillRoot of index.roots) {
+		if (skillRoot.kind === "nested") {
+			const prefix = `${skillRoot.relPath}/`;
+			if (!normalized.startsWith(prefix)) continue;
+			const slug = normalized.slice(prefix.length).split("/")[0];
+			if (slug && index.slugs.includes(slug)) return slug;
+			continue;
+		}
+		const first = normalized.split("/")[0];
+		if (first && index.slugs.includes(first)) return first;
+	}
+	return null;
+}
+
 /** True when path is under a skill tree classified foreign for body lint. */
 export function isForeignSkillPath(relPath: string, index: SkillIndex): boolean {
-	// Require real skill-tree membership so docs/<foreign-slug>/references/**
-	// (and similar slug collisions) are not dropped from the audit corpus.
-	if (!isSkillPath(relPath, index)) return false;
-	const slug = slugFromPath(relPath) ?? slugFromSkillPath(relPath);
+	// Resolve the slug via real skill-root membership so docs/<foreign-slug>/**
+	// (and similar collisions) are not dropped, while every file under a foreign
+	// tree — not only SKILL.md/references — is classified foreign.
+	const slug = skillSlugForPath(relPath, index);
 	if (!slug) return false;
 	return isForeignSkillSlug(index, slug);
 }

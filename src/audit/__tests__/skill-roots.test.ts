@@ -155,6 +155,38 @@ describe("skill-roots", () => {
 		}
 	});
 
+	it("classifies all markdown under a flat foreign skill tree as foreign", () => {
+		const dir = join(tmpdir(), `skill-flat-foreign-${Date.now()}`);
+		mkdirSync(join(dir, "foreign-skill/references"), { recursive: true });
+		mkdirSync(join(dir, "mine"), { recursive: true });
+		writeFileSync(join(dir, "foreign-skill/SKILL.md"), "foreign\n");
+		writeFileSync(join(dir, "foreign-skill/extra.md"), "# extra\n");
+		writeFileSync(join(dir, "foreign-skill/references/note.md"), "# note\n");
+		writeFileSync(join(dir, "mine/SKILL.md"), "mine\n");
+		writeFileSync(join(dir, "mine/extra.md"), "# extra\n");
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					"foreign-skill": { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		try {
+			const index = buildSkillIndex(dir);
+			// Non-SKILL.md / non-references markdown must still be foreign.
+			expect(isForeignSkillPath("foreign-skill/extra.md", index)).toBe(true);
+			expect(isForeignSkillPath("foreign-skill/SKILL.md", index)).toBe(true);
+			expect(isForeignSkillPath("foreign-skill/references/note.md", index)).toBe(true);
+			// Owned trees stay owned regardless of file position.
+			expect(isForeignSkillPath("mine/extra.md", index)).toBe(false);
+			expect(isForeignSkillPath("mine/SKILL.md", index)).toBe(false);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("does not classify docs/<foreign-slug>/ paths as skill or foreign", () => {
 		const dir = join(tmpdir(), `skill-docs-collision-${Date.now()}`);
 		mkdirSync(join(dir, "docs/code-review/references"), { recursive: true });

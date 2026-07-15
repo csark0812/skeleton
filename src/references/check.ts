@@ -4,6 +4,7 @@ import type { SkillOwnershipConfig } from "../audit/config/types.ts";
 import type { AuditContext } from "../audit/core/context.ts";
 import { type Issue, issue } from "../audit/core/report.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
+import { buildSkillIndex, isForeignSkillPath } from "../audit/core/skill-roots.ts";
 import {
 	CANONICAL_REFS_DIR,
 	isGeneratedReference,
@@ -42,6 +43,7 @@ export function runGeneratedReferencesCheck(
 	const canonicalDir = join(root, CANONICAL_REFS_DIR);
 	if (!existsSync(canonicalDir)) return issues;
 
+	const skillIndex = buildSkillIndex(root, ownership);
 	const plans = discoverSkillReferencePlans(root, ownership);
 	const needed = new Set<string>();
 	for (const plan of plans) {
@@ -97,6 +99,9 @@ export function runGeneratedReferencesCheck(
 	}
 
 	for (const generatedRel of listAllGeneratedFiles(root)) {
+		// Foreign synced skills own their generated copies upstream; don't flag them
+		// as orphans just because owned plans didn't produce them.
+		if (isForeignSkillPath(generatedRel, skillIndex)) continue;
 		if (!needed.has(generatedRel)) {
 			issues.push(
 				issue(

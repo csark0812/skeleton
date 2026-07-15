@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runGeneratedReferencesCheck } from "../check.ts";
-import { isGeneratedReference, stripGeneratedHeader } from "../constants.ts";
+import { formatGeneratedHeader, isGeneratedReference, stripGeneratedHeader } from "../constants.ts";
 import {
 	discoverSkillReferencePlans,
 	findSharedRefLinks,
@@ -130,5 +130,41 @@ redundancy: intentional
 
 		const withoutOwnership = discoverSkillReferencePlans(root);
 		expect(withoutOwnership.map((p) => p.skill).sort()).toEqual(["foreign-skill", "owned-skill"]);
+	});
+
+	it("does not flag generated copies under foreign skills as orphans", () => {
+		const root = join(FIXTURE, "case-foreign-orphan");
+		rmSync(root, { recursive: true, force: true });
+		mkdirSync(join(root, ".skeleton", "references"), { recursive: true });
+		mkdirSync(join(root, "foreign-skill", "references"), { recursive: true });
+		mkdirSync(join(root, "owned-skill", "references"), { recursive: true });
+		writeFileSync(join(root, ".skeleton", "references", "shared.md"), "# Shared\n");
+		writeFileSync(
+			join(root, "foreign-skill", "SKILL.md"),
+			"See [shared.md](../references/shared.md).\n",
+		);
+		writeFileSync(
+			join(root, "owned-skill", "SKILL.md"),
+			"See [shared.md](./references/shared.md).\n",
+		);
+		const genBody = `${formatGeneratedHeader(".skeleton/references/shared.md")}# Shared\n`;
+		// Foreign skill ships its own generated copy (owned upstream).
+		writeFileSync(join(root, "foreign-skill", "references", "shared.md"), genBody);
+		// Owned skill has its generated copy in sync too.
+		writeFileSync(join(root, "owned-skill", "references", "shared.md"), genBody);
+		writeFileSync(
+			join(root, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					"foreign-skill": { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+
+		const issues = runGeneratedReferencesCheck(root);
+		const orphans = issues.filter((i) => i.message.includes("orphaned"));
+		expect(orphans).toHaveLength(0);
+		expect(issues.some((i) => i.file.startsWith("foreign-skill/"))).toBe(false);
 	});
 });
