@@ -6,6 +6,7 @@ import { extractHeadingSlugs, extractLinksFromMarkdown, slugifyAnchor } from "..
 import { type Issue, issue } from "../core/report.ts";
 import { isExternalLink, isPlaceholderLink, SKILL_LINK_IN_TARGET_RE } from "../core/shared.ts";
 import { resolveSkillPath } from "../core/skill-roots.ts";
+import { rangeFromOffsets, type SourceRange } from "../core/source-range.ts";
 
 function resolveLink(sourceFile: string, target: string): string {
 	const withoutAnchor = target.split("#")[0]?.split("?")[0] ?? "";
@@ -18,6 +19,7 @@ function validateTarget(
 	sourceFile: string,
 	target: string,
 	linkLabel: string,
+	range?: SourceRange,
 ): Issue[] {
 	const issues: Issue[] = [];
 	if (isExternalLink(target) && !target.startsWith("#")) return issues;
@@ -34,6 +36,7 @@ function validateTarget(
 		issues.push(
 			issue("links", relSource, `references retired skill "${skillMatch[1]}/SKILL.md"`, {
 				link: linkLabel,
+				range,
 			}),
 		);
 		return issues;
@@ -45,6 +48,7 @@ function validateTarget(
 			issues.push(
 				issue("links", relSource, `missing skill "${slug}/SKILL.md"`, {
 					link: linkLabel,
+					range,
 				}),
 			);
 			return issues;
@@ -57,7 +61,7 @@ function validateTarget(
 	) {
 		const agentPath = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
 		if (!existsSync(agentPath)) {
-			issues.push(issue("links", relSource, "missing agent file", { link: linkLabel }));
+			issues.push(issue("links", relSource, "missing agent file", { link: linkLabel, range }));
 		}
 		return issues;
 	}
@@ -66,6 +70,7 @@ function validateTarget(
 		issues.push(
 			issue("links", relSource, `broken link → ${relTarget}`, {
 				link: linkLabel,
+				range,
 			}),
 		);
 		return issues;
@@ -79,6 +84,7 @@ function validateTarget(
 			issues.push(
 				issue("links", relSource, `broken anchor → #${anchor} in ${relTarget}`, {
 					link: linkLabel,
+					range,
 				}),
 			);
 		}
@@ -92,9 +98,13 @@ export function runLinksRule(ctx: AuditContext): Issue[] {
 	for (const filePath of ctx.files) {
 		const content = readFileContent(filePath);
 		const links = extractLinksFromMarkdown(content, filePath);
-		for (const { target, line } of links) {
+		for (const { target, line, urlStart, urlEnd } of links) {
 			const linkLabel = line ? `line ${line}` : target;
-			issues.push(...validateTarget(ctx, filePath, target, linkLabel));
+			const range =
+				urlStart !== undefined && urlEnd !== undefined
+					? rangeFromOffsets(content, urlStart, urlEnd)
+					: undefined;
+			issues.push(...validateTarget(ctx, filePath, target, linkLabel, range));
 		}
 	}
 	return issues;

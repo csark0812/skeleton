@@ -2,7 +2,16 @@ import { readFileContent, relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import { isDraftPlacementAllowed } from "../core/draft.ts";
 import { type Issue, issue } from "../core/report.ts";
+import { rangeFromOffsets, type SourceRange } from "../core/source-range.ts";
 import { policiesForFile } from "../policies/load.ts";
+
+function firstMatchRange(content: string, regex: RegExp): SourceRange | undefined {
+	regex.lastIndex = 0;
+	const match = regex.exec(content);
+	regex.lastIndex = 0;
+	if (!match) return undefined;
+	return rangeFromOffsets(content, match.index, match.index + match[0].length);
+}
 
 /**
  * Generic prose matcher. Idle when `ctx.policies` is empty.
@@ -18,6 +27,7 @@ export function runProsePolicyRule(ctx: AuditContext): Issue[] {
 		const rel = relPath(filePath, ctx.root);
 		const content = readFileContent(filePath);
 		const lines = content.split("\n");
+		let lineOffset = 0;
 		const policies = policiesForFile(ctx.policies, rel);
 
 		for (const entry of policies) {
@@ -27,36 +37,60 @@ export function runProsePolicyRule(ctx: AuditContext): Issue[] {
 
 			if (entry.id === "draft-marker") {
 				for (let i = 0; i < lines.length; i++) {
-					if (entry.regex.test(lines[i] ?? "") && !isDraftPlacementAllowed(rel, draftPrefixes)) {
+					const line = lines[i] ?? "";
+					const range = firstMatchRange(line, entry.regex);
+					if (range && !isDraftPlacementAllowed(rel, draftPrefixes)) {
 						issues.push(
 							issue("prose-policy", rel, entry.message, {
 								link: `line ${i + 1}`,
+								range: rangeFromOffsets(
+									content,
+									lineOffset + range.start.column - 1,
+									lineOffset + range.end.column - 1,
+								),
 								severity: entry.severity,
 							}),
 						);
 					}
+					lineOffset += line.length + 1;
 				}
+				lineOffset = 0;
 				continue;
 			}
 
 			const isMultiline = entry.pattern?.includes("[\\s\\S]");
 			if (isMultiline) {
-				if (entry.regex.test(content)) {
-					issues.push(issue("prose-policy", rel, entry.message, { severity: entry.severity }));
+				const range = firstMatchRange(content, entry.regex);
+				if (range) {
+					issues.push(
+						issue("prose-policy", rel, entry.message, {
+							range,
+							severity: entry.severity,
+						}),
+					);
 				}
 				continue;
 			}
 
 			for (let i = 0; i < lines.length; i++) {
-				if (entry.regex.test(lines[i] ?? "")) {
+				const line = lines[i] ?? "";
+				const range = firstMatchRange(line, entry.regex);
+				if (range) {
 					issues.push(
 						issue("prose-policy", rel, entry.message, {
 							link: `line ${i + 1}`,
+							range: rangeFromOffsets(
+								content,
+								lineOffset + range.start.column - 1,
+								lineOffset + range.end.column - 1,
+							),
 							severity: entry.severity,
 						}),
 					);
 				}
+				lineOffset += line.length + 1;
 			}
+			lineOffset = 0;
 		}
 	}
 

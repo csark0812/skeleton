@@ -10,7 +10,11 @@ describe("runLinksRule", () => {
 		const ctx = createContext({ root: FIXTURES });
 		ctx.files = [join(FIXTURES, "links-source.md"), join(FIXTURES, "target.md")];
 		const issues = runLinksRule(ctx);
-		expect(issues.some((i) => i.message.includes("broken link"))).toBe(true);
+		const broken = issues.find((i) => i.message.includes("broken link"));
+		expect(broken?.range).toEqual({
+			start: { line: 3, column: 39 },
+			end: { line: 3, column: 51 },
+		});
 	});
 
 	it("accepts valid reference anchors", () => {

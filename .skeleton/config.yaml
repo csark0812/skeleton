@@ -7,12 +7,14 @@ scan:
     - "AGENTS.md"
     - ".skeleton/registry.md"
     - "skeleton/**"
+    - "editors/vscode/README.md"
   exclude:
     - "refs/**"
     - "todo.md"
     # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
     - ".agents/**"
     - ".claude/**"
+    - "editors/vscode/node_modules/**"
   banned: []
   retiredSkills: []
 

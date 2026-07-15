@@ -1,9 +1,12 @@
+import type { SourceRange } from "./source-range.ts";
+
 export type Severity = "error" | "warning";
 
 export interface Issue {
 	rule: string;
 	file: string;
 	link?: string;
+	range?: SourceRange;
 	message: string;
 	severity: Severity;
 }
@@ -20,12 +23,13 @@ export function issue(
 	rule: string,
 	file: string,
 	message: string,
-	opts?: { link?: string; severity?: Severity },
+	opts?: { link?: string; range?: SourceRange; severity?: Severity },
 ): Issue {
 	return {
 		rule,
 		file,
 		link: opts?.link,
+		range: opts?.range,
 		message,
 		severity: opts?.severity ?? "error",
 	};

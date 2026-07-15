@@ -149,6 +149,10 @@ describe("prose-policy rule", () => {
 			);
 			expect(issues).toHaveLength(1);
 			expect(issues[0]?.message).toContain("BADWORD");
+			expect(issues[0]?.range).toEqual({
+				start: { line: 1, column: 7 },
+				end: { line: 1, column: 14 },
+			});
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
@@ -240,6 +244,10 @@ describe("prose-policy rule", () => {
 				}),
 			);
 			expect(issues).toHaveLength(1);
+			expect(issues[0]?.range).toEqual({
+				start: { line: 1, column: 1 },
+				end: { line: 3, column: 4 },
+			});
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

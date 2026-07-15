@@ -1,0 +1,91 @@
+{
+	"name": "skeleton-vscode",
+	"displayName": "Skeleton",
+	"description": "Editor diagnostics for the Skeleton SSOT audit CLI.",
+	"version": "0.0.1",
+	"publisher": "csark0812",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/csark0812/skeleton.git",
+		"directory": "editors/vscode"
+	},
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Linters"
+	],
+	"activationEvents": [
+		"workspaceContains:.skeleton/config.yaml",
+		"onLanguage:markdown",
+		"onCommand:skeleton.auditCurrentFile",
+		"onCommand:skeleton.auditWorkspace"
+	],
+	"main": "./dist/extension.js",
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md",
+		"package.json"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"check": "tsc -p tsconfig.json --noEmit",
+		"package": "vsce package"
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "skeleton.auditCurrentFile",
+				"title": "Skeleton: Audit Current File"
+			},
+			{
+				"command": "skeleton.auditWorkspace",
+				"title": "Skeleton: Audit Workspace"
+			},
+			{
+				"command": "skeleton.clearDiagnostics",
+				"title": "Skeleton: Clear Diagnostics"
+			},
+			{
+				"command": "skeleton.showOutput",
+				"title": "Skeleton: Show Output"
+			},
+			{
+				"command": "skeleton.fixDocMeta",
+				"title": "Skeleton: Fix Doc Meta"
+			},
+			{
+				"command": "skeleton.fixAnchors",
+				"title": "Skeleton: Fix Anchors"
+			}
+		],
+		"configuration": {
+			"title": "Skeleton",
+			"properties": {
+				"skeleton.path": {
+					"type": "string",
+					"default": "",
+					"description": "Absolute path to the Skeleton executable. Defaults to the workspace-local binary."
+				},
+				"skeleton.runOnOpen": {
+					"type": "boolean",
+					"default": true,
+					"description": "Audit supported files when they are opened."
+				},
+				"skeleton.runOnSave": {
+					"type": "boolean",
+					"default": true,
+					"description": "Audit supported files when they are saved."
+				}
+			}
+		}
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.1",
+		"@types/vscode": "^1.90.0",
+		"@vscode/vsce": "^3.9.2",
+		"typescript": "^7.0.2"
+	}
+}
