@@ -18,6 +18,12 @@ daysUntilStale: 180
 #   alwaysInclude:
 #     - shared-agent-references.md
 
+# Optional: skill body ownership (skills-lock.json github entries are foreign by default)
+# skillOwnership:
+#   lockfile: skills-lock.json
+#   ownedSlugs: []
+#   foreignSlugs: []
+
 # Optional: plugin `.ts` entries relative to .skeleton/ (built sibling `.mjs` required)
 # plugins: []
 # Optional: draft-marker allow-list prefixes (plus `_draft-*.md` filenames)

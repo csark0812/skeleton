@@ -2,7 +2,9 @@
 
 **Source of truth for** skill customize overrides via hooks.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+
+Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md).
 
 ## Layout
 
@@ -66,3 +68,7 @@ skeleton register .skeleton/customize/code-review.md
 ```
 
 Do not edit synced toolbox `SKILL.md` files — override in `.skeleton/customize/`.
+
+Synced foreign skill bodies (declared in `skills-lock.json` with non-`local` provenance) are skipped by consumer `audit skills` / validate routing; the owning toolbox repo runs skill-body lint. Customize overlays and `.skeleton` config stay in this repo's audit corpus — see [config](config.md#skillownership).
+
+If resolve works but IDE inject does not, see [troubleshooting](troubleshooting.md#customize-hook-not-injecting).

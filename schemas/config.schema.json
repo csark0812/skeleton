@@ -55,6 +55,28 @@
 				}
 			}
 		},
+		"skillOwnership": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Provenance-aware skill body linting: foreign (synced) skills are skipped; owned local skills and .skeleton/customize stay audited",
+			"properties": {
+				"lockfile": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Repo-relative skills lock path (default: skills-lock.json)"
+				},
+				"ownedSlugs": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+					"description": "Force these skill slugs to be treated as owned (lint here) even when the lockfile marks them foreign"
+				},
+				"foreignSlugs": {
+					"type": "array",
+					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+					"description": "Force these skill slugs to be treated as foreign (skip body lint) even when absent from the lockfile"
+				}
+			}
+		},
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },

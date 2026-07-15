@@ -1,27 +1,25 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
-const SKILLS_LOCK_REL = "skills-lock.json";
-
-interface SkillsLockFile {
-	skills?: Record<string, unknown>;
-}
+import type { SkillOwnershipConfig } from "../config/types.ts";
+import {
+	DEFAULT_SKILLS_LOCKFILE,
+	isForeignLockSourceType,
+	loadSkillsLock,
+} from "./skill-provenance.ts";
 
 /**
  * Slugs of externally-synced skills declared in `skills-lock.json`.
  *
- * These skill trees are managed by an upstream source (toolbox / framework), so
- * their review cadence is tracked at the source — consumer-side git dates only
- * reflect when they were synced, not when they were reviewed. Empty set when the
- * lock file is absent or unreadable.
+ * Prefer `skillIndex.foreignSlugs` once an index is built (respects config overrides).
+ * This helper remains for lightweight callers and tests: non-`local` lock entries only.
+ * Empty set when the lock file is absent or unreadable.
  */
-export function lockedSkillSlugs(root: string): Set<string> {
-	const abs = join(root, SKILLS_LOCK_REL);
-	if (!existsSync(abs)) return new Set();
-	try {
-		const parsed = JSON.parse(readFileSync(abs, "utf8")) as SkillsLockFile;
-		return new Set(Object.keys(parsed.skills ?? {}));
-	} catch {
-		return new Set();
+export function lockedSkillSlugs(root: string, ownership?: SkillOwnershipConfig): Set<string> {
+	const lockfile = ownership?.lockfile ?? DEFAULT_SKILLS_LOCKFILE;
+	const provenance = loadSkillsLock(root, lockfile);
+	const locked = new Set<string>();
+	for (const [slug, entry] of Object.entries(provenance.entries)) {
+		if (isForeignLockSourceType(entry.sourceType)) locked.add(slug);
 	}
+	for (const slug of ownership?.foreignSlugs ?? []) locked.add(slug);
+	for (const slug of ownership?.ownedSlugs ?? []) locked.delete(slug);
+	return locked;
 }

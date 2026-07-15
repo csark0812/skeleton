@@ -7,11 +7,7 @@ import type { AuditContext } from "../core/context.ts";
 import { isDraftPlacementAllowed, normalizeDraftPrefix } from "../core/draft.ts";
 import { compilePolicy, loadPolicyFile, policiesForFile } from "../policies/load.ts";
 import { runProsePolicyRule } from "../rules/prose-policy.ts";
-
-const emptySkillIndex: AuditContext["skillIndex"] = {
-	roots: [],
-	slugs: [],
-};
+import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditContext {
 	const config: SkeletonConfig = {
@@ -26,7 +22,7 @@ function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditCont
 		registryPaths: [],
 		registryHasTableHeader: true,
 		retiredSkills: new Set(),
-		skillIndex: emptySkillIndex,
+		skillIndex: EMPTY_SKILL_INDEX,
 		lockedSkillSlugs: new Set(),
 		policies: [],
 		...overrides,

@@ -85,7 +85,7 @@ export function discoverSkillReferencePlans(root: string): SkillReferencePlan[] 
 	const index = buildSkillIndex(root);
 	const plans: SkillReferencePlan[] = [];
 
-	for (const slug of index.slugs) {
+	for (const slug of index.ownedSlugs) {
 		const skillDir = join(root, slug);
 		if (!existsSync(join(skillDir, "SKILL.md"))) continue;
 

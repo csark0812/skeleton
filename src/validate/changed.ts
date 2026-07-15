@@ -4,7 +4,12 @@ import { basename, extname, join } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
 import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
-import { buildSkillIndex, isSkillPath, listSkillMarkdownPaths } from "../audit/core/skill-roots.ts";
+import {
+	buildSkillIndex,
+	isForeignSkillPath,
+	isSkillPath,
+	listSkillMarkdownPaths,
+} from "../audit/core/skill-roots.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { runAudit } from "../audit/run.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
@@ -23,7 +28,7 @@ export interface ValidateChangedOptions {
 	root?: string;
 }
 
-type Bucket = "docs" | "skills" | "shell" | "json" | "policy" | "skip";
+type Bucket = "docs" | "skills" | "shell" | "json" | "policy" | "skip" | "foreign-skill";
 
 /**
  * Candidate policy YAML under `.skeleton/` (not config.yaml).
@@ -39,7 +44,12 @@ function isSkeletonYamlCandidate(normalized: string, ext: string): boolean {
 	return true;
 }
 
-function bucketFor(relPath: string, root: string, wiredPolicies: Set<string>): Bucket {
+function bucketFor(
+	relPath: string,
+	root: string,
+	wiredPolicies: Set<string>,
+	skillIndex: ReturnType<typeof buildSkillIndex>,
+): Bucket {
 	const normalized = normalizeRelPath(relPath);
 	const ext = extname(normalized).toLowerCase();
 	const name = basename(normalized);
@@ -53,8 +63,10 @@ function bucketFor(relPath: string, root: string, wiredPolicies: Set<string>): B
 		return "skip";
 	}
 
-	const skillIndex = buildSkillIndex(root);
-	if (isSkillPath(normalized, skillIndex)) return "skills";
+	if (isSkillPath(normalized, skillIndex)) {
+		if (isForeignSkillPath(normalized, skillIndex)) return "foreign-skill";
+		return "skills";
+	}
 
 	if (DOC_EXTENSIONS.has(ext)) {
 		const config = loadConfig(root);
@@ -180,6 +192,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	}
 
 	const config = loadConfig(root);
+	const skillIndex = buildSkillIndex(root, config.skillOwnership);
 	let wiredPolicies: Set<string>;
 	try {
 		wiredPolicies = await collectWiredPolicyRelPaths(root, config);
@@ -188,7 +201,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 		return 1;
 	}
 
-	const buckets: Record<Exclude<Bucket, "skip">, string[]> = {
+	const buckets: Record<Exclude<Bucket, "skip" | "foreign-skill">, string[]> = {
 		docs: [],
 		skills: [],
 		shell: [],
@@ -197,6 +210,7 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	};
 	let missing = 0;
 	let skipped = 0;
+	let foreignSkipped = 0;
 	const orphans: string[] = [];
 
 	for (const relPath of relPaths) {
@@ -212,9 +226,16 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 			orphans.push(normalized);
 			continue;
 		}
-		const bucket = bucketFor(normalized, root, wiredPolicies);
+		const bucket = bucketFor(normalized, root, wiredPolicies, skillIndex);
 		if (bucket === "skip") {
 			skipped++;
+			continue;
+		}
+		if (bucket === "foreign-skill") {
+			foreignSkipped++;
+			console.log(
+				`validate changed: skipping foreign skill ${normalized} (owned upstream; see skills-lock.json / skillOwnership)`,
+			);
 			continue;
 		}
 		buckets[bucket].push(normalized);
@@ -335,9 +356,9 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 			if (proseExit !== 0) exitCode = 1;
 
 			// Docs corpus is collectScanFiles only — skill trees under scan.exclude never appear.
-			// Path-augment all skill-tree markdown (SKILL.md + references/**) so skill-scoped
-			// policy entries still prove against bodies.
-			const skillPaths = listSkillMarkdownPaths(root, buildSkillIndex(root));
+			// Path-augment owned skill-tree markdown (SKILL.md + references/**) so skill-scoped
+			// policy entries still prove against bodies (foreign synced skills stay ignored).
+			const skillPaths = listSkillMarkdownPaths(root, skillIndex);
 			if (skillPaths.length > 0) {
 				const skillProseExit = await runAudit({
 					suite: "skills",
@@ -364,7 +385,10 @@ export async function runValidateChanged(options: ValidateChangedOptions = {}): 
 	}
 
 	if (exitCode === 0) {
-		const note = skipped > 0 ? ` (${skipped} path(s) skipped)` : "";
+		const parts: string[] = [];
+		if (skipped > 0) parts.push(`${skipped} path(s) skipped`);
+		if (foreignSkipped > 0) parts.push(`${foreignSkipped} foreign skill(s) ignored`);
+		const note = parts.length > 0 ? ` (${parts.join(", ")})` : "";
 		console.log(`validate changed passed${note}.`);
 	}
 

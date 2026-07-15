@@ -1,7 +1,14 @@
 import { existsSync, readdirSync, readlinkSync, realpathSync } from "node:fs";
 import { join, relative } from "node:path";
 import { globSync } from "tinyglobby";
+import type { SkillOwnershipConfig } from "../config/types.ts";
 import { normalizeRelPath } from "./shared.ts";
+import {
+	DEFAULT_SKILLS_LOCKFILE,
+	loadSkillsLock,
+	resolveOwnershipForSlugs,
+	type SkillProvenanceMap,
+} from "./skill-provenance.ts";
 
 export const NESTED_SKILL_ROOTS = [".claude/skills", ".agents/skills"] as const;
 
@@ -34,7 +41,13 @@ export interface SkillRoot {
 
 export interface SkillIndex {
 	roots: SkillRoot[];
+	/** All discovered skill slugs (owned + foreign) — used for link resolution. */
 	slugs: string[];
+	/** Skill slugs whose bodies this repo owns and should lint. */
+	ownedSlugs: string[];
+	/** Synced / lockfile foreign skills — skipped for body lint. */
+	foreignSlugs: string[];
+	provenance: SkillProvenanceMap;
 }
 
 const NESTED_EXCLUDED_DIRS = new Set(["references", "_shared"]);
@@ -109,7 +122,7 @@ export function detectSkillRoots(root: string): SkillRoot[] {
 	return roots;
 }
 
-export function buildSkillIndex(root: string): SkillIndex {
+export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig): SkillIndex {
 	const roots = detectSkillRoots(root);
 	const slugSet = new Set<string>();
 	const slugs: string[] = [];
@@ -125,7 +138,19 @@ export function buildSkillIndex(root: string): SkillIndex {
 		}
 	}
 
-	return { roots, slugs };
+	const lockfileRel = ownership?.lockfile ?? DEFAULT_SKILLS_LOCKFILE;
+	const provenance = loadSkillsLock(root, lockfileRel);
+	const { ownedSlugs, foreignSlugs } = resolveOwnershipForSlugs(slugs, provenance, ownership);
+
+	return { roots, slugs, ownedSlugs, foreignSlugs, provenance };
+}
+
+export function isOwnedSkillSlug(index: SkillIndex, slug: string): boolean {
+	return index.ownedSlugs.includes(slug);
+}
+
+export function isForeignSkillSlug(index: SkillIndex, slug: string): boolean {
+	return index.foreignSlugs.includes(slug);
 }
 
 export function resolveSkillPath(index: SkillIndex, root: string, slug: string): string | null {
@@ -153,6 +178,13 @@ export function isSkillPath(relPath: string, index: SkillIndex): boolean {
 		}
 	}
 	return false;
+}
+
+/** True when path is under a skill tree classified foreign for body lint. */
+export function isForeignSkillPath(relPath: string, index: SkillIndex): boolean {
+	const slug = slugFromPath(relPath) ?? slugFromSkillPath(relPath);
+	if (!slug) return false;
+	return isForeignSkillSlug(index, slug);
 }
 
 const NESTED_SKILL_SLUG_RE = /(?:^|\/)\.(?:claude|agents)\/skills\/([a-z0-9-]+)\//;
@@ -196,12 +228,16 @@ export function slugFromPath(filePath: string, workspaceRoot?: string): string |
 }
 
 export function skillCollectAugments(index: SkillIndex): string[] {
+	const owned = new Set(index.ownedSlugs);
 	const patterns: string[] = [];
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
-			patterns.push(`${skillRoot.relPath}/**`);
+			for (const slug of index.ownedSlugs) {
+				patterns.push(`${skillRoot.relPath}/${slug}/**`);
+			}
 		} else {
 			for (const slug of index.slugs) {
+				if (!owned.has(slug)) continue;
 				patterns.push(`${slug}/**`);
 			}
 		}
@@ -210,7 +246,7 @@ export function skillCollectAugments(index: SkillIndex): string[] {
 }
 
 /**
- * Repo-relative markdown paths for every detected skill tree (SKILL.md + references/**,
+ * Repo-relative markdown paths for owned skill trees (SKILL.md + references/**,
  * including under scan.exclude). Used by validate --base policy prove so skill-scoped
  * prose still runs against the full skill body, not just SKILL.md.
  *
@@ -218,11 +254,13 @@ export function skillCollectAugments(index: SkillIndex): string[] {
  * and `.agents/skills` (distinct dirs) is fully covered — not first-wins only.
  */
 export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[] {
+	const owned = new Set(index.ownedSlugs);
 	const paths = new Set<string>();
 	for (const skillRoot of index.roots) {
 		const slugs =
 			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
 		for (const slug of slugs) {
+			if (!owned.has(slug)) continue;
 			const absDir =
 				skillRoot.kind === "nested" ? join(root, skillRoot.relPath, slug) : join(root, slug);
 			if (!existsSync(absDir)) continue;
@@ -241,4 +279,8 @@ export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[
 
 export function listSkillSlugs(index: SkillIndex): string[] {
 	return index.slugs;
+}
+
+export function listOwnedSkillSlugs(index: SkillIndex): string[] {
+	return index.ownedSlugs;
 }

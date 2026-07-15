@@ -6,6 +6,7 @@ import { loadConfig } from "../config/load.ts";
 import { collectBannedFiles } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import { runBannedRule } from "../rules/banned.ts";
+import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 describe("banned rule", () => {
 	it("flags files matching scan.banned globs repo-wide", () => {
@@ -37,7 +38,7 @@ daysUntilStale: 180
 			registryPaths: [],
 			registryHasTableHeader: false,
 			retiredSkills: new Set<string>(),
-			skillIndex: { roots: [], slugs: [] },
+			skillIndex: EMPTY_SKILL_INDEX,
 			lockedSkillSlugs: new Set<string>(),
 			policies: [],
 		} as AuditContext;

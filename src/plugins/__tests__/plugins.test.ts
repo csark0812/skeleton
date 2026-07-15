@@ -275,6 +275,72 @@ describe("plugin load + build", () => {
 		}
 	});
 
+	it("bare audit skills ignores foreign locked skill prose hits", async () => {
+		const dir = join(tmpdir(), `skel-skills-foreign-bare-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/foreign"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/mine"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/policies/banned.yaml"),
+			`name: skill-banned\nentries:\n  - id: hub\n    scope: ".claude/skills/**"\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/foreign/SKILL.md"),
+			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/mine/SKILL.md"),
+			"---\nname: mine\ndescription: x\n---\n\nclean\n",
+		);
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					foreign: { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		writeFileSync(join(dir, "docs/a.md"), "# A\n");
+		try {
+			await runBuildPlugin({ root: dir });
+			const bare = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [],
+				only: new Set(["prose-policy"]),
+				root: dir,
+			});
+			expect(bare).toBe(0);
+
+			writeFileSync(
+				join(dir, ".claude/skills/mine/SKILL.md"),
+				"---\nname: mine\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+			);
+			const bareOwned = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [],
+				only: new Set(["prose-policy"]),
+				root: dir,
+			});
+			expect(bareOwned).toBe(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("surfaces scoped prose-policy hits via runAudit", async () => {
 		await runBuildPlugin({ root: CONSUMER });
 		const exit = await runAudit({

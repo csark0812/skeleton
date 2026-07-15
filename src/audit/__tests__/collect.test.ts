@@ -84,6 +84,40 @@ describe("collectScanFiles", () => {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
+
+	it("does not collect foreign github-locked skill trees via skill augments", () => {
+		const root = join(tmpdir(), `skeleton-foreign-collect-${Date.now()}`);
+		try {
+			mkdirSync(join(root, ".claude/skills/foreign"), { recursive: true });
+			mkdirSync(join(root, ".claude/skills/mine"), { recursive: true });
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			mkdirSync(join(root, "docs"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/config.yaml"),
+				`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			);
+			writeFileSync(join(root, "docs/a.md"), "# A\n");
+			writeFileSync(join(root, ".claude/skills/foreign/SKILL.md"), "foreign\n");
+			writeFileSync(join(root, ".claude/skills/mine/SKILL.md"), "mine\n");
+			writeFileSync(
+				join(root, "skills-lock.json"),
+				JSON.stringify({
+					version: 1,
+					skills: {
+						foreign: { source: "org/toolbox", sourceType: "github" },
+					},
+				}),
+			);
+			const config = loadConfig(root);
+			const files = collectScanFiles(config, root, buildSkillIndex(root, config.skillOwnership));
+			const rels = files.map((f) => f.replace(`${root}/`, ""));
+			expect(rels).toContain(".claude/skills/mine/SKILL.md");
+			expect(rels).not.toContain(".claude/skills/foreign/SKILL.md");
+			expect(rels).toContain("docs/a.md");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 });
 
 describe("validateScanRoots", () => {

@@ -66,7 +66,7 @@ function pathFromRegistryLink(root: string, link: string): string {
 
 function isOutsideScan(root: string, relPath: string): boolean {
 	const config = loadConfig(root);
-	const skillIndex = buildSkillIndex(root);
+	const skillIndex = buildSkillIndex(root, config.skillOwnership);
 	const scanned = collectScanFiles(config, root, skillIndex).map((abs) =>
 		normalizeRelPath(relative(root, abs)),
 	);
