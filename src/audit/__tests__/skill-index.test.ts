@@ -69,4 +69,42 @@ describe("skill-index rule", () => {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
+
+	it("does not require foreign skills in a nested README taxonomy", () => {
+		const root = mkdtempSync(join(tmpdir(), "skeleton-skill-index-taxonomy-"));
+		try {
+			writeMinimalConfig(root);
+			const skillRoot = join(root, ".claude", "skills");
+			mkdirSync(join(skillRoot, "owned"), { recursive: true });
+			mkdirSync(join(skillRoot, "foreign"), { recursive: true });
+			writeFileSync(join(skillRoot, "owned", "SKILL.md"), "# owned\n");
+			writeFileSync(join(skillRoot, "foreign", "SKILL.md"), "# foreign\n");
+			writeFileSync(
+				join(skillRoot, "README.md"),
+				"## Taxonomy\n\n- [owned](owned/SKILL.md)\n",
+			);
+
+			const config = loadConfig(root);
+			const skillIndex = buildSkillIndex(root, { foreignSlugs: ["foreign"] });
+			const ctx = {
+				root,
+				config,
+				files: [],
+				docMetaPaths: [],
+				registryPaths: [],
+				registryHasTableHeader: false,
+				retiredSkills: new Set<string>(),
+				skillIndex,
+				lockedSkillSlugs: new Set(["foreign"]),
+				policies: [],
+			} as AuditContext;
+
+			const issues = runSkillIndexRule(ctx);
+			expect(
+				issues.some((i) => i.message === 'taxonomy missing public skill "foreign"'),
+			).toBe(false);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 });
