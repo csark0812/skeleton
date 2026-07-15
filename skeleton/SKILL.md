@@ -35,7 +35,7 @@ Not for: normal feature work that only reads toolbox skills (customize injects a
 
 ## Customize hooks
 
-`skeleton init` merges IDE hooks that run `customize-on-skill-read.js` on skill reads (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`).
+`skeleton init` merges IDE hooks that run `skeleton hook customize` on skill reads (Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`). Inside this repo the hook runs `bun src/cli.ts hook customize`.
 
 - Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**`); Grep/shell still skip
 - **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`

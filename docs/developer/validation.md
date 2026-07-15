@@ -10,7 +10,7 @@
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Docs, registry, non-policy `.skeleton/` config            | `skeleton validate changed <path>` or `skeleton audit self`                                            |
 | Owned skill body (`SKILL.md` trees authored in this repo) | `skeleton audit skills` (path-scoped validate exits non-zero and redirects here)                       |
-| Foreign / lockfile-synced skill body                      | skipped (owned upstream — lint in the skills/toolbox repo)                                             |
+| Foreign / lockfile-synced skill body                      | skipped — lint in the owning skills/toolbox repo                                                       |
 | Plugin-wired policy YAML under `.skeleton/`               | Local: `skeleton audit docs` **and** `skeleton audit skills`. CI: `validate:ci` / `--base` proves both |
 | TypeScript / app code / `package.json`                    | Repo-native gates (`test` + `typecheck` + `build`) — not Skeleton                                      |
 | Missing paths or only skipped code paths                  | Pass real paths, or use `--staged` / `--base`; for all-skipped code see below                          |
@@ -27,22 +27,22 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 ## Path routing
 
-| Path                                                                                | Action                                                                                                                                                      |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docs in scan perimeter                                                              | `audit docs` (path-scoped)                                                                                                                                  |
+| Path                                                                                | Action                                                                                                                                                                           |
+| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docs in scan perimeter                                                              | `audit docs` (path-scoped)                                                                                                                                                       |
 | Owned skill trees (`SKILL.md` perimeter)                                            | without `--base`, exits non-zero → run `audit skills` (including when mixed with docs); path-scoped skills include `prose-policy` when plugins supply policies under CI `--base` |
-| Foreign skill trees (`skills-lock.json` github / non-local provenance)              | skip with a log line — body lint belongs upstream                                                                                                           |
-| Plugin-wired policy YAML under `.skeleton/`                                         | Schema check; local → exit non-zero (run `audit docs` **and** `audit skills`); `--base` → full docs + path-scoped skills over **owned** skill-tree markdown |
-| Other `.skeleton/**` YAML (not `config.yaml`, not plugin-wired)                     | exits non-zero — not referenced by any plugin `policies` glob                                                                                               |
-| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                                                                                                                     |
-| Other `.json`                                                                       | JSONC-tolerant syntax check                                                                                                                                 |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)                                                                                                                                            |
+| Foreign skill trees (`skills-lock.json` github / non-local provenance)              | skip with a log line — body lint belongs upstream                                                                                                                                |
+| Plugin-wired policy YAML under `.skeleton/`                                         | Schema check; local → exit non-zero (run `audit docs` **and** `audit skills`); `--base` → full docs + path-scoped skills over **owned** skill-tree markdown                      |
+| Other `.skeleton/**` YAML (not `config.yaml`, not plugin-wired)                     | exits non-zero — not referenced by any plugin `policies` glob                                                                                                                    |
+| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                                                                                                                                          |
+| Other `.json`                                                                       | JSONC-tolerant syntax check                                                                                                                                                      |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)                                                                                                                                                                 |
 
 ### Skipped paths
 
-Skipped paths are intentional: Skeleton validates SSOT/docs only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run.
+Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run.
 
-In this repo, code gates are:
+In this repo:
 
 ```bash
 bun test
@@ -54,9 +54,11 @@ Mixed doc+code paths still skip code and audit the docs portion.
 
 ### Skill-body paths
 
-Skill bodies are not path-scoped on the docs lane. **Owned** skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
+Skill bodies are not path-scoped on the docs lane.
 
-**Foreign** skills (typically `skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos do not double-lint synced toolbox copies. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
+**Owned** skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
+
+**Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
 
 `audit self` covers the scan corpus; excluded owned skill trees still need `audit skills`. Customize overlays under `.skeleton/customize/` stay in the consumer audit corpus.
 

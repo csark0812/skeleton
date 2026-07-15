@@ -1,38 +1,12 @@
-import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join, relative, resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { resolvePackageRoot } from "./package-paths.ts";
 
-const PACKAGE_NAME = "@csark0812/skeleton";
-const HOOK_DIST = "dist/hooks/customize-on-skill-read.js";
-const HOOK_SRC = "src/hooks/customize-on-skill-read.ts";
 const PACKAGE_ROOT = resolvePackageRoot();
 
-export function toRepoRelative(cwd: string, absPath: string): string {
-	const rel = relative(cwd, absPath).replace(/\\/g, "/");
-	return rel.startsWith("..") ? absPath.replace(/\\/g, "/") : rel;
-}
-
-function tryResolvePublished(cwd: string): string | null {
-	try {
-		const req = createRequire(join(cwd, "package.json"));
-		return req.resolve(`${PACKAGE_NAME}/${HOOK_DIST}`);
-	} catch {
-		return null;
-	}
-}
-
-function walkNodeModules(cwd: string): string | null {
-	let dir = cwd;
-	while (true) {
-		const candidate = join(dir, "node_modules", PACKAGE_NAME, HOOK_DIST);
-		if (existsSync(candidate)) return candidate;
-		const parent = dirname(dir);
-		if (parent === dir) break;
-		dir = parent;
-	}
-	return null;
-}
+/** Command consumers run: the published `skeleton` bin exposes `hook customize`. */
+const PUBLISHED_HOOK_COMMAND = "skeleton hook customize";
+/** Command inside this repo (dev): mirror the `bun src/cli.ts …` package scripts. */
+const DEV_HOOK_COMMAND = "bun src/cli.ts hook customize";
 
 function isInsidePackageRoot(cwd: string): boolean {
 	const rel = relative(PACKAGE_ROOT, resolve(cwd)).replace(/\\/g, "/");
@@ -40,27 +14,16 @@ function isInsidePackageRoot(cwd: string): boolean {
 }
 
 export function resolveHookCommand(cwd: string): string {
-	const published = tryResolvePublished(cwd);
-	if (published) return toRepoRelative(cwd, published);
-
-	const hoisted = walkNodeModules(cwd);
-	if (hoisted) return toRepoRelative(cwd, hoisted);
-
-	if (isInsidePackageRoot(cwd)) {
-		const distHook = join(PACKAGE_ROOT, HOOK_DIST);
-		if (existsSync(distHook)) return toRepoRelative(cwd, distHook);
-
-		const srcHook = join(PACKAGE_ROOT, HOOK_SRC);
-		if (existsSync(srcHook)) {
-			const rel = toRepoRelative(cwd, srcHook);
-			return rel.includes("/") ? `bun ${rel}` : `bun ./${rel}`;
-		}
-	}
-
-	return `node node_modules/${PACKAGE_NAME}/${HOOK_DIST}`;
+	// Working inside the skeleton package itself (no published bin on PATH):
+	// run the CLI straight from source, like the repo's own package scripts.
+	if (isInsidePackageRoot(cwd)) return DEV_HOOK_COMMAND;
+	return PUBLISHED_HOOK_COMMAND;
 }
 
 export function isSkeletonHookCommand(command: string | undefined): boolean {
 	if (!command) return false;
+	// New CLI form (`skeleton hook customize`, `bun src/cli.ts hook customize`)…
+	if (/\bhook\s+customize\b/.test(command)) return true;
+	// …and the legacy standalone entrypoint, so re-init upgrades it in place.
 	return /customize-on-skill-read\.(js|ts)\b/.test(command);
 }

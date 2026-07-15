@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
-Use this page when adding Skeleton to a repo for the first time. For flag details see [install](install.md). For every config key see [config](config.md).
+Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
 ## 1. Install and init
 
@@ -15,9 +15,9 @@ npx skeleton init --skills
 
 Init writes `.skeleton/`, merges IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts to `package.json`.
 
-## 2. Edit the scan perimeter
+## 2. Set the scan perimeter
 
-Open `.skeleton/config.yaml` and set what Skeleton should scan.
+Open `.skeleton/config.yaml` and define what Skeleton should scan.
 
 ### Toolbox / docs-only repo
 
@@ -60,7 +60,7 @@ scan:
 daysUntilStale: 180
 ```
 
-More keys and a plugin-enabled example: [config](config.md).
+Plugin-enabled example and more keys: [config](config.md).
 
 ## 3. Write a canonical doc
 
@@ -82,7 +82,7 @@ Keep request and response shapes consistent across services.
 npx skeleton register docs/developer/api.md
 ```
 
-This adds a row to `.skeleton/registry.md`. Prefer `register` over hand-editing the table.
+Adds a row to `.skeleton/registry.md`. Use `register` — don't hand-edit the table.
 
 ## 5. Verify
 
@@ -91,7 +91,7 @@ npx skeleton audit self
 npx skeleton validate changed --staged
 ```
 
-Success: audits pass (warnings for stale `last-reviewed` are OK until you bump dates). Failures? See [troubleshooting](troubleshooting.md).
+Audits pass → you're set. Stale `last-reviewed` warnings are OK until you bump dates. Failures → [troubleshooting](troubleshooting.md).
 
 ## 6. Optional pre-commit
 
@@ -113,11 +113,11 @@ Hook configs typically run `skeleton validate changed --staged`. Details: [insta
 
 ## Next
 
-| Goal | Doc |
-|------|-----|
-| Config keys and examples | [config](config.md) |
-| What to run after a change | [validation](validation.md) |
-| Banner / registry / doc-meta | [doc system](doc-system.md) |
-| Skill overrides without editing synced skills | [customize](customize.md) |
-| Product-specific audit rules | [plugins](plugins.md) |
-| Common failures | [troubleshooting](troubleshooting.md) |
+| Goal                                          | Doc                                   |
+| --------------------------------------------- | ------------------------------------- |
+| Config keys and examples                      | [config](config.md)                   |
+| What to run after a change                    | [validation](validation.md)           |
+| Banner / registry / doc-meta                  | [doc system](doc-system.md)           |
+| Skill overrides without editing synced skills | [customize](customize.md)             |
+| Product-specific audit rules                  | [plugins](plugins.md)                 |
+| Common failures                               | [troubleshooting](troubleshooting.md) |

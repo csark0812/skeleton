@@ -66,8 +66,8 @@ skeleton validate changed --base origin/main
 
 **Checklist:**
 
-1. Package installed: `node_modules/@csark0812/skeleton` present (or linked in monorepos).
-2. Init hooks present: `.cursor/hooks.json`, `.claude/settings.json`, and/or `.codex/hooks.json` contain the customize-on-skill-read command.
+1. Package installed: `node_modules/@csark0812/skeleton` present (or linked in monorepos), and the `skeleton` bin is on `PATH` (global install or the hook runner exposes `node_modules/.bin`).
+2. Init hooks present: `.cursor/hooks.json`, `.claude/settings.json`, and/or `.codex/hooks.json` contain the `skeleton hook customize` command.
 3. Host matcher matches the tool: Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`. Grep/shell never inject.
 4. Slug resolve works:
 

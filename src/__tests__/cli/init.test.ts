@@ -43,31 +43,35 @@ afterEach(() => {
 });
 
 describe("skeleton init helpers", () => {
-	it("resolves hoisted package hook from node_modules", () => {
+	it("emits the published `skeleton hook customize` command for consumer repos", () => {
 		const cwd = makeRepo();
-		const hookDir = join(cwd, "node_modules", "@csark0812", "skeleton", "dist", "hooks");
-		mkdirSync(hookDir, { recursive: true });
-		writeFileSync(join(hookDir, "customize-on-skill-read.js"), "// stub\n");
 		const command = resolveHookCommand(cwd);
-		expect(command).toContain(
-			"node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
-		);
+		expect(command).toBe("skeleton hook customize");
 	});
 
-	it("falls back to node_modules relative command when package missing", () => {
+	it("emits the same CLI command when the package is missing from node_modules", () => {
 		const cwd = mkdtempSync(join(tmpdir(), "skeleton-init-fallback-"));
 		tempDirs.push(cwd);
 		const command = resolveHookCommand(cwd);
-		expect(command).toBe(
-			"node node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
-		);
+		expect(command).toBe("skeleton hook customize");
 	});
 
-	it("resolveHookCommand returns a skeleton customize hook path", () => {
+	it("resolveHookCommand returns a detectable skeleton customize hook", () => {
 		const cwd = makeRepo();
 		const command = resolveHookCommand(cwd);
 		expect(isSkeletonHookCommand(command)).toBe(true);
-		expect(command.includes("customize-on-skill-read")).toBe(true);
+		expect(command.includes("hook customize")).toBe(true);
+	});
+
+	it("detects both the CLI form and the legacy standalone hook", () => {
+		expect(isSkeletonHookCommand("skeleton hook customize")).toBe(true);
+		expect(isSkeletonHookCommand("bun src/cli.ts hook customize")).toBe(true);
+		expect(
+			isSkeletonHookCommand(
+				"node node_modules/@csark0812/skeleton/dist/hooks/customize-on-skill-read.js",
+			),
+		).toBe(true);
+		expect(isSkeletonHookCommand("echo user-hook")).toBe(false);
 	});
 
 	it("mergePackageJsonScripts is skipped without package.json", () => {
