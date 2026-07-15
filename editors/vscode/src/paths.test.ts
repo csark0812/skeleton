@@ -23,16 +23,17 @@ describe("isAuditablePath", () => {
 
 	it("rejects non-auditable open/save noise so generation is not bumped", () => {
 		expect(isAuditablePath("package.json", "/ws/package.json")).toBe(false);
-		expect(isAuditablePath("src/cli.ts", "/ws/src/cli.ts")).toBe(false);
+		expect(isAuditablePath("src/cli.ts", "/ws/cli.ts")).toBe(false);
 		expect(isAuditablePath(".skeleton/hooks.json", "/ws/.skeleton/hooks.json")).toBe(false);
 	});
 });
 
 describe("isSkillTreePath", () => {
-	it("routes nested skill trees and SKILL.md files", () => {
+	it("routes nested skill bodies under a slug, not skills-root README", () => {
 		expect(isSkillTreePath(".claude/skills/code-review/SKILL.md", "/tmp")).toBe(true);
 		expect(isSkillTreePath(".agents/skills/multi/references/a.md", "/tmp")).toBe(true);
-		expect(isSkillTreePath("multi/SKILL.md", "/tmp")).toBe(true);
+		expect(isSkillTreePath(".claude/skills/README.md", "/tmp")).toBe(false);
+		expect(isSkillTreePath(".agents/skills/notes.md", "/tmp")).toBe(false);
 	});
 
 	it("routes any flat-skill path when SKILL.md exists (CLI isSkillPath parity)", () => {
@@ -43,21 +44,23 @@ describe("isSkillTreePath", () => {
 		try {
 			expect(isSkillTreePath("multi/customize.md", dir)).toBe(true);
 			expect(isSkillTreePath("multi/references/note.md", dir)).toBe(true);
+			expect(isSkillTreePath("multi/SKILL.md", dir)).toBe(true);
 			expect(isSkillTreePath("docs/readme.md", dir)).toBe(false);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});
 
-	it("does not treat denylisted dirs as flat skill roots", () => {
+	it("does not treat denylisted dirs or their SKILL.md as skill trees", () => {
 		const dir = join(tmpdir(), `flat-skill-deny-${Date.now()}`);
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(join(dir, "docs", "SKILL.md"), "---\nname: docs\n---\n");
 		writeFileSync(join(dir, "docs", "guide.md"), "# guide\n");
 		try {
-			// SKILL.md itself still matches endsWith; other docs paths must not.
 			expect(isSkillTreePath("docs/guide.md", dir)).toBe(false);
-			expect(isSkillTreePath("docs/SKILL.md", dir)).toBe(true);
+			// CLI isSkillPath: docs/**/SKILL.md is non-skill (denylisted root).
+			expect(isSkillTreePath("docs/SKILL.md", dir)).toBe(false);
+			expect(isSkillTreePath("docs/code-review/SKILL.md", dir)).toBe(false);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

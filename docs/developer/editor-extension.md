@@ -76,7 +76,7 @@ Open a skeleton-enabled workspace. The extension activates when `.skeleton/confi
 | ---------------------------------------------------- | ---------------------------------------------------------------------- |
 | Open / save docs `.md` / `.mdc`                      | Path-scoped `audit docs --paths=<file> --json`                         |
 | Open / save skill-tree Markdown (`SKILL.md`, etc.)   | Path-scoped `audit skills --paths=<file> --json`                       |
-| Change `.skeleton/config.yaml` or registry           | `audit self --json`                                                    |
+| Change `.skeleton/config.yaml` or registry           | `audit self` **and** bare `audit skills` (merged)                      |
 | Change plugin policy YAML under `.skeleton/plugins/` | Full `audit docs` **and** `audit skills` (merged)                      |
 | **Skeleton: Audit Current File**                     | Re-run the matching suite for the active file                          |
 | **Skeleton: Audit Workspace**                        | `audit self` **and** bare `audit skills` (covers excluded skill trees) |

@@ -2,7 +2,8 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const MARKDOWN_EXTENSIONS = [".md", ".mdc"];
-const NESTED_SKILL_RE = /(?:^|\/)\.(?:claude|agents)\/skills\//;
+/** Nested skill body: `.claude|agents/skills/<slug>/…` — slug must be kebab-case. */
+const NESTED_SKILL_BODY_RE = /(?:^|\/)\.(?:claude|agents)\/skills\/([a-z0-9-]+)(?:\/|$)/;
 
 /**
  * Mirror CLI `FLAT_SKILL_DENYLIST` so flat-layout routing does not treat
@@ -35,13 +36,13 @@ export function isMarkdownPath(pathOrUri: string): boolean {
 
 /**
  * Mirror CLI `isSkillPath` heuristics for editor routing (no full skill index).
- * Nested trees: `.claude|agents/skills/**`. Flat: any path under a detected
- * slug directory (first segment has `SKILL.md`, not denylisted).
+ * Nested trees: `.claude|agents/skills/<slug>/**` only (not skills-root README).
+ * Flat: first segment has `SKILL.md` and is not denylisted — including that
+ * segment's `SKILL.md` itself (no blanket endsWith SKILL.md shortcut).
  */
 export function isSkillTreePath(relPath: string, workspaceRoot: string): boolean {
 	const path = relPath.replaceAll("\\", "/");
-	if (path === "SKILL.md" || path.endsWith("/SKILL.md")) return true;
-	if (NESTED_SKILL_RE.test(path)) return true;
+	if (NESTED_SKILL_BODY_RE.test(path)) return true;
 
 	const first = path.split("/")[0];
 	if (!first || first.startsWith(".") || FLAT_SKILL_DENYLIST.has(first)) return false;

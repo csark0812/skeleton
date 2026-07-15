@@ -1,10 +1,9 @@
 import { relative } from "node:path";
 import * as vscode from "vscode";
-import { clearDiagnostics, publishReport } from "./diagnostics";
+import { publishReport } from "./diagnostics";
 import {
 	isAuditablePath,
 	isConfigOrRegistry,
-	isMarkdownPath,
 	isPluginPolicy,
 	isSkillTreePath,
 } from "./paths";
@@ -25,19 +24,39 @@ export function activate(context: vscode.ExtensionContext): void {
 	const output = vscode.window.createOutputChannel("Skeleton");
 	context.subscriptions.push(diagnostics, output);
 
-	/** Per-workspace generation so overlapping runs never publish stale results. */
-	const generations = new Map<string, number>();
+	/**
+	 * Per-path generation for path-scoped audits so auditing file B never
+	 * cancels a pending audit of file A. Workspace-wide runs bump a separate
+	 * counter that supersedes in-flight path-scoped work.
+	 */
+	const pathGenerations = new Map<string, Map<string, number>>();
+	const workspaceGenerations = new Map<string, number>();
 	/** Serialize CLI audits per workspace to avoid concurrent publish races. */
 	const queues = new Map<string, Promise<void>>();
 
-	function bumpGeneration(root: string): number {
-		const next = (generations.get(root) ?? 0) + 1;
-		generations.set(root, next);
+	function bumpPathGeneration(root: string, path: string): number {
+		let paths = pathGenerations.get(root);
+		if (!paths) {
+			paths = new Map();
+			pathGenerations.set(root, paths);
+		}
+		const next = (paths.get(path) ?? 0) + 1;
+		paths.set(path, next);
 		return next;
 	}
 
-	function isCurrent(root: string, generation: number): boolean {
-		return generations.get(root) === generation;
+	function currentPathGeneration(root: string, path: string): number {
+		return pathGenerations.get(root)?.get(path) ?? 0;
+	}
+
+	function bumpWorkspaceGeneration(root: string): number {
+		const next = (workspaceGenerations.get(root) ?? 0) + 1;
+		workspaceGenerations.set(root, next);
+		return next;
+	}
+
+	function currentWorkspaceGeneration(root: string): number {
+		return workspaceGenerations.get(root) ?? 0;
 	}
 
 	function enqueue(root: string, work: () => Promise<void>): Promise<void> {
@@ -67,34 +86,54 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	async function auditUri(uri: vscode.Uri, interactive = false): Promise<void> {
 		const folder = workspaceFor(uri);
-		if (!folder) return;
+		if (!folder) {
+			if (interactive) {
+				void vscode.window.showErrorMessage("Skeleton: no workspace folder for this file");
+			}
+			return;
+		}
 
 		const root = folder.uri.fsPath;
 		const path = relativePath(folder, uri);
-		// Only bump generation for paths that actually run an audit. Bumping for
-		// every open/save (e.g. package.json) would invalidate in-flight markdown
-		// audits and leave Problems empty.
-		if (!isAuditablePath(path, uri.path)) return;
+		if (!isAuditablePath(path, uri.path)) {
+			if (interactive) {
+				void vscode.window.showErrorMessage(
+					"Skeleton: current file is not auditable (Markdown, config, registry, or plugin policy)",
+				);
+			}
+			return;
+		}
 
-		const generation = bumpGeneration(root);
-		const scope = isMarkdownPath(uri.path) ? uri : undefined;
+		const isWorkspaceTarget = isPluginPolicy(path) || isConfigOrRegistry(path);
+		const pathGeneration = isWorkspaceTarget ? 0 : bumpPathGeneration(root, path);
+		const workspaceGeneration = isWorkspaceTarget
+			? bumpWorkspaceGeneration(root)
+			: currentWorkspaceGeneration(root);
 
 		await enqueue(root, async () => {
-			if (!isCurrent(root, generation)) return;
+			if (isWorkspaceTarget) {
+				if (workspaceGeneration !== currentWorkspaceGeneration(root)) return;
+			} else if (
+				pathGeneration !== currentPathGeneration(root, path) ||
+				workspaceGeneration !== currentWorkspaceGeneration(root)
+			) {
+				return;
+			}
 
 			try {
 				let report: SkeletonReport;
 
 				if (isPluginPolicy(path)) {
 					report = await runDocsAndSkills(root);
-					if (!isCurrent(root, generation)) return;
+					if (workspaceGeneration !== currentWorkspaceGeneration(root)) return;
 					publishReport(diagnostics, root, report);
 					return;
 				}
 
 				if (isConfigOrRegistry(path)) {
-					report = await runSkeleton(root, ["audit", "self", "--json"], output);
-					if (!isCurrent(root, generation)) return;
+					// Match Audit Workspace: self alone does not cover excluded skill trees.
+					report = await runSelfAndSkills(root);
+					if (workspaceGeneration !== currentWorkspaceGeneration(root)) return;
 					publishReport(diagnostics, root, report);
 					return;
 				}
@@ -105,13 +144,17 @@ export function activate(context: vscode.ExtensionContext): void {
 					["audit", suite, `--paths=${path}`, "--json"],
 					output,
 				);
-				if (!isCurrent(root, generation)) return;
+				if (
+					pathGeneration !== currentPathGeneration(root, path) ||
+					workspaceGeneration !== currentWorkspaceGeneration(root)
+				) {
+					return;
+				}
 				publishReport(diagnostics, root, report, uri);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				output.appendLine(`Error: ${message}`);
-				if (!isCurrent(root, generation)) return;
-				clearDiagnostics(diagnostics, root, scope);
+				// Keep prior Problems on failure — clearing would present a false clean.
 				if (interactive) void vscode.window.showErrorMessage(`Skeleton: ${message}`);
 			}
 		});
@@ -127,19 +170,18 @@ export function activate(context: vscode.ExtensionContext): void {
 		}
 
 		const root = folder.uri.fsPath;
-		const generation = bumpGeneration(root);
+		const workspaceGeneration = bumpWorkspaceGeneration(root);
 
 		await enqueue(root, async () => {
-			if (!isCurrent(root, generation)) return;
+			if (workspaceGeneration !== currentWorkspaceGeneration(root)) return;
 			try {
 				const report = await runSelfAndSkills(root);
-				if (!isCurrent(root, generation)) return;
+				if (workspaceGeneration !== currentWorkspaceGeneration(root)) return;
 				publishReport(diagnostics, root, report);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
 				output.appendLine(`Error: ${message}`);
-				if (!isCurrent(root, generation)) return;
-				clearDiagnostics(diagnostics, root);
+				// Keep prior Problems on failure — clearing would present a false clean.
 				if (interactive) void vscode.window.showErrorMessage(`Skeleton: ${message}`);
 			}
 		});
@@ -181,7 +223,11 @@ export function activate(context: vscode.ExtensionContext): void {
 		}),
 		vscode.commands.registerCommand("skeleton.auditCurrentFile", () => {
 			const uri = vscode.window.activeTextEditor?.document.uri;
-			if (uri) return auditUri(uri, true);
+			if (!uri) {
+				void vscode.window.showErrorMessage("Skeleton: no active editor");
+				return;
+			}
+			return auditUri(uri, true);
 		}),
 		vscode.commands.registerCommand("skeleton.auditWorkspace", () => auditWorkspace(true)),
 		vscode.commands.registerCommand("skeleton.clearDiagnostics", () => diagnostics.clear()),

@@ -1,5 +1,6 @@
 import { isAbsolute, join, relative } from "node:path";
 import * as vscode from "vscode";
+import { mergePathScopedDiagnostics } from "./global-rules";
 import type { SkeletonIssue, SkeletonReport } from "./types";
 
 function issueUri(root: string, file: string): vscode.Uri {
@@ -54,8 +55,6 @@ export function publishReport(
 	report: SkeletonReport,
 	scope?: vscode.Uri,
 ): void {
-	clearDiagnostics(collection, root, scope);
-
 	const grouped = new Map<string, { uri: vscode.Uri; diagnostics: vscode.Diagnostic[] }>();
 	for (const issue of report.issues) {
 		const uri = issueUri(root, issue.file);
@@ -65,5 +64,18 @@ export function publishReport(
 		grouped.set(key, entry);
 	}
 
+	if (scope) {
+		const incoming = grouped.get(scope.toString())?.diagnostics ?? [];
+		const existing = collection.get(scope) ?? [];
+		collection.set(
+			scope,
+			mergePathScopedDiagnostics(existing, incoming, (diagnostic) =>
+				typeof diagnostic.code === "string" ? diagnostic.code : undefined,
+			),
+		);
+		return;
+	}
+
+	clearRoot(collection, root);
 	collection.set([...grouped.values()].map(({ uri, diagnostics }) => [uri, diagnostics]));
 }
