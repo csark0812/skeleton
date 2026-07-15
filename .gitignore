@@ -6,6 +6,7 @@ dist/
 .agents/
 .claude/
 *.tgz
+*.vsix
 .env
 .env.*
 !.env.example

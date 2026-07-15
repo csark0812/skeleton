@@ -1,7 +1,9 @@
-# Skeleton for VS Code
+# Skeleton for VS Code / Cursor
 
-VS Code diagnostics for the
+Editor diagnostics for the
 [`@csark0812/skeleton`](https://www.npmjs.com/package/@csark0812/skeleton) SSOT audit CLI.
+
+**Install and usage:** [editor extension guide](../../docs/developer/editor-extension.md)
 
 ## Requirements
 
@@ -31,4 +33,4 @@ npm run build
 npm run package
 ```
 
-Press `F5` from this directory in VS Code to launch an Extension Development Host.
+From the skeleton repo root, press **F5** (**Run Skeleton Extension**) to launch an Extension Development Host in VS Code or Cursor.

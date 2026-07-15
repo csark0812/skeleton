@@ -2,7 +2,7 @@
 
 **Source of truth for** Package overview.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 Single source of truth (SSOT) linter for agent-enabled repos.
 
@@ -123,12 +123,14 @@ See [tiers](docs/tiers.md).
 | ---------------------------------------------------- | ------------------------------------------------------- |
 | `npm install -D @csark0812/skeleton`                 | CLI, schemas, audit engine, hook script                 |
 | `npx skills add csark0812/skeleton --skill skeleton` | `/skeleton` agent skill (ops manual, not the installer) |
+| VS Code / Cursor extension (`.vsix`)                 | Editor diagnostics — see [editor extension](docs/developer/editor-extension.md) |
 
 One command for humans: `npx skeleton init --skills`.
 
 ## Docs
 
 - [Install](docs/developer/install.md)
+- [Editor extension](docs/developer/editor-extension.md)
 - [Doc system](docs/developer/doc-system.md)
 - [Validation](docs/developer/validation.md)
 - [Audit rules](docs/developer/audit.md)

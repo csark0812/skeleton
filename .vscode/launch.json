@@ -1,0 +1,16 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run Skeleton Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}/editors/vscode",
+				"${workspaceFolder}"
+			],
+			"outFiles": ["${workspaceFolder}/editors/vscode/dist/**/*.js"],
+			"preLaunchTask": "build-skeleton-extension"
+		}
+	]
+}

@@ -2,7 +2,7 @@
 
 **Source of truth for** installing skeleton in a consumer repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 ## CLI
 
@@ -34,3 +34,7 @@ Hook config typically runs `skeleton validate changed --staged`.
 ```bash
 npx skeleton audit self
 ```
+
+## Editor extension (optional)
+
+Install the VS Code / Cursor extension for Problems-panel diagnostics on Markdown. See [editor extension](editor-extension.md).
