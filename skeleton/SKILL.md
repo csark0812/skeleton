@@ -7,9 +7,11 @@ description: Agent ops manual for skeleton-enabled repos — init, register, aud
 
 **Source of truth for** maintaining a skeleton-enabled repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
 Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has a consumer harness playbook (commonly `docs/developer/agent-harness.md`), read it for skill sync perimeter and migration phase.
+
+Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [config](https://github.com/csark0812/skeleton/blob/main/docs/developer/config.md) · [troubleshooting](https://github.com/csark0812/skeleton/blob/main/docs/developer/troubleshooting.md).
 
 ## When to use
 
@@ -89,4 +91,4 @@ Edit `.skeleton/config.yaml` scan trees for this repo shape.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 
-Framework docs: [docs/developer/install.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md)
+Framework docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [install](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md) · [validation](https://github.com/csark0812/skeleton/blob/main/docs/developer/validation.md)

@@ -6,6 +6,8 @@
 
 Skeleton plugins extend audit with consumer-specific rules and prose-policy YAML. Core stays thin; product policies live in plugins (e.g. PostPrint later).
 
+Config keys (`plugins`, `draftPathPrefixes`): [config](config.md). Build failures: [troubleshooting](troubleshooting.md).
+
 ## Module contract
 
 Entry path in `.skeleton/config.yaml` is relative to `.skeleton/`:
@@ -54,6 +56,14 @@ skeleton build-plugin --check      # CI: fail if .mjs missing, unstamped, or con
 Recipe: `bun build <entry.ts> --target=node --format=esm --outfile=<entry.mjs> --packages=external`.
 
 Runtime loader imports **only** the `.mjs`. Missing artifact → loud error with `skeleton build-plugin` hint. Declared `policies` globs that match no YAML fail closed at load.
+
+### CI check
+
+Add a CI step so drift fails the build:
+
+```yaml
+- run: npx skeleton build-plugin --check
+```
 
 ## Prose policies
 
