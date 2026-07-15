@@ -127,6 +127,7 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 
 	issues.push(...validateReadmeTaxonomy(ctx, index, diskSlugs));
 
+	const owned = new Set(index.ownedSlugs);
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
 			for (const slug of index.ownedSlugs) {
@@ -136,15 +137,16 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 					issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
 				}
 			}
+			continue;
 		}
-		if (skillRoot.kind === "flat") {
-			for (const slug of index.ownedSlugs) {
-				const skillDir = join(ctx.root, slug);
-				if (existsSync(skillDir)) {
-					for (const skillMd of walkSkillMarkdown(skillDir)) {
-						issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
-					}
-				}
+		// Flat walks must use flatSlugs ∩ owned — never union ownedSlugs — so a
+		// nested-only owned slug cannot poison a same-named top-level directory.
+		for (const slug of index.flatSlugs) {
+			if (!owned.has(slug)) continue;
+			const skillDir = join(ctx.root, slug);
+			if (!existsSync(skillDir)) continue;
+			for (const skillMd of walkSkillMarkdown(skillDir)) {
+				issues.push(...scanFileForSkillLinks(ctx, skillMd, index));
 			}
 		}
 	}
