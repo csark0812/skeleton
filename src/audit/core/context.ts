@@ -10,6 +10,7 @@ import {
 } from "./collect.ts";
 import { parseRegistry } from "./registry.ts";
 import { buildSkillIndex, listSkillMarkdownPaths, type SkillIndex } from "./skill-roots.ts";
+import { lockedSkillSlugs } from "./skills-lock.ts";
 
 export interface AuditContext {
 	root: string;
@@ -20,6 +21,8 @@ export interface AuditContext {
 	registryHasTableHeader: boolean;
 	retiredSkills: Set<string>;
 	skillIndex: SkillIndex;
+	/** Slugs of externally-synced skills declared in `skills-lock.json`. */
+	lockedSkillSlugs: Set<string>;
 	/** Compiled prose policies from plugins (empty when no plugins / no policy globs). */
 	policies: PolicyFile[];
 }
@@ -67,6 +70,7 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		registryHasTableHeader: registry.hasTableHeader,
 		retiredSkills: new Set(retiredSkills(config)),
 		skillIndex,
+		lockedSkillSlugs: lockedSkillSlugs(root),
 		policies: options.policies ?? [],
 	};
 }
