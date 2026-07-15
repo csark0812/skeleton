@@ -119,10 +119,10 @@ See [tiers](docs/tiers.md).
 
 ## Distribution
 
-| Channel                                              | Installs                                                |
-| ---------------------------------------------------- | ------------------------------------------------------- |
-| `npm install -D @csark0812/skeleton`                 | CLI, schemas, audit engine, hook script                 |
-| `npx skills add csark0812/skeleton --skill skeleton` | `/skeleton` agent skill (ops manual, not the installer) |
+| Channel                                              | Installs                                                                        |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `npm install -D @csark0812/skeleton`                 | CLI, schemas, audit engine, hook script                                         |
+| `npx skills add csark0812/skeleton --skill skeleton` | `/skeleton` agent skill (ops manual, not the installer)                         |
 | VS Code / Cursor extension (`.vsix`)                 | Editor diagnostics — see [editor extension](docs/developer/editor-extension.md) |
 
 One command for humans: `npx skeleton init --skills`.

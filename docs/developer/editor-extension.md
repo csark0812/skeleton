@@ -72,23 +72,23 @@ Build the CLI first: `bun run build` (from the skeleton repo root).
 
 Open a skeleton-enabled workspace. The extension activates when `.skeleton/config.yaml` exists or when you open Markdown.
 
-| Trigger | Behavior |
-| ------- | -------- |
-| Open / save `.md` / `.mdc` | Path-scoped `audit docs --paths=<file> --json` |
-| Change `.skeleton/config.yaml`, registry, or plugin policy YAML | `audit self --json` |
-| **Skeleton: Audit Current File** | Re-run audit for the active file |
-| **Skeleton: Audit Workspace** | Full self audit |
-| **Skeleton: Show Output** | CLI command log and parse errors |
+| Trigger                                                         | Behavior                                       |
+| --------------------------------------------------------------- | ---------------------------------------------- |
+| Open / save `.md` / `.mdc`                                      | Path-scoped `audit docs --paths=<file> --json` |
+| Change `.skeleton/config.yaml`, registry, or plugin policy YAML | `audit self --json`                            |
+| **Skeleton: Audit Current File**                                | Re-run audit for the active file               |
+| **Skeleton: Audit Workspace**                                   | Full self audit                                |
+| **Skeleton: Show Output**                                       | CLI command log and parse errors               |
 
 Diagnostics appear in **Problems**. Supported quick fixes call existing CLI fixers (`--fix=doc-meta`, `--fix=anchors`).
 
 Settings:
 
-| Setting | Default | Purpose |
-| ------- | ------- | ------- |
-| `skeleton.path` | `""` | Absolute path to the skeleton executable |
-| `skeleton.runOnOpen` | `true` | Audit on file open |
-| `skeleton.runOnSave` | `true` | Audit on file save |
+| Setting              | Default | Purpose                                  |
+| -------------------- | ------- | ---------------------------------------- |
+| `skeleton.path`      | `""`    | Absolute path to the skeleton executable |
+| `skeleton.runOnOpen` | `true`  | Audit on file open                       |
+| `skeleton.runOnSave` | `true`  | Audit on file save                       |
 
 ## Develop the extension
 

@@ -6,20 +6,20 @@
 
 ## Documentation
 
-| Topic                 | Canonical file                                   |
-| --------------------- | ------------------------------------------------ |
-| Package overview      | [README.md](../README.md)                        |
-| Agent cold-start      | [AGENTS.md](../AGENTS.md)                        |
-| Authoring conventions | [authoring.md](../docs/authoring.md)             |
-| Ecosystem tiers       | [tiers.md](../docs/tiers.md)                     |
-| Install               | [install.md](../docs/developer/install.md)       |
+| Topic                 | Canonical file                                               |
+| --------------------- | ------------------------------------------------------------ |
+| Package overview      | [README.md](../README.md)                                    |
+| Agent cold-start      | [AGENTS.md](../AGENTS.md)                                    |
+| Authoring conventions | [authoring.md](../docs/authoring.md)                         |
+| Ecosystem tiers       | [tiers.md](../docs/tiers.md)                                 |
+| Install               | [install.md](../docs/developer/install.md)                   |
 | Editor extension      | [editor-extension.md](../docs/developer/editor-extension.md) |
-| Validation            | [validation.md](../docs/developer/validation.md) |
-| Doc system            | [doc-system.md](../docs/developer/doc-system.md) |
-| Audit                 | [audit.md](../docs/developer/audit.md)           |
-| Plugins               | [plugins.md](../docs/developer/plugins.md)       |
-| Customize             | [customize.md](../docs/developer/customize.md)   |
-| Skeleton skill        | [SKILL.md](../skeleton/SKILL.md)                 |
+| Validation            | [validation.md](../docs/developer/validation.md)             |
+| Doc system            | [doc-system.md](../docs/developer/doc-system.md)             |
+| Audit                 | [audit.md](../docs/developer/audit.md)                       |
+| Plugins               | [plugins.md](../docs/developer/plugins.md)                   |
+| Customize             | [customize.md](../docs/developer/customize.md)               |
+| Skeleton skill        | [SKILL.md](../skeleton/SKILL.md)                             |
 
 ## Customizations
 
