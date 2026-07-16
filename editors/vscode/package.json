@@ -67,7 +67,7 @@
 				"skeleton.path": {
 					"type": "string",
 					"default": "",
-					"description": "Absolute path to the Skeleton executable. Defaults to the workspace-local binary."
+					"description": "Absolute path to the Skeleton CLI (JavaScript entry or binary). Defaults to the workspace-local @csark0812/skeleton package."
 				},
 				"skeleton.runOnOpen": {
 					"type": "boolean",

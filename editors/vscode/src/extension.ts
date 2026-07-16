@@ -4,8 +4,10 @@ import { publishReport } from "./diagnostics";
 import {
 	isAuditablePath,
 	isConfigOrRegistry,
+	isForeignLockedSkillPath,
 	isPluginPolicy,
 	isSkillTreePath,
+	resolveSkeletonRoot,
 } from "./paths";
 import { mergeReports } from "./report";
 import { runSkeleton } from "./skeletonCli";
@@ -15,8 +17,15 @@ function workspaceFor(uri: vscode.Uri): vscode.WorkspaceFolder | undefined {
 	return vscode.workspace.getWorkspaceFolder(uri);
 }
 
-function relativePath(folder: vscode.WorkspaceFolder, uri: vscode.Uri): string {
-	return relative(folder.uri.fsPath, uri.fsPath).replaceAll("\\", "/");
+async function reportAuditFailure(
+	output: vscode.OutputChannel,
+	message: string,
+): Promise<void> {
+	output.appendLine(`Error: ${message}`);
+	const action = await vscode.window.showErrorMessage(`Skeleton: ${message}`, "Show Output");
+	if (action === "Show Output") {
+		output.show(true);
+	}
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -84,6 +93,10 @@ export function activate(context: vscode.ExtensionContext): void {
 		return mergeReports([self, skills], "Self + skills audit");
 	}
 
+	function resolveRoot(folder: vscode.WorkspaceFolder): string {
+		return resolveSkeletonRoot(folder.uri.fsPath);
+	}
+
 	async function auditUri(uri: vscode.Uri, interactive = false): Promise<void> {
 		const folder = workspaceFor(uri);
 		if (!folder) {
@@ -93,14 +106,35 @@ export function activate(context: vscode.ExtensionContext): void {
 			return;
 		}
 
-		const root = folder.uri.fsPath;
-		const path = relativePath(folder, uri);
+		let root: string;
+		try {
+			root = resolveRoot(folder);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			await reportAuditFailure(output, message);
+			return;
+		}
+
+		const path = relative(root, uri.fsPath).replaceAll("\\", "/");
+		if (path.startsWith("..") || path === "") {
+			if (interactive) {
+				void vscode.window.showErrorMessage(
+					"Skeleton: file is outside the resolved skeleton root",
+				);
+			}
+			return;
+		}
 		if (!isAuditablePath(path, uri.path)) {
 			if (interactive) {
 				void vscode.window.showErrorMessage(
 					"Skeleton: current file is not auditable (Markdown, config, registry, or plugin policy)",
 				);
 			}
+			return;
+		}
+
+		if (isSkillTreePath(path, root) && isForeignLockedSkillPath(path, root)) {
+			output.appendLine(`Skipping foreign skill ${path} (owned upstream; see skills-lock.json)`);
 			return;
 		}
 
@@ -153,9 +187,8 @@ export function activate(context: vscode.ExtensionContext): void {
 				publishReport(diagnostics, root, report, uri);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				output.appendLine(`Error: ${message}`);
 				// Keep prior Problems on failure — clearing would present a false clean.
-				if (interactive) void vscode.window.showErrorMessage(`Skeleton: ${message}`);
+				await reportAuditFailure(output, message);
 			}
 		});
 	}
@@ -169,7 +202,15 @@ export function activate(context: vscode.ExtensionContext): void {
 			return;
 		}
 
-		const root = folder.uri.fsPath;
+		let root: string;
+		try {
+			root = resolveRoot(folder);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			await reportAuditFailure(output, message);
+			return;
+		}
+
 		const workspaceGeneration = bumpWorkspaceGeneration(root);
 
 		await enqueue(root, async () => {
@@ -180,9 +221,8 @@ export function activate(context: vscode.ExtensionContext): void {
 				publishReport(diagnostics, root, report);
 			} catch (error) {
 				const message = error instanceof Error ? error.message : String(error);
-				output.appendLine(`Error: ${message}`);
 				// Keep prior Problems on failure — clearing would present a false clean.
-				if (interactive) void vscode.window.showErrorMessage(`Skeleton: ${message}`);
+				await reportAuditFailure(output, message);
 			}
 		});
 	}
@@ -193,8 +233,16 @@ export function activate(context: vscode.ExtensionContext): void {
 		const document = await vscode.workspace.openTextDocument(uri);
 		if (document.isDirty) await document.save();
 
-		const root = folder.uri.fsPath;
-		const path = relativePath(folder, uri);
+		let root: string;
+		try {
+			root = resolveRoot(folder);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			await reportAuditFailure(output, message);
+			return;
+		}
+
+		const path = relative(root, uri.fsPath).replaceAll("\\", "/");
 
 		try {
 			await runSkeleton(
@@ -205,8 +253,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			await auditUri(uri, true);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			output.appendLine(`Error: ${message}`);
-			void vscode.window.showErrorMessage(`Skeleton: ${message}`);
+			await reportAuditFailure(output, message);
 		}
 	}
 

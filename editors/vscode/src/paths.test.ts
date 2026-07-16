@@ -5,9 +5,11 @@ import { join } from "node:path";
 import {
 	isAuditablePath,
 	isConfigOrRegistry,
+	isForeignLockedSkillPath,
 	isMarkdownPath,
 	isPluginPolicy,
 	isSkillTreePath,
+	resolveSkeletonRoot,
 } from "./paths.ts";
 
 describe("isAuditablePath", () => {
@@ -75,5 +77,65 @@ describe("path helpers", () => {
 		expect(isConfigOrRegistry(".skeleton/config.yaml")).toBe(true);
 		expect(isPluginPolicy(".skeleton/plugins/x/policy.yml")).toBe(true);
 		expect(isPluginPolicy(".skeleton/config.yaml")).toBe(false);
+	});
+});
+
+describe("resolveSkeletonRoot", () => {
+	it("returns the start dir when config is present", () => {
+		const dir = join(tmpdir(), `skel-root-here-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		writeFileSync(join(dir, ".skeleton", "config.yaml"), "scan:\n  include: []\n");
+		try {
+			expect(resolveSkeletonRoot(dir)).toBe(dir);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("walks up to a parent with .skeleton/config.yaml", () => {
+		const root = join(tmpdir(), `skel-root-parent-${Date.now()}`);
+		const nested = join(root, "editors", "vscode");
+		mkdirSync(join(root, ".skeleton"), { recursive: true });
+		mkdirSync(nested, { recursive: true });
+		writeFileSync(join(root, ".skeleton", "config.yaml"), "scan:\n  include: []\n");
+		try {
+			expect(resolveSkeletonRoot(nested)).toBe(root);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("throws when no config exists in the ancestry", () => {
+		const dir = join(tmpdir(), `skel-root-missing-${Date.now()}`);
+		mkdirSync(dir, { recursive: true });
+		try {
+			expect(() => resolveSkeletonRoot(dir)).toThrow(/No \.skeleton\/config\.yaml/);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("isForeignLockedSkillPath", () => {
+	it("treats github-locked nested skills as foreign", () => {
+		const dir = join(tmpdir(), `skel-foreign-editor-${Date.now()}`);
+		mkdirSync(join(dir, ".claude", "skills", "foreign"), { recursive: true });
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					foreign: { source: "org/toolbox", sourceType: "github" },
+					mine: { source: "local", sourceType: "local" },
+				},
+			}),
+		);
+		try {
+			expect(isForeignLockedSkillPath(".claude/skills/foreign/SKILL.md", dir)).toBe(true);
+			expect(isForeignLockedSkillPath(".claude/skills/mine/SKILL.md", dir)).toBe(false);
+			expect(isForeignLockedSkillPath("docs/readme.md", dir)).toBe(false);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

@@ -23,7 +23,7 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 	let strict = false;
 	let json = false;
 	let dryRun = false;
-	let paths: string[] = [];
+	const paths: string[] = [];
 	let only: Set<string> | null = null;
 	let fix: string | true | null = null;
 
@@ -55,11 +55,15 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 		} else if (arg.startsWith("--fix=")) {
 			fix = arg.slice("--fix=".length);
 		} else if (arg.startsWith("--paths=")) {
-			paths = arg
-				.slice("--paths=".length)
-				.split(",")
-				.map((path) => path.trim())
-				.filter(Boolean);
+			const value = arg.slice("--paths=".length).trim();
+			if (value) paths.push(value);
+		} else if (arg === "--paths") {
+			while (i + 1 < argv.length) {
+				const next = argv[i + 1] ?? "";
+				if (!next || next.startsWith("-")) break;
+				paths.push(next);
+				i++;
+			}
 		} else if (arg.startsWith("--only=")) {
 			only = new Set(arg.slice("--only=".length).split(",").filter(Boolean));
 		}

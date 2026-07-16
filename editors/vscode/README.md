@@ -13,8 +13,8 @@ Install Skeleton in the workspace:
 npm install --save-dev @csark0812/skeleton
 ```
 
-The extension resolves `node_modules/.bin/skeleton` first. Set `skeleton.path` to an absolute
-executable path when the CLI is installed elsewhere.
+The extension resolves `node_modules/@csark0812/skeleton/dist/cli.js` via Node first. Set
+`skeleton.path` to an absolute `dist/cli.js` (or binary) path when the CLI is installed elsewhere.
 
 ## Features
 

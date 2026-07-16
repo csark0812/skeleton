@@ -45,6 +45,27 @@ describe("parseAuditArgs --fix", () => {
 	});
 });
 
+describe("parseAuditArgs --paths", () => {
+	it("keeps commas inside a single --paths= value", () => {
+		expect(parseAuditArgs(["--paths=docs/a.md,..,b.md"]).paths).toEqual(["docs/a.md,..,b.md"]);
+	});
+
+	it("accumulates repeated --paths= flags", () => {
+		expect(parseAuditArgs(["--paths=docs/a.md", "--paths=docs/b.md"]).paths).toEqual([
+			"docs/a.md",
+			"docs/b.md",
+		]);
+	});
+
+	it("accepts space-separated --paths tokens until the next flag", () => {
+		expect(parseAuditArgs(["--paths", "docs/a.md", "docs/b.md", "--json"]).paths).toEqual([
+			"docs/a.md",
+			"docs/b.md",
+		]);
+		expect(parseAuditArgs(["--paths", "docs/a.md", "docs/b.md", "--json"]).json).toBe(true);
+	});
+});
+
 describe("fixKindsForOnly", () => {
 	it("keeps all kinds when --only is unset", () => {
 		expect(fixKindsForOnly(["doc-meta", "anchors"], null)).toEqual(["doc-meta", "anchors"]);

@@ -103,7 +103,7 @@ Synced skills stay pristine. Project overrides live in `.skeleton/customize/<slu
 ```bash
 skeleton init [--skills] [--force-hooks]
 skeleton register <path> [--topic=…]
-skeleton audit docs|skills|self [--strict] [--paths=a,b] [--fix[=doc-meta|anchors]] [--dry-run]
+skeleton audit docs|skills|self [--strict] [--paths=a --paths=b] [--fix[=doc-meta|anchors]] [--dry-run]
 skeleton build-plugin [path] [--check]
 skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton references sync|check

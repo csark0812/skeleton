@@ -17,7 +17,7 @@ function usage(): void {
 
 Commands:
   init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
-  audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
+  audit docs|self|skills [--strict] [--json] [--paths=a --paths=b] [--only=rule]
                          [--fix[=doc-meta|anchors]] [--dry-run]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]

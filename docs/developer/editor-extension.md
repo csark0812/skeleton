@@ -2,9 +2,9 @@
 
 **Source of truth for** installing and using the Skeleton VS Code / Cursor extension.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
 
-The extension surfaces Skeleton audit issues in the editor Problems panel and as squiggles on Markdown files. It shells out to the same `skeleton` CLI binaries — no duplicate audit logic. Suite choice still follows the [validation](validation.md) split (`docs` vs `skills` vs `self`); path-scoped skill edits do not replace a bare `audit skills` prove for global skill-index rules.
+The extension surfaces Skeleton audit issues in the editor Problems panel and as squiggles on Markdown files. It shells out to the same `skeleton` CLI — no duplicate audit logic. Suite choice still follows the [validation](validation.md) split (`docs` vs `skills` vs `self`); path-scoped skill edits do not replace a bare `audit skills` prove for global skill-index rules. Foreign / lockfile-synced skill bodies are skipped on path-scoped open/save the same way `validate changed` and bare `audit skills` skip them.
 
 Works in **VS Code** and **Cursor** (both use the same extension format).
 
@@ -17,13 +17,13 @@ Works in **VS Code** and **Cursor** (both use the same extension format).
    npx skeleton init
    ```
 
-2. A `.skeleton/config.yaml` in the workspace root (created by `init`).
+2. A `.skeleton/config.yaml` somewhere in the opened folder's ancestry (usually the workspace root). The extension walks parents the same way the CLI `findRepoRoot` does, so a nested workspace folder under a skeleton repo still resolves correctly.
 
 The extension resolves the CLI as:
 
-1. `skeleton.path` workspace setting (absolute path), if set
-2. `node_modules/.bin/skeleton` in the workspace
-3. `npx --no-install skeleton`
+1. `skeleton.path` workspace setting (absolute path), if set — `.js` / `.mjs` / `.cjs` entries run via Node (`process.execPath`); other absolute binaries spawn directly
+2. Local `node_modules/@csark0812/skeleton/dist/cli.js` (via `require` resolve or upward walk), run with Node
+3. Otherwise fail with a clear error (install the package or set `skeleton.path`) — the extension does **not** spawn Windows `.cmd` shims with `shell: false`
 
 ## Install from VSIX
 
@@ -58,7 +58,7 @@ Produces `skeleton-vscode-<version>.vsix` in `editors/vscode/`.
 
 ## Configure the CLI path (optional)
 
-When the workspace does not have `node_modules/.bin/skeleton` — for example while developing Skeleton itself — set an absolute path in workspace settings:
+When the workspace does not have `@csark0812/skeleton` under `node_modules` — for example while developing Skeleton itself — set an absolute path in workspace settings:
 
 ```json
 {
@@ -66,7 +66,7 @@ When the workspace does not have `node_modules/.bin/skeleton` — for example wh
 }
 ```
 
-Build the CLI first: `bun run build` (from the skeleton repo root).
+Build the CLI first: `bun run build` (from the skeleton repo root). JavaScript CLI entries are always launched with Node so Windows and macOS/Linux share one spawn path.
 
 ## Use
 
@@ -75,7 +75,8 @@ Open a skeleton-enabled workspace. The extension activates when `.skeleton/confi
 | Trigger                                              | Behavior                                                               |
 | ---------------------------------------------------- | ---------------------------------------------------------------------- |
 | Open / save docs `.md` / `.mdc`                      | Path-scoped `audit docs --paths=<file> --json`                         |
-| Open / save skill-tree Markdown (`SKILL.md`, etc.)   | Path-scoped `audit skills --paths=<file> --json`                       |
+| Open / save owned skill-tree Markdown                | Path-scoped `audit skills --paths=<file> --json`                       |
+| Open / save foreign lockfile skill tree              | Skipped (Output note; lint in the owning toolbox repo)                 |
 | Change `.skeleton/config.yaml` or registry           | `audit self` **and** bare `audit skills` (merged)                      |
 | Change plugin policy YAML under `.skeleton/plugins/` | Full `audit docs` **and** `audit skills` (merged)                      |
 | **Skeleton: Audit Current File**                     | Re-run the matching suite for the active file                          |
@@ -84,11 +85,13 @@ Open a skeleton-enabled workspace. The extension activates when `.skeleton/confi
 
 Diagnostics appear in **Problems**. Supported quick fixes call existing CLI fixers (`--fix=doc-meta`, `--fix=anchors`).
 
+On audit failure (missing CLI, bad config, non-JSON output), prior Problems are kept and an error toast offers **Show Output** — including for automatic open/save runs — so a failed audit does not look silently clean.
+
 Settings:
 
 | Setting              | Default | Purpose                                  |
 | -------------------- | ------- | ---------------------------------------- |
-| `skeleton.path`      | `""`    | Absolute path to the skeleton executable |
+| `skeleton.path`      | `""`    | Absolute path to the skeleton CLI (JS or binary) |
 | `skeleton.runOnOpen` | `true`  | Audit on file open                       |
 | `skeleton.runOnSave` | `true`  | Audit on file save                       |
 

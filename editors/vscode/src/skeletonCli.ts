@@ -1,32 +1,9 @@
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
 import * as vscode from "vscode";
+import { resolveSkeletonCommand } from "./skeletonCliResolve";
 import type { SkeletonReport } from "./types";
 
-interface ResolvedCommand {
-	executable: string;
-	prefixArgs: string[];
-}
-
-function resolveCommand(root: string): ResolvedCommand {
-	const configured = vscode.workspace.getConfiguration("skeleton").get<string>("path", "").trim();
-	if (configured) {
-		if (!isAbsolute(configured)) {
-			throw new Error("skeleton.path must be an absolute executable path");
-		}
-		return { executable: configured, prefixArgs: [] };
-	}
-
-	const executableName = process.platform === "win32" ? "skeleton.cmd" : "skeleton";
-	const local = join(root, "node_modules", ".bin", executableName);
-	if (existsSync(local)) return { executable: local, prefixArgs: [] };
-
-	return {
-		executable: process.platform === "win32" ? "npx.cmd" : "npx",
-		prefixArgs: ["--no-install", "skeleton"],
-	};
-}
+export { resolveSkeletonCommand } from "./skeletonCliResolve";
 
 function isReport(value: unknown): value is SkeletonReport {
 	if (!value || typeof value !== "object") return false;
@@ -53,7 +30,8 @@ export async function runSkeleton(
 	args: string[],
 	output: vscode.OutputChannel,
 ): Promise<SkeletonReport> {
-	const command = resolveCommand(root);
+	const configured = vscode.workspace.getConfiguration("skeleton").get<string>("path", "");
+	const command = resolveSkeletonCommand(root, configured);
 	const commandArgs = [...command.prefixArgs, ...args];
 	output.appendLine(`$ ${command.executable} ${commandArgs.join(" ")}`);
 

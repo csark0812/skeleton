@@ -7,9 +7,15 @@ import {
 	filterDocMetaPaths,
 	filterToPaths,
 	includeExplicitMarkdownPaths,
+	relPath,
 } from "./collect.ts";
 import { parseRegistry } from "./registry.ts";
-import { buildSkillIndex, listSkillMarkdownPaths, type SkillIndex } from "./skill-roots.ts";
+import {
+	buildSkillIndex,
+	isForeignSkillPath,
+	listSkillMarkdownPaths,
+	type SkillIndex,
+} from "./skill-roots.ts";
 
 export interface AuditContext {
 	root: string;
@@ -55,6 +61,9 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 	if (options.paths && options.paths.length > 0) {
 		files = includeExplicitMarkdownPaths(files, options.paths, root);
 		files = filterToPaths(files, options.paths, root);
+		// Path-scoped --paths must not re-lint foreign/lockfile skill bodies
+		// (same skip as validate changed / bare audit skills).
+		files = files.filter((abs) => !isForeignSkillPath(relPath(abs, root), skillIndex));
 	}
 
 	const registry = parseRegistry(root);

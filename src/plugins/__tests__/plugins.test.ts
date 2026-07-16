@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../../audit/config/load.ts";
+import { createContext } from "../../audit/core/context.ts";
 import { type AuditSuite, assembleRules } from "../../audit/rules/index.ts";
 import { runAudit } from "../../audit/run.ts";
 import { parseBuildPluginArgs, runBuildPlugin, stampPathForMjs } from "../build.ts";
@@ -336,6 +337,63 @@ describe("plugin load + build", () => {
 				root: dir,
 			});
 			expect(bareOwned).toBe(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("path-scoped audit skills ignores foreign locked skill prose hits", async () => {
+		const dir = join(tmpdir(), `skel-skills-foreign-paths-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton/plugins/example/policies"), { recursive: true });
+		mkdirSync(join(dir, ".claude/skills/foreign"), { recursive: true });
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/example.ts"),
+			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/plugins/example/policies/banned.yaml"),
+			`name: skill-banned\nentries:\n  - id: hub\n    scope: ".claude/skills/**"\n    pattern: HUB_BANNED_TOKEN\n    message: no hub token\n`,
+		);
+		writeFileSync(
+			join(dir, ".claude/skills/foreign/SKILL.md"),
+			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
+		);
+		writeFileSync(
+			join(dir, "skills-lock.json"),
+			JSON.stringify({
+				version: 1,
+				skills: {
+					foreign: { source: "org/toolbox", sourceType: "github" },
+				},
+			}),
+		);
+		writeFileSync(join(dir, "docs/a.md"), "# A\n");
+		try {
+			await runBuildPlugin({ root: dir });
+			const scoped = await runAudit({
+				suite: "skills",
+				strict: false,
+				json: false,
+				paths: [".claude/skills/foreign/SKILL.md"],
+				only: new Set(["prose-policy"]),
+				root: dir,
+			});
+			expect(scoped).toBe(0);
+
+			const ctx = createContext({
+				root: dir,
+				paths: [".claude/skills/foreign/SKILL.md"],
+			});
+			expect(
+				ctx.files.some((abs) =>
+					abs.replaceAll("\\", "/").endsWith(".claude/skills/foreign/SKILL.md"),
+				),
+			).toBe(false);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
