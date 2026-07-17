@@ -2,7 +2,7 @@
 
 **Source of truth for** Package overview.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
@@ -34,14 +34,41 @@ Skeleton answers the repo-level question: _"Does this whole thing still agree wi
 
 ## What the research says
 
-Research here is still early, but the direction is useful: more context isn't automatically better.
+Research on agent context is still early, but the direction is useful: more context isn't automatically better.
 
 - A [2026 study of repo-level context files](https://doi.org/10.48550/arxiv.2602.11988) tested 438 coding tasks. Human-written files improved resolution by 4% on average; generated files reduced it by 3%. Both increased inference cost by more than 20%. The recommendation was pretty direct: keep instructions minimal and include what the agent can't infer.
 - A [2025 METR randomized trial](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found experienced open-source developers took 19% longer with early-2025 AI tools while believing they were faster.
 
-Neither study proves Skeleton improves task success. That needs a Skeleton-specific benchmark.
+Those studies motivate Skeleton’s constraint (small useful context, clear ownership, verified SSOT). They do **not** measure Skeleton itself.
 
-What they do support is the constraint Skeleton is built around: keep the useful context small, make ownership clear, and verify the rest instead of trusting that it stayed correct.
+### Skeleton-specific benchmark (what we measure)
+
+We run a paired live A/B harness (`skeleton-clean` vs `skeleton-messy`) with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): same prompts, differing registry / conflict structure and context profile. Tasks cover registry grounding, validation-lane choice, and customize ownership.
+
+- Method and significance gates: [refs/llm-harness.md](refs/llm-harness.md) (target **N=10** independent compares; McNemar on pass/fail; token/tool deltas)
+- Suite definitions: [agent-suites/README.md](agent-suites/README.md)
+- Numbers + transcript excerpts: [agent-suites/evidence/](agent-suites/evidence/)
+
+### What the evidence shows (preliminary, N=1)
+
+One live compare (2026-07-17) is deposited under `evidence/` and summarized in [SUMMARY.md](agent-suites/evidence/SUMMARY.md). **Not yet statistically significant** (McNemar needs more discordant pairs across runs). Directional results:
+
+| Signal                    | Clean                     | Messy                                                    |
+| ------------------------- | ------------------------- | -------------------------------------------------------- |
+| Grounding (2 scenarios)   | 2/2 pass                  | 0/2 pass — wrong/invented webhooks under conflict        |
+| Docs routing              | pass (`validate:changed`) | fail (emitted forbidden `audit all`)                     |
+| Skill routing + customize | pass                      | pass (tied — caller `AGENTS.md` still teaches both arms) |
+| Tokens / tools            | lower on grounding        | ~+379k median tokens and many more tools on grounding    |
+
+Side-by-side excerpts: [evidence/transcripts/](agent-suites/evidence/transcripts/) (clean registry hop + correct webhook vs messy search thrash + `messy-a.example.com`).
+
+Final README claims wait until `SUMMARY.json` reports `gates.readmeFinalClaimsAllowed: true` (N≥10 + grounding McNemar p < 0.05 + positive grounding token Δ).
+
+### What this does not prove
+
+- Not a general coding-task / SWE-bench success claim
+- Live model and prompt variance; fixture tasks only
+- Skill/customize may not separate when `AGENTS.md` already encodes the correct rule
 
 ## Quick start
 
@@ -112,14 +139,14 @@ skeleton customize resolve <slug>
 
 **Validate changed** routes git diffs to the right audit:
 
-| Path                                                                                | Action                                                        |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Docs in scan perimeter                                                              | path-scoped audit                                             |
-| Owned skill bodies (`SKILL.md` trees)                                               | exit 1 → run `audit skills`                                   |
-| Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo                 |
-| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                       |
-| Other `.json`                                                                       | JSONC-tolerant syntax check                                   |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)                                    |
+| Path                                                                                | Action                                        |
+| ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| Docs in scan perimeter                                                              | path-scoped audit                             |
+| Owned skill bodies (`SKILL.md` trees)                                               | exit 1 → run `audit skills`                   |
+| Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo |
+| `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                       |
+| Other `.json`                                                                       | JSONC-tolerant syntax check                   |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)                    |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
 

@@ -1,0 +1,150 @@
+{
+	"generatedAt": "2026-07-17T17:40:19.378Z",
+	"protocolTargetN": 10,
+	"nRuns": 1,
+	"preliminary": true,
+	"runIds": [
+		"2026-07-17-run-001"
+	],
+	"aLabel": "skeleton-clean",
+	"bLabel": "skeleton-messy",
+	"gates": {
+		"groundingMcnemarP05": false,
+		"groundingTokenMedianMessyHigher": true,
+		"readmeFinalClaimsAllowed": false
+	},
+	"overall": {
+		"meanTokenDelta": 163103.2,
+		"medianTokenDelta": 74923,
+		"tokenDeltaBootstrap95": {
+			"mean": 163103.2,
+			"lo": 8256.2,
+			"hi": 328259.8
+		},
+		"meanToolDelta": 11.4,
+		"medianToolDelta": 6,
+		"groundingMedianTokenDelta": 378707,
+		"groundingTokenDeltaBootstrap95": {
+			"mean": 378707,
+			"lo": 314719,
+			"hi": 442695
+		}
+	},
+	"scenarios": {
+		"customize: project binding": {
+			"n": 1,
+			"cleanPassRate": 1,
+			"messyPassRate": 1,
+			"cleanPass": 1,
+			"messyPass": 1,
+			"mcnemar": {
+				"b": 0,
+				"c": 0,
+				"n": 0,
+				"pValue": 1
+			},
+			"medianTokenDelta": 74923,
+			"meanTokenDelta": 74923,
+			"tokenDeltaBootstrap95": {
+				"mean": 74923,
+				"lo": 74923,
+				"hi": 74923
+			},
+			"medianToolDelta": 6,
+			"meanToolDelta": 6,
+			"medianDurationDeltaMs": 8142
+		},
+		"grounding: canonical topic": {
+			"n": 1,
+			"cleanPassRate": 1,
+			"messyPassRate": 0,
+			"cleanPass": 1,
+			"messyPass": 0,
+			"mcnemar": {
+				"b": 1,
+				"c": 0,
+				"n": 1,
+				"pValue": 1
+			},
+			"medianTokenDelta": 442695,
+			"meanTokenDelta": 442695,
+			"tokenDeltaBootstrap95": {
+				"mean": 442695,
+				"lo": 442695,
+				"hi": 442695
+			},
+			"medianToolDelta": 26,
+			"meanToolDelta": 26,
+			"medianDurationDeltaMs": 65244
+		},
+		"grounding: conflicting docs": {
+			"n": 1,
+			"cleanPassRate": 1,
+			"messyPassRate": 0,
+			"cleanPass": 1,
+			"messyPass": 0,
+			"mcnemar": {
+				"b": 1,
+				"c": 0,
+				"n": 1,
+				"pValue": 1
+			},
+			"medianTokenDelta": 314719,
+			"meanTokenDelta": 314719,
+			"tokenDeltaBootstrap95": {
+				"mean": 314719,
+				"lo": 314719,
+				"hi": 314719
+			},
+			"medianToolDelta": 21,
+			"meanToolDelta": 21,
+			"medianDurationDeltaMs": 46084
+		},
+		"routing: docs-only change": {
+			"n": 1,
+			"cleanPassRate": 1,
+			"messyPassRate": 0,
+			"cleanPass": 1,
+			"messyPass": 0,
+			"mcnemar": {
+				"b": 1,
+				"c": 0,
+				"n": 1,
+				"pValue": 1
+			},
+			"medianTokenDelta": -1505,
+			"meanTokenDelta": -1505,
+			"tokenDeltaBootstrap95": {
+				"mean": -1505,
+				"lo": -1505,
+				"hi": -1505
+			},
+			"medianToolDelta": 0,
+			"meanToolDelta": 0,
+			"medianDurationDeltaMs": -3681
+		},
+		"routing: owned skill body": {
+			"n": 1,
+			"cleanPassRate": 1,
+			"messyPassRate": 1,
+			"cleanPass": 1,
+			"messyPass": 1,
+			"mcnemar": {
+				"b": 0,
+				"c": 0,
+				"n": 0,
+				"pValue": 1
+			},
+			"medianTokenDelta": -15316,
+			"meanTokenDelta": -15316,
+			"tokenDeltaBootstrap95": {
+				"mean": -15316,
+				"lo": -15316,
+				"hi": -15316
+			},
+			"medianToolDelta": 4,
+			"meanToolDelta": 4,
+			"medianDurationDeltaMs": 30098
+		}
+	}
+}
