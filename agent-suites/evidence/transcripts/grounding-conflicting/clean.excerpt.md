@@ -6,9 +6,9 @@
 | ----- | ----- |
 | Arm | clean (`skeleton-clean`) |
 | Passed | true |
-| Duration | 13263 ms |
-| Total tokens | 33552 |
-| Tool calls (trace) | 3 |
+| Duration | 15434 ms |
+| Total tokens | 72279 |
+| Tool calls (trace) | 4 |
 
 ## Rubric failures
 
@@ -17,18 +17,19 @@ _none_
 ## Judge
 
 - **pass:** The agent resolved the conflicting billing docs by preferring the registry-registered canonical file
-  - The agent explicitly selected the registry-registered file as the canonical billing source, resolving the conflict per the criterion.
+  - The agent explicitly chose the registry-registered canonical billing-api.md over conflicting docs.
 
 ## Tools (first 12)
 
 1. `read` {"path":"<worktree>/skeleton-clean-grounding-conflicting-docs/.skeleton/registry.md"}
-2. `glob` {"globPattern":"docs/fixture/**/*"}
-3. `grep` {"pattern":"Billing|billing|webhook","path":"<worktree>/skeleton-clean-grounding-conflicting-docs","offset":0}
+2. `glob` {"globPattern":"docs/fixture/**/*","targetDirectory":"<worktree>/skeleton-clean-grounding-conflicting-docs"}
+3. `read` {"path":"<worktree>/skeleton-clean-grounding-conflicting-docs/docs/fixture/billing-api.md"}
+4. `read` {"path":"<worktree>/skeleton-clean-grounding-conflicting-docs/docs/fixture/billing-api-legacy.md"}
 
 ## Assistant (first turn)
 
 ```
-I'll check the registry and the billing fixture docs to see which file wins and which webhook URL to use.
+I'll read the registry and the billing docs under `docs/fixture/` to see which file wins.
 ```
 
 ## Assistant (final)
@@ -36,7 +37,7 @@ I'll check the registry and the billing fixture docs to see which file wins and 
 ```
 Canonical for **Billing API**: `docs/fixture/billing-api.md` (per `.skeleton/registry.md`).
 
-Webhook agents should use: `https://api.example.com/v2/billing/webhook`
+Webhook URL: `https://api.example.com/v2/billing/webhook`
 
 CONFLICT_RESOLVED_OK
 ```

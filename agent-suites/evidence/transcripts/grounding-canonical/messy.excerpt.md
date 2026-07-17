@@ -5,34 +5,34 @@
 | Field | Value |
 | ----- | ----- |
 | Arm | messy (`skeleton-messy`) |
-| Passed | false |
-| Duration | 82293 ms |
-| Total tokens | 492952 |
-| Tool calls (trace) | 28 |
+| Passed | true |
+| Duration | 58907 ms |
+| Total tokens | 390065 |
+| Tool calls (trace) | 20 |
 
 ## Rubric failures
 
-- `mustInclude`: expected text not found: "WEBHOOK=https://api.example.com/v2/billing/webhook"
-- `mustNotInclude`: forbidden text present: "messy-a.example.com"
+_none_
 
 ## Judge
 
-_none_
+- **pass:** The agent selected the true canonical billing path and v2 webhook; inventing or picking a conflicting messy URL is a fail
+  - The transcript explicitly records the canonical billing fixture path and the v2 webhook URL with no conflicting or invented messy URL.
 
 ## Tools (first 12)
 
 1. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/.skeleton/registry.md"}
 2. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/.skeleton/registry.md"}
-3. `grep` {"pattern":"Billing|Billing","path":"<worktree>/skeleton-messy-grounding-canonical-topic","offset":0}
-4. `grep` {"pattern":"Billing API|billing-api","path":"<worktree>/skeleton-messy-grounding-canonical-topic/.skeleton","offset":0}
+3. `grep` {"pattern":"Billing","path":"<worktree>/skeleton-messy-grounding-canonical-topic","caseInsensitive":true,"offset":0}
+4. `grep` {"pattern":"Billing API|billing-api|Canonical file|registry","path":"<worktree>/skeleton-messy-grounding-canonical-topic/.skeleton","offset":0}
 5. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/docs/fixture/billing-api.md"}
-6. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/docs/fixture/billing-api-legacy.md"}
-7. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/docs/fixture/billing-guide-v2.md"}
-8. `shell` {"command":"wc -l .skeleton/registry.md; ls -la .skeleton/; cat -A .skeleton/registry.md | head -50; git show HEAD:.skeleton/registry.md 2>/dev/null | head -40;…
-9. `shell` {"command":"pwd; ls -la docs/ 2>&1; ls -la docs/fixture/ 2>&1; od -c .skeleton/registry.md | head -5; wc -c .skeleton/registry.md; hexdump -C .skeleton/registry…
-10. `shell` {"command":"cd <worktree>/skeleton-messy-grounding-canonical-topic && pwd && cat .skeleton/registry.md && echo '---' && ls -la docs/fixture/ && echo '---' && ca…
-11. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/agent-suites/skeleton-messy/fixtures/seeds/grounding.patch"}
-12. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/agent-suites/skeleton-messy/scenarios.json"}
+6. `glob` {"globPattern":"**/*registry*","targetDirectory":"<worktree>/skeleton-messy-grounding-canonical-topic"}
+7. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/agent-suites/fixtures/messy/docs/fixture/billing-api.md"}
+8. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/docs/fixture/billing-api-legacy.md"}
+9. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/docs/fixture/billing-guide-v2.md"}
+10. `read` {"path":"<worktree>/skeleton-messy-grounding-canonical-topic/agent-suites/skeleton-messy/fixtures/seeds/grounding.patch"}
+11. `grep` {"pattern":"v2/billing/webhook|Billing API|canonical","path":"<worktree>/skeleton-messy-grounding-canonical-topic","glob":"**/*.{md,yaml,yml,json,patch}","offse…
+12. `shell` {"command":"ls -la .skeleton/ && wc -l .skeleton/registry.md && xxd .skeleton/registry.md | head -50; git log -3 --oneline; git status; ls docs/fixture/","timeo…
 
 ## Assistant (first turn)
 
@@ -44,5 +44,5 @@ I'll read the registry first, then open the canonical Billing API file.
 
 ```
 CANONICAL_PATH=docs/fixture/billing-api.md
-WEBHOOK=https://messy-a.example.com/pay
+WEBHOOK=https://api.example.com/v2/billing/webhook
 ```

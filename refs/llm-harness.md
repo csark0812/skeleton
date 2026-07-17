@@ -57,9 +57,10 @@ Until then, README and SUMMARY stay labeled **preliminary**.
 
 ## Metric log
 
-| Date       | N   | Clean grounding | Messy grounding | Median Δ tokens (grounding) | Notes                                                                            |
-| ---------- | --- | --------------- | --------------- | --------------------------- | -------------------------------------------------------------------------------- |
-| 2026-07-17 | 1   | 2/2             | 0/2             | ~379k                       | Preliminary; docs routing also clean✓/messy✗ (`audit all`); skill+customize tied |
+| Date       | N   | Clean grounding | Messy grounding | Median Δ tokens (grounding) | Notes                                                                                                                                 |
+| ---------- | --- | --------------- | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-07-17 | 10  | 20/20           | 8/20            | ~312k                       | Sequential batch; conflicting docs 10/0 (p=0.002); docs routing 10/0 (`audit all`); skill+customize tied; gates → final README claims |
+| 2026-07-17 | 1   | 2/2             | 0/2             | ~379k                       | Superseded by N=10 row (early deposit)                                                                                                |
 
 See [`agent-suites/evidence/SUMMARY.md`](../agent-suites/evidence/SUMMARY.md) for full tables.
 

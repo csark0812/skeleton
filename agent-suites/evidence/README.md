@@ -31,4 +31,4 @@ Do not commit API keys, `.env`, or full debug bundles. Excerpts redact absolute 
 
 ## Protocol
 
-See [refs/llm-harness.md](../../refs/llm-harness.md) and [agent-suites/README.md](../README.md). Target **N=10** independent compares before treating McNemar / token CIs as final README claims. Preliminary (N=1) is labeled as such in SUMMARY and README.
+See [refs/llm-harness.md](../../refs/llm-harness.md) and [agent-suites/README.md](../README.md). Protocol target **N=10** independent sequential compares. The 2026-07-17 batch met both gates (`readmeFinalClaimsAllowed: true`); curated excerpts are from median run `2026-07-17-run-006`.

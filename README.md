@@ -49,26 +49,26 @@ We run a paired live A/B harness (`skeleton-clean` vs `skeleton-messy`) with [`@
 - Suite definitions: [agent-suites/README.md](agent-suites/README.md)
 - Numbers + transcript excerpts: [agent-suites/evidence/](agent-suites/evidence/)
 
-### What the evidence shows (preliminary, N=1)
+### What the evidence shows (N=10)
 
-One live compare (2026-07-17) is deposited under `evidence/` and summarized in [SUMMARY.md](agent-suites/evidence/SUMMARY.md). **Not yet statistically significant** (McNemar needs more discordant pairs across runs). Directional results:
+Ten sequential live compares (2026-07-17) are summarized in [SUMMARY.md](agent-suites/evidence/SUMMARY.md). Gates passed: grounding McNemar p < 0.05 (clean > messy) and positive grounding median token Δ (`gates.readmeFinalClaimsAllowed: true`).
 
-| Signal                    | Clean                     | Messy                                                    |
-| ------------------------- | ------------------------- | -------------------------------------------------------- |
-| Grounding (2 scenarios)   | 2/2 pass                  | 0/2 pass — wrong/invented webhooks under conflict        |
-| Docs routing              | pass (`validate:changed`) | fail (emitted forbidden `audit all`)                     |
-| Skill routing + customize | pass                      | pass (tied — caller `AGENTS.md` still teaches both arms) |
-| Tokens / tools            | lower on grounding        | ~+379k median tokens and many more tools on grounding    |
+| Signal | Clean | Messy | Notes |
+| ------ | ----- | ----- | ----- |
+| Contested grounding (`conflicting docs`) | **10/10** | **0/10** | McNemar 10/0, p = 0.002 — registry SoT |
+| Docs routing | **10/10** | **0/10** | McNemar 10/0, p = 0.002 — messy invents `audit all` |
+| Canonical grounding | 10/10 | 8/10 | Pass rate not significant; messy still burns tokens |
+| Skill routing + customize | 10/10 | 10/10 | Tied — caller `AGENTS.md` already teaches both |
+| Grounding tokens (messy − clean) | — | median **~312k** more | Bootstrap 95% CI on mean excludes 0 |
 
-Side-by-side excerpts: [evidence/transcripts/](agent-suites/evidence/transcripts/) (clean registry hop + correct webhook vs messy search thrash + `messy-a.example.com`).
-
-Final README claims wait until `SUMMARY.json` reports `gates.readmeFinalClaimsAllowed: true` (N≥10 + grounding McNemar p < 0.05 + positive grounding token Δ).
+Side-by-side excerpts (median sequential run): [evidence/transcripts/](agent-suites/evidence/transcripts/) — clean registry hop + correct webhook vs messy conflict thrash and forbidden `audit all`.
 
 ### What this does not prove
 
 - Not a general coding-task / SWE-bench success claim
 - Live model and prompt variance; fixture tasks only
 - Skill/customize may not separate when `AGENTS.md` already encodes the correct rule
+- Canonical pass rate alone understates cost — messy often lucks into the answer while spending far more tokens
 
 ## Quick start
 
