@@ -2,7 +2,7 @@
 
 **Source of truth for** agent cold-start in this repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server.
 
@@ -41,6 +41,8 @@ bun test ./tests/smoke.test.ts
 `validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped, it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
 Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`.
+
+Behavioral A/B dogfood (live Cursor, not part of `bun run check`): [agent-suites/README.md](agent-suites/README.md) · [refs/llm-harness.md](refs/llm-harness.md).
 
 Consumer-facing decision table and routing: [docs/developer/validation.md](docs/developer/validation.md). Common failures: [docs/developer/troubleshooting.md](docs/developer/troubleshooting.md). Day-one setup: [docs/developer/getting-started.md](docs/developer/getting-started.md).
 

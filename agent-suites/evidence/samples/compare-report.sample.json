@@ -1,0 +1,173 @@
+{
+  "aLabel": "skeleton-clean",
+  "bLabel": "skeleton-messy",
+  "aSuite": "skeleton-clean",
+  "bSuite": "skeleton-messy",
+  "paired": [
+    {
+      "scenario": "customize: project binding",
+      "a": {
+        "passed": true,
+        "durationMs": 34163,
+        "toolCallCount": 15,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 281515,
+        "inputTokens": 145900,
+        "outputTokens": 2623
+      },
+      "b": {
+        "passed": true,
+        "durationMs": 29041,
+        "toolCallCount": 13,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 296334,
+        "inputTokens": 157505,
+        "outputTokens": 1741
+      },
+      "deltas": {
+        "passedChanged": false,
+        "durationMs": -5122,
+        "toolCallCount": -2,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 14819
+      }
+    },
+    {
+      "scenario": "grounding: canonical topic",
+      "a": {
+        "passed": true,
+        "durationMs": 16762,
+        "toolCallCount": 2,
+        "skillCount": 0,
+        "registryHopCount": 1,
+        "totalTokens": 42079,
+        "inputTokens": 28576,
+        "outputTokens": 319
+      },
+      "b": {
+        "passed": true,
+        "durationMs": 58907,
+        "toolCallCount": 20,
+        "skillCount": 0,
+        "registryHopCount": 3,
+        "totalTokens": 390065,
+        "inputTokens": 206052,
+        "outputTokens": 5581
+      },
+      "deltas": {
+        "passedChanged": false,
+        "durationMs": 42145,
+        "toolCallCount": 18,
+        "skillCount": 0,
+        "registryHopCount": 2,
+        "totalTokens": 347986
+      }
+    },
+    {
+      "scenario": "grounding: conflicting docs",
+      "a": {
+        "passed": true,
+        "durationMs": 15434,
+        "toolCallCount": 4,
+        "skillCount": 0,
+        "registryHopCount": 1,
+        "totalTokens": 72279,
+        "inputTokens": 40922,
+        "outputTokens": 509
+      },
+      "b": {
+        "passed": false,
+        "durationMs": 47759,
+        "toolCallCount": 20,
+        "skillCount": 0,
+        "registryHopCount": 3,
+        "totalTokens": 286820,
+        "inputTokens": 154628,
+        "outputTokens": 4320
+      },
+      "deltas": {
+        "passedChanged": true,
+        "durationMs": 32325,
+        "toolCallCount": 16,
+        "skillCount": 0,
+        "registryHopCount": 2,
+        "totalTokens": 214541
+      }
+    },
+    {
+      "scenario": "routing: docs-only change",
+      "a": {
+        "passed": true,
+        "durationMs": 23970,
+        "toolCallCount": 5,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 160782,
+        "inputTokens": 83237,
+        "outputTokens": 873
+      },
+      "b": {
+        "passed": false,
+        "durationMs": 22235,
+        "toolCallCount": 5,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 165278,
+        "inputTokens": 86118,
+        "outputTokens": 952
+      },
+      "deltas": {
+        "passedChanged": true,
+        "durationMs": -1735,
+        "toolCallCount": 0,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 4496
+      }
+    },
+    {
+      "scenario": "routing: owned skill body",
+      "a": {
+        "passed": true,
+        "durationMs": 12486,
+        "toolCallCount": 1,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 48072,
+        "inputTokens": 26285,
+        "outputTokens": 283
+      },
+      "b": {
+        "passed": true,
+        "durationMs": 12696,
+        "toolCallCount": 1,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": 46354,
+        "inputTokens": 25224,
+        "outputTokens": 266
+      },
+      "deltas": {
+        "passedChanged": false,
+        "durationMs": 210,
+        "toolCallCount": 0,
+        "skillCount": 0,
+        "registryHopCount": 0,
+        "totalTokens": -1718
+      }
+    }
+  ],
+  "onlyInA": [],
+  "onlyInB": [],
+  "summary": {
+    "pairedCount": 5,
+    "passRegressions": 2,
+    "passImprovements": 0,
+    "meanDurationDeltaMs": 13564.6,
+    "meanToolCallDelta": 6.4,
+    "meanTotalTokensDelta": 116024.8
+  }
+}

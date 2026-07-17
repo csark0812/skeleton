@@ -1,0 +1,50 @@
+diff --git a/fixture-skills/owned-demo/SKILL.md b/fixture-skills/owned-demo/SKILL.md
+new file mode 100644
+--- /dev/null
++++ b/fixture-skills/owned-demo/SKILL.md
+@@ -0,0 +1,7 @@
++# Owned demo skill
++
++**Source of truth for** owned-demo skill body in agent-test fixtures.
++
++<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
++
++Baseline line: OWNED_DEMO_V2_STAGED
+
+--- a/.skeleton/registry.md
++++ b/.skeleton/registry.md
+@@ -1,30 +1,10 @@
+ # Registry
+ 
+-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
++<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
+ 
+-**Source of truth for** topic routing in this repo. Edit rows here; edit content in canonical files only.
++**Source of truth for** topic routing in this repo.
+ 
+ ## Documentation
+ 
+-| Topic                 | Canonical file                                             |
+-| --------------------- | ---------------------------------------------------------- |
+-| Package overview      | [README.md](../README.md)                                  |
+-| Agent cold-start      | [AGENTS.md](../AGENTS.md)                                  |
+-| Authoring conventions | [authoring.md](../docs/authoring.md)                       |
+-| Ecosystem tiers       | [tiers.md](../docs/tiers.md)                               |
+-| Getting started       | [getting-started.md](../docs/developer/getting-started.md) |
+-| Install               | [install.md](../docs/developer/install.md)                 |
+-| Config                | [config.md](../docs/developer/config.md)                   |
+-| Validation            | [validation.md](../docs/developer/validation.md)           |
+-| Troubleshooting       | [troubleshooting.md](../docs/developer/troubleshooting.md) |
+-| Doc system            | [doc-system.md](../docs/developer/doc-system.md)           |
+-| Audit                 | [audit.md](../docs/developer/audit.md)                     |
+-| Plugins               | [plugins.md](../docs/developer/plugins.md)                 |
+-| Customize             | [customize.md](../docs/developer/customize.md)             |
+-| Skeleton skill        | [SKILL.md](../skeleton/SKILL.md)                           |
+-
+-## Customizations
+-
+-| Topic                                                                                                  | Canonical file                             |
+-| ------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+-| Customize: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar). | [code-review.md](customize/code-review.md) |
++| Topic | Canonical file |
++| ----- | -------------- |

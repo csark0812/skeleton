@@ -12,3 +12,6 @@ dist/
 !.env.example
 src/audit/__tests__/fixtures/plugins/**/*.mjs
 src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
+
+# Raw live compare dumps (aggregate into SUMMARY.*)
+agent-suites/evidence/runs/
