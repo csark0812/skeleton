@@ -5,43 +5,43 @@
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "code-review/SKILL.md",
-      "computedHash": "53956f4374b808f4389e278fb5ce08d49cc9be660deec01055dd414eee0e7933"
+      "computedHash": "521a80aedba52a3d86ff059fef153fc499308a0433ebd9a36034aada0a2d7fdc"
     },
     "crystallize": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "crystallize/SKILL.md",
-      "computedHash": "23ff91ab34d4827bc732e3800ed4638a59116ec087fbf02c971614e49a2adf78"
+      "computedHash": "6b025ba28ade60ad050afdff5358588e48847abb30d1f54881455758bdc50041"
     },
     "grill": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "grill/SKILL.md",
-      "computedHash": "31658f9dd0182116c65495d10c10e9364007d5fc680e0e6548bf2f5b4e47b742"
+      "computedHash": "48d3dbd95912826bf63b4fffe593051e13616d32a0fdf906d783e902bb0dd954"
     },
     "handoff": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "handoff/SKILL.md",
-      "computedHash": "65c3906744f37edb2ba1dad0b6fa28a00b10b12189d1379f7bf4026906e64ec1"
+      "computedHash": "f2185cc63a9de055f5074e55ef181e723cca627995d4b681251d8e5cc5758e0c"
     },
     "investigate": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "investigate/SKILL.md",
-      "computedHash": "6f9c8917ccc2730be490e27bad305b876d2f5fa28207b8d3b0872097aac010be"
+      "computedHash": "24c69606554a4734c8af678f89177baee3f23b01d00ca3c3ed5f81909988aee8"
     },
     "multi": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "multi/SKILL.md",
-      "computedHash": "85d4b44e52ff6b3eda549c35121f728c5774d3bece3f5378fef7e21d665cdd4d"
+      "computedHash": "1f6d528313bfde6a5b0aa9cba7766b7a8698f110c58322061b2d7941d38988c6"
     },
     "second-opinion": {
       "source": "csark0812/toolbox",
       "sourceType": "github",
       "skillPath": "second-opinion/SKILL.md",
-      "computedHash": "85b80a934717ccc4a4055d7a5ba8cd62e4fefcb56fa053f09ab9c9630c191956"
+      "computedHash": "716d9f00d77c284da181e5224013f5264e9c7e3f57b0b26f8df7c202abe51317"
     },
     "skeleton": {
       "source": "/home/runner/work/skeleton/skeleton",
