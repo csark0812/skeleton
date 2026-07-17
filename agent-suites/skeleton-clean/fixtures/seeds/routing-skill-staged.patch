@@ -1,0 +1,12 @@
+diff --git a/fixture-skills/owned-demo/SKILL.md b/fixture-skills/owned-demo/SKILL.md
+new file mode 100644
+--- /dev/null
++++ b/fixture-skills/owned-demo/SKILL.md
+@@ -0,0 +1,7 @@
++# Owned demo skill
++
++**Source of truth for** owned-demo skill body in agent-test fixtures.
++
++<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
++
++Baseline line: OWNED_DEMO_V2_STAGED

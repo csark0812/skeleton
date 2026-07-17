@@ -10,6 +10,7 @@ scan:
   exclude:
     - "refs/**"
     - "todo.md"
+    - "agent-suites/**"
     # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
     - ".agents/**"
     - ".claude/**"

@@ -1,0 +1,16 @@
+diff --git a/docs/fixture/billing-api.md b/docs/fixture/billing-api.md
+new file mode 100644
+--- /dev/null
++++ b/docs/fixture/billing-api.md
+@@ -0,0 +1,11 @@
++# Billing API
++
++**Source of truth for** Billing API webhook endpoints in the agent-test fixture.
++
++<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
++
++Canonical webhook URL: `https://api.example.com/v2/billing/webhook`
++
++Use this path only. Do not invent alternate billing hosts.
++
++ROUTING_SEED_MARKER

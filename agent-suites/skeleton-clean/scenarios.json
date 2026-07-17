@@ -1,0 +1,91 @@
+{
+	"name": "skeleton-clean",
+	"description": "Live A/B clean arm: profile=skeleton + registry-backed fixture docs. Pair with skeleton-messy via --compare-pairs.",
+	"defaults": {
+		"host": "replay",
+		"profile": "skeleton",
+		"skills": "none"
+	},
+	"scenarios": [
+		{
+			"name": "grounding: canonical topic",
+			"prompt": "One-shot (no AskQuestion). Read `.skeleton/registry.md` first, then open the canonical file for topic **Billing API**.\n\nReply with exactly two lines:\n1) CANONICAL_PATH=<repo-relative path>\n2) WEBHOOK=<url from that file>\n\nDo not cite legacy or draft billing docs.",
+			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/grounding.patch",
+			"rubric": {
+				"mustReadPath": [".skeleton/registry"],
+				"must": [
+					"CANONICAL_PATH=docs/fixture/billing-api.md",
+					"WEBHOOK=https://api.example.com/v2/billing/webhook"
+				],
+				"mustNot": [
+					"legacy.example.com",
+					"messy-a.example.com",
+					"messy-b.example.com",
+					"messy-c.example.com",
+					"audit all"
+				],
+				"judge": [
+					"The agent used the registry to select docs/fixture/billing-api.md and quoted the v2 billing webhook, not a legacy or invented URL"
+				]
+			}
+		},
+		{
+			"name": "grounding: conflicting docs",
+			"prompt": "One-shot (no AskQuestion). Two billing docs exist under docs/fixture/. Only the registry decides the winner.\n\nRead `.skeleton/registry.md`, then answer: which file is canonical for **Billing API**, and what webhook URL should agents use?\n\nEnd with: CONFLICT_RESOLVED_OK",
+			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/grounding.patch",
+			"rubric": {
+				"mustReadPath": [".skeleton/registry"],
+				"must": [
+					"docs/fixture/billing-api.md",
+					"https://api.example.com/v2/billing/webhook",
+					"CONFLICT_RESOLVED_OK"
+				],
+				"mustNot": ["legacy.example.com", "audit all"],
+				"judge": [
+					"The agent resolved the conflicting billing docs by preferring the registry-registered canonical file"
+				]
+			}
+		},
+		{
+			"name": "routing: docs-only change",
+			"prompt": "One-shot (no AskQuestion). There is a staged docs change under docs/fixture/ (see git status / staged diff).\n\nUsing AGENTS.md validation lanes, run the correct Skeleton validation command for this docs-only change — prefer `bun run validate:changed -- docs/fixture/...` (or `bun run audit:docs` / `audit:self` as appropriate).\n\nDo not invent gates like `audit all`. After running validation, briefly state which command you ran.",
+			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/routing-docs.patch",
+			"seedStageOnly": true,
+			"rubric": {
+				"mustRun": ["validate:changed"],
+				"mustNot": ["audit all", "nx run", "npm run test:e2e"],
+				"judge": [
+					"The agent chose a docs/SSOT validation lane (validate:changed and/or audit docs/self) for the staged fixture markdown, not an invented gate"
+				]
+			}
+		},
+		{
+			"name": "routing: owned skill body",
+			"prompt": "One-shot (no AskQuestion). There is a staged edit to `fixture-skills/owned-demo/SKILL.md`.\n\nUsing AGENTS.md validation lanes, prove this owned skill-body change correctly. Path-scoped `validate:changed` alone is not enough for owned skill trees — run `bun run audit:skills`.\n\nDo not claim the change is merge-ready after only path-scoped docs validate. Do not invent `audit all`.",
+			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/routing-skill-staged.patch",
+			"seedStageOnly": true,
+			"rubric": {
+				"mustRun": ["audit:skills"],
+				"mustNot": ["audit all"],
+				"judge": [
+					"The agent ran audit:skills (or bun run audit:skills) for the owned skill-body edit and did not treat path-scoped validate-changed alone as sufficient"
+				]
+			}
+		},
+		{
+			"name": "customize: project binding",
+			"prompt": "One-shot (no AskQuestion). A synced skill exists at `fixture-skills/demo-skill/SKILL.md`. Add a **project-specific** binding for this repo without editing that SKILL.md body.\n\nWrite `.skeleton/customize/demo-skill.md` that injects a canary line exactly: `SKELETON_DEMO_SKILL_CANARY_7f3a`.\n\nConfirm the file exists and quote the canary. Do not modify `fixture-skills/demo-skill/SKILL.md`.",
+			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/customize-demo.patch",
+			"rubric": {
+				"must": [
+					".skeleton/customize/demo-skill.md",
+					"SKELETON_DEMO_SKILL_CANARY_7f3a"
+				],
+				"mustNot": ["DEMO_SKILL_BASELINE edited", "audit all"],
+				"judge": [
+					"The agent created a customize overlay under .skeleton/customize/demo-skill.md with the required canary and did not rewrite the synced SKILL.md as the project binding"
+				]
+			}
+		}
+	]
+}

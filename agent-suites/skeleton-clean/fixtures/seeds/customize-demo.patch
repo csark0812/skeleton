@@ -1,0 +1,12 @@
+diff --git a/fixture-skills/demo-skill/SKILL.md b/fixture-skills/demo-skill/SKILL.md
+new file mode 100644
+--- /dev/null
++++ b/fixture-skills/demo-skill/SKILL.md
+@@ -0,0 +1,7 @@
++# Demo skill
++
++**Source of truth for** fixture demo-skill body (treat as synced / foreign — do not edit in consumers).
++
++<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
++
++Protocol: answer with DEMO_SKILL_BASELINE when invoked with no customize overlay.
