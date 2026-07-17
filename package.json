@@ -53,6 +53,7 @@
 		"agent:test:doctor": "agent-test --doctor",
 		"agent:test:validate": "agent-test --validate-only --validate-paths --suites-dir agent-suites",
 		"agent:evidence:aggregate": "bun scripts/agent-evidence/aggregate-compares.ts",
+		"agent:evidence:charts": "bun scripts/agent-evidence/render-charts.ts",
 		"agent:evidence:excerpt": "bun scripts/agent-evidence/excerpt-transcript.ts",
 		"agent:evidence:archive": "bash scripts/agent-evidence/archive-run.sh",
 		"prepack": "bun test && bun run typecheck && bun run build"

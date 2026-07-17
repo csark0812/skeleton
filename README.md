@@ -44,6 +44,10 @@ Full method: [refs/llm-harness.md](refs/llm-harness.md). Suites: [agent-suites/R
 
 ### What improved
 
+![Pass rate by scenario — clean vs messy](agent-suites/evidence/charts/pass-rates.svg)
+
+![Median extra tokens on messy](agent-suites/evidence/charts/token-delta.svg)
+
 On tasks that depend on an intact SSOT, the clean fixture was both more accurate and cheaper:
 
 - **Contested grounding** — In every paired run, clean settled on the registry canonical; messy never did (McNemar p = 0.002). Clean hops the registry; messy thrashes across conflicting docs.
@@ -54,6 +58,8 @@ Two scenarios did **not** show a clean accuracy win:
 
 - **Canonical grounding** — Pass rates were close; the difference was not significant. Cost still favored clean.
 - **Skill routing + customize** — Tied. The caller `AGENTS.md` already encodes both rules, so the fixtures did not separate on those prompts.
+
+Charts regenerate from `SUMMARY.json` via `bun run agent:evidence:charts`.
 
 ### Limits
 

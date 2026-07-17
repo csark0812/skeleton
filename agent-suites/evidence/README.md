@@ -9,6 +9,7 @@
 | Path                                                                       | Purpose                                                  |
 | -------------------------------------------------------------------------- | -------------------------------------------------------- |
 | [`SUMMARY.md`](SUMMARY.md) / [`SUMMARY.json`](SUMMARY.json)                | Aggregated stats across deposited runs                   |
+| [`charts/`](charts/)                                                       | README SVGs rendered from `SUMMARY.json`                 |
 | [`transcripts/`](transcripts/)                                             | Curated clean vs messy excerpts (not full debug bundles) |
 | [`samples/compare-report.sample.json`](samples/compare-report.sample.json) | Format example of one compare report                     |
 
@@ -23,6 +24,7 @@ cp "$TMPDIR/skeleton-compare-run-NNN/compare-report.json" \
   agent-suites/evidence/runs/$(date +%Y-%m-%d)-run-NNN/
 
 bun run agent:evidence:aggregate
+bun run agent:evidence:charts
 ```
 
 ## Privacy

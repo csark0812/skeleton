@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" role="img" aria-label="Pass rate by scenario, clean vs messy">
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <text x="56" y="28" fill="#0f172a" font-size="16" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Pass rate by scenario</text>
+  <text x="56" y="46" fill="#64748b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">N=10 paired live compares · higher is better</text>
+  <rect x="510" y="18" width="12" height="12" fill="#2563eb" rx="2"/>
+  <text x="528" y="28" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">skeleton-clean</text>
+  <rect x="620" y="18" width="12" height="12" fill="#ea580c" rx="2"/>
+  <text x="638" y="28" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">skeleton-messy</text>
+  
+  <line x1="56" y1="288" x2="696" y2="288" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="46" y="292" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">0%</text>
+  <line x1="56" y1="230" x2="696" y2="230" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="46" y="234" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">25%</text>
+  <line x1="56" y1="172" x2="696" y2="172" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="46" y="176" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">50%</text>
+  <line x1="56" y1="114" x2="696" y2="114" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="46" y="118" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">75%</text>
+  <line x1="56" y1="56" x2="696" y2="56" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="46" y="60" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <line x1="56" y1="288" x2="696" y2="288" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="56" y1="56" x2="56" y2="288" stroke="#64748b" stroke-width="1.5"/>
+  
+  <rect x="73.92" y="56" width="40.96" height="232" fill="#2563eb" rx="3"/>
+  <rect x="125.12" y="288" width="40.96" height="0" fill="#ea580c" rx="3"/>
+  <text x="120" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Conflicting docs</text>
+  <text x="94.4" y="50" text-anchor="middle" fill="#2563eb" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <text x="145.6" y="280" text-anchor="middle" fill="#ea580c" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">0%</text>
+  <rect x="201.92" y="56" width="40.96" height="232" fill="#2563eb" rx="3"/>
+  <rect x="253.12" y="288" width="40.96" height="0" fill="#ea580c" rx="3"/>
+  <text x="248" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Docs routing</text>
+  <text x="222.4" y="50" text-anchor="middle" fill="#2563eb" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <text x="273.6" y="280" text-anchor="middle" fill="#ea580c" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">0%</text>
+  <rect x="329.92" y="56" width="40.96" height="232" fill="#2563eb" rx="3"/>
+  <rect x="381.12" y="102.4" width="40.96" height="185.6" fill="#ea580c" rx="3"/>
+  <text x="376" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Canonical topic</text>
+  <text x="350.4" y="50" text-anchor="middle" fill="#2563eb" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <text x="401.6" y="96.4" text-anchor="middle" fill="#ea580c" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">80%</text>
+  <rect x="457.92" y="56" width="40.96" height="232" fill="#2563eb" rx="3"/>
+  <rect x="509.12" y="56" width="40.96" height="232" fill="#ea580c" rx="3"/>
+  <text x="504" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Owned skill</text>
+  <text x="478.4" y="50" text-anchor="middle" fill="#2563eb" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <text x="529.6" y="68" text-anchor="middle" fill="#ea580c" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <rect x="585.92" y="56" width="40.96" height="232" fill="#2563eb" rx="3"/>
+  <rect x="637.12" y="56" width="40.96" height="232" fill="#ea580c" rx="3"/>
+  <text x="632" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Customize</text>
+  <text x="606.4" y="50" text-anchor="middle" fill="#2563eb" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+  <text x="657.6" y="68" text-anchor="middle" fill="#ea580c" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100%</text>
+</svg>
