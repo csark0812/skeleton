@@ -1,35 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" role="img" aria-label="Median extra tokens on messy fixture">
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" role="img" aria-label="Median extra tokens on messy fixture">
   <rect width="100%" height="100%" fill="#ffffff"/>
-  <text x="64" y="28" fill="#0f172a" font-size="16" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Median extra tokens on messy</text>
-  <text x="64" y="46" fill="#64748b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">messy − clean · grounding median +312k overall</text>
+  <text x="148" y="28" fill="#0f172a" font-size="16" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">Median extra tokens on messy</text>
+  <text x="148" y="48" fill="#64748b" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">messy − clean · grounding median +312k overall</text>
   
-  <line x1="64" y1="288" x2="696" y2="288" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="54" y="292" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">0</text>
-  <line x1="64" y1="230" x2="696" y2="230" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="54" y="234" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100k</text>
-  <line x1="64" y1="172" x2="696" y2="172" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="54" y="176" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">200k</text>
-  <line x1="64" y1="114" x2="696" y2="114" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="54" y="118" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">300k</text>
-  <line x1="64" y1="56" x2="696" y2="56" stroke="#e2e8f0" stroke-width="1"/>
-  <text x="54" y="60" text-anchor="end" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">400k</text>
-  <line x1="64" y1="288" x2="696" y2="288" stroke="#64748b" stroke-width="1.5"/>
-  <line x1="64" y1="56" x2="64" y2="288" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="148" y1="68" x2="148" y2="292" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="148" y="318" text-anchor="middle" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">0</text>
+  <line x1="271" y1="68" x2="271" y2="292" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="271" y="318" text-anchor="middle" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">100k</text>
+  <line x1="394" y1="68" x2="394" y2="292" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="394" y="318" text-anchor="middle" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">200k</text>
+  <line x1="517" y1="68" x2="517" y2="292" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="517" y="318" text-anchor="middle" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">300k</text>
+  <line x1="640" y1="68" x2="640" y2="292" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="640" y="318" text-anchor="middle" fill="#64748b" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">400k</text>
+  <line x1="148" y1="292" x2="640" y2="292" stroke="#64748b" stroke-width="1.5"/>
   
-  <rect x="92.44" y="164.04" width="69.52" height="123.96" fill="#ea580c" rx="3"/>
-  <text x="127.2" y="156.04" text-anchor="middle" fill="#0f172a" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">+214k</text>
-  <text x="127.2" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Conflicting docs</text>
-  <rect x="218.84" y="284.45" width="69.52" height="3.55" fill="#ea580c" rx="3"/>
-  <text x="253.6" y="276.45" text-anchor="middle" fill="#0f172a" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">+6k</text>
-  <text x="253.6" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Docs routing</text>
-  <rect x="345.24" y="64.08" width="69.52" height="223.92" fill="#ea580c" rx="3"/>
-  <text x="380" y="56.08" text-anchor="middle" fill="#0f172a" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">+386k</text>
-  <text x="380" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Canonical topic</text>
-  <rect x="471.64" y="286.2" width="69.52" height="1.8" fill="#ea580c" rx="3"/>
-  <text x="506.4" y="278.2" text-anchor="middle" fill="#0f172a" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">+3k</text>
-  <text x="506.4" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Owned skill</text>
-  <rect x="598.04" y="279.16" width="69.52" height="8.84" fill="#ea580c" rx="3"/>
-  <text x="632.8" y="271.16" text-anchor="middle" fill="#0f172a" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif">+15k</text>
-  <text x="632.8" y="324" text-anchor="middle" fill="#0f172a" font-size="12" font-family="ui-sans-serif, system-ui, sans-serif">Customize</text>
+  <text x="136" y="96" text-anchor="end" fill="#0f172a" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Conflicting docs</text>
+  <rect x="148" y="80" width="262.88" height="22" fill="#ea580c" rx="3"/>
+  <text x="402.88" y="95" text-anchor="end" fill="#ffffff" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">+214k</text>
+  <text x="136" y="140" text-anchor="end" fill="#0f172a" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Docs routing</text>
+  <rect x="148" y="124" width="7.53" height="22" fill="#ea580c" rx="3"/>
+  <text x="163.53" y="139" text-anchor="start" fill="#0f172a" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">+6k</text>
+  <text x="136" y="184" text-anchor="end" fill="#0f172a" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Canonical topic</text>
+  <rect x="148" y="168" width="474.87" height="22" fill="#ea580c" rx="3"/>
+  <text x="614.87" y="183" text-anchor="end" fill="#ffffff" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">+386k</text>
+  <text x="136" y="228" text-anchor="end" fill="#0f172a" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Owned skill</text>
+  <rect x="148" y="212" width="3.81" height="22" fill="#ea580c" rx="3"/>
+  <text x="159.81" y="227" text-anchor="start" fill="#0f172a" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">+3k</text>
+  <text x="136" y="272" text-anchor="end" fill="#0f172a" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">Customize</text>
+  <rect x="148" y="256" width="18.74" height="22" fill="#ea580c" rx="3"/>
+  <text x="174.74" y="271" text-anchor="start" fill="#0f172a" font-size="12" font-weight="600" font-family="ui-sans-serif, system-ui, sans-serif">+15k</text>
 </svg>
