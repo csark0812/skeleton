@@ -66,7 +66,7 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		files,
 		docMetaPaths:
 			options.paths && options.paths.length > 0
-				? filterDocMetaPaths(allDocMetaPaths, options.paths)
+				? filterDocMetaPaths(allDocMetaPaths, options.paths, skillIndex)
 				: allDocMetaPaths,
 		registryPaths: registry.paths,
 		registryHasTableHeader: registry.hasTableHeader,

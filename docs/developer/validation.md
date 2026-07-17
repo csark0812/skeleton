@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton validate changed routing.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 ## When you changed X, run Y
 
@@ -58,7 +58,7 @@ Skill bodies are not path-scoped on the docs lane.
 
 **Owned** skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
 
-**Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
+**Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies — including doc-meta on registry-cited skill `references/**` paths. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
 
 `audit self` covers the scan corpus; excluded owned skill trees still need `audit skills`. Customize overlays under `.skeleton/customize/` stay in the consumer audit corpus.
 

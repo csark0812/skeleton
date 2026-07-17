@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton doc and registry conventions.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
@@ -29,6 +29,8 @@ Index docs and registry-listed files require:
 ```markdown
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 ```
+
+Registry-listed paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep `last-reviewed` cadence in the owning toolbox repo. Owned skill trees and non-skill docs still require doc-meta when registered or indexed. See [config](config.md#skillownership).
 
 ## Example canonical doc
 

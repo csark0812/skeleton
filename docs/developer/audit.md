@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton audit suites and rule scoping.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
 
@@ -53,7 +53,7 @@ Classification (defaults work with no config):
 3. `skills-lock.json` entry with `sourceType` other than `local` (e.g. `github`) → foreign
 4. Otherwise → owned
 
-Foreign skills remain discoverable for link resolution and customize inject, but are omitted from docs/self/skills corpora and CI policy skill proves.
+Foreign skills remain discoverable for link resolution and customize inject, but are omitted from docs/self/skills corpora, doc-meta scope, and CI policy skill proves.
 
 ### `scan.nonPublicSkills`
 

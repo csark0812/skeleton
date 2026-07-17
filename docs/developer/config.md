@@ -2,7 +2,7 @@
 
 **Source of truth for** `.skeleton/config.yaml` keys and examples.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json). Init template: `templates/skeleton-init/config.yaml`. Day-one walkthrough: [getting started](getting-started.md).
 
@@ -30,7 +30,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 
 ## `skillOwnership`
 
-When a consumer repo syncs skills from a toolbox (via `skills-lock.json`), Skeleton skips foreign skill **bodies** so linting stays with the owning repo. Consumer customizations under `.skeleton/customize/` remain audited here.
+When a consumer repo syncs skills from a toolbox (via `skills-lock.json`), Skeleton skips foreign skill **bodies** so linting stays with the owning repo. That skip covers skill-body lint (`audit skills`), path-scoped validate routing, and **doc-meta** (missing meta, stale `last-reviewed`, git-date freshness) for paths under foreign skill trees — including registry-cited `references/**` files. Consumer customizations under `.skeleton/customize/` remain audited here.
 
 | Key            | Purpose                                                                 |
 | -------------- | ----------------------------------------------------------------------- |
@@ -56,7 +56,7 @@ See [audit](audit.md#skill-ownership-consumer-vs-toolbox) and [validation](valid
 
 | Concern                              | Keys / behavior                                                                                                                           |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Path-scoped `validate changed`       | Files in `scan.include` (minus exclude) get docs audit; owned skill trees route to skills; foreign lock skills skip; code extensions skip |
+| Path-scoped `validate changed`       | Files in `scan.include` (minus exclude) get docs audit; owned skill trees route to skills; foreign lock skills skip (body lint + doc-meta); code extensions skip |
 | Global rules (`--base` / full audit) | `scan.banned`, registry, coverage outside include, scan-roots, skill-index                                                                |
 | Prose policies                       | Idle until `plugins` contribute policy YAML                                                                                               |
 | Customize inject                     | `customize.alwaysInclude` (hooks / `customize resolve`); customize paths are always in the audit corpus                                   |

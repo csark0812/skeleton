@@ -105,6 +105,15 @@ export function collectCoverageCandidateFiles(root: string, exclude: string[]): 
 	return [...files];
 }
 
+/** Drop foreign lockfile-synced skill trees from doc-meta scope (linted upstream). */
+export function excludeForeignSkillDocMetaPaths(
+	docMetaPaths: string[],
+	skillIndex?: SkillIndex,
+): string[] {
+	if (!skillIndex) return docMetaPaths;
+	return docMetaPaths.filter((rel) => !isForeignSkillPath(rel, skillIndex));
+}
+
 export function collectDocMetaPaths(
 	config: SkeletonConfig,
 	root: string,
@@ -136,7 +145,7 @@ export function collectDocMetaPaths(
 		}
 	}
 
-	return [...new Set(paths)];
+	return excludeForeignSkillDocMetaPaths([...new Set(paths)], skillIndex);
 }
 
 export function validateScanRoots(config: SkeletonConfig, root: string): string[] {
@@ -147,11 +156,18 @@ export function validateScanRoots(config: SkeletonConfig, root: string): string[
 	return missing;
 }
 
-export function filterDocMetaPaths(docMetaPaths: string[], paths: string[]): string[] {
-	if (paths.length === 0) return docMetaPaths;
+export function filterDocMetaPaths(
+	docMetaPaths: string[],
+	paths: string[],
+	skillIndex?: SkillIndex,
+): string[] {
+	if (paths.length === 0) return excludeForeignSkillDocMetaPaths(docMetaPaths, skillIndex);
 	const normalizedPaths = paths.map((path) => normalizeRelPath(path));
-	return docMetaPaths.filter((rel) =>
-		normalizedPaths.some((path) => rel === path || rel.startsWith(`${path}/`)),
+	return excludeForeignSkillDocMetaPaths(
+		docMetaPaths.filter((rel) =>
+			normalizedPaths.some((path) => rel === path || rel.startsWith(`${path}/`)),
+		),
+		skillIndex,
 	);
 }
 
