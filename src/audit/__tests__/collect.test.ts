@@ -1,9 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig } from "../config/load.ts";
+import { COVERAGE_BUILTIN_EXCLUDES, loadConfig } from "../config/load.ts";
 import {
+	collectCoverageCandidateFiles,
 	collectScanFiles,
 	filterDocMetaPaths,
 	filterToPaths,
@@ -248,5 +250,58 @@ describe("filterToPaths", () => {
 		const root = FIXTURES;
 		const files = [`${root}/docs/a.md`, `${root}/docs/dev/b.md`];
 		expect(filterToPaths(files, ["docs/dev"], root)).toEqual([`${root}/docs/dev/b.md`]);
+	});
+});
+
+describe("collectCoverageCandidateFiles crawl excludes", () => {
+	const roots: string[] = [];
+	afterEach(() => {
+		for (const root of roots.splice(0)) {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not readdir into large scan.exclude trees during coverage discovery", () => {
+		const root = join(tmpdir(), `skeleton-coverage-crawl-${Date.now()}`);
+		roots.push(root);
+		mkdirSync(join(root, "docs"), { recursive: true });
+		writeFileSync(join(root, "docs/readme.md"), "# Docs\n");
+
+		// Mimic CocoaPods-scale ignored trees: many nested dirs under an excluded prefix.
+		const pods = join(root, "examples/app/ios/Pods");
+		for (let i = 0; i < 80; i++) {
+			const dir = join(pods, `Pod-${i}`, "Headers");
+			mkdirSync(dir, { recursive: true });
+			for (let j = 0; j < 25; j++) {
+				writeFileSync(join(dir, `note-${j}.md`), "ignored\n");
+			}
+		}
+
+		const exclude = [...COVERAGE_BUILTIN_EXCLUDES, "examples/**"];
+		const readdirPaths: string[] = [];
+		const original = fs.readdirSync;
+		const spy = spyOn(fs, "readdirSync").mockImplementation(((
+			path: fs.PathLike,
+			options?: Parameters<typeof fs.readdirSync>[1],
+		) => {
+			readdirPaths.push(String(path));
+			return original(path, options as never);
+		}) as typeof fs.readdirSync);
+
+		try {
+			const start = performance.now();
+			const files = collectCoverageCandidateFiles(root, exclude);
+			const elapsedMs = performance.now() - start;
+
+			expect(files).toContain("docs/readme.md");
+			expect(files.every((f) => !f.startsWith("examples/"))).toBe(true);
+			// Spy must observe the crawl (docs) while never entering the excluded Pods tree.
+			expect(readdirPaths.some((p) => p.includes(`${join(root, "docs")}`))).toBe(true);
+			expect(readdirPaths.some((p) => p.includes(`${join("examples", "app")}`))).toBe(false);
+			// Post-filter-only regression would walk ~2k files and take far longer.
+			expect(elapsedMs).toBeLessThan(2_000);
+		} finally {
+			spy.mockRestore();
+		}
 	});
 });

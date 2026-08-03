@@ -28,6 +28,8 @@ function expandPatterns(root: string, patterns: string[], exclude: string[]): st
 			absolute: true,
 			onlyFiles: true,
 			dot: true,
+			// Prune excluded trees during crawl (fdir exclude), not only after match.
+			ignore: exclude,
 		})) {
 			if (!isMarkdownFile(abs)) continue;
 			const rel = normalizeRelPath(relative(root, abs));
@@ -79,6 +81,7 @@ export function collectBannedFiles(config: SkeletonConfig, root: string): string
 			absolute: true,
 			onlyFiles: true,
 			dot: false,
+			ignore: exclude,
 		})) {
 			const rel = normalizeRelPath(relative(root, abs));
 			if (shouldExclude(rel, exclude)) continue;
@@ -96,6 +99,9 @@ export function collectCoverageCandidateFiles(root: string, exclude: string[]): 
 			absolute: true,
 			onlyFiles: true,
 			dot: false,
+			// Repo-wide `**/*.md` must honor scan.exclude at crawl time — post-filter
+			// alone still readdir's huge ignored trees (e.g. CocoaPods under examples/**).
+			ignore: exclude,
 		})) {
 			const rel = normalizeRelPath(relative(root, abs));
 			if (shouldExclude(rel, exclude)) continue;
