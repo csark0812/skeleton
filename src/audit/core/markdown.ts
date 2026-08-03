@@ -45,8 +45,13 @@ function destinationConsumesToSliceEnd(slice: string, afterDest: number): boolea
 	if (slice[i] === ")") {
 		return i === slice.length - 1;
 	}
-	if (!/\s/.test(slice[i]!)) return false;
-	while (i < slice.length && /\s/.test(slice[i]!)) i++;
+	const first = slice[i];
+	if (first === undefined || !/\s/.test(first)) return false;
+	while (i < slice.length) {
+		const ch = slice[i];
+		if (ch === undefined || !/\s/.test(ch)) break;
+		i++;
+	}
 	if (i >= slice.length) return false;
 	if (slice[i] === ")") {
 		return i === slice.length - 1;
@@ -58,7 +63,11 @@ function destinationConsumesToSliceEnd(slice: string, afterDest: number): boolea
 	while (i < slice.length && slice[i] !== close) i++;
 	if (i >= slice.length) return false;
 	i++;
-	while (i < slice.length && /\s/.test(slice[i]!)) i++;
+	while (i < slice.length) {
+		const ch = slice[i];
+		if (ch === undefined || !/\s/.test(ch)) break;
+		i++;
+	}
 	return i === slice.length - 1 && slice[i] === ")";
 }
 

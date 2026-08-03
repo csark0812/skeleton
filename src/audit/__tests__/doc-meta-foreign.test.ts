@@ -10,9 +10,9 @@ import {
 } from "../core/collect.ts";
 import { createContext } from "../core/context.ts";
 import { parseRegistry } from "../core/registry.ts";
+import { buildSkillIndex } from "../core/skill-roots.ts";
 import { runDocMetaRule } from "../rules/doc-meta.ts";
 import { runAudit } from "../run.ts";
-import { buildSkillIndex } from "../core/skill-roots.ts";
 
 function writeConsumerFixture(
 	root: string,
@@ -32,9 +32,7 @@ function writeConsumerFixture(
 	writeFileSync(
 		join(root, ".skeleton/config.yaml"),
 		`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\n${
-			opts.ownedSlugs
-				? `skillOwnership:\n  ownedSlugs: [${opts.ownedSlugs.join(", ")}]\n`
-				: ""
+			opts.ownedSlugs ? `skillOwnership:\n  ownedSlugs: [${opts.ownedSlugs.join(", ")}]\n` : ""
 		}`,
 	);
 	writeFileSync(
@@ -57,9 +55,7 @@ function writeConsumerFixture(
 			version: 1,
 			skills: {
 				[foreignSlug]: { source: "org/toolbox", sourceType: "github" },
-				...(opts.ownedSlug
-					? { [opts.ownedSlug]: { source: "local", sourceType: "local" } }
-					: {}),
+				...(opts.ownedSlug ? { [opts.ownedSlug]: { source: "local", sourceType: "local" } } : {}),
 			},
 		}),
 	);
