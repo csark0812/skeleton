@@ -2,7 +2,7 @@
 
 **Source of truth for** agent cold-start in this repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server.
 
