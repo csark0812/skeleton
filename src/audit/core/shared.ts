@@ -50,7 +50,7 @@ export function isExternalLink(target: string): boolean {
 }
 
 export function isPlaceholderLink(target: string): boolean {
-	return !target.includes("/") && !target.includes(".") && !target.startsWith("#");
+	return !(target.includes("/") || target.includes(".") || target.startsWith("#"));
 }
 
 function escapeRegexLiteral(s: string): string {

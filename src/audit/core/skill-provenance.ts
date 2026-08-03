@@ -37,6 +37,49 @@ export function isForeignLockSourceType(sourceType: string): boolean {
 	return sourceType !== "local";
 }
 
+interface ParseLockEntryInput {
+	lockfileRel: string;
+	slug: string;
+	value: unknown;
+	warnings: string[];
+}
+
+function parseLockSkillEntry(input: ParseLockEntryInput): SkillLockEntry | null {
+	const { lockfileRel, slug, value, warnings } = input;
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		warnings.push(`${lockfileRel}: skill "${slug}" has invalid entry`);
+		return null;
+	}
+	const entry = value as Record<string, unknown>;
+	const source = entry.source;
+	const sourceType = entry.sourceType;
+	if (typeof source !== "string" || source.length === 0) {
+		warnings.push(`${lockfileRel}: skill "${slug}" missing source`);
+		return null;
+	}
+	if (typeof sourceType !== "string" || sourceType.length === 0) {
+		warnings.push(`${lockfileRel}: skill "${slug}" missing sourceType`);
+		return null;
+	}
+	const parsed: SkillLockEntry = { source, sourceType };
+	if (typeof entry.skillPath === "string") parsed.skillPath = entry.skillPath;
+	if (typeof entry.computedHash === "string") parsed.computedHash = entry.computedHash;
+	return parsed;
+}
+
+function parseLockSkills(
+	lockfileRel: string,
+	skillsRaw: Record<string, unknown>,
+	warnings: string[],
+): Record<string, SkillLockEntry> {
+	const entries: Record<string, SkillLockEntry> = {};
+	for (const [slug, value] of Object.entries(skillsRaw)) {
+		const parsed = parseLockSkillEntry({ lockfileRel, slug, value, warnings });
+		if (parsed) entries[slug] = parsed;
+	}
+	return entries;
+}
+
 export function loadSkillsLock(
 	root: string,
 	lockfileRel: string = DEFAULT_SKILLS_LOCKFILE,
@@ -76,30 +119,11 @@ export function loadSkillsLock(
 		return { lockfile: lockfileRel, entries: {}, warnings };
 	}
 
-	const entries: Record<string, SkillLockEntry> = {};
-	for (const [slug, value] of Object.entries(skillsRaw as Record<string, unknown>)) {
-		if (!value || typeof value !== "object" || Array.isArray(value)) {
-			warnings.push(`${lockfileRel}: skill "${slug}" has invalid entry`);
-			continue;
-		}
-		const entry = value as Record<string, unknown>;
-		const source = entry.source;
-		const sourceType = entry.sourceType;
-		if (typeof source !== "string" || source.length === 0) {
-			warnings.push(`${lockfileRel}: skill "${slug}" missing source`);
-			continue;
-		}
-		if (typeof sourceType !== "string" || sourceType.length === 0) {
-			warnings.push(`${lockfileRel}: skill "${slug}" missing sourceType`);
-			continue;
-		}
-		const parsed: SkillLockEntry = { source, sourceType };
-		if (typeof entry.skillPath === "string") parsed.skillPath = entry.skillPath;
-		if (typeof entry.computedHash === "string") parsed.computedHash = entry.computedHash;
-		entries[slug] = parsed;
-	}
-
-	return { lockfile: lockfileRel, entries, warnings };
+	return {
+		lockfile: lockfileRel,
+		entries: parseLockSkills(lockfileRel, skillsRaw as Record<string, unknown>, warnings),
+		warnings,
+	};
 }
 
 /**

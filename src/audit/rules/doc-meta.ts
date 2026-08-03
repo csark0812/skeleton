@@ -6,6 +6,61 @@ import { type Issue, issue } from "../core/report.ts";
 import { DOC_META_RE, docMetaLastReviewed } from "../core/shared.ts";
 import { slugFromPath } from "../core/skill-roots.ts";
 
+function checkDocMetaBanner(relPath: string, content: string): Issue | null {
+	if (DOC_META_RE.test(content)) return null;
+	return issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)");
+}
+
+interface StaleReviewInput {
+	relPath: string;
+	content: string;
+	today: Date;
+	staleDays: number;
+}
+
+function checkStaleReview(input: StaleReviewInput): Issue | null {
+	const { relPath, content, today, staleDays } = input;
+	const reviewedStr = docMetaLastReviewed(content);
+	if (!reviewedStr) return null;
+	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
+	if (Number.isNaN(reviewed.getTime())) return null;
+	const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
+	if (ageDays <= staleDays) return null;
+	return issue("doc-meta", relPath, {
+		message: `doc-meta last-reviewed ${reviewedStr} is stale (>${staleDays} days)`,
+		severity: "warning",
+	});
+}
+
+interface GitFreshnessInput {
+	relPath: string;
+	content: string;
+	root: string;
+	lockedSkillSlugs: Set<string>;
+}
+
+function checkGitFreshness(input: GitFreshnessInput): Issue | null {
+	const { relPath, content, root, lockedSkillSlugs } = input;
+	const reviewedStr = docMetaLastReviewed(content);
+	if (!reviewedStr) return null;
+	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
+	if (Number.isNaN(reviewed.getTime())) return null;
+
+	const slug = slugFromPath(relPath, root);
+	if (slug !== null && lockedSkillSlugs.has(slug)) return null;
+
+	const gitDate = lastGitCommitDate(relPath, root);
+	if (!gitDate) return null;
+	const committed = new Date(`${gitDate}T00:00:00Z`);
+	if (Number.isNaN(committed.getTime())) return null;
+	if (committed.getTime() <= reviewed.getTime()) return null;
+
+	return issue("doc-meta", relPath, {
+		message: `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — bump last-reviewed or confirm review`,
+		severity: "warning",
+	});
+}
+
 export function runDocMetaRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
 	const today = new Date();
@@ -14,45 +69,28 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 		const abs = join(ctx.root, relPath);
 		if (!existsSync(abs)) continue;
 		const content = readFileSync(abs, "utf8");
-		if (!DOC_META_RE.test(content)) {
-			issues.push(issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)"));
+
+		const banner = checkDocMetaBanner(relPath, content);
+		if (banner) {
+			issues.push(banner);
 			continue;
 		}
-		const reviewedStr = docMetaLastReviewed(content);
-		if (!reviewedStr) continue;
-		const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-		if (Number.isNaN(reviewed.getTime())) continue;
-		const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
-		if (ageDays > ctx.config.daysUntilStale) {
-			issues.push(
-				issue(
-					"doc-meta",
-					relPath,
-					`doc-meta last-reviewed ${reviewedStr} is stale (>${ctx.config.daysUntilStale} days)`,
-					{ severity: "warning" },
-				),
-			);
-		}
 
-		// Synced skills carry their review cadence upstream; consumer git dates only
-		// reflect when they were synced, so the git-date freshness check is noise here.
-		const slug = slugFromPath(relPath, ctx.root);
-		if (slug !== null && ctx.lockedSkillSlugs.has(slug)) continue;
+		const stale = checkStaleReview({
+			relPath,
+			content,
+			today,
+			staleDays: ctx.config.daysUntilStale,
+		});
+		if (stale) issues.push(stale);
 
-		const gitDate = lastGitCommitDate(relPath, ctx.root);
-		if (!gitDate) continue;
-		const committed = new Date(`${gitDate}T00:00:00Z`);
-		if (Number.isNaN(committed.getTime())) continue;
-		if (committed.getTime() > reviewed.getTime()) {
-			issues.push(
-				issue(
-					"doc-meta",
-					relPath,
-					`content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — bump last-reviewed or confirm review`,
-					{ severity: "warning" },
-				),
-			);
-		}
+		const git = checkGitFreshness({
+			relPath,
+			content,
+			root: ctx.root,
+			lockedSkillSlugs: ctx.lockedSkillSlugs,
+		});
+		if (git) issues.push(git);
 	}
 
 	return issues;

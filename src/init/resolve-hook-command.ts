@@ -50,7 +50,7 @@ function walkNodeModulesCli(cwd: string): string | null {
 
 function isInsidePackageRoot(cwd: string): boolean {
 	const rel = relative(PACKAGE_ROOT, resolve(cwd)).replace(/\\/g, "/");
-	return rel === "" || (!rel.startsWith("..") && !rel.startsWith("/"));
+	return rel === "" || !(rel.startsWith("..") || rel.startsWith("/"));
 }
 
 function nodeCliHookCommand(cliPath: string): string {

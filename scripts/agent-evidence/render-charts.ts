@@ -51,6 +51,39 @@ function r(n: number): number {
 	return Math.round(n * 100) / 100;
 }
 
+interface PassRateRowInput {
+	scenario: { key: string; label: string };
+	index: number;
+	row: ScenarioRow;
+	margin: { top: number; left: number };
+	plotW: number;
+	rowH: number;
+	barH: number;
+}
+
+function renderPassRateRow(input: PassRateRowInput): string {
+	const { scenario: s, index: i, row, margin, plotW, rowH, barH } = input;
+	const pairGap = 4;
+	const y0 = margin.top + i * rowH + 10;
+	const cleanW = r(row.cleanPassRate * plotW);
+	const messyW = r(row.messyPassRate * plotW);
+	const cleanPct = `${Math.round(row.cleanPassRate * 100)}%`;
+	const messyPct = `${Math.round(row.messyPassRate * 100)}%`;
+	const cleanLabelX = cleanW < 40 ? r(margin.left + cleanW + 8) : r(margin.left + cleanW - 8);
+	const messyLabelX = messyW < 40 ? r(margin.left + messyW + 8) : r(margin.left + messyW - 8);
+	const cleanAnchor = cleanW < 40 ? "start" : "end";
+	const messyAnchor = messyW < 40 ? "start" : "end";
+	const cleanFill = cleanW < 40 ? CLEAN : "#ffffff";
+	const messyFill = messyW < 40 ? MESSY : "#ffffff";
+
+	return `
+  <text x="${margin.left - 12}" y="${y0 + barH + 4}" text-anchor="end" fill="${LABEL}" font-size="13" font-family="${FONT}">${esc(s.label)}</text>
+  <rect x="${margin.left}" y="${y0}" width="${cleanW}" height="${barH}" fill="${CLEAN}" rx="3"/>
+  <text x="${cleanLabelX}" y="${y0 + barH - 3}" text-anchor="${cleanAnchor}" fill="${cleanFill}" font-size="11" font-family="${FONT}">${cleanPct}</text>
+  <rect x="${margin.left}" y="${y0 + barH + pairGap}" width="${messyW}" height="${barH}" fill="${MESSY}" rx="3"/>
+  <text x="${messyLabelX}" y="${y0 + barH + pairGap + barH - 3}" text-anchor="${messyAnchor}" fill="${messyFill}" font-size="11" font-family="${FONT}">${messyPct}</text>`;
+}
+
 function passRateChart(summary: Summary): string {
 	const width = 720;
 	const rowH = 56;
@@ -58,29 +91,12 @@ function passRateChart(summary: Summary): string {
 	const height = margin.top + margin.bottom + SCENARIOS.length * rowH;
 	const plotW = width - margin.left - margin.right;
 	const barH = 16;
-	const pairGap = 4;
+	const _pairGap = 4;
 
 	const rows = SCENARIOS.map((s, i) => {
 		const row = summary.scenarios[s.key];
 		if (!row) throw new Error(`Missing scenario in SUMMARY.json: ${s.key}`);
-		const y0 = margin.top + i * rowH + 10;
-		const cleanW = r(row.cleanPassRate * plotW);
-		const messyW = r(row.messyPassRate * plotW);
-		const cleanPct = `${Math.round(row.cleanPassRate * 100)}%`;
-		const messyPct = `${Math.round(row.messyPassRate * 100)}%`;
-		const cleanLabelX = cleanW < 40 ? r(margin.left + cleanW + 8) : r(margin.left + cleanW - 8);
-		const messyLabelX = messyW < 40 ? r(margin.left + messyW + 8) : r(margin.left + messyW - 8);
-		const cleanAnchor = cleanW < 40 ? "start" : "end";
-		const messyAnchor = messyW < 40 ? "start" : "end";
-		const cleanFill = cleanW < 40 ? CLEAN : "#ffffff";
-		const messyFill = messyW < 40 ? MESSY : "#ffffff";
-
-		return `
-  <text x="${margin.left - 12}" y="${y0 + barH + 4}" text-anchor="end" fill="${LABEL}" font-size="13" font-family="${FONT}">${esc(s.label)}</text>
-  <rect x="${margin.left}" y="${y0}" width="${cleanW}" height="${barH}" fill="${CLEAN}" rx="3"/>
-  <text x="${cleanLabelX}" y="${y0 + 12}" text-anchor="${cleanAnchor}" fill="${cleanFill}" font-size="11" font-weight="600" font-family="${FONT}">${cleanPct}</text>
-  <rect x="${margin.left}" y="${y0 + barH + pairGap}" width="${messyW}" height="${barH}" fill="${MESSY}" rx="3"/>
-  <text x="${messyLabelX}" y="${y0 + barH + pairGap + 12}" text-anchor="${messyAnchor}" fill="${messyFill}" font-size="11" font-weight="600" font-family="${FONT}">${messyPct}</text>`;
+		return renderPassRateRow({ scenario: s, index: i, row, margin, plotW, rowH, barH });
 	}).join("");
 
 	const xTicks = [0, 25, 50, 75, 100]

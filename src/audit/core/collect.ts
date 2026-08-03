@@ -17,10 +17,31 @@ function shouldExclude(relPath: string, exclude: string[]): boolean {
 	return exclude.some((pattern) => matchesGlobScope(relPath, pattern));
 }
 
+interface RememberMarkdownInput {
+	byReal: Map<string, string>;
+	root: string;
+	abs: string;
+	exclude: string[];
+}
+
+function rememberMarkdownFile(input: RememberMarkdownInput): void {
+	const { byReal, root, abs, exclude } = input;
+	if (!isMarkdownFile(abs)) return;
+	const rel = normalizeRelPath(relative(root, abs));
+	if (shouldExclude(rel, exclude)) return;
+	let real: string;
+	try {
+		real = realpathSync(abs);
+	} catch {
+		real = abs;
+	}
+	const existing = byReal.get(real);
+	if (existing === undefined || (abs === real && existing !== real)) {
+		byReal.set(real, abs);
+	}
+}
+
 function expandPatterns(root: string, patterns: string[], exclude: string[]): string[] {
-	// Key by real path so the same file reached through symlinked skill roots
-	// (e.g. per-slug `.claude/skills/<slug>` → `.agents/skills/<slug>`) collapses
-	// to one entry instead of being audited twice under both paths.
 	const byReal = new Map<string, string>();
 	for (const pattern of patterns) {
 		for (const abs of globSync(pattern, {
@@ -28,24 +49,9 @@ function expandPatterns(root: string, patterns: string[], exclude: string[]): st
 			absolute: true,
 			onlyFiles: true,
 			dot: true,
-			// Prune excluded trees during crawl (fdir exclude), not only after match.
 			ignore: exclude,
 		})) {
-			if (!isMarkdownFile(abs)) continue;
-			const rel = normalizeRelPath(relative(root, abs));
-			if (shouldExclude(rel, exclude)) continue;
-			let real: string;
-			try {
-				real = realpathSync(abs);
-			} catch {
-				real = abs;
-			}
-			const existing = byReal.get(real);
-			if (existing === undefined || (abs === real && existing !== real)) {
-				// Prefer the canonical (non-symlinked) path when a real file is also
-				// reachable through a symlink, so issues report the source location.
-				byReal.set(real, abs);
-			}
+			rememberMarkdownFile({ byReal, root, abs, exclude });
 		}
 	}
 	return [...byReal.values()];
@@ -120,38 +126,51 @@ export function excludeForeignSkillDocMetaPaths(
 	return docMetaPaths.filter((rel) => !isForeignSkillPath(rel, skillIndex));
 }
 
-export function collectDocMetaPaths(
-	config: SkeletonConfig,
-	root: string,
-	registryPaths: string[],
-	skillIndex?: SkillIndex,
-): string[] {
+interface DocMetaCollectContext {
+	config: SkeletonConfig;
+	root: string;
+	registryPaths: string[];
+	skillIndex?: SkillIndex;
+}
+
+function collectRegistryDocMeta(ctx: DocMetaCollectContext): string[] {
+	const paths: string[] = [];
+	for (const rel of ctx.registryPaths) {
+		if (!(rel.endsWith(".md") || rel.endsWith(".mdc"))) continue;
+		const abs = join(ctx.root, rel);
+		if (existsSync(abs)) paths.push(normalizeRelPath(rel));
+	}
+	return paths;
+}
+
+function collectScannedDocMeta(ctx: DocMetaCollectContext): string[] {
+	const paths: string[] = [];
+	for (const abs of collectScanFiles(ctx.config, ctx.root, ctx.skillIndex)) {
+		const content = readFileSync(abs, "utf8");
+		if (/<!--\s*doc-meta:/.test(content)) {
+			paths.push(normalizeRelPath(relative(ctx.root, abs)));
+		}
+	}
+	return paths;
+}
+
+export function collectDocMetaPaths(ctx: DocMetaCollectContext): string[] {
 	const paths: string[] = [];
 
-	for (const abs of expandPatterns(root, ["docs/*/README.md"], mergedExcludes(config))) {
-		paths.push(normalizeRelPath(relative(root, abs)));
+	for (const abs of expandPatterns(ctx.root, ["docs/*/README.md"], mergedExcludes(ctx.config))) {
+		paths.push(normalizeRelPath(relative(ctx.root, abs)));
 	}
 
 	const extras = ["docs/README.md", ".skeleton/registry.md"];
 	for (const file of extras) {
-		const abs = join(root, file);
+		const abs = join(ctx.root, file);
 		if (existsSync(abs)) paths.push(normalizeRelPath(file));
 	}
 
-	for (const rel of registryPaths) {
-		if (!rel.endsWith(".md") && !rel.endsWith(".mdc")) continue;
-		const abs = join(root, rel);
-		if (existsSync(abs)) paths.push(normalizeRelPath(rel));
-	}
+	paths.push(...collectRegistryDocMeta(ctx));
+	paths.push(...collectScannedDocMeta(ctx));
 
-	for (const abs of collectScanFiles(config, root, skillIndex)) {
-		const content = readFileSync(abs, "utf8");
-		if (/<!--\s*doc-meta:/.test(content)) {
-			paths.push(normalizeRelPath(relative(root, abs)));
-		}
-	}
-
-	return excludeForeignSkillDocMetaPaths([...new Set(paths)], skillIndex);
+	return excludeForeignSkillDocMetaPaths([...new Set(paths)], ctx.skillIndex);
 }
 
 export function validateScanRoots(config: SkeletonConfig, root: string): string[] {
@@ -190,6 +209,32 @@ export function filterToPaths(files: string[], paths: string[], root: string): s
  * `scan.exclude` dropped them from the normal scan set (e.g. `.claude/skills/**`).
  * Directory paths expand to all markdown under that tree.
  */
+function addExplicitPath(out: Set<string>, root: string, raw: string): void {
+	const rel = normalizeRelPath(raw);
+	const abs = join(root, rel);
+	if (!existsSync(abs)) return;
+
+	if (isMarkdownFile(rel)) {
+		out.add(abs);
+		return;
+	}
+
+	try {
+		if (!statSync(abs).isDirectory()) return;
+	} catch {
+		return;
+	}
+
+	for (const md of globSync("**/*.{md,mdc}", {
+		cwd: abs,
+		absolute: true,
+		onlyFiles: true,
+		dot: true,
+	})) {
+		out.add(md);
+	}
+}
+
 export function includeExplicitMarkdownPaths(
 	files: string[],
 	paths: string[],
@@ -197,29 +242,7 @@ export function includeExplicitMarkdownPaths(
 ): string[] {
 	const out = new Set(files);
 	for (const raw of paths) {
-		const rel = normalizeRelPath(raw);
-		const abs = join(root, rel);
-		if (!existsSync(abs)) continue;
-
-		if (isMarkdownFile(rel)) {
-			out.add(abs);
-			continue;
-		}
-
-		try {
-			if (!statSync(abs).isDirectory()) continue;
-		} catch {
-			continue;
-		}
-
-		for (const md of globSync("**/*.{md,mdc}", {
-			cwd: abs,
-			absolute: true,
-			onlyFiles: true,
-			dot: true,
-		})) {
-			out.add(md);
-		}
+		addExplicitPath(out, root, raw);
 	}
 	return [...out];
 }

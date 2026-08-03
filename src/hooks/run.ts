@@ -1,3 +1,4 @@
+import process from "node:process";
 import { normalizeRelPath } from "../audit/core/shared.ts";
 import { slugFromPath } from "../audit/core/skill-roots.ts";
 import { resolveCustomizeFromRoot } from "../customize/resolve.ts";

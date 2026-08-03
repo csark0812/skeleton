@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
-import { parseRegistryPaths } from "../audit/core/registry.ts";
+import { parseRegistry } from "../audit/core/registry.ts";
 import { normalizeRelPath, REGISTRY_DIR_REL } from "../audit/core/shared.ts";
 
 const CUSTOMIZE_PREFIX = "Customize: ";
@@ -23,7 +23,7 @@ function customizePathForSlug(root: string, slug: string): string {
 }
 
 function findCustomizeViaRegistry(root: string, slug: string): string | null {
-	for (const rel of parseRegistryPaths(root)) {
+	for (const rel of parseRegistry(root).paths) {
 		const expected = `${REGISTRY_DIR_REL}/customize/${slug}.md`;
 		if (normalizeRelPath(rel) === expected && existsSync(join(root, rel))) {
 			return rel;
@@ -89,13 +89,18 @@ function readAlwaysInclude(
 export function resolveCustomize(root: string, slug: string): CustomizeResolveResult {
 	const slugFile = resolveSlugFile(root, slug);
 	const alwaysNames = alwaysIncludeBasenames(root);
-	const skip = slugFile.path != null ? basename(slugFile.path) : null;
+	const skip =
+		slugFile.path !== null && slugFile.path !== undefined ? basename(slugFile.path) : null;
 	const always = readAlwaysInclude(root, alwaysNames, skip);
 
 	const parts: string[] = [];
 	const included: string[] = [];
 
-	if (slugFile.content != null && slugFile.content.trim().length > 0) {
+	if (
+		slugFile.content !== null &&
+		slugFile.content !== undefined &&
+		slugFile.content.trim().length > 0
+	) {
 		parts.push(slugFile.content.trimEnd());
 		if (slugFile.path) included.push(slugFile.path);
 	}

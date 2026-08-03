@@ -13,78 +13,118 @@ function resolveLink(sourceFile: string, target: string): string {
 	return resolve(dirname(sourceFile), withoutAnchor);
 }
 
-function validateTarget(
-	ctx: AuditContext,
-	sourceFile: string,
-	target: string,
-	linkLabel: string,
-): Issue[] {
-	const issues: Issue[] = [];
-	if (isExternalLink(target) && !target.startsWith("#")) return issues;
-	if (isPlaceholderLink(target)) return issues;
+interface ValidateTargetInput {
+	ctx: AuditContext;
+	sourceFile: string;
+	target: string;
+	linkLabel: string;
+}
 
-	const relSource = relPath(sourceFile, ctx.root);
+function checkRetiredSkill(input: ValidateTargetInput): Issue | null {
+	const skillMatch = SKILL_LINK_IN_TARGET_RE.exec(input.target);
+	const slug = skillMatch?.[1];
+	if (!(slug && input.ctx.retiredSkills.has(slug))) return null;
+	return issue("links", relPath(input.sourceFile, input.ctx.root), {
+		message: `references retired skill "${slug}/SKILL.md"`,
+		link: input.linkLabel,
+	});
+}
+
+function checkMissingSkill(input: ValidateTargetInput, relSource: string): Issue | null {
+	if (!input.target.includes("/SKILL.md")) return null;
+	const slug = SKILL_LINK_IN_TARGET_RE.exec(input.target)?.[1];
+	if (!(slug && !resolveSkillPath(input.ctx.skillIndex, input.ctx.root, slug))) return null;
+	return issue("links", relSource, {
+		message: `missing skill "${slug}/SKILL.md"`,
+		link: input.linkLabel,
+	});
+}
+
+function checkAgentFile(
+	input: ValidateTargetInput,
+	resolved: string,
+	relSource: string,
+): Issue | null {
+	if (
+		!(
+			(input.target.includes(".claude/agents/") || input.target.includes(".cursor/agents/")) &&
+			input.target.endsWith(".md")
+		)
+	) {
+		return null;
+	}
+	const agentPath = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
+	if (existsSync(agentPath)) return null;
+	return issue("links", relSource, { message: "missing agent file", link: input.linkLabel });
+}
+
+interface BrokenPathInput {
+	input: ValidateTargetInput;
+	pathPart: string;
+	resolved: string;
+	relSource: string;
+	relTarget: string;
+}
+
+function checkBrokenPath(ctx: BrokenPathInput): Issue | null {
+	const { input, pathPart, resolved, relSource, relTarget } = ctx;
+	if (!(pathPart && !existsSync(resolved))) return null;
+	return issue("links", relSource, {
+		message: `broken link → ${relTarget}`,
+		link: input.linkLabel,
+	});
+}
+
+interface BrokenAnchorInput {
+	input: ValidateTargetInput;
+	anchor: string;
+	resolved: string;
+	relSource: string;
+	relTarget: string;
+}
+
+function checkBrokenAnchor(ctx: BrokenAnchorInput): Issue | null {
+	const { input, anchor, resolved, relSource, relTarget } = ctx;
+	if (!(anchor && existsSync(resolved))) return null;
+	const targetContent = readFileSync(resolved, "utf8");
+	const slugs = extractHeadingSlugs(targetContent, resolved);
+	const anchorSlug = slugifyAnchor(anchor);
+	if (slugs.has(anchorSlug)) return null;
+	return issue("links", relSource, {
+		message: `broken anchor → #${anchor} in ${relTarget}`,
+		link: input.linkLabel,
+	});
+}
+
+function resolveTargetParts(sourceFile: string, target: string, root: string) {
+	const relSource = relPath(sourceFile, root);
 	const anchor = target.includes("#") ? (target.split("#")[1]?.split("?")[0] ?? "") : "";
 	const pathPart = target.split("#")[0]?.split("?")[0] ?? "";
 	const resolved = resolveLink(sourceFile, target);
-	const relTarget = relPath(resolved, ctx.root);
+	const relTarget = relPath(resolved, root);
+	return { relSource, anchor, pathPart, resolved, relTarget };
+}
 
-	const skillMatch = SKILL_LINK_IN_TARGET_RE.exec(target);
-	if (skillMatch?.[1] && ctx.retiredSkills.has(skillMatch[1])) {
-		issues.push(
-			issue("links", relSource, `references retired skill "${skillMatch[1]}/SKILL.md"`, {
-				link: linkLabel,
-			}),
-		);
-		return issues;
-	}
+function validateTarget(input: ValidateTargetInput): Issue[] {
+	const { ctx, sourceFile, target } = input;
+	if (isExternalLink(target) && !target.startsWith("#")) return [];
+	if (isPlaceholderLink(target)) return [];
 
-	if (target.includes("/SKILL.md")) {
-		const slug = skillMatch?.[1];
-		if (slug && !resolveSkillPath(ctx.skillIndex, ctx.root, slug)) {
-			issues.push(
-				issue("links", relSource, `missing skill "${slug}/SKILL.md"`, {
-					link: linkLabel,
-				}),
-			);
-			return issues;
-		}
-	}
+	const parts = resolveTargetParts(sourceFile, target, ctx.root);
+	const retired = checkRetiredSkill(input);
+	if (retired) return [retired];
 
-	if (
-		(target.includes(".claude/agents/") || target.includes(".cursor/agents/")) &&
-		target.endsWith(".md")
-	) {
-		const agentPath = resolved.endsWith(".md") ? resolved : `${resolved}.md`;
-		if (!existsSync(agentPath)) {
-			issues.push(issue("links", relSource, "missing agent file", { link: linkLabel }));
-		}
-		return issues;
-	}
+	const missingSkill = checkMissingSkill(input, parts.relSource);
+	if (missingSkill) return [missingSkill];
 
-	if (pathPart && !existsSync(resolved)) {
-		issues.push(
-			issue("links", relSource, `broken link → ${relTarget}`, {
-				link: linkLabel,
-			}),
-		);
-		return issues;
-	}
+	const agent = checkAgentFile(input, parts.resolved, parts.relSource);
+	if (agent) return [agent];
 
-	if (anchor && existsSync(resolved)) {
-		const targetContent = readFileSync(resolved, "utf8");
-		const slugs = extractHeadingSlugs(targetContent, resolved);
-		const anchorSlug = slugifyAnchor(anchor);
-		if (!slugs.has(anchorSlug)) {
-			issues.push(
-				issue("links", relSource, `broken anchor → #${anchor} in ${relTarget}`, {
-					link: linkLabel,
-				}),
-			);
-		}
-	}
+	const brokenPath = checkBrokenPath({ input, ...parts });
+	if (brokenPath) return [brokenPath];
 
-	return issues;
+	const brokenAnchor = checkBrokenAnchor({ input, ...parts });
+	return brokenAnchor ? [brokenAnchor] : [];
 }
 
 export function runLinksRule(ctx: AuditContext): Issue[] {
@@ -94,7 +134,7 @@ export function runLinksRule(ctx: AuditContext): Issue[] {
 		const links = extractLinksFromMarkdown(content, filePath);
 		for (const { target, line } of links) {
 			const linkLabel = line ? `line ${line}` : target;
-			issues.push(...validateTarget(ctx, filePath, target, linkLabel));
+			issues.push(...validateTarget({ ctx, sourceFile: filePath, target, linkLabel }));
 		}
 	}
 	return issues;

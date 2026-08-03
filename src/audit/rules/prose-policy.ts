@@ -8,6 +8,78 @@ import { policiesForFile } from "../policies/load.ts";
  * Generic prose matcher. Idle when `ctx.policies` is empty.
  * Fingerprint-mode entries are skipped (belong in consumer duplication rules).
  */
+interface DraftEntryInput {
+	rel: string;
+	lines: string[];
+	entry: { regex?: RegExp | null; message: string; severity?: Issue["severity"] };
+	draftPrefixes: string[];
+}
+
+function checkDraftEntry(input: DraftEntryInput): Issue[] {
+	const { rel, lines, entry, draftPrefixes } = input;
+	const issues: Issue[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		if (entry.regex?.test(lines[i] ?? "") && !isDraftPlacementAllowed(rel, draftPrefixes)) {
+			issues.push(
+				issue("prose-policy", rel, {
+					message: entry.message,
+					link: `line ${i + 1}`,
+					severity: entry.severity,
+				}),
+			);
+		}
+	}
+	return issues;
+}
+
+function checkLineEntry(
+	rel: string,
+	lines: string[],
+	entry: { regex?: RegExp | null; message: string; severity?: Issue["severity"] },
+): Issue[] {
+	const issues: Issue[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		if (entry.regex?.test(lines[i] ?? "")) {
+			issues.push(
+				issue("prose-policy", rel, {
+					message: entry.message,
+					link: `line ${i + 1}`,
+					severity: entry.severity,
+				}),
+			);
+		}
+	}
+	return issues;
+}
+
+interface PolicyEntryInput {
+	rel: string;
+	content: string;
+	lines: string[];
+	entry: {
+		id: string;
+		regex?: RegExp | null;
+		message: string;
+		pattern?: string;
+		severity?: Issue["severity"];
+	};
+	draftPrefixes: string[];
+}
+
+function checkPolicyEntry(input: PolicyEntryInput): Issue[] {
+	const { rel, content, lines, entry, draftPrefixes } = input;
+	if (entry.id === "draft-marker") {
+		return checkDraftEntry({ rel, lines, entry, draftPrefixes });
+	}
+	const isMultiline = entry.pattern?.includes("[\\s\\S]");
+	if (isMultiline) {
+		return entry.regex?.test(content)
+			? [issue("prose-policy", rel, { message: entry.message, severity: entry.severity })]
+			: [];
+	}
+	return checkLineEntry(rel, lines, entry);
+}
+
 export function runProsePolicyRule(ctx: AuditContext): Issue[] {
 	if (ctx.policies.length === 0) return [];
 
@@ -21,42 +93,8 @@ export function runProsePolicyRule(ctx: AuditContext): Issue[] {
 		const policies = policiesForFile(ctx.policies, rel);
 
 		for (const entry of policies) {
-			// Fingerprint entries belong in consumer duplication rules, not core matching.
-			if (entry.mode === "fingerprint") continue;
-			if (!entry.regex) continue;
-
-			if (entry.id === "draft-marker") {
-				for (let i = 0; i < lines.length; i++) {
-					if (entry.regex.test(lines[i] ?? "") && !isDraftPlacementAllowed(rel, draftPrefixes)) {
-						issues.push(
-							issue("prose-policy", rel, entry.message, {
-								link: `line ${i + 1}`,
-								severity: entry.severity,
-							}),
-						);
-					}
-				}
-				continue;
-			}
-
-			const isMultiline = entry.pattern?.includes("[\\s\\S]");
-			if (isMultiline) {
-				if (entry.regex.test(content)) {
-					issues.push(issue("prose-policy", rel, entry.message, { severity: entry.severity }));
-				}
-				continue;
-			}
-
-			for (let i = 0; i < lines.length; i++) {
-				if (entry.regex.test(lines[i] ?? "")) {
-					issues.push(
-						issue("prose-policy", rel, entry.message, {
-							link: `line ${i + 1}`,
-							severity: entry.severity,
-						}),
-					);
-				}
-			}
+			if (entry.mode === "fingerprint" || !entry.regex) continue;
+			issues.push(...checkPolicyEntry({ rel, content, lines, entry, draftPrefixes }));
 		}
 	}
 

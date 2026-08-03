@@ -58,7 +58,12 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 	}
 
 	const registry = parseRegistry(root);
-	const allDocMetaPaths = collectDocMetaPaths(config, root, registry.paths, skillIndex);
+	const allDocMetaPaths = collectDocMetaPaths({
+		config,
+		root,
+		registryPaths: registry.paths,
+		skillIndex,
+	});
 
 	return {
 		root,

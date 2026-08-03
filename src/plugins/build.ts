@@ -103,7 +103,7 @@ export function sourceFingerprint(tsAbs: string, seen = new Set<string>()): stri
 		hash.update("\0");
 		hash.update(content);
 		hash.update("\0");
-		for (const dep of localImportPaths(abs, content).sort()) {
+		for (const dep of localImportPaths(abs, content).sort((a, b) => a.localeCompare(b))) {
 			walk(dep);
 		}
 	}

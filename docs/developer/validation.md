@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton validate changed routing.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
 
 ## When you changed X, run Y
 
@@ -40,7 +40,7 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 ### Skipped paths
 
-Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run.
+Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped **without** `--base`, `validate changed` exits non-zero and prints the code gates to run. Under CI `--base`, all-skipped code still runs global rules (keep the TS lane separate in CI).
 
 In this repo:
 

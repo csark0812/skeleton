@@ -68,6 +68,25 @@ function underRoot(rootAbs: string, candidateAbs: string): boolean {
 	return candidateAbs === rootAbs || candidateAbs.startsWith(rootAbs + sep);
 }
 
+function shouldStopPathWalk(rootResolved: string, parent: string, cursor: string): boolean {
+	return parent === cursor || (!underRoot(rootResolved, parent) && parent !== rootResolved);
+}
+
+function resolveExistingRealPath(rootResolved: string, abs: string, relFile: string): string {
+	const rootReal = existsSync(rootResolved) ? realpathSync(rootResolved) : rootResolved;
+	let cursor = abs;
+	while (!existsSync(cursor)) {
+		const parent = dirname(cursor);
+		if (shouldStopPathWalk(rootResolved, parent, cursor)) return abs;
+		cursor = parent;
+	}
+	const real = realpathSync(cursor);
+	if (!underRoot(rootReal, real)) {
+		throw new Error(`Refusing autofix outside repo root: ${relFile}`);
+	}
+	return abs;
+}
+
 /** Resolve a write path and refuse escapes outside the repo root (incl. symlinks). */
 export function resolveWritePath(root: string, relFile: string): string {
 	const rootResolved = resolve(root);
@@ -75,26 +94,7 @@ export function resolveWritePath(root: string, relFile: string): string {
 	if (!underRoot(rootResolved, abs)) {
 		throw new Error(`Refusing autofix outside repo root: ${relFile}`);
 	}
-
-	const rootReal = existsSync(rootResolved) ? realpathSync(rootResolved) : rootResolved;
-
-	// Walk ancestors so missing nested dirs under a symlink cannot fail open.
-	// Stop at the repo root — new paths under a missing root are lexically OK.
-	let cursor = abs;
-	while (true) {
-		if (existsSync(cursor)) {
-			const real = realpathSync(cursor);
-			if (!underRoot(rootReal, real)) {
-				throw new Error(`Refusing autofix outside repo root: ${relFile}`);
-			}
-			return abs;
-		}
-		const parent = dirname(cursor);
-		if (parent === cursor || (!underRoot(rootResolved, parent) && parent !== rootResolved)) {
-			return abs;
-		}
-		cursor = parent;
-	}
+	return resolveExistingRealPath(rootResolved, abs, relFile);
 }
 
 export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): ApplyFixesResult {

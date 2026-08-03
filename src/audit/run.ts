@@ -18,54 +18,85 @@ export interface AuditCliOptions {
 	dryRun?: boolean;
 }
 
+function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
+	const next = argv[index + 1];
+	if (next && !next.startsWith("-")) {
+		if (next !== "doc-meta" && next !== "anchors") {
+			throw new Error(`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, or --fix=anchors.`);
+		}
+		return { fix: next, nextIndex: index + 1 };
+	}
+	return { fix: true, nextIndex: index };
+}
+
+interface ApplyAuditFlagInput {
+	state: AuditCliOptions;
+	arg: string;
+	argv: string[];
+	index: number;
+}
+
+function applyAuditFlag(input: ApplyAuditFlagInput): number {
+	const { state, arg, argv, index } = input;
+	if (arg.startsWith("--suite=")) {
+		state.suite = arg.slice("--suite=".length);
+		return index;
+	}
+	if (arg === "--strict") {
+		state.strict = true;
+		return index;
+	}
+	if (arg === "--json") {
+		state.json = true;
+		return index;
+	}
+	if (arg === "--dry-run") {
+		state.dryRun = true;
+		return index;
+	}
+	if (arg.startsWith("--dry-run=")) {
+		throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
+	}
+	if (arg === "--fix") {
+		const parsed = parseFixArg(argv, index);
+		state.fix = parsed.fix;
+		return parsed.nextIndex;
+	}
+	if (arg.startsWith("--fix=")) {
+		state.fix = arg.slice("--fix=".length);
+		return index;
+	}
+	if (arg.startsWith("--paths=")) {
+		state.paths = arg
+			.slice("--paths=".length)
+			.split(",")
+			.map((path) => path.trim())
+			.filter(Boolean);
+		return index;
+	}
+	if (arg.startsWith("--only=")) {
+		state.only = new Set(arg.slice("--only=".length).split(",").filter(Boolean));
+		return index;
+	}
+	return index;
+}
+
 export function parseAuditArgs(argv: string[]): AuditCliOptions {
-	let suite = "docs";
-	let strict = false;
-	let json = false;
-	let dryRun = false;
-	let paths: string[] = [];
-	let only: Set<string> | null = null;
-	let fix: string | true | null = null;
+	const state: AuditCliOptions = {
+		suite: "docs",
+		strict: false,
+		json: false,
+		dryRun: false,
+		paths: [],
+		only: null,
+		fix: null,
+	};
 
 	for (let i = 0; i < argv.length; i++) {
-		const arg = argv[i] ?? "";
-		if (arg.startsWith("--suite=")) {
-			suite = arg.slice("--suite=".length);
-		} else if (arg === "--strict") {
-			strict = true;
-		} else if (arg === "--json") {
-			json = true;
-		} else if (arg === "--dry-run") {
-			dryRun = true;
-		} else if (arg.startsWith("--dry-run=")) {
-			throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
-		} else if (arg === "--fix") {
-			const next = argv[i + 1];
-			if (next && !next.startsWith("-")) {
-				if (next !== "doc-meta" && next !== "anchors") {
-					throw new Error(
-						`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, or --fix=anchors.`,
-					);
-				}
-				fix = next;
-				i++;
-			} else {
-				fix = true;
-			}
-		} else if (arg.startsWith("--fix=")) {
-			fix = arg.slice("--fix=".length);
-		} else if (arg.startsWith("--paths=")) {
-			paths = arg
-				.slice("--paths=".length)
-				.split(",")
-				.map((path) => path.trim())
-				.filter(Boolean);
-		} else if (arg.startsWith("--only=")) {
-			only = new Set(arg.slice("--only=".length).split(",").filter(Boolean));
-		}
+		i = applyAuditFlag({ state, arg: argv[i] ?? "", argv, index: i });
 	}
 
-	return { suite, strict, json, paths, only, fix, dryRun };
+	return state;
 }
 
 function labelForSuite(suite: string): string {
@@ -92,41 +123,47 @@ function shouldRunRule(
 	return true;
 }
 
+async function runAuditFixes(
+	options: AuditCliOptions,
+	ctx: ReturnType<typeof createContext>,
+	loaded: Awaited<ReturnType<typeof loadPlugins>>,
+): Promise<number | null> {
+	if (options.fix === null || options.fix === undefined) return null;
+	if (options.suite !== "docs") {
+		console.error("--fix is supported only for audit docs");
+		return 1;
+	}
+	const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
+	if (kinds.length === 0) {
+		console.error(
+			"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links).",
+		);
+		return 1;
+	}
+	applyFixes(ctx, { kinds, dryRun: options.dryRun });
+	if (!options.dryRun) {
+		const refreshed = createContext({
+			root: options.root,
+			paths: options.paths.length > 0 ? options.paths : undefined,
+			policies: loaded.policies,
+		});
+		Object.assign(ctx, refreshed);
+	}
+	return null;
+}
+
 export async function runAudit(options: AuditCliOptions): Promise<number> {
 	const pathScoped = options.paths.length > 0;
 	const base = createContext({
 		root: options.root,
 		paths: pathScoped ? options.paths : undefined,
-		// Bare skills suite: include skill trees even under scan.exclude so skill-scoped
-		// prose-policy matches path-scoped / validate --base prove (not a silent no-op).
 		includeExcludedSkillTrees: options.suite === "skills" && !pathScoped,
 	});
 	const loaded = await loadPlugins(base.root, base.config);
 	const ctx = { ...base, policies: loaded.policies };
 
-	if (options.fix !== null && options.fix !== undefined) {
-		if (options.suite !== "docs") {
-			console.error("--fix is supported only for audit docs");
-			return 1;
-		}
-		const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
-		if (kinds.length === 0) {
-			console.error(
-				"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links).",
-			);
-			return 1;
-		}
-		applyFixes(ctx, { kinds, dryRun: options.dryRun });
-		// Re-create path-scoped context after writes so subsequent rules see new content.
-		if (!options.dryRun) {
-			const refreshed = createContext({
-				root: options.root,
-				paths: options.paths.length > 0 ? options.paths : undefined,
-				policies: loaded.policies,
-			});
-			Object.assign(ctx, refreshed);
-		}
-	}
+	const fixExit = await runAuditFixes(options, ctx, loaded);
+	if (fixExit !== null) return fixExit;
 
 	const rules = rulesForSuite(options.suite, loaded.rules).filter(
 		(r) => !options.only || options.only.has(r.id),

@@ -13,26 +13,107 @@ import {
 } from "./constants.ts";
 import { discoverSkillReferencePlans, generatedRefPath } from "./discover.ts";
 
+function walkMarkdown(dir: string, onFile: (fullPath: string) => void): void {
+	if (!existsSync(dir)) return;
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		if (entry.name.startsWith(".")) continue;
+		const fullPath = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			walkMarkdown(fullPath, onFile);
+			continue;
+		}
+		if (!entry.name.endsWith(".md")) continue;
+		onFile(fullPath);
+	}
+}
+
 function listAllGeneratedFiles(root: string): string[] {
 	const files: string[] = [];
-	const walk = (dir: string): void => {
-		if (!existsSync(dir)) return;
-		for (const entry of readdirSync(dir, { withFileTypes: true })) {
-			if (entry.name.startsWith(".")) continue;
-			const fullPath = join(dir, entry.name);
-			if (entry.isDirectory()) {
-				walk(fullPath);
-				continue;
-			}
-			if (!entry.name.endsWith(".md")) continue;
-			const content = readFileSync(fullPath, "utf8");
-			if (isGeneratedReference(content)) {
-				files.push(normalizeRelPath(relative(root, fullPath)));
-			}
+	walkMarkdown(root, (fullPath) => {
+		const content = readFileSync(fullPath, "utf8");
+		if (isGeneratedReference(content)) {
+			files.push(normalizeRelPath(relative(root, fullPath)));
 		}
-	};
-	walk(root);
+	});
 	return files;
+}
+
+function checkNeededCopy(root: string, targetRel: string): Issue | null {
+	const targetPath = join(root, targetRel);
+	if (!existsSync(targetPath)) {
+		return issue(
+			"generated-references",
+			targetRel,
+			"missing generated copy — run skeleton references sync",
+		);
+	}
+
+	const generated = readFileSync(targetPath, "utf8");
+	if (!isGeneratedReference(generated)) {
+		return issue(
+			"generated-references",
+			targetRel,
+			"expected generated-reference provenance header",
+		);
+	}
+
+	const body = stripGeneratedHeader(generated);
+	const sourceRel = normalizeRelPath(
+		generated.match(/source: ([^\n]+)/)?.[1] ??
+			join(CANONICAL_REFS_DIR, targetRel.split("/references/")[1] ?? ""),
+	);
+	const canonicalPath = join(root, sourceRel);
+	if (!existsSync(canonicalPath)) {
+		return issue("generated-references", targetRel, `canonical source missing: ${sourceRel}`);
+	}
+
+	const canonical = readFileSync(canonicalPath, "utf8");
+	if (body !== canonical) {
+		return issue(
+			"generated-references",
+			targetRel,
+			"stale generated copy — run skeleton references sync",
+		);
+	}
+	return null;
+}
+
+function checkOrphanedCopies(
+	root: string,
+	needed: Set<string>,
+	skillIndex: ReturnType<typeof buildSkillIndex>,
+): Issue[] {
+	const issues: Issue[] = [];
+	for (const generatedRel of listAllGeneratedFiles(root)) {
+		if (isForeignSkillPath(generatedRel, skillIndex)) continue;
+		if (!needed.has(generatedRel)) {
+			issues.push(
+				issue(
+					"generated-references",
+					generatedRel,
+					"orphaned generated copy — run skeleton references sync",
+				),
+			);
+		}
+	}
+	return issues;
+}
+
+function checkStaleSharedLinks(root: string, skillDir: string): Issue[] {
+	const issues: Issue[] = [];
+	walkMarkdown(skillDir, (fullPath) => {
+		const relFile = normalizeRelPath(relative(root, fullPath));
+		const content = readFileSync(fullPath, "utf8");
+		if (!content.match(SHARED_REF_LINK_RE)) return;
+		issues.push(
+			issue(
+				"generated-references",
+				relFile,
+				"still links to shared root references/ — run skeleton references sync",
+			),
+		);
+	});
+	return issues;
 }
 
 export function runGeneratedReferencesCheck(
@@ -53,92 +134,14 @@ export function runGeneratedReferencesCheck(
 	}
 
 	for (const targetRel of needed) {
-		const targetPath = join(root, targetRel);
-		if (!existsSync(targetPath)) {
-			issues.push(
-				issue(
-					"generated-references",
-					targetRel,
-					"missing generated copy — run skeleton references sync",
-				),
-			);
-			continue;
-		}
-
-		const generated = readFileSync(targetPath, "utf8");
-		if (!isGeneratedReference(generated)) {
-			issues.push(
-				issue("generated-references", targetRel, "expected generated-reference provenance header"),
-			);
-			continue;
-		}
-
-		const body = stripGeneratedHeader(generated);
-		const sourceRel = normalizeRelPath(
-			generated.match(/source: ([^\n]+)/)?.[1] ??
-				join(CANONICAL_REFS_DIR, targetRel.split("/references/")[1] ?? ""),
-		);
-		const canonicalPath = join(root, sourceRel);
-		if (!existsSync(canonicalPath)) {
-			issues.push(
-				issue("generated-references", targetRel, `canonical source missing: ${sourceRel}`),
-			);
-			continue;
-		}
-
-		const canonical = readFileSync(canonicalPath, "utf8");
-		if (body !== canonical) {
-			issues.push(
-				issue(
-					"generated-references",
-					targetRel,
-					"stale generated copy — run skeleton references sync",
-				),
-			);
-		}
+		const found = checkNeededCopy(root, targetRel);
+		if (found) issues.push(found);
 	}
 
-	for (const generatedRel of listAllGeneratedFiles(root)) {
-		// Foreign synced skills own their generated copies upstream; don't flag them
-		// as orphans just because owned plans didn't produce them.
-		if (isForeignSkillPath(generatedRel, skillIndex)) continue;
-		if (!needed.has(generatedRel)) {
-			issues.push(
-				issue(
-					"generated-references",
-					generatedRel,
-					"orphaned generated copy — run skeleton references sync",
-				),
-			);
-		}
-	}
+	issues.push(...checkOrphanedCopies(root, needed, skillIndex));
 
 	for (const plan of plans) {
-		const skillDir = join(root, plan.skill);
-		if (!existsSync(skillDir)) continue;
-		const walk = (dir: string): void => {
-			for (const entry of readdirSync(dir, { withFileTypes: true })) {
-				if (entry.name.startsWith(".")) continue;
-				const fullPath = join(dir, entry.name);
-				if (entry.isDirectory()) {
-					walk(fullPath);
-					continue;
-				}
-				if (!entry.name.endsWith(".md")) continue;
-				const relFile = normalizeRelPath(relative(root, fullPath));
-				const content = readFileSync(fullPath, "utf8");
-				if (content.match(SHARED_REF_LINK_RE)) {
-					issues.push(
-						issue(
-							"generated-references",
-							relFile,
-							"still links to shared root references/ — run skeleton references sync",
-						),
-					);
-				}
-			}
-		};
-		walk(skillDir);
+		issues.push(...checkStaleSharedLinks(root, join(root, plan.skill)));
 	}
 
 	return issues;

@@ -2,7 +2,7 @@
 
 **Source of truth for** common Skeleton validation and hook failures.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
 
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 
@@ -10,7 +10,7 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 
 **Cause:** Every input was code/config (`.ts`, `.py`, `package.json`, etc.). Skeleton does not validate app code.
 
-**Fix:** Run your repo’s code gates, for example:
+**Local / pre-commit (no `--base`):** exits non-zero. Run your repo’s code gates, for example:
 
 ```bash
 bun test
@@ -19,6 +19,8 @@ bun run build
 ```
 
 (or the equivalent npm/Nx scripts). Pass docs/skill paths if you intended SSOT validation.
+
+**CI (`--base`):** does not fail closed on all-skipped code — global rules still run. Keep `bun test` / typecheck / build as a separate CI lane.
 
 ## Owned skill-only paths exit non-zero
 

@@ -14,12 +14,11 @@ export function runCoverageGapsRule(ctx: AuditContext): Issue[] {
 	for (const rel of candidates) {
 		if (scanned.has(rel)) continue;
 		issues.push(
-			issue(
-				"coverage-gaps",
-				rel,
-				"markdown outside audit scan perimeter — extend .skeleton/config.yaml scan.include",
-				{ severity: "warning" },
-			),
+			issue("coverage-gaps", rel, {
+				message:
+					"markdown outside audit scan perimeter — extend .skeleton/config.yaml scan.include",
+				severity: "warning",
+			}),
 		);
 	}
 

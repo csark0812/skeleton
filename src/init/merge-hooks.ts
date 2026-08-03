@@ -52,6 +52,58 @@ interface CursorHookEntry {
 	[key: string]: unknown;
 }
 
+interface MergeExistingCursorInput {
+	postToolUse: CursorHookEntry[];
+	skeletonIdx: number;
+	canonical: CursorHookEntry;
+	opts: MergeHooksOptions;
+}
+
+function mergeExistingCursorHook(input: MergeExistingCursorInput): MergeHookResult | null {
+	const { postToolUse, skeletonIdx, canonical, opts } = input;
+	const current = postToolUse[skeletonIdx];
+	const userEdited =
+		current &&
+		!opts.forceHooks &&
+		(current.matcher !== canonical.matcher || !isSkeletonHookCommand(current.command));
+
+	if (userEdited) {
+		return {
+			platform: "cursor",
+			action: "conflict",
+			message: identityKey("cursor", "postToolUse", String(current.matcher ?? "Read")),
+		};
+	}
+
+	const extras = Object.fromEntries(
+		Object.entries(current ?? {}).filter(([key]) => !["command", "matcher"].includes(key)),
+	);
+	const merged = { ...extras, ...canonical };
+	if (deepEqual(current, merged)) return { platform: "cursor", action: "skipped" };
+	postToolUse[skeletonIdx] = merged;
+	return null;
+}
+
+interface PersistCursorHooksInput {
+	targetPath: string;
+	existing: Record<string, unknown>;
+	hooks: Record<string, CursorHookEntry[]>;
+	postToolUse: CursorHookEntry[];
+	skeletonIdx: number;
+}
+
+function persistCursorHooks(input: PersistCursorHooksInput): MergeHookResult {
+	const { targetPath, existing, hooks, postToolUse, skeletonIdx } = input;
+	const next = {
+		...existing,
+		version: existing.version ?? 1,
+		hooks: { ...hooks, postToolUse },
+	};
+	if (deepEqual(existing, next)) return { platform: "cursor", action: "skipped" };
+	writeJson(targetPath, next);
+	return { platform: "cursor", action: skeletonIdx >= 0 ? "updated" : "added" };
+}
+
 function mergeCursorHooks(
 	targetPath: string,
 	fragment: { hooks?: { postToolUse?: CursorHookEntry[] } },
@@ -67,38 +119,13 @@ function mergeCursorHooks(
 	const canonical = { ...incoming, matcher: incoming.matcher ?? "Read" };
 
 	if (skeletonIdx >= 0) {
-		const current = postToolUse[skeletonIdx];
-		const userEdited =
-			current &&
-			!opts.forceHooks &&
-			(current.matcher !== canonical.matcher || !isSkeletonHookCommand(current.command));
-
-		if (userEdited) {
-			return {
-				platform: "cursor",
-				action: "conflict",
-				message: identityKey("cursor", "postToolUse", String(current.matcher ?? "Read")),
-			};
-		}
-
-		const extras = Object.fromEntries(
-			Object.entries(current ?? {}).filter(([key]) => !["command", "matcher"].includes(key)),
-		);
-		const merged = { ...extras, ...canonical };
-		if (deepEqual(current, merged)) return { platform: "cursor", action: "skipped" };
-		postToolUse[skeletonIdx] = merged;
+		const conflict = mergeExistingCursorHook({ postToolUse, skeletonIdx, canonical, opts });
+		if (conflict) return conflict;
 	} else {
 		postToolUse.push(canonical);
 	}
 
-	const next = {
-		...existing,
-		version: existing.version ?? 1,
-		hooks: { ...hooks, postToolUse },
-	};
-	if (deepEqual(existing, next)) return { platform: "cursor", action: "skipped" };
-	writeJson(targetPath, next);
-	return { platform: "cursor", action: skeletonIdx >= 0 ? "updated" : "added" };
+	return persistCursorHooks({ targetPath, existing, hooks, postToolUse, skeletonIdx });
 }
 
 interface NestedHookEntry {
@@ -113,70 +140,144 @@ interface MatcherGroup {
 	[key: string]: unknown;
 }
 
-function mergeNestedHooks(
-	platform: string,
-	targetPath: string,
-	fragment: { hooks?: Record<string, MatcherGroup[]> },
-	eventName: string,
-	opts: MergeHooksOptions,
-): MergeHookResult {
-	const existing = (readJson(targetPath) as Record<string, unknown> | null) ?? {};
-	const rootHooks = (existing.hooks as Record<string, MatcherGroup[]> | undefined) ?? {};
-	const eventHooks = [...(rootHooks[eventName] ?? [])];
-	const incomingGroups = fragment.hooks?.[eventName] ?? [];
+interface MergeNestedHooksOptions {
+	platform: string;
+	targetPath: string;
+	fragment: { hooks?: Record<string, MatcherGroup[]> };
+	eventName: string;
+	opts: MergeHooksOptions;
+}
 
+interface MergeIncomingHookGroupOptions {
+	group: MatcherGroup;
+	incomingHook: NestedHookEntry;
+	eventHooks: MatcherGroup[];
+	opts: MergeHooksOptions;
+	platform: string;
+	eventName: string;
+}
+
+interface MergeExistingNestedInput {
+	hooks: NestedHookEntry[];
+	skeletonIdx: number;
+	incomingHook: NestedHookEntry;
+	opts: MergeHooksOptions;
+	platform: string;
+	eventName: string;
+	matcher: string;
+}
+
+function mergeExistingNestedSkeletonHook(input: MergeExistingNestedInput): {
+	changed: boolean;
+	conflict?: MergeHookResult;
+} {
+	const { hooks, skeletonIdx, incomingHook, opts, platform, eventName, matcher } = input;
+	const current = hooks[skeletonIdx];
+	const userEdited =
+		current &&
+		!opts.forceHooks &&
+		(current.type !== incomingHook.type || !isSkeletonHookCommand(current.command));
+
+	if (userEdited) {
+		return {
+			changed: false,
+			conflict: {
+				platform,
+				action: "conflict",
+				message: identityKey(platform, eventName, matcher),
+			},
+		};
+	}
+
+	const extras = Object.fromEntries(
+		Object.entries(current ?? {}).filter(([key]) => !["type", "command"].includes(key)),
+	);
+	const merged = { ...extras, ...incomingHook };
+	if (!deepEqual(current, merged)) {
+		hooks[skeletonIdx] = merged;
+		return { changed: true };
+	}
+	return { changed: false };
+}
+
+function mergeIncomingHookGroup(args: MergeIncomingHookGroupOptions): {
+	changed: boolean;
+	conflict?: MergeHookResult;
+} {
+	const { group, incomingHook, eventHooks, opts, platform, eventName } = args;
+	const matcher = group.matcher ?? "";
+	const groupIdx = eventHooks.findIndex((g) => g.matcher === matcher);
+	if (groupIdx < 0) {
+		eventHooks.push({ ...group, hooks: [{ ...incomingHook }] });
+		return { changed: true };
+	}
+
+	const existingGroup = eventHooks[groupIdx];
+	const hooks = [...(existingGroup?.hooks ?? [])];
+	const skeletonIdx = hooks.findIndex((entry) => isSkeletonHookCommand(entry.command));
+
+	if (skeletonIdx >= 0) {
+		const result = mergeExistingNestedSkeletonHook({
+			hooks,
+			skeletonIdx,
+			incomingHook,
+			opts,
+			platform,
+			eventName,
+			matcher,
+		});
+		if (result.conflict) return { changed: false, conflict: result.conflict };
+		eventHooks[groupIdx] = { ...existingGroup, matcher, hooks };
+		return { changed: result.changed };
+	}
+
+	hooks.push({ ...incomingHook });
+	eventHooks[groupIdx] = { ...existingGroup, matcher, hooks };
+	return { changed: true };
+}
+
+function mergeIncomingGroups(args: {
+	incomingGroups: MatcherGroup[];
+	eventHooks: MatcherGroup[];
+	opts: MergeHooksOptions;
+	platform: string;
+	eventName: string;
+}): { changed: boolean; conflict?: MergeHookResult } {
 	let changed = false;
-	for (const incomingGroup of incomingGroups) {
-		const matcher = incomingGroup.matcher ?? "";
+	for (const incomingGroup of args.incomingGroups) {
 		const incomingHook = incomingGroup.hooks?.[0];
 		if (!incomingHook) continue;
 
-		const groupIdx = eventHooks.findIndex((group) => group.matcher === matcher);
-		if (groupIdx < 0) {
-			eventHooks.push({
-				...incomingGroup,
-				hooks: [{ ...incomingHook }],
-			});
-			changed = true;
-			continue;
-		}
-
-		const group = eventHooks[groupIdx];
-		const hooks = [...(group?.hooks ?? [])];
-		const skeletonIdx = hooks.findIndex((entry) => isSkeletonHookCommand(entry.command));
-
-		if (skeletonIdx >= 0) {
-			const current = hooks[skeletonIdx];
-			const userEdited =
-				current &&
-				!opts.forceHooks &&
-				(current.type !== incomingHook.type || !isSkeletonHookCommand(current.command));
-
-			if (userEdited) {
-				return {
-					platform,
-					action: "conflict",
-					message: identityKey(platform, eventName, matcher),
-				};
-			}
-
-			const extras = Object.fromEntries(
-				Object.entries(current ?? {}).filter(([key]) => !["type", "command"].includes(key)),
-			);
-			const merged = { ...extras, ...incomingHook };
-			if (!deepEqual(current, merged)) {
-				hooks[skeletonIdx] = merged;
-				changed = true;
-			}
-		} else {
-			hooks.push({ ...incomingHook });
-			changed = true;
-		}
-
-		eventHooks[groupIdx] = { ...group, matcher, hooks };
+		const result = mergeIncomingHookGroup({
+			group: incomingGroup,
+			incomingHook,
+			eventHooks: args.eventHooks,
+			opts: args.opts,
+			platform: args.platform,
+			eventName: args.eventName,
+		});
+		if (result.conflict) return { changed: false, conflict: result.conflict };
+		if (result.changed) changed = true;
 	}
+	return { changed };
+}
 
-	if (!changed) return { platform, action: "skipped" };
+function mergeNestedHooks(args: MergeNestedHooksOptions): MergeHookResult {
+	const { platform, targetPath, eventName } = args;
+	const existing = (readJson(targetPath) as Record<string, unknown> | null) ?? {};
+	const rootHooks = (existing.hooks as Record<string, MatcherGroup[]> | undefined) ?? {};
+	const eventHooks = [...(rootHooks[eventName] ?? [])];
+	const incomingGroups = args.fragment.hooks?.[eventName] ?? [];
+
+	const result = mergeIncomingGroups({
+		incomingGroups,
+		eventHooks,
+		opts: args.opts,
+		platform,
+		eventName,
+	});
+	if (result.conflict) return result.conflict;
+	if (!result.changed) return { platform, action: "skipped" };
 
 	const next = {
 		...existing,
@@ -199,14 +300,30 @@ export function mergeHookConfigs(opts: MergeHooksOptions): MergeHookResult[] {
 	const claudeFragment = loadFragment("claude-settings.fragment.json", opts.hookCommand) as {
 		hooks?: Record<string, MatcherGroup[]>;
 	};
-	results.push(mergeNestedHooks("claude", claudePath, claudeFragment, "PostToolUse", opts));
+	results.push(
+		mergeNestedHooks({
+			platform: "claude",
+			targetPath: claudePath,
+			fragment: claudeFragment,
+			eventName: "PostToolUse",
+			opts,
+		}),
+	);
 
 	const codexPath = join(opts.cwd, ".codex/hooks.json");
 	if (existsSync(join(opts.cwd, ".codex"))) {
 		const codexFragment = loadFragment("codex-hooks.fragment.json", opts.hookCommand) as {
 			hooks?: Record<string, MatcherGroup[]>;
 		};
-		results.push(mergeNestedHooks("codex", codexPath, codexFragment, "PostToolUse", opts));
+		results.push(
+			mergeNestedHooks({
+				platform: "codex",
+				targetPath: codexPath,
+				fragment: codexFragment,
+				eventName: "PostToolUse",
+				opts,
+			}),
+		);
 	} else {
 		results.push({ platform: "codex", action: "skipped", message: "missing .codex directory" });
 	}
