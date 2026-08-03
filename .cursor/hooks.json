@@ -1,11 +1,11 @@
 {
-  "version": 1,
-  "hooks": {
-    "postToolUse": [
-      {
-        "command": "bun src/cli.ts hook customize",
-        "matcher": "Read"
-      }
-    ]
-  }
+	"version": 1,
+	"hooks": {
+		"postToolUse": [
+			{
+				"command": "bun src/cli.ts hook customize",
+				"matcher": "Read"
+			}
+		]
+	}
 }

@@ -9,6 +9,7 @@
 
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import process from "node:process";
 
 interface ScenarioMetrics {
 	passed: boolean;
@@ -59,16 +60,14 @@ interface RunFile {
 }
 
 function median(values: number[]): number | undefined {
-	if (values.length === 0) return undefined;
+	if (values.length === 0) return;
 	const sorted = [...values].sort((x, y) => x - y);
 	const mid = Math.floor(sorted.length / 2);
-	return sorted.length % 2 === 0
-		? (sorted[mid - 1]! + sorted[mid]!) / 2
-		: sorted[mid];
+	return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid];
 }
 
 function mean(values: number[]): number | undefined {
-	if (values.length === 0) return undefined;
+	if (values.length === 0) return;
 	return values.reduce((s, v) => s + v, 0) / values.length;
 }
 
@@ -108,7 +107,7 @@ function bootstrapMeanCi(
 	reps = 2000,
 	alpha = 0.05,
 ): { mean: number; lo: number; hi: number } | undefined {
-	if (values.length === 0) return undefined;
+	if (values.length === 0) return;
 	const m = mean(values)!;
 	if (values.length === 1) {
 		return { mean: m, lo: m, hi: m };
@@ -163,103 +162,148 @@ function pct(n: number, d: number): string {
 	return `${((100 * n) / d).toFixed(0)}%`;
 }
 
-async function main(): Promise<void> {
-	const argv = process.argv.slice(2);
+function parseCompareArgs(argv: string[]): { runsDir: string; outDir: string } {
 	let runsDir = resolve("agent-suites/evidence/runs");
 	let outDir = resolve("agent-suites/evidence");
 	for (let i = 0; i < argv.length; i++) {
-		if (argv[i] === "--runs-dir" && argv[i + 1]) {
-			runsDir = resolve(argv[++i]!);
-		} else if (argv[i] === "--out-dir" && argv[i + 1]) {
-			outDir = resolve(argv[++i]!);
-		}
+		if (argv[i] === "--runs-dir" && argv[i + 1]) runsDir = resolve(argv[++i]!);
+		else if (argv[i] === "--out-dir" && argv[i + 1]) outDir = resolve(argv[++i]!);
 	}
+	return { runsDir, outDir };
+}
 
-	const runs = await collectRuns(runsDir);
-	if (runs.length === 0) {
-		console.error(`No compare-report.json files under ${runsDir}`);
-		console.error("Deposit runs after: bun run agent:test:live:compare");
-		process.exit(1);
+type ScenarioStats = {
+	n: number;
+	cleanPass: number;
+	messyPass: number;
+	mcnemar: { b: number; c: number; n: number; pValue: number };
+	tokenDeltas: number[];
+	toolDeltas: number[];
+	durationDeltas: number[];
+};
+
+type ScenarioStatsAccumulator = {
+	n: number;
+	cleanPass: number;
+	messyPass: number;
+	mcnemarB: number;
+	mcnemarC: number;
+	tokenDeltas: number[];
+	toolDeltas: number[];
+	durationDeltas: number[];
+};
+
+function accumulatePairedRow(stats: ScenarioStatsAccumulator, row: ScenarioCompareDelta): void {
+	stats.n++;
+	if (row.a.passed) stats.cleanPass++;
+	if (row.b.passed) stats.messyPass++;
+	if (row.a.passed && !row.b.passed) stats.mcnemarB++;
+	if (!row.a.passed && row.b.passed) stats.mcnemarC++;
+	if (typeof row.deltas.totalTokens === "number") stats.tokenDeltas.push(row.deltas.totalTokens);
+	stats.toolDeltas.push(row.deltas.toolCallCount);
+	stats.durationDeltas.push(row.deltas.durationMs);
+}
+
+function aggregateScenarioStats(name: string, runs: RunFile[]): ScenarioStats {
+	const stats = {
+		n: 0,
+		cleanPass: 0,
+		messyPass: 0,
+		mcnemarB: 0,
+		mcnemarC: 0,
+		tokenDeltas: [] as number[],
+		toolDeltas: [] as number[],
+		durationDeltas: [] as number[],
+	};
+	for (const run of runs) {
+		const row = run.report.paired.find((p) => p.scenario === name);
+		if (!row || row.a.skipped || row.b.skipped) continue;
+		accumulatePairedRow(stats, row);
 	}
+	return {
+		n: stats.n,
+		cleanPass: stats.cleanPass,
+		messyPass: stats.messyPass,
+		mcnemar: mcnemarExact(stats.mcnemarB, stats.mcnemarC),
+		tokenDeltas: stats.tokenDeltas,
+		toolDeltas: stats.toolDeltas,
+		durationDeltas: stats.durationDeltas,
+	};
+}
 
-	const scenarios = scenarioIds(runs);
-	const perScenario: Record<
-		string,
-		{
-			n: number;
-			cleanPass: number;
-			messyPass: number;
-			mcnemar: { b: number; c: number; n: number; pValue: number };
-			tokenDeltas: number[];
-			toolDeltas: number[];
-			durationDeltas: number[];
-		}
-	> = {};
+interface EvaluateGatesInput {
+	perScenario: Record<string, ScenarioStats>;
+	groundingNames: string[];
+	nRuns: number;
+	protocolTargetN: number;
+	groundingTokenDeltas: number[];
+}
 
-	for (const name of scenarios) {
-		let cleanPass = 0;
-		let messyPass = 0;
-		let b = 0; // clean pass, messy fail
-		let c = 0; // clean fail, messy pass
-		const tokenDeltas: number[] = [];
-		const toolDeltas: number[] = [];
-		const durationDeltas: number[] = [];
-		let n = 0;
-		for (const run of runs) {
-			const row = run.report.paired.find((p) => p.scenario === name);
-			if (!row || row.a.skipped || row.b.skipped) continue;
-			n++;
-			if (row.a.passed) cleanPass++;
-			if (row.b.passed) messyPass++;
-			if (row.a.passed && !row.b.passed) b++;
-			if (!row.a.passed && row.b.passed) c++;
-			if (typeof row.deltas.totalTokens === "number") tokenDeltas.push(row.deltas.totalTokens);
-			toolDeltas.push(row.deltas.toolCallCount);
-			durationDeltas.push(row.deltas.durationMs);
-		}
-		perScenario[name] = {
-			n,
-			cleanPass,
-			messyPass,
-			mcnemar: mcnemarExact(b, c),
-			tokenDeltas,
-			toolDeltas,
-			durationDeltas,
-		};
-	}
-
-	const groundingNames = scenarios.filter((s) => s.startsWith("grounding:"));
-	const groundingTokenDeltas: number[] = [];
-	for (const name of groundingNames) {
-		groundingTokenDeltas.push(...(perScenario[name]?.tokenDeltas ?? []));
-	}
-
-	const allTokenDeltas = scenarios.flatMap((s) => perScenario[s]?.tokenDeltas ?? []);
-	const allToolDeltas = scenarios.flatMap((s) => perScenario[s]?.toolDeltas ?? []);
-
-	const protocolTargetN = 10;
-	const preliminary = runs.length < protocolTargetN;
+function evaluateGates(input: EvaluateGatesInput) {
+	const { perScenario, groundingNames, nRuns, protocolTargetN, groundingTokenDeltas } = input;
+	const preliminary = nRuns < protocolTargetN;
 	const groundingGate = groundingNames.some((name) => {
 		const m = perScenario[name]?.mcnemar;
 		return m && m.n > 0 && m.pValue < 0.05 && m.b > m.c;
 	});
-	const tokenGate = (() => {
-		const med = median(groundingTokenDeltas);
-		return med !== undefined && med > 0;
-	})();
+	const tokenMed = median(groundingTokenDeltas);
+	const tokenGate = tokenMed !== undefined && tokenMed > 0;
+	return { preliminary, groundingGate, tokenGate };
+}
 
-	const summary = {
+function scenarioSummaryEntry(name: string, s: ScenarioStats) {
+	return [
+		name,
+		{
+			n: s.n,
+			cleanPassRate: s.n ? s.cleanPass / s.n : 0,
+			messyPassRate: s.n ? s.messyPass / s.n : 0,
+			cleanPass: s.cleanPass,
+			messyPass: s.messyPass,
+			mcnemar: s.mcnemar,
+			medianTokenDelta: median(s.tokenDeltas),
+			meanTokenDelta: mean(s.tokenDeltas),
+			tokenDeltaBootstrap95: bootstrapMeanCi(s.tokenDeltas),
+			medianToolDelta: median(s.toolDeltas),
+			meanToolDelta: mean(s.toolDeltas),
+			medianDurationDeltaMs: median(s.durationDeltas),
+		},
+	] as const;
+}
+
+interface BuildSummaryInput {
+	runs: RunFile[];
+	scenarios: string[];
+	perScenario: Record<string, ScenarioStats>;
+	groundingTokenDeltas: number[];
+	allTokenDeltas: number[];
+	allToolDeltas: number[];
+	gates: ReturnType<typeof evaluateGates>;
+}
+
+function buildSummaryObject(input: BuildSummaryInput) {
+	const {
+		runs,
+		scenarios,
+		perScenario,
+		groundingTokenDeltas,
+		allTokenDeltas,
+		allToolDeltas,
+		gates,
+	} = input;
+	const protocolTargetN = 10;
+	return {
 		generatedAt: new Date().toISOString(),
 		protocolTargetN,
 		nRuns: runs.length,
-		preliminary,
+		preliminary: gates.preliminary,
 		runIds: runs.map((r) => r.id),
 		aLabel: runs[0]!.report.aLabel,
 		bLabel: runs[0]!.report.bLabel,
 		gates: {
-			groundingMcnemarP05: groundingGate,
-			groundingTokenMedianMessyHigher: tokenGate,
-			readmeFinalClaimsAllowed: !preliminary && groundingGate && tokenGate,
+			groundingMcnemarP05: gates.groundingGate,
+			groundingTokenMedianMessyHigher: gates.tokenGate,
+			readmeFinalClaimsAllowed: !gates.preliminary && gates.groundingGate && gates.tokenGate,
 		},
 		overall: {
 			meanTokenDelta: mean(allTokenDeltas),
@@ -271,78 +315,30 @@ async function main(): Promise<void> {
 			groundingTokenDeltaBootstrap95: bootstrapMeanCi(groundingTokenDeltas),
 		},
 		scenarios: Object.fromEntries(
-			scenarios.map((name) => {
-				const s = perScenario[name]!;
-				return [
-					name,
-					{
-						n: s.n,
-						cleanPassRate: s.n ? s.cleanPass / s.n : 0,
-						messyPassRate: s.n ? s.messyPass / s.n : 0,
-						cleanPass: s.cleanPass,
-						messyPass: s.messyPass,
-						mcnemar: s.mcnemar,
-						medianTokenDelta: median(s.tokenDeltas),
-						meanTokenDelta: mean(s.tokenDeltas),
-						tokenDeltaBootstrap95: bootstrapMeanCi(s.tokenDeltas),
-						medianToolDelta: median(s.toolDeltas),
-						meanToolDelta: mean(s.toolDeltas),
-						medianDurationDeltaMs: median(s.durationDeltas),
-					},
-				];
-			}),
+			scenarios.map((name) => scenarioSummaryEntry(name, perScenario[name]!)),
 		),
 	};
+}
 
-	await mkdir(outDir, { recursive: true });
-	const jsonPath = join(outDir, "SUMMARY.json");
-	const mdPath = join(outDir, "SUMMARY.md");
-	await writeFile(jsonPath, `${JSON.stringify(summary, null, "\t")}\n`, "utf8");
+function scenarioMarkdownRow(
+	name: string,
+	s: {
+		cleanPass: number;
+		messyPass: number;
+		n: number;
+		mcnemar: { b: number; c: number; pValue: number };
+		medianTokenDelta?: number;
+		medianToolDelta?: number;
+	},
+): string {
+	return `| ${name} | ${s.cleanPass}/${s.n} (${pct(s.cleanPass, s.n)}) | ${s.messyPass}/${s.n} (${pct(s.messyPass, s.n)}) | ${s.mcnemar.b}/${s.mcnemar.c} | ${s.mcnemar.pValue.toFixed(4)} | ${fmt(s.medianTokenDelta, 0)} | ${fmt(s.medianToolDelta, 0)} |`;
+}
 
-	const lines: string[] = [
-		"# Behavioral evidence summary",
-		"",
-		`**Source of truth for** aggregated Skeleton A/B live compares (\`skeleton-clean\` vs \`skeleton-messy\`).`,
-		"",
-		`<!-- doc-meta: owner=eng | last-reviewed=${new Date().toISOString().slice(0, 10)} -->`,
-		"",
-		preliminary
-			? `**Status: preliminary (N=${runs.length} / target ${protocolTargetN}).** Do not treat McNemar p-values as final README claims until N=${protocolTargetN}.`
-			: `**Status: protocol complete (N=${runs.length}).**`,
-		"",
-		`Generated: ${summary.generatedAt}`,
-		"",
-		`Runs: ${runs.map((r) => `\`${r.id}\``).join(", ")}`,
-		"",
-		"## Gates",
-		"",
-		`| Gate | Result |`,
-		`| ---- | ------ |`,
-		`| Grounding McNemar p<0.05 (clean>messy) | ${groundingGate ? "PASS" : "FAIL / n/a"} |`,
-		`| Grounding median token Δ (messy−clean) > 0 | ${tokenGate ? "PASS" : "FAIL / n/a"} |`,
-		`| Final README claims allowed | ${summary.gates.readmeFinalClaimsAllowed ? "yes" : "no"} |`,
-		"",
-		"## Per-scenario",
-		"",
-		"| Scenario | Clean pass | Messy pass | McNemar (b/c) | p | Median Δ tokens | Median Δ tools |",
-		"| -------- | ---------- | ---------- | ------------- | - | --------------- | -------------- |",
-	];
-
-	for (const name of scenarios) {
-		const s = summary.scenarios[name] as {
-			cleanPass: number;
-			messyPass: number;
-			n: number;
-			mcnemar: { b: number; c: number; pValue: number };
-			medianTokenDelta?: number;
-			medianToolDelta?: number;
-		};
-		lines.push(
-			`| ${name} | ${s.cleanPass}/${s.n} (${pct(s.cleanPass, s.n)}) | ${s.messyPass}/${s.n} (${pct(s.messyPass, s.n)}) | ${s.mcnemar.b}/${s.mcnemar.c} | ${s.mcnemar.pValue.toFixed(4)} | ${fmt(s.medianTokenDelta, 0)} | ${fmt(s.medianToolDelta, 0)} |`,
-		);
-	}
-
-	lines.push(
+function summaryMarkdownOverall(
+	summary: ReturnType<typeof buildSummaryObject>,
+	groundingTokenDeltas: number[],
+): string[] {
+	return [
 		"",
 		"## Overall deltas (messy − clean)",
 		"",
@@ -356,12 +352,117 @@ async function main(): Promise<void> {
 		"",
 		"See [transcripts/](transcripts/) for curated clean vs messy excerpts.",
 		"",
-	);
+	];
+}
 
-	await writeFile(mdPath, `${lines.join("\n")}\n`, "utf8");
+interface BuildMarkdownInput {
+	summary: ReturnType<typeof buildSummaryObject>;
+	runs: RunFile[];
+	scenarios: string[];
+	groundingTokenDeltas: number[];
+	gates: ReturnType<typeof evaluateGates>;
+}
+
+function buildSummaryMarkdown(input: BuildMarkdownInput): string {
+	const { summary, runs, scenarios, groundingTokenDeltas, gates } = input;
+	const protocolTargetN = summary.protocolTargetN;
+	const lines: string[] = [
+		"# Behavioral evidence summary",
+		"",
+		`**Source of truth for** aggregated Skeleton A/B live compares (\`skeleton-clean\` vs \`skeleton-messy\`).`,
+		"",
+		`<!-- doc-meta: owner=eng | last-reviewed=${new Date().toISOString().slice(0, 10)} -->`,
+		"",
+		gates.preliminary
+			? `**Status: preliminary (N=${runs.length} / target ${protocolTargetN}).** Do not treat McNemar p-values as final README claims until N=${protocolTargetN}.`
+			: `**Status: protocol complete (N=${runs.length}).**`,
+		"",
+		`Generated: ${summary.generatedAt}`,
+		"",
+		`Runs: ${runs.map((r) => `\`${r.id}\``).join(", ")}`,
+		"",
+		"## Gates",
+		"",
+		`| Gate | Result |`,
+		`| ---- | ------ |`,
+		`| Grounding McNemar p<0.05 (clean>messy) | ${gates.groundingGate ? "PASS" : "FAIL / n/a"} |`,
+		`| Grounding median token Δ (messy−clean) > 0 | ${gates.tokenGate ? "PASS" : "FAIL / n/a"} |`,
+		`| Final README claims allowed | ${summary.gates.readmeFinalClaimsAllowed ? "yes" : "no"} |`,
+		"",
+		"## Per-scenario",
+		"",
+		"| Scenario | Clean pass | Messy pass | McNemar (b/c) | p | Median Δ tokens | Median Δ tools |",
+		"| -------- | ---------- | ---------- | ------------- | - | --------------- | -------------- |",
+	];
+
+	for (const name of scenarios) {
+		lines.push(scenarioMarkdownRow(name, summary.scenarios[name]!));
+	}
+
+	lines.push(...summaryMarkdownOverall(summary, groundingTokenDeltas));
+	return `${lines.join("\n")}\n`;
+}
+
+function buildAggregateContext(runs: RunFile[]) {
+	const scenarios = scenarioIds(runs);
+	const perScenario = Object.fromEntries(
+		scenarios.map((name) => [name, aggregateScenarioStats(name, runs)]),
+	) as Record<string, ScenarioStats>;
+	const groundingNames = scenarios.filter((s) => s.startsWith("grounding:"));
+	const groundingTokenDeltas = groundingNames.flatMap(
+		(name) => perScenario[name]?.tokenDeltas ?? [],
+	);
+	const allTokenDeltas = scenarios.flatMap((s) => perScenario[s]?.tokenDeltas ?? []);
+	const allToolDeltas = scenarios.flatMap((s) => perScenario[s]?.toolDeltas ?? []);
+	const gates = evaluateGates({
+		perScenario,
+		groundingNames,
+		nRuns: runs.length,
+		protocolTargetN: 10,
+		groundingTokenDeltas,
+	});
+	const summary = buildSummaryObject({
+		runs,
+		scenarios,
+		perScenario,
+		groundingTokenDeltas,
+		allTokenDeltas,
+		allToolDeltas,
+		gates,
+	});
+	return { scenarios, groundingTokenDeltas, gates, summary };
+}
+
+async function writeSummaryOutputs(
+	outDir: string,
+	ctx: ReturnType<typeof buildAggregateContext>,
+	runs: RunFile[],
+): Promise<void> {
+	const { scenarios, groundingTokenDeltas, gates, summary } = ctx;
+	await mkdir(outDir, { recursive: true });
+	const jsonPath = join(outDir, "SUMMARY.json");
+	const mdPath = join(outDir, "SUMMARY.md");
+	await writeFile(jsonPath, `${JSON.stringify(summary, null, "\t")}\n`, "utf8");
+	await writeFile(
+		mdPath,
+		buildSummaryMarkdown({ summary, runs, scenarios, groundingTokenDeltas, gates }),
+	);
 	console.log(`Wrote ${jsonPath}`);
 	console.log(`Wrote ${mdPath}`);
-	console.log(`N=${runs.length} preliminary=${preliminary} groundingGate=${groundingGate} tokenGate=${tokenGate}`);
+	console.log(
+		`N=${runs.length} preliminary=${gates.preliminary} groundingGate=${gates.groundingGate} tokenGate=${gates.tokenGate}`,
+	);
+}
+
+async function main(): Promise<void> {
+	const { runsDir, outDir } = parseCompareArgs(process.argv.slice(2));
+	const runs = await collectRuns(runsDir);
+	if (runs.length === 0) {
+		console.error(`No compare-report.json files under ${runsDir}`);
+		console.error("Deposit runs after: bun run agent:test:live:compare");
+		process.exit(1);
+	}
+	await writeSummaryOutputs(outDir, buildAggregateContext(runs), runs);
 }
 
 await main();

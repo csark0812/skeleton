@@ -98,7 +98,10 @@ redundancy: intentional
 
 		const plans = discoverSkillReferencePlans(root);
 		expect(plans).toHaveLength(1);
-		expect([...(plans[0]?.refPaths ?? [])].sort()).toEqual(["handoffs.md", "planning/verify.md"]);
+		expect([...(plans[0]?.refPaths ?? [])].sort((a, b) => a.localeCompare(b))).toEqual([
+			"handoffs.md",
+			"planning/verify.md",
+		]);
 	});
 
 	it("skips foreign lockfile skills when ownership is provided", () => {
@@ -130,7 +133,10 @@ redundancy: intentional
 			expect(plans.map((p) => p.skill)).toEqual(["owned-skill"]);
 
 			const withoutOwnership = discoverSkillReferencePlans(root);
-			expect(withoutOwnership.map((p) => p.skill).sort()).toEqual(["foreign-skill", "owned-skill"]);
+			expect(withoutOwnership.map((p) => p.skill).sort((a, b) => a.localeCompare(b))).toEqual([
+				"foreign-skill",
+				"owned-skill",
+			]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

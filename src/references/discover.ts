@@ -48,6 +48,26 @@ export function findSharedRefLinks(content: string, sourceFile: string): SharedR
 	return links;
 }
 
+function findSiblingRefLinks(root: string, content: string, sourceFile: string): SharedRefLink[] {
+	const links: SharedRefLink[] = [];
+	if (!/\/references\//.test(sourceFile)) return links;
+
+	const refsIdx = sourceFile.lastIndexOf("/references/");
+	const withinRefs = sourceFile.slice(refsIdx + "/references/".length);
+	const withinDir = withinRefs.includes("/")
+		? withinRefs.slice(0, withinRefs.lastIndexOf("/"))
+		: "";
+	const siblingRe = /\((?!https?:|#|\.\.\/)([a-z0-9./_-]+\.md)\)/gi;
+	for (const match of content.matchAll(siblingRe)) {
+		const raw = normalizeRelPath(match[1] ?? "");
+		if (!raw) continue;
+		const refPath = withinDir ? normalizeRelPath(join(withinDir, raw)) : raw;
+		if (!canonicalExists(root, refPath)) continue;
+		links.push({ refPath, sourceFile });
+	}
+	return links;
+}
+
 /** Links to local references/ paths that map to canonical copies. */
 function findLocalCanonicalLinks(
 	root: string,
@@ -58,28 +78,60 @@ function findLocalCanonicalLinks(
 	const localRefRe = /\((?:\.\/)?references\/([^)]+)\)/g;
 	for (const match of content.matchAll(localRefRe)) {
 		const refPath = normalizeRelPath(match[1] ?? "");
-		if (!refPath || !canonicalExists(root, refPath)) continue;
+		if (!(refPath && canonicalExists(root, refPath))) continue;
 		links.push({ refPath, sourceFile });
 	}
+	links.push(...findSiblingRefLinks(root, content, sourceFile));
+	return links;
+}
 
-	const inReferencesDir = /\/references\//.test(sourceFile);
-	if (inReferencesDir) {
-		const refsIdx = sourceFile.lastIndexOf("/references/");
-		const withinRefs = sourceFile.slice(refsIdx + "/references/".length);
-		const withinDir = withinRefs.includes("/")
-			? withinRefs.slice(0, withinRefs.lastIndexOf("/"))
-			: "";
-		const siblingRe = /\((?!https?:|#|\.\.\/)([a-z0-9./_-]+\.md)\)/gi;
-		for (const match of content.matchAll(siblingRe)) {
-			const raw = normalizeRelPath(match[1] ?? "");
-			if (!raw) continue;
-			const refPath = withinDir ? normalizeRelPath(join(withinDir, raw)) : raw;
-			if (!canonicalExists(root, refPath)) continue;
-			links.push({ refPath, sourceFile });
+function collectLinksForFile(root: string, relFile: string): SharedRefLink[] {
+	const content = readFileSync(join(root, relFile), "utf8");
+	if (isGeneratedReference(content)) return [];
+	return [
+		...findSharedRefLinks(content, relFile),
+		...findLocalCanonicalLinks(root, content, relFile),
+	];
+}
+
+interface TransitiveRefInput {
+	root: string;
+	slug: string;
+	refPaths: Set<string>;
+	links: SharedRefLink[];
+}
+
+function expandTransitiveRefs(input: TransitiveRefInput): void {
+	const { root, slug, refPaths, links } = input;
+	const queue = [...refPaths];
+	while (queue.length > 0) {
+		const refPath = queue.pop();
+		if (!(refPath && canonicalExists(root, refPath))) continue;
+		const canonicalContent = readFileSync(join(root, CANONICAL_REFS_DIR, refPath), "utf8");
+		const syntheticSource = generatedRefPath(slug, refPath);
+		for (const link of findLocalCanonicalLinks(root, canonicalContent, syntheticSource)) {
+			if (refPaths.has(link.refPath)) continue;
+			refPaths.add(link.refPath);
+			links.push(link);
+			queue.push(link.refPath);
 		}
 	}
+}
 
-	return links;
+function planForSkill(root: string, slug: string): SkillReferencePlan | null {
+	const skillDir = join(root, slug);
+	if (!existsSync(join(skillDir, "SKILL.md"))) return null;
+
+	const refPaths = new Set<string>();
+	const links: SharedRefLink[] = [];
+	for (const relFile of walkMarkdownFiles(skillDir, root)) {
+		for (const link of collectLinksForFile(root, relFile)) {
+			refPaths.add(link.refPath);
+			links.push(link);
+		}
+	}
+	expandTransitiveRefs({ root, slug, refPaths, links });
+	return refPaths.size > 0 ? { skill: slug, refPaths, links } : null;
 }
 
 export function discoverSkillReferencePlans(
@@ -90,44 +142,8 @@ export function discoverSkillReferencePlans(
 	const plans: SkillReferencePlan[] = [];
 
 	for (const slug of index.ownedSlugs) {
-		const skillDir = join(root, slug);
-		if (!existsSync(join(skillDir, "SKILL.md"))) continue;
-
-		const refPaths = new Set<string>();
-		const links: SharedRefLink[] = [];
-
-		for (const relFile of walkMarkdownFiles(skillDir, root)) {
-			const content = readFileSync(join(root, relFile), "utf8");
-			if (isGeneratedReference(content)) continue;
-			for (const link of findSharedRefLinks(content, relFile)) {
-				refPaths.add(link.refPath);
-				links.push(link);
-			}
-			for (const link of findLocalCanonicalLinks(root, content, relFile)) {
-				refPaths.add(link.refPath);
-				links.push(link);
-			}
-		}
-
-		// Transitive closure: generated copies may link siblings that never appear
-		// in non-generated skill trees (e.g. planning/build.md → planning/verify.md).
-		const queue = [...refPaths];
-		while (queue.length > 0) {
-			const refPath = queue.pop();
-			if (!refPath || !canonicalExists(root, refPath)) continue;
-			const canonicalContent = readFileSync(join(root, CANONICAL_REFS_DIR, refPath), "utf8");
-			const syntheticSource = generatedRefPath(slug, refPath);
-			for (const link of findLocalCanonicalLinks(root, canonicalContent, syntheticSource)) {
-				if (refPaths.has(link.refPath)) continue;
-				refPaths.add(link.refPath);
-				links.push(link);
-				queue.push(link.refPath);
-			}
-		}
-
-		if (refPaths.size > 0) {
-			plans.push({ skill: slug, refPaths, links });
-		}
+		const plan = planForSkill(root, slug);
+		if (plan) plans.push(plan);
 	}
 
 	return plans.sort((a, b) => a.skill.localeCompare(b.skill));

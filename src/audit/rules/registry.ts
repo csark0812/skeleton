@@ -9,20 +9,8 @@ import {
 	SOURCE_OF_TRUTH_BANNER_RE,
 } from "../core/shared.ts";
 
-export function runRegistryRule(ctx: AuditContext): Issue[] {
+function checkRegistryEntries(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
-	const registry = new Set(ctx.registryPaths);
-
-	if (ctx.registryHasTableHeader && ctx.registryPaths.length === 0) {
-		issues.push(
-			issue(
-				"registry",
-				REGISTRY_REL_PATH,
-				"registry table header found but 0 rows parsed — check | Topic | Canonical file | format and link syntax",
-			),
-		);
-	}
-
 	for (const rel of ctx.registryPaths) {
 		const abs = join(ctx.root, rel);
 		if (!existsSync(abs)) {
@@ -40,11 +28,15 @@ export function runRegistryRule(ctx: AuditContext): Issue[] {
 			);
 		}
 	}
+	return issues;
+}
 
+function checkUnregisteredBanners(ctx: AuditContext, registry: Set<string>): Issue[] {
+	const issues: Issue[] = [];
 	for (const filePath of ctx.files) {
 		const rel = relPath(filePath, ctx.root);
 		if (rel === REGISTRY_REL_PATH) continue;
-		if (!rel.endsWith(".md") && !rel.endsWith(".mdc")) continue;
+		if (!(rel.endsWith(".md") || rel.endsWith(".mdc"))) continue;
 		const content = readFileSync(filePath, "utf8");
 		if (!SOURCE_OF_TRUTH_BANNER_LINE_RE.test(content)) continue;
 		if (!registry.has(rel)) {
@@ -57,7 +49,25 @@ export function runRegistryRule(ctx: AuditContext): Issue[] {
 			);
 		}
 	}
+	return issues;
+}
 
+export function runRegistryRule(ctx: AuditContext): Issue[] {
+	const issues: Issue[] = [];
+	const registry = new Set(ctx.registryPaths);
+
+	if (ctx.registryHasTableHeader && ctx.registryPaths.length === 0) {
+		issues.push(
+			issue(
+				"registry",
+				REGISTRY_REL_PATH,
+				"registry table header found but 0 rows parsed — check | Topic | Canonical file | format and link syntax",
+			),
+		);
+	}
+
+	issues.push(...checkRegistryEntries(ctx));
+	issues.push(...checkUnregisteredBanners(ctx, registry));
 	return issues;
 }
 

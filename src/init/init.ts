@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import process from "node:process";
 import {
 	type MergeAction,
 	type MergeHookResult,
@@ -81,30 +82,37 @@ function runSkillsAdd(args: string[], cwd: string): number {
 	return result.status ?? 1;
 }
 
+function logHookMergeResult(result: MergeHookResult): void {
+	if (result.action === "conflict") {
+		console.error(
+			`init: skipped ${result.platform} hook (user-edited) — re-run with --force-hooks to restore`,
+		);
+		return;
+	}
+	if (result.action === "added") console.log(`init: added ${result.platform} customize hook`);
+	if (result.action === "updated") console.log(`init: updated ${result.platform} customize hook`);
+}
+
+function installSkillsIfRequested(options: InitOptions, cwd: string): InitResult["skills"] {
+	if (!(options.skills && !options.noSkills)) return "skipped";
+	const args = skillsAddArgs({ skillsFlags: options.skillsFlags });
+	const run = options.runSkillsCommand ?? runSkillsAdd;
+	const exitCode = run(args, cwd);
+	if (exitCode !== 0) throw new Error(`skills install failed: npx ${args.join(" ")}`);
+	console.log("init: installed /skeleton skill");
+	return "installed";
+}
+
 export function runInit(options: InitOptions = {}): InitResult {
 	const cwd = options.cwd ?? process.cwd();
 	assertPackageResolvable(cwd);
 
 	const scaffold = writeScaffold(cwd);
 	const hookCommand = resolveHookCommand(cwd);
-	const hooks = mergeHookConfigs({
-		cwd,
-		hookCommand,
-		forceHooks: options.forceHooks,
-	});
+	const hooks = mergeHookConfigs({ cwd, hookCommand, forceHooks: options.forceHooks });
 	const scripts = mergePackageJsonScripts(cwd);
 
-	for (const result of hooks) {
-		if (result.action === "conflict") {
-			console.error(
-				`init: skipped ${result.platform} hook (user-edited) — re-run with --force-hooks to restore`,
-			);
-		} else if (result.action === "added") {
-			console.log(`init: added ${result.platform} customize hook`);
-		} else if (result.action === "updated") {
-			console.log(`init: updated ${result.platform} customize hook`);
-		}
-	}
+	for (const result of hooks) logHookMergeResult(result);
 
 	if (scaffold === "created") {
 		console.log("init: wrote .skeleton/config.yaml and registry.md");
@@ -116,17 +124,6 @@ export function runInit(options: InitOptions = {}): InitResult {
 		console.log("init: merged validate/audit scripts into package.json");
 	}
 
-	let skills: InitResult["skills"] = "skipped";
-	if (options.skills && !options.noSkills) {
-		const args = skillsAddArgs({ skillsFlags: options.skillsFlags });
-		const run = options.runSkillsCommand ?? runSkillsAdd;
-		const exitCode = run(args, cwd);
-		if (exitCode !== 0) {
-			throw new Error(`skills install failed: npx ${args.join(" ")}`);
-		}
-		skills = "installed";
-		console.log("init: installed /skeleton skill");
-	}
-
+	const skills = installSkillsIfRequested(options, cwd);
 	return { scaffold, hooks, scripts, skills };
 }

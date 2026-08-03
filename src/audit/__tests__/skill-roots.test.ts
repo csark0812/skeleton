@@ -119,7 +119,7 @@ describe("skill-roots", () => {
 		);
 		try {
 			const index = buildSkillIndex(dir);
-			expect(index.slugs.sort()).toEqual(["foreign", "mine"]);
+			expect(index.slugs.sort((a, b) => a.localeCompare(b))).toEqual(["foreign", "mine"]);
 			expect(index.ownedSlugs).toEqual(["mine"]);
 			expect(index.foreignSlugs).toEqual(["foreign"]);
 			const paths = listSkillMarkdownPaths(dir, index);
@@ -239,7 +239,10 @@ describe("skill-roots", () => {
 		try {
 			const index = buildSkillIndex(dir);
 			expect(index.flatSlugs).toEqual(["skeleton"]);
-			expect(index.foreignSlugs.sort()).toEqual(["code-review", "multi"]);
+			expect(index.foreignSlugs.sort((a, b) => a.localeCompare(b))).toEqual([
+				"code-review",
+				"multi",
+			]);
 			// Top-level dirs sharing nested foreign slug names must stay non-skill.
 			expect(isSkillPath("code-review/notes.md", index)).toBe(false);
 			expect(isForeignSkillPath("code-review/notes.md", index)).toBe(false);

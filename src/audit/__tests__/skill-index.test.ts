@@ -47,7 +47,10 @@ describe("skill-index rule", () => {
 			const config = loadConfig(root);
 			const skillIndex = buildSkillIndex(root, config.skillOwnership);
 			expect(skillIndex.flatSlugs).toEqual(["skeleton"]);
-			expect(skillIndex.ownedSlugs.sort()).toEqual(["code-review", "skeleton"]);
+			expect(skillIndex.ownedSlugs.sort((a, b) => a.localeCompare(b))).toEqual([
+				"code-review",
+				"skeleton",
+			]);
 
 			const ctx = {
 				root,

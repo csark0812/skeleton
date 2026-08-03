@@ -43,6 +43,21 @@ export const allRules: AuditRule[] = [...docsRules, ...skillsRules];
  * Merge core + plugin rules. Fails on duplicate rule ids across core and plugins.
  * Plugin `suites` (default `["docs"]`) controls docs/skills membership; `self` is the union.
  */
+function attachPluginRule(docs: AuditRule[], skills: AuditRule[], rule: AuditRule): void {
+	const suites = rule.suites ?? ["docs"];
+	const inDocs = suites.includes("docs");
+	const inSkills = suites.includes("skills");
+	if (!(inDocs || inSkills)) {
+		const listed = suites.length === 0 ? "(empty)" : suites.join(", ");
+		throw new Error(
+			`Plugin rule "${rule.id}" suites attach to no known suite (got ${listed}; allowed: docs, skills). ` +
+				`"self" is the union of docs+skills — put the rule in docs and/or skills.`,
+		);
+	}
+	if (inDocs) docs.push(rule);
+	if (inSkills) skills.push(rule);
+}
+
 export function assembleRules(pluginRules: AuditRule[] = []): {
 	docs: AuditRule[];
 	skills: AuditRule[];
@@ -60,18 +75,7 @@ export function assembleRules(pluginRules: AuditRule[] = []): {
 	const docs = [...docsRules];
 	const skills = [...skillsRules];
 	for (const rule of pluginRules) {
-		const suites = rule.suites ?? ["docs"];
-		const inDocs = suites.includes("docs");
-		const inSkills = suites.includes("skills");
-		if (!inDocs && !inSkills) {
-			const listed = suites.length === 0 ? "(empty)" : suites.join(", ");
-			throw new Error(
-				`Plugin rule "${rule.id}" suites attach to no known suite (got ${listed}; allowed: docs, skills). ` +
-					`"self" is the union of docs+skills — put the rule in docs and/or skills.`,
-			);
-		}
-		if (inDocs) docs.push(rule);
-		if (inSkills) skills.push(rule);
+		attachPluginRule(docs, skills, rule);
 	}
 
 	const selfById = new Map<string, AuditRule>();

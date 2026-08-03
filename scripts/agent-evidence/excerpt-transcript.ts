@@ -10,6 +10,7 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import process from "node:process";
 
 interface ToolCall {
 	name: string;
@@ -63,38 +64,30 @@ function shortArgs(args: Record<string, unknown> | undefined): string {
 	return redacted.length > 160 ? `${redacted.slice(0, 160)}…` : redacted;
 }
 
-function excerptFor(result: ScenarioResult, arm: "clean" | "messy"): string {
-	const trace = result.trace;
+function excerptFailures(result: ScenarioResult): string {
+	if (result.failures.length === 0) return "_none_";
+	return result.failures.map((f) => `- \`${f.matcher}\`: ${redactPath(f.message)}`).join("\n");
+}
+
+function excerptJudges(result: ScenarioResult): string {
+	if (!result.judgeVerdicts?.length) return "_none_";
+	return result.judgeVerdicts
+		.map(
+			(j) =>
+				`- **${j.pass ? "pass" : "fail"}:** ${j.question}\n  - ${redactPath(j.rationale).slice(0, 400)}`,
+		)
+		.join("\n");
+}
+
+function excerptTools(trace: ScenarioResult["trace"]): string {
 	const tools = (trace?.toolCalls ?? []).slice(0, 12);
-	const assistants = (trace?.messages ?? []).filter((m) => m.role === "assistant");
-	const first = assistants[0]?.content?.trim() ?? "";
-	const last = assistants[assistants.length - 1]?.content?.trim() ?? "";
-	const failures =
-		result.failures.length === 0
-			? "_none_"
-			: result.failures.map((f) => `- \`${f.matcher}\`: ${redactPath(f.message)}`).join("\n");
-	const judges =
-		!result.judgeVerdicts?.length
-			? "_none_"
-			: result.judgeVerdicts
-					.map(
-						(j) =>
-							`- **${j.pass ? "pass" : "fail"}:** ${j.question}\n  - ${redactPath(j.rationale).slice(0, 400)}`,
-					)
-					.join("\n");
+	if (tools.length === 0) return "_none_";
+	return tools.map((t, i) => `${i + 1}. \`${t.name}\` ${shortArgs(t.args)}`).join("\n");
+}
 
-	const toolLines =
-		tools.length === 0
-			? "_none_"
-			: tools
-					.map((t, i) => `${i + 1}. \`${t.name}\` ${shortArgs(t.args)}`)
-					.join("\n");
-
+function excerptMetadataTable(result: ScenarioResult, arm: string): string {
+	const trace = result.trace;
 	return [
-		`# ${result.scenario} — ${arm}`,
-		"",
-		`<!-- curated excerpt from live suite report; paths redacted -->`,
-		"",
 		`| Field | Value |`,
 		`| ----- | ----- |`,
 		`| Arm | ${arm} (\`${result.suite}\`) |`,
@@ -102,19 +95,14 @@ function excerptFor(result: ScenarioResult, arm: "clean" | "messy"): string {
 		`| Duration | ${result.durationMs} ms |`,
 		`| Total tokens | ${result.usage?.totalTokens ?? "—"} |`,
 		`| Tool calls (trace) | ${trace?.toolCalls.length ?? 0} |`,
-		"",
-		"## Rubric failures",
-		"",
-		failures,
-		"",
-		"## Judge",
-		"",
-		judges,
-		"",
-		"## Tools (first 12)",
-		"",
-		toolLines,
-		"",
+	].join("\n");
+}
+
+function excerptAssistantTurns(result: ScenarioResult): string {
+	const assistants = (result.trace?.messages ?? []).filter((m) => m.role === "assistant");
+	const first = assistants[0]?.content?.trim() ?? "";
+	const last = assistants[assistants.length - 1]?.content?.trim() ?? "";
+	return [
 		"## Assistant (first turn)",
 		"",
 		"```",
@@ -130,30 +118,56 @@ function excerptFor(result: ScenarioResult, arm: "clean" | "messy"): string {
 	].join("\n");
 }
 
+function excerptFor(result: ScenarioResult, arm: "clean" | "messy"): string {
+	return [
+		`# ${result.scenario} — ${arm}`,
+		"",
+		`<!-- curated excerpt from live suite report; paths redacted -->`,
+		"",
+		excerptMetadataTable(result, arm),
+		"",
+		"## Rubric failures",
+		"",
+		excerptFailures(result),
+		"",
+		"## Judge",
+		"",
+		excerptJudges(result),
+		"",
+		"## Tools (first 12)",
+		"",
+		excerptTools(result.trace),
+		"",
+		excerptAssistantTurns(result),
+	].join("\n");
+}
+
 async function loadSuite(path: string): Promise<SuiteReport> {
 	return JSON.parse(await readFile(path, "utf8")) as SuiteReport;
 }
 
-async function main(): Promise<void> {
-	const argv = process.argv.slice(2);
+function parseExcerptArgs(argv: string[]): { runDir: string; outDir: string } {
 	let runDir = "";
 	let outDir = resolve("agent-suites/evidence/transcripts");
 	for (let i = 0; i < argv.length; i++) {
 		if (argv[i] === "--run-dir" && argv[i + 1]) runDir = resolve(argv[++i]!);
 		else if (argv[i] === "--out-dir" && argv[i + 1]) outDir = resolve(argv[++i]!);
 	}
-	if (!runDir) {
-		console.error("Usage: excerpt-transcript.ts --run-dir <runs/…> [--out-dir …]");
-		process.exit(1);
-	}
+	return { runDir, outDir };
+}
 
-	const clean = await loadSuite(join(runDir, "skeleton-clean.suite-report.json"));
-	const messy = await loadSuite(join(runDir, "skeleton-messy.suite-report.json"));
+interface WriteScenarioExcerptsInput {
+	outDir: string;
+	clean: SuiteReport;
+	messy: SuiteReport;
+}
 
+async function writeScenarioExcerpts(input: WriteScenarioExcerptsInput): Promise<void> {
+	const { outDir, clean, messy } = input;
 	for (const [scenario, slug] of Object.entries(SCENARIO_SLUGS)) {
 		const c = clean.results.find((r) => r.scenario === scenario);
 		const m = messy.results.find((r) => r.scenario === scenario);
-		if (!c || !m) {
+		if (!(c && m)) {
 			console.warn(`skip missing scenario: ${scenario}`);
 			continue;
 		}
@@ -163,6 +177,18 @@ async function main(): Promise<void> {
 		await writeFile(join(dir, "messy.excerpt.md"), excerptFor(m, "messy"), "utf8");
 		console.log(`wrote ${slug}/`);
 	}
+}
+
+async function main(): Promise<void> {
+	const { runDir, outDir } = parseExcerptArgs(process.argv.slice(2));
+	if (!runDir) {
+		console.error("Usage: excerpt-transcript.ts --run-dir <runs/…> [--out-dir …]");
+		process.exit(1);
+	}
+
+	const clean = await loadSuite(join(runDir, "skeleton-clean.suite-report.json"));
+	const messy = await loadSuite(join(runDir, "skeleton-messy.suite-report.json"));
+	await writeScenarioExcerpts({ outDir, clean, messy });
 }
 
 await main();

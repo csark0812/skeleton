@@ -25,6 +25,22 @@ function replaceAnchorInTarget(target: string, oldAnchor: string, newAnchor: str
 	return `${pathPart}#${newAnchor}${queryPart}`;
 }
 
+type PendingAnchorEdit = {
+	urlStart: number;
+	urlEnd: number;
+	from: string;
+	to: string;
+	description: string;
+};
+
+function boundaryOk(content: string, idx: number, end: number): boolean {
+	const prev = idx > 0 ? content[idx - 1] : undefined;
+	const next = content[end];
+	const leftOk = prev === undefined || /[^A-Za-z0-9_./-]/.test(prev);
+	const rightOk = next === undefined || /[^A-Za-z0-9_-]/.test(next);
+	return leftOk && rightOk;
+}
+
 function replaceExactLinkTarget(content: string, from: string, to: string): string {
 	let out = "";
 	let i = 0;
@@ -35,13 +51,7 @@ function replaceExactLinkTarget(content: string, from: string, to: string): stri
 			break;
 		}
 		const end = idx + from.length;
-		const prev = idx > 0 ? content[idx - 1] : undefined;
-		const next = content[end];
-		// Do not treat `target.md#…` as a match inside `other-target.md#…` / `foo/target.md#…`.
-		const leftOk = prev === undefined || /[^A-Za-z0-9_./-]/.test(prev);
-		// Do not treat `#getting-started` as a match inside `#getting-started-guide`.
-		const rightOk = next === undefined || /[^A-Za-z0-9_-]/.test(next);
-		if (leftOk && rightOk) {
+		if (boundaryOk(content, idx, end)) {
 			out += content.slice(i, idx) + to;
 			i = end;
 		} else {
@@ -52,75 +62,107 @@ function replaceExactLinkTarget(content: string, from: string, to: string): stri
 	return out;
 }
 
+interface PendingAnchorInput {
+	ctx: AuditContext;
+	filePath: string;
+	content: string;
+	relFile: string;
+	link: { target: string; line?: number; urlStart?: number; urlEnd?: number };
+}
+
+function anchorTargetReplacement(
+	filePath: string,
+	target: string,
+): { nextTarget: string; match: { slug: string; score: number }; anchor: string } | null {
+	if (isExternalLink(target) && !target.startsWith("#")) return null;
+	if (isPlaceholderLink(target)) return null;
+
+	const anchor = target.includes("#") ? (target.split("#")[1]?.split("?")[0] ?? "") : "";
+	if (!anchor) return null;
+
+	const resolved = resolveLink(filePath, target);
+	if (!existsSync(resolved)) return null;
+
+	const targetContent = readFileSync(resolved, "utf8");
+	const slugs = extractHeadingSlugs(targetContent, resolved);
+	const anchorSlug = slugifyAnchor(anchor);
+	if (slugs.has(anchorSlug)) return null;
+
+	const match = findBestAnchorMatch(anchorSlug, slugs);
+	if (!match) return null;
+
+	const nextTarget = replaceAnchorInTarget(target, anchor, match.slug);
+	if (nextTarget === target) return null;
+	return { nextTarget, match, anchor };
+}
+
+function pendingAnchorForLink(input: PendingAnchorInput): PendingAnchorEdit | null {
+	const { filePath, content, relFile, link } = input;
+	const { target, line, urlStart, urlEnd } = link;
+	const replacement = anchorTargetReplacement(filePath, target);
+	if (!replacement) return null;
+	if (
+		urlStart === undefined ||
+		urlEnd === undefined ||
+		content.slice(urlStart, urlEnd) !== target
+	) {
+		return null;
+	}
+
+	const lineLabel = line ? `${relFile}:${line}` : relFile;
+	return {
+		urlStart,
+		urlEnd,
+		from: target,
+		to: replacement.nextTarget,
+		description: `${lineLabel} #${replacement.anchor} → #${replacement.match.slug} (score ${replacement.match.score.toFixed(2)})`,
+	};
+}
+
+function applyPendingEdits(
+	content: string,
+	pending: PendingAnchorEdit[],
+): { content: string; descriptions: string[] } | null {
+	const uniqueBySpan = new Map<string, PendingAnchorEdit>();
+	for (const edit of pending) {
+		uniqueBySpan.set(`${edit.urlStart}:${edit.urlEnd}:${edit.from}`, edit);
+	}
+	const uniquePending = [...uniqueBySpan.values()].sort((a, b) => b.urlStart - a.urlStart);
+	let updated = content;
+	const descriptions: string[] = [];
+	for (const edit of uniquePending) {
+		if (updated.slice(edit.urlStart, edit.urlEnd) !== edit.from) continue;
+		updated = updated.slice(0, edit.urlStart) + edit.to + updated.slice(edit.urlEnd);
+		descriptions.push(edit.description);
+	}
+	if (updated === content || descriptions.length === 0) return null;
+	return { content: updated, descriptions };
+}
+
+function collectFileAnchorFixes(
+	ctx: AuditContext,
+	filePath: string,
+): { content: string; descriptions: string[] } | null {
+	const content = readFileContent(filePath);
+	const links = extractLinksFromMarkdown(content, filePath);
+	const relFile = relPath(filePath, ctx.root);
+	const pending: PendingAnchorEdit[] = [];
+
+	for (const link of links) {
+		const edit = pendingAnchorForLink({ ctx, filePath, content, relFile, link });
+		if (edit) pending.push(edit);
+	}
+
+	if (pending.length === 0) return null;
+	return applyPendingEdits(content, pending);
+}
+
 export function collectAnchorFixes(ctx: AuditContext): FixEdit[] {
 	const editsByFile = new Map<string, { content: string; descriptions: string[] }>();
 
 	for (const filePath of ctx.files) {
-		const content = readFileContent(filePath);
-		const links = extractLinksFromMarkdown(content, filePath);
-		type Pending = {
-			urlStart: number;
-			urlEnd: number;
-			from: string;
-			to: string;
-			description: string;
-		};
-		const pending: Pending[] = [];
-		const relFile = relPath(filePath, ctx.root);
-
-		for (const { target, line, urlStart, urlEnd } of links) {
-			if (isExternalLink(target) && !target.startsWith("#")) continue;
-			if (isPlaceholderLink(target)) continue;
-
-			const anchor = target.includes("#") ? (target.split("#")[1]?.split("?")[0] ?? "") : "";
-			if (!anchor) continue;
-
-			const resolved = resolveLink(filePath, target);
-			if (!existsSync(resolved)) continue;
-
-			const targetContent = readFileSync(resolved, "utf8");
-			const slugs = extractHeadingSlugs(targetContent, resolved);
-			const anchorSlug = slugifyAnchor(anchor);
-			if (slugs.has(anchorSlug)) continue;
-
-			const match = findBestAnchorMatch(anchorSlug, slugs);
-			if (!match) continue;
-
-			const nextTarget = replaceAnchorInTarget(target, anchor, match.slug);
-			if (nextTarget === target) continue;
-
-			const lineLabel = line ? `${relFile}:${line}` : relFile;
-			const description = `${lineLabel} #${anchor} → #${match.slug} (score ${match.score.toFixed(2)})`;
-
-			if (
-				urlStart !== undefined &&
-				urlEnd !== undefined &&
-				content.slice(urlStart, urlEnd) === target
-			) {
-				pending.push({ urlStart, urlEnd, from: target, to: nextTarget, description });
-			}
-
-			// Offset unknown (shouldn't happen for md/mdc extractors) — refuse whole-file rewrite.
-		}
-
-		if (pending.length === 0) continue;
-
-		// Multiple linkReference uses share one definition span — rewrite that span once.
-		const uniqueBySpan = new Map<string, Pending>();
-		for (const edit of pending) {
-			uniqueBySpan.set(`${edit.urlStart}:${edit.urlEnd}:${edit.from}`, edit);
-		}
-		const uniquePending = [...uniqueBySpan.values()];
-		uniquePending.sort((a, b) => b.urlStart - a.urlStart);
-		let updated = content;
-		const descriptions: string[] = [];
-		for (const edit of uniquePending) {
-			if (updated.slice(edit.urlStart, edit.urlEnd) !== edit.from) continue;
-			updated = updated.slice(0, edit.urlStart) + edit.to + updated.slice(edit.urlEnd);
-			descriptions.push(edit.description);
-		}
-		if (updated === content || descriptions.length === 0) continue;
-		editsByFile.set(filePath, { content: updated, descriptions });
+		const result = collectFileAnchorFixes(ctx, filePath);
+		if (result) editsByFile.set(filePath, result);
 	}
 
 	const edits: FixEdit[] = [];

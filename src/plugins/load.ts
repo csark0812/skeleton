@@ -19,6 +19,70 @@ export interface LoadedPlugins {
 	policies: PolicyFile[];
 }
 
+function rulesAgree(a: AuditRule[], b: AuditRule[]): boolean {
+	return (
+		a.length === b.length && !a.some((rule, i) => rule.id !== b[i]?.id || rule.run !== b[i]?.run)
+	);
+}
+
+function policiesAgree(a: unknown, b: unknown): boolean {
+	return (
+		Array.isArray(a) && Array.isArray(b) && a.length === b.length && !a.some((p, i) => p !== b[i])
+	);
+}
+
+function resolveRules(
+	defaultRules?: AuditRule[],
+	namedRules?: AuditRule[],
+): AuditRule[] | undefined {
+	if (
+		defaultRules !== undefined &&
+		namedRules !== undefined &&
+		!rulesAgree(defaultRules, namedRules)
+	) {
+		throw new Error(
+			"Plugin exports disagree on rules: default and named `rules` must match when both are set",
+		);
+	}
+	return defaultRules ?? namedRules;
+}
+
+function resolvePolicies(defaultPolicies?: unknown, namedPolicies?: unknown): unknown {
+	if (
+		defaultPolicies !== undefined &&
+		namedPolicies !== undefined &&
+		!policiesAgree(defaultPolicies, namedPolicies)
+	) {
+		throw new Error(
+			"Plugin exports disagree on policies: default and named `policies` must match when both are set",
+		);
+	}
+	return defaultPolicies ?? namedPolicies;
+}
+
+function validateRules(rules: AuditRule[]): void {
+	for (const rule of rules) {
+		if (!rule || typeof rule.id !== "string" || typeof rule.run !== "function") {
+			throw new Error("Plugin rules must each have string id and run()");
+		}
+	}
+}
+
+function validatePolicies(policies: unknown): void {
+	if (policies === undefined) return;
+	if (!Array.isArray(policies) || policies.some((p) => typeof p !== "string")) {
+		throw new Error(
+			"Plugin policies must be string[] (globs relative to .skeleton/) — got non-array",
+		);
+	}
+}
+
+function readDefaultExport(record: Record<string, unknown>): Record<string, unknown> | null {
+	const value = record.default;
+	if (!("default" in record) || typeof value !== "object" || value === null) return null;
+	return value as Record<string, unknown>;
+}
+
 export function normalizeExport(mod: unknown): PluginModule {
 	if (!mod || typeof mod !== "object") {
 		throw new Error("Plugin module must export { rules: AuditRule[]; policies?: string[] }");
@@ -27,70 +91,21 @@ export function normalizeExport(mod: unknown): PluginModule {
 	const record = mod as Record<string, unknown>;
 	const namedRules = Array.isArray(record.rules) ? (record.rules as AuditRule[]) : undefined;
 	const namedPoliciesRaw = "policies" in record ? record.policies : undefined;
-	const def =
-		"default" in record && record.default && typeof record.default === "object"
-			? (record.default as Record<string, unknown>)
-			: null;
+	const def = readDefaultExport(record);
 	const defaultRules = def && Array.isArray(def.rules) ? (def.rules as AuditRule[]) : undefined;
 	const defaultPoliciesRaw = def && "policies" in def ? def.policies : undefined;
 
-	// Default is primary; named fills missing fields. Conflicting dual exports fail closed.
-	let rules: AuditRule[] | undefined;
-	if (defaultRules !== undefined && namedRules !== undefined) {
-		if (
-			defaultRules.length !== namedRules.length ||
-			defaultRules.some(
-				(rule, i) => rule.id !== namedRules[i]?.id || rule.run !== namedRules[i]?.run,
-			)
-		) {
-			throw new Error(
-				"Plugin exports disagree on rules: default and named `rules` must match when both are set",
-			);
-		}
-		rules = defaultRules;
-	} else {
-		rules = defaultRules ?? namedRules;
-	}
-
-	let policies: unknown;
-	if (defaultPoliciesRaw !== undefined && namedPoliciesRaw !== undefined) {
-		if (
-			!Array.isArray(defaultPoliciesRaw) ||
-			!Array.isArray(namedPoliciesRaw) ||
-			defaultPoliciesRaw.length !== namedPoliciesRaw.length ||
-			defaultPoliciesRaw.some((p, i) => p !== namedPoliciesRaw[i])
-		) {
-			throw new Error(
-				"Plugin exports disagree on policies: default and named `policies` must match when both are set",
-			);
-		}
-		policies = defaultPoliciesRaw;
-	} else {
-		policies = defaultPoliciesRaw ?? namedPoliciesRaw;
-	}
+	const rules = resolveRules(defaultRules, namedRules);
+	const policies = resolvePolicies(defaultPoliciesRaw, namedPoliciesRaw);
 
 	if (!Array.isArray(rules)) {
 		throw new Error("Plugin module must export { rules: AuditRule[]; policies?: string[] }");
 	}
 
-	for (const rule of rules) {
-		if (!rule || typeof rule.id !== "string" || typeof rule.run !== "function") {
-			throw new Error("Plugin rules must each have string id and run()");
-		}
-	}
+	validateRules(rules);
+	validatePolicies(policies);
 
-	if (policies !== undefined) {
-		if (!Array.isArray(policies) || policies.some((p) => typeof p !== "string")) {
-			throw new Error(
-				"Plugin policies must be string[] (globs relative to .skeleton/) — got non-array",
-			);
-		}
-	}
-
-	return {
-		rules,
-		policies: policies as string[] | undefined,
-	};
+	return { rules, policies: policies as string[] | undefined };
 }
 
 /** Expand plugin policy globs under `.skeleton/` to absolute YAML paths. */
@@ -131,6 +146,19 @@ function loadPoliciesFromGlobs(root: string, globs: string[]): PolicyFile[] {
 	return policies;
 }
 
+async function importBuiltPlugin(root: string, entry: string): Promise<PluginModule> {
+	const tsAbs = resolvePluginTsPath(root, entry);
+	const mjsAbs = mjsPathForTs(tsAbs);
+	if (!existsSync(mjsAbs)) {
+		const rel = relative(skeletonDir(root), tsAbs) || entry;
+		throw new Error(
+			`Plugin not built: ${rel} (missing ${relative(root, mjsAbs) || mjsAbs}). Run: skeleton build-plugin`,
+		);
+	}
+	const mod = await import(pathToFileURL(mjsAbs).href);
+	return normalizeExport(mod);
+}
+
 /**
  * Relpaths (from repo root) of YAML matched by any configured plugin `policies` glob.
  * Used by `validate changed` so the policy bucket matches the runtime load path.
@@ -144,16 +172,7 @@ export async function collectWiredPolicyRelPaths(
 	if (entries.length === 0) return wired;
 
 	for (const entry of entries) {
-		const tsAbs = resolvePluginTsPath(root, entry);
-		const mjsAbs = mjsPathForTs(tsAbs);
-		if (!existsSync(mjsAbs)) {
-			const rel = relative(skeletonDir(root), tsAbs) || entry;
-			throw new Error(
-				`Plugin not built: ${rel} (missing ${relative(root, mjsAbs) || mjsAbs}). Run: skeleton build-plugin`,
-			);
-		}
-		const mod = await import(pathToFileURL(mjsAbs).href);
-		const normalized = normalizeExport(mod);
+		const normalized = await importBuiltPlugin(root, entry);
 		if (!normalized.policies?.length) continue;
 		for (const abs of expandPolicyGlobs(root, normalized.policies)) {
 			wired.add(normalizeRelPath(relative(root, abs)));
@@ -175,17 +194,7 @@ export async function loadPlugins(root: string, config: SkeletonConfig): Promise
 	const policies: PolicyFile[] = [];
 
 	for (const entry of entries) {
-		const tsAbs = resolvePluginTsPath(root, entry);
-		const mjsAbs = mjsPathForTs(tsAbs);
-		if (!existsSync(mjsAbs)) {
-			const rel = relative(skeletonDir(root), tsAbs) || entry;
-			throw new Error(
-				`Plugin not built: ${rel} (missing ${relative(root, mjsAbs) || mjsAbs}). Run: skeleton build-plugin`,
-			);
-		}
-
-		const mod = await import(pathToFileURL(mjsAbs).href);
-		const normalized = normalizeExport(mod);
+		const normalized = await importBuiltPlugin(root, entry);
 		rules.push(...normalized.rules);
 		if (normalized.policies?.length) {
 			policies.push(...loadPoliciesFromGlobs(root, normalized.policies));

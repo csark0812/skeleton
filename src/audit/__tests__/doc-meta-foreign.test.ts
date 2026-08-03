@@ -76,7 +76,12 @@ describe("foreign skill doc-meta scope", () => {
 			const config = loadConfig(root);
 			const skillIndex = buildSkillIndex(root, config.skillOwnership);
 			const registry = parseRegistry(root);
-			const paths = collectDocMetaPaths(config, root, registry.paths, skillIndex);
+			const paths = collectDocMetaPaths({
+				config,
+				root,
+				registryPaths: registry.paths,
+				skillIndex,
+			});
 			expect(paths).not.toContain(".claude/skills/toolbox-skill/references/foo.md");
 			expect(paths).toContain(".skeleton/registry.md");
 			expect(paths).toContain("docs/README.md");

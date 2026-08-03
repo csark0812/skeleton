@@ -15,33 +15,36 @@ export function bumpDocMetaLastReviewed(content: string, gitDate: string): strin
 	return replaceDocMetaLastReviewed(content, gitDate);
 }
 
+function docMetaFixForPath(ctx: AuditContext, relPath: string): FixEdit | null {
+	const abs = join(ctx.root, relPath);
+	if (!existsSync(abs)) return null;
+	const content = readFileSync(abs, "utf8");
+	if (!DOC_META_RE.test(content)) return null;
+
+	const reviewedStr = docMetaLastReviewed(content);
+	if (!reviewedStr) return null;
+
+	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
+	if (Number.isNaN(reviewed.getTime())) return null;
+
+	const gitDate = lastGitCommitDate(relPath, ctx.root);
+	if (!gitDate) return null;
+
+	const updated = bumpDocMetaLastReviewed(content, gitDate);
+	if (!updated) return null;
+
+	return {
+		file: relPath,
+		description: `last-reviewed ${reviewedStr} → ${gitDate}`,
+		content: updated,
+	};
+}
+
 export function collectDocMetaFixes(ctx: AuditContext): FixEdit[] {
 	const edits: FixEdit[] = [];
-
 	for (const relPath of ctx.docMetaPaths) {
-		const abs = join(ctx.root, relPath);
-		if (!existsSync(abs)) continue;
-		const content = readFileSync(abs, "utf8");
-		if (!DOC_META_RE.test(content)) continue;
-
-		const reviewedStr = docMetaLastReviewed(content);
-		if (!reviewedStr) continue;
-
-		const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-		if (Number.isNaN(reviewed.getTime())) continue;
-
-		const gitDate = lastGitCommitDate(relPath, ctx.root);
-		if (!gitDate) continue;
-
-		const updated = bumpDocMetaLastReviewed(content, gitDate);
-		if (!updated) continue;
-
-		edits.push({
-			file: relPath,
-			description: `last-reviewed ${reviewedStr} → ${gitDate}`,
-			content: updated,
-		});
+		const fix = docMetaFixForPath(ctx, relPath);
+		if (fix) edits.push(fix);
 	}
-
 	return edits;
 }

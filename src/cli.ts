@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from "node:fs";
+import process from "node:process";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
@@ -43,10 +44,156 @@ function parseRegisterArgs(argv: string[]): {
 		if (arg === "--dry-run") dryRun = true;
 		else if (arg === "--json") json = true;
 		else if (arg.startsWith("--topic=")) topic = arg.slice("--topic=".length);
-		else if (!arg.startsWith("-") && !path) path = arg;
+		else if (!(arg.startsWith("-") || path)) path = arg;
 	}
 
 	return { path, topic, dryRun, json };
+}
+
+function parseValidateChangedArgs(rest: string[]): {
+	paths: string[];
+	staged: boolean;
+	base?: string;
+} {
+	const paths: string[] = [];
+	let staged = false;
+	let base: string | undefined;
+
+	for (let i = 0; i < rest.length; i++) {
+		const arg = rest[i];
+		if (arg === "--staged") staged = true;
+		else if (arg === "--base") base = rest[++i];
+		else if (arg?.startsWith("--base=")) base = arg.slice("--base=".length);
+		else if (arg && !arg.startsWith("-")) paths.push(arg);
+	}
+
+	return { paths, staged, base };
+}
+
+async function handleAudit(argv: string[]): Promise<number> {
+	const sub = argv[0];
+	if (sub !== "docs" && sub !== "self" && sub !== "skills") {
+		usage();
+		return 1;
+	}
+	const options = parseAuditArgs(argv.slice(1));
+	options.suite = sub;
+	return runAudit(options);
+}
+
+async function handleBuildPlugin(argv: string[]): Promise<number> {
+	const { entry, check } = parseBuildPluginArgs(argv);
+	const root = findRepoRoot();
+	const result = await runBuildPlugin({ root, entry, check });
+	if (check) {
+		console.log(
+			result.checked.length === 0
+				? "build-plugin --check: no plugins configured."
+				: `build-plugin --check: ${result.checked.length} plugin(s) up to date.`,
+		);
+	} else {
+		console.log(
+			result.built.length === 0
+				? "build-plugin: no plugins configured."
+				: `build-plugin: built ${result.built.length} plugin(s).`,
+		);
+	}
+	return 0;
+}
+
+async function handleValidateChanged(argv: string[]): Promise<number> {
+	const { paths, staged, base } = parseValidateChangedArgs(argv);
+	return runValidateChanged({ paths, staged, base });
+}
+
+function handleRegister(argv: string[]): number {
+	const opts = parseRegisterArgs(argv);
+	if (!opts.path) {
+		console.error("register: path required");
+		return 1;
+	}
+	registerPath({
+		path: opts.path,
+		topic: opts.topic,
+		dryRun: opts.dryRun,
+		json: opts.json,
+	});
+	return 0;
+}
+
+function handleCustomizeResolve(argv: string[]): number {
+	const slug = argv[0];
+	const json = argv.includes("--json");
+	if (!slug) {
+		console.error("customize resolve: slug required");
+		return 1;
+	}
+	const result = resolveCustomizeFromRoot(slug);
+	if (json) {
+		console.log(JSON.stringify(result, null, 2));
+	} else if (result.content) {
+		process.stdout.write(result.content);
+	}
+	return 0;
+}
+
+function handleHook(argv: string[]): number {
+	if (argv[0] !== "customize") {
+		usage();
+		return 1;
+	}
+	process.stdout.write(runCustomizeHook(readFileSync(0, "utf8")));
+	return 0;
+}
+
+function handleInit(argv: string[]): number {
+	runInit(parseInitArgs(argv));
+	return 0;
+}
+
+function handleReferences(argv: string[]): number {
+	const sub = argv[0];
+	if (sub === "sync") {
+		const dryRun = argv.includes("--dry-run");
+		const rewriteLinks = !argv.includes("--no-rewrite-links");
+		const result = runReferencesSync({ dryRun, rewriteLinks });
+		printSyncResult(result);
+		return 0;
+	}
+	if (sub === "check") {
+		return runReferencesCheck({
+			json: argv.includes("--json"),
+			strict: argv.includes("--strict"),
+		});
+	}
+	usage();
+	return 1;
+}
+
+async function dispatchCommand(argv: string[]): Promise<number | null> {
+	const command = argv[0];
+	const rest = argv.slice(1);
+
+	switch (command) {
+		case "audit":
+			return handleAudit(rest);
+		case "build-plugin":
+			return handleBuildPlugin(rest);
+		case "validate":
+			return rest[0] === "changed" ? handleValidateChanged(rest.slice(1)) : null;
+		case "register":
+			return handleRegister(rest);
+		case "customize":
+			return rest[0] === "resolve" ? handleCustomizeResolve(rest.slice(1)) : null;
+		case "hook":
+			return handleHook(rest);
+		case "init":
+			return handleInit(rest);
+		case "references":
+			return handleReferences(rest);
+		default:
+			return null;
+	}
 }
 
 async function main(): Promise<void> {
@@ -59,123 +206,12 @@ async function main(): Promise<void> {
 	}
 
 	try {
-		if (command === "audit") {
-			const sub = argv[1];
-			if (sub !== "docs" && sub !== "self" && sub !== "skills") {
-				usage();
-				process.exit(1);
-			}
-			const options = parseAuditArgs(argv.slice(2));
-			options.suite = sub;
-			process.exit(await runAudit(options));
-		}
-
-		if (command === "build-plugin") {
-			const { entry, check } = parseBuildPluginArgs(argv.slice(1));
-			const root = findRepoRoot();
-			const result = await runBuildPlugin({ root, entry, check });
-			if (check) {
-				console.log(
-					result.checked.length === 0
-						? "build-plugin --check: no plugins configured."
-						: `build-plugin --check: ${result.checked.length} plugin(s) up to date.`,
-				);
-			} else {
-				console.log(
-					result.built.length === 0
-						? "build-plugin: no plugins configured."
-						: `build-plugin: built ${result.built.length} plugin(s).`,
-				);
-			}
-			process.exit(0);
-		}
-
-		if (command === "validate" && argv[1] === "changed") {
-			const rest = argv.slice(2);
-			const paths: string[] = [];
-			let staged = false;
-			let base: string | undefined;
-
-			for (let i = 0; i < rest.length; i++) {
-				const arg = rest[i];
-				if (arg === "--staged") staged = true;
-				else if (arg === "--base") base = rest[++i];
-				else if (arg?.startsWith("--base=")) base = arg.slice("--base=".length);
-				else if (arg && !arg.startsWith("-")) paths.push(arg);
-			}
-
-			process.exit(await runValidateChanged({ paths, staged, base }));
-		}
-
-		if (command === "register") {
-			const opts = parseRegisterArgs(argv.slice(1));
-			if (!opts.path) {
-				console.error("register: path required");
-				process.exit(1);
-			}
-			registerPath({
-				path: opts.path,
-				topic: opts.topic,
-				dryRun: opts.dryRun,
-				json: opts.json,
-			});
-			process.exit(0);
-		}
-
-		if (command === "customize" && argv[1] === "resolve") {
-			const slug = argv[2];
-			const json = argv.includes("--json");
-			if (!slug) {
-				console.error("customize resolve: slug required");
-				process.exit(1);
-			}
-			const result = resolveCustomizeFromRoot(slug);
-			if (json) {
-				console.log(JSON.stringify(result, null, 2));
-			} else if (result.content) {
-				process.stdout.write(result.content);
-			}
-			process.exit(0);
-		}
-
-		if (command === "hook") {
-			if (argv[1] !== "customize") {
-				usage();
-				process.exit(1);
-			}
-			process.stdout.write(runCustomizeHook(readFileSync(0, "utf8")));
-			process.exit(0);
-		}
-
-		if (command === "init") {
-			const parsed = parseInitArgs(argv.slice(1));
-			runInit(parsed);
-			process.exit(0);
-		}
-
-		if (command === "references") {
-			const sub = argv[1];
-			if (sub === "sync") {
-				const dryRun = argv.includes("--dry-run");
-				const rewriteLinks = !argv.includes("--no-rewrite-links");
-				const result = runReferencesSync({ dryRun, rewriteLinks });
-				printSyncResult(result);
-				process.exit(0);
-			}
-			if (sub === "check") {
-				process.exit(
-					runReferencesCheck({
-						json: argv.includes("--json"),
-						strict: argv.includes("--strict"),
-					}),
-				);
-			}
+		const exitCode = await dispatchCommand(argv);
+		if (exitCode === null) {
 			usage();
 			process.exit(1);
 		}
-
-		usage();
-		process.exit(1);
+		process.exit(exitCode);
 	} catch (error) {
 		console.error(String(error));
 		process.exit(1);

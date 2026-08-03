@@ -54,7 +54,7 @@ function parseRegistryRows(content: string): Array<{ topic: string; link: string
 	const rows: Array<{ topic: string; link: string; line: string }> = [];
 	for (const line of content.split("\n")) {
 		const match = REGISTRY_TABLE_ROW_RE.exec(line);
-		if (!match?.[1] || !match[2]) continue;
+		if (!(match?.[1] && match[2])) continue;
 		rows.push({ topic: match[1].trim(), link: match[2].trim(), line });
 	}
 	return rows;
@@ -89,13 +89,19 @@ ${REGISTRY_TABLE_HEADER}
 `;
 }
 
-function upsertRow(
-	content: string,
-	topic: string,
-	link: string,
-	section: string,
-	root: string,
-): { content: string; action: "added" | "updated" | "noop" } {
+interface UpsertRowOptions {
+	content: string;
+	topic: string;
+	link: string;
+	section: string;
+	root: string;
+}
+
+function upsertRow(opts: UpsertRowOptions): {
+	content: string;
+	action: "added" | "updated" | "noop";
+} {
+	const { content, topic, link, section, root } = opts;
 	const rows = parseRegistryRows(content);
 	const targetPath = link;
 	const existingByLink = rows.find((row) => row.link === targetPath);
@@ -133,6 +139,53 @@ function upsertRow(
 	return { content: appended, action: "added" };
 }
 
+function printRegisterResult(
+	options: RegisterOptions,
+	result: RegisterResult,
+	relPath: string,
+): void {
+	if (options.json) {
+		console.log(JSON.stringify(result, null, 2));
+	} else if (options.dryRun) {
+		console.log(`dry-run: would ${result.action} registry row for ${relPath} → ${result.topic}`);
+	} else if (result.action === "noop") {
+		console.log(`register: ${relPath} already registered (${result.topic})`);
+	} else {
+		console.log(`register: ${result.action} ${relPath} → ${result.topic}`);
+	}
+}
+
+interface RegistrationTopicInput {
+	options: RegisterOptions;
+	root: string;
+	relPath: string;
+	absPath: string;
+}
+
+function resolveRegistrationTopic(input: RegistrationTopicInput): {
+	topic: string;
+	registryLink: string;
+	section: string;
+} {
+	const { options, root, relPath, absPath } = input;
+	const content = readFileSync(absPath, "utf8");
+	let topic = options.topic ?? extractTopic(content);
+	if (!topic) {
+		throw new Error(`No **Source of truth for** banner in ${relPath} — add banner or pass --topic`);
+	}
+	const registryLink = toRegistryLink(root, absPath);
+	topic = ensureCustomizeTopic(topic, registryLink);
+	return { topic, registryLink, section: inferSection(registryLink) };
+}
+
+function loadRegistryContent(root: string): string {
+	const registryAbs = join(root, REGISTRY_REL_PATH);
+	if (!(existsSync(registryAbs) || existsSync(join(root, ".skeleton/config.yaml")))) {
+		throw new Error("Missing .skeleton/config.yaml — run skeleton init first");
+	}
+	return existsSync(registryAbs) ? readFileSync(registryAbs, "utf8") : defaultRegistryContent();
+}
+
 export function registerPath(options: RegisterOptions): RegisterResult {
 	const root = options.root ?? findRepoRoot();
 	const relPath = normalizeRelPath(options.path);
@@ -142,32 +195,21 @@ export function registerPath(options: RegisterOptions): RegisterResult {
 		throw new Error(`File not found: ${relPath}`);
 	}
 
-	const content = readFileSync(absPath, "utf8");
-	let topic = options.topic ?? extractTopic(content);
-	if (!topic) {
-		throw new Error(`No **Source of truth for** banner in ${relPath} — add banner or pass --topic`);
-	}
+	const { topic, registryLink, section } = resolveRegistrationTopic({
+		options,
+		root,
+		relPath,
+		absPath,
+	});
+	let registryContent = loadRegistryContent(root);
 
-	const registryLink = toRegistryLink(root, absPath);
-	topic = ensureCustomizeTopic(topic, registryLink);
-	const section = inferSection(registryLink);
-
-	const registryAbs = join(root, REGISTRY_REL_PATH);
-	let registryContent = existsSync(registryAbs)
-		? readFileSync(registryAbs, "utf8")
-		: defaultRegistryContent();
-
-	if (!existsSync(registryAbs) && !existsSync(join(root, ".skeleton/config.yaml"))) {
-		throw new Error("Missing .skeleton/config.yaml — run skeleton init first");
-	}
-
-	const { content: updated, action } = upsertRow(
-		registryContent,
+	const { content: updated, action } = upsertRow({
+		content: registryContent,
 		topic,
-		registryLink,
+		link: registryLink,
 		section,
 		root,
-	);
+	});
 	registryContent = updated;
 
 	const result: RegisterResult = {
@@ -178,6 +220,7 @@ export function registerPath(options: RegisterOptions): RegisterResult {
 		warnOutsideScan: isOutsideScan(root, relPath),
 	};
 
+	const registryAbs = join(root, REGISTRY_REL_PATH);
 	if (!options.dryRun && action !== "noop") {
 		const dir = dirname(registryAbs);
 		if (!existsSync(dir)) {
@@ -192,15 +235,7 @@ export function registerPath(options: RegisterOptions): RegisterResult {
 		);
 	}
 
-	if (options.json) {
-		console.log(JSON.stringify(result, null, 2));
-	} else if (options.dryRun) {
-		console.log(`dry-run: would ${action} registry row for ${relPath} → ${topic}`);
-	} else if (action === "noop") {
-		console.log(`register: ${relPath} already registered (${topic})`);
-	} else {
-		console.log(`register: ${action} ${relPath} → ${topic}`);
-	}
+	printRegisterResult(options, result, relPath);
 
 	return result;
 }

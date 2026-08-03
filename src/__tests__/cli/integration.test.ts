@@ -109,6 +109,32 @@ describe("validate changed routing", () => {
 		}
 	});
 
+	it("under --base, all-skipped code does not fail-closed before global rules", async () => {
+		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
+		mkdirSync(dirname(tsPath), { recursive: true });
+		writeFileSync(tsPath, "export const n = 1;\n");
+		const lines: string[] = [];
+		const capture = (msg?: unknown, ...rest: unknown[]) => {
+			lines.push([msg, ...rest].map(String).join(" "));
+		};
+		const errSpy = spyOn(console, "error").mockImplementation(capture);
+		const logSpy = spyOn(console, "log").mockImplementation(capture);
+		try {
+			await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["src/example.ts"],
+				base: "HEAD",
+			});
+			const joined = lines.join("\n");
+			expect(joined.includes("all paths were skipped")).toBe(false);
+			expect(joined.includes("Self audit")).toBe(true);
+		} finally {
+			errSpy.mockRestore();
+			logSpy.mockRestore();
+			unlinkSync(tsPath);
+		}
+	});
+
 	it("passes mixed docs and skipped ts", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		mkdirSync(dirname(tsPath), { recursive: true });

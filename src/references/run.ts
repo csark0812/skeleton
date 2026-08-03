@@ -1,3 +1,4 @@
+import process from "node:process";
 import { loadConfig } from "../audit/config/load.ts";
 import { printReport } from "../audit/core/report.ts";
 import { runGeneratedReferencesCheck } from "./check.ts";
@@ -29,19 +30,24 @@ export function runReferencesCheck(options: ReferencesCheckOptions = {}): number
 	});
 }
 
+function printSyncSection(label: string, files: string[], prefix: string): void {
+	if (files.length === 0) return;
+	console.log(label);
+	for (const file of files) console.log(`  ${prefix} ${file}`);
+}
+
 export function printSyncResult(result: SyncResult): void {
-	if (result.written.length > 0) {
-		console.log(`references sync: wrote ${result.written.length} file(s)`);
-		for (const file of result.written) console.log(`  + ${file}`);
-	}
-	if (result.rewritten.length > 0) {
-		console.log(`references sync: rewrote links in ${result.rewritten.length} file(s)`);
-		for (const file of result.rewritten) console.log(`  ~ ${file}`);
-	}
-	if (result.removed.length > 0) {
-		console.log(`references sync: removed ${result.removed.length} stale file(s)`);
-		for (const file of result.removed) console.log(`  - ${file}`);
-	}
+	printSyncSection(`references sync: wrote ${result.written.length} file(s)`, result.written, "+");
+	printSyncSection(
+		`references sync: rewrote links in ${result.rewritten.length} file(s)`,
+		result.rewritten,
+		"~",
+	);
+	printSyncSection(
+		`references sync: removed ${result.removed.length} stale file(s)`,
+		result.removed,
+		"-",
+	);
 	if (result.written.length === 0 && result.rewritten.length === 0 && result.removed.length === 0) {
 		console.log(`references sync: up to date (${result.skipped.length} file(s) checked)`);
 	}

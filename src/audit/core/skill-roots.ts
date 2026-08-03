@@ -76,7 +76,7 @@ function listNestedSlugs(root: string, relRoot: string): string[] {
 		)
 		.filter((entry) => existsSync(join(absRoot, entry.name, "SKILL.md")))
 		.map((entry) => entry.name)
-		.sort();
+		.sort((a, b) => a.localeCompare(b));
 }
 
 function listFlatSlugs(root: string): string[] {
@@ -88,7 +88,47 @@ function listFlatSlugs(root: string): string[] {
 			slugs.push(entry.name);
 		}
 	}
-	return slugs.sort();
+	return slugs.sort((a, b) => a.localeCompare(b));
+}
+
+function shouldSkipAgentsRoot(root: string, relRoot: string, claudeReal: string | null): boolean {
+	if (relRoot !== ".agents/skills" || !claudeReal) return false;
+	const abs = join(root, relRoot);
+	const agentsReal = safeRealpath(abs);
+	if (agentsReal && agentsReal === claudeReal) return true;
+	const linkTarget = safeRealpath(abs);
+	if (linkTarget === claudeReal) return true;
+	try {
+		const link = readlinkSync(abs);
+		if (link && safeRealpath(join(root, link)) === claudeReal) return true;
+	} catch {
+		// not a symlink
+	}
+	return false;
+}
+
+interface AddNestedRootInput {
+	roots: SkillRoot[];
+	root: string;
+	relRoot: string;
+	claudeReal: string | null;
+}
+
+function addNestedSkillRoot(input: AddNestedRootInput): string | null {
+	const { roots, root, relRoot } = input;
+	let { claudeReal } = input;
+	const abs = join(root, relRoot);
+	if (!existsSync(abs)) return claudeReal;
+
+	if (relRoot === ".claude/skills") {
+		claudeReal = safeRealpath(abs);
+	}
+	if (shouldSkipAgentsRoot(root, relRoot, claudeReal)) return claudeReal;
+
+	if (listNestedSlugs(root, relRoot).length > 0 || existsSync(abs)) {
+		roots.push({ kind: "nested", relPath: relRoot });
+	}
+	return claudeReal;
 }
 
 export function detectSkillRoots(root: string): SkillRoot[] {
@@ -96,28 +136,7 @@ export function detectSkillRoots(root: string): SkillRoot[] {
 	let claudeReal: string | null = null;
 
 	for (const relRoot of NESTED_SKILL_ROOTS) {
-		const abs = join(root, relRoot);
-		if (!existsSync(abs)) continue;
-
-		if (relRoot === ".claude/skills") {
-			claudeReal = safeRealpath(abs);
-		}
-		if (relRoot === ".agents/skills" && claudeReal) {
-			const agentsReal = safeRealpath(abs);
-			if (agentsReal && agentsReal === claudeReal) continue;
-			const linkTarget = safeRealpath(abs);
-			if (linkTarget === claudeReal) continue;
-			try {
-				const link = readlinkSync(abs);
-				if (link && claudeReal && safeRealpath(join(root, link)) === claudeReal) continue;
-			} catch {
-				// not a symlink
-			}
-		}
-
-		if (listNestedSlugs(root, relRoot).length > 0 || existsSync(abs)) {
-			roots.push({ kind: "nested", relPath: relRoot });
-		}
+		claudeReal = addNestedSkillRoot({ roots, root, relRoot, claudeReal });
 	}
 
 	const flatSlugs = listFlatSlugs(root);
@@ -185,20 +204,33 @@ export function isSkillPath(relPath: string, index: SkillIndex): boolean {
  * (e.g. `docs/<slug>/...` when `docs` is not a skill root, or top-level
  * `<nested-only-slug>/...` when that slug only exists under `.claude/skills`).
  */
+function nestedSlugForPath(
+	normalized: string,
+	skillRoot: SkillRoot,
+	index: SkillIndex,
+): string | null {
+	const prefix = `${skillRoot.relPath}/`;
+	if (!normalized.startsWith(prefix)) return null;
+	const slug = normalized.slice(prefix.length).split("/")[0];
+	return slug && index.slugs.includes(slug) ? slug : null;
+}
+
+function flatSlugForPath(normalized: string, index: SkillIndex): string | null {
+	const flat = new Set(index.flatSlugs);
+	const first = normalized.split("/")[0];
+	return first && flat.has(first) ? first : null;
+}
+
 export function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
 	const normalized = normalizeRelPath(relPath);
-	const flat = new Set(index.flatSlugs);
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
-			const prefix = `${skillRoot.relPath}/`;
-			if (!normalized.startsWith(prefix)) continue;
-			const slug = normalized.slice(prefix.length).split("/")[0];
-			if (slug && index.slugs.includes(slug)) return slug;
+			const slug = nestedSlugForPath(normalized, skillRoot, index);
+			if (slug) return slug;
 			continue;
 		}
-		const first = normalized.split("/")[0];
-		// Flat membership only — nested-only slugs must not claim top-level dirs.
-		if (first && flat.has(first)) return first;
+		const slug = flatSlugForPath(normalized, index);
+		if (slug) return slug;
 	}
 	return null;
 }
@@ -253,22 +285,51 @@ export function slugFromPath(filePath: string, workspaceRoot?: string): string |
 	return flatSlug;
 }
 
+function augmentPatternsForRoot(
+	skillRoot: SkillRoot,
+	index: SkillIndex,
+	owned: Set<string>,
+): string[] {
+	if (skillRoot.kind === "nested") {
+		return index.ownedSlugs.map((slug) => `${skillRoot.relPath}/${slug}/**`);
+	}
+	return index.flatSlugs.filter((slug) => owned.has(slug)).map((slug) => `${slug}/**`);
+}
+
 export function skillCollectAugments(index: SkillIndex): string[] {
 	const owned = new Set(index.ownedSlugs);
 	const patterns: string[] = [];
 	for (const skillRoot of index.roots) {
-		if (skillRoot.kind === "nested") {
-			for (const slug of index.ownedSlugs) {
-				patterns.push(`${skillRoot.relPath}/${slug}/**`);
-			}
-		} else {
-			for (const slug of index.flatSlugs) {
-				if (!owned.has(slug)) continue;
-				patterns.push(`${slug}/**`);
-			}
-		}
+		patterns.push(...augmentPatternsForRoot(skillRoot, index, owned));
 	}
 	return patterns;
+}
+
+function markdownPathsForSkillDir(root: string, absDir: string): string[] {
+	const paths: string[] = [];
+	for (const abs of globSync("**/*.{md,mdc}", {
+		cwd: absDir,
+		absolute: true,
+		onlyFiles: true,
+		dot: true,
+	})) {
+		paths.push(normalizeRelPath(relative(root, abs)));
+	}
+	return paths;
+}
+
+function markdownPathsForRoot(root: string, skillRoot: SkillRoot, owned: Set<string>): string[] {
+	const paths: string[] = [];
+	const slugs =
+		skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
+	for (const slug of slugs) {
+		if (!owned.has(slug)) continue;
+		const absDir =
+			skillRoot.kind === "nested" ? join(root, skillRoot.relPath, slug) : join(root, slug);
+		if (!existsSync(absDir)) continue;
+		paths.push(...markdownPathsForSkillDir(root, absDir));
+	}
+	return paths;
 }
 
 /**
@@ -283,24 +344,11 @@ export function listSkillMarkdownPaths(root: string, index: SkillIndex): string[
 	const owned = new Set(index.ownedSlugs);
 	const paths = new Set<string>();
 	for (const skillRoot of index.roots) {
-		const slugs =
-			skillRoot.kind === "nested" ? listNestedSlugs(root, skillRoot.relPath) : listFlatSlugs(root);
-		for (const slug of slugs) {
-			if (!owned.has(slug)) continue;
-			const absDir =
-				skillRoot.kind === "nested" ? join(root, skillRoot.relPath, slug) : join(root, slug);
-			if (!existsSync(absDir)) continue;
-			for (const abs of globSync("**/*.{md,mdc}", {
-				cwd: absDir,
-				absolute: true,
-				onlyFiles: true,
-				dot: true,
-			})) {
-				paths.add(normalizeRelPath(relative(root, abs)));
-			}
+		for (const rel of markdownPathsForRoot(root, skillRoot, owned)) {
+			paths.add(rel);
 		}
 	}
-	return [...paths].sort();
+	return [...paths].sort((a, b) => a.localeCompare(b));
 }
 
 export function listSkillSlugs(index: SkillIndex): string[] {
