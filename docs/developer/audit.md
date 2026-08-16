@@ -30,7 +30,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
 | links, doc-meta, prose-policy                                                  | no     |
-| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned/deny | yes    |
+| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned (`deny.paths`) | yes    |
 
 ## Config
 

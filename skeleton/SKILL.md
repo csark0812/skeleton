@@ -75,7 +75,7 @@ Edit `skeleton.toml` scan trees for this repo shape.
 
 | Command                                        | Purpose                                                 |
 | ---------------------------------------------- | ------------------------------------------------------- |
-| `skeleton audit self`                          | Full harness audit                                      |
+| `skeleton audit self`                          | Full docs + config audit (excluded skill trees still need `audit skills`) |
 | `skeleton audit docs`                          | Doc audit (SSOT, near-dupe, links, doc-meta, …)         |
 | `skeleton audit docs --fix`                    | Autofix doc-meta + anchors + legacy SSOT rewrite        |
 | `skeleton audit skills`                        | Skill audit                                             |

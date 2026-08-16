@@ -10,7 +10,14 @@ Config keys (`plugins`, `draftPathPrefixes`): [config](config.md). Build failure
 
 ## Module contract
 
-Entry path in `.skeleton/config.yaml` is relative to `.skeleton/`:
+Entry path is relative to `.skeleton/` — set `plugins` in root `skeleton.toml` (preferred) or legacy `.skeleton/config.yaml`:
+
+```toml
+plugins = ["plugins/example/example.ts"]
+draftPathPrefixes = ["drafts/"]
+```
+
+Legacy YAML:
 
 ```yaml
 plugins:

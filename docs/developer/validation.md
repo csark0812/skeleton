@@ -73,7 +73,7 @@ Policy YAML is plugin-glob SSOT only (same as runtime `loadPlugins`):
 
 ### CI two-pass
 
-`validate:ci` (`--base`) runs **global rules first** (deny.paths / banned, coverage-gaps, scan-roots, skill-index, generated-references, ssot), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
+`validate:ci` (`--base`) runs **global rules first** (`deny.paths` via rule `banned`, coverage-gaps, scan-roots, skill-index, generated-references, ssot, near-duplicate, ssot-summary), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
 
 ## Shared references
 

@@ -15,7 +15,8 @@ Match [AGENTS.md](../../AGENTS.md) validation split:
 | TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check` when breadth warrants)                            |
 | Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
-| Skill body (`SKILL.md` trees)               | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees)                         |
+| Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees)                         |
+| Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo                                                                                                           |
 
 `validate:changed` skips code and command-config JSON by design. Code-only green from that command is not coverage.
 

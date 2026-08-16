@@ -99,7 +99,7 @@ Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plu
 
 ## Stale `last-reviewed` warnings
 
-**Cause:** Registry-listed / meta docs changed after the date in `<!-- doc-meta: … -->`.
+**Cause:** SSOT-bearing / meta docs changed after the date in `<!-- doc-meta: … -->`.
 
 **Fix:** Bump the date after review, or autofix:
 
