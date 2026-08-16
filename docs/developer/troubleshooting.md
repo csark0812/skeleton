@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 

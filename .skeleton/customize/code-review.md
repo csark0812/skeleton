@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Injected on skill read. Prefer this overlay over portable thinned sections when both apply. Portable ledger / exit-gate rules still apply and must not be weakened.
 
