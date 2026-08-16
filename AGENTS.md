@@ -2,9 +2,18 @@
 
 **Source of truth for** agent cold-start in this repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server.
+
+## Doc routing (before long reads)
+
+1. If `.skeleton/catalog.md` is missing, run `bun src/cli.ts catalog` (or `skeleton catalog`).
+2. Skim the catalog summaries.
+3. For a hit, read only the source-of-truth line / first ~20 lines of that file.
+4. Open the full doc only if it is truly relevant.
+
+Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do not assume one-liners stay accurate without that gate.
 
 ## Prerequisites
 
@@ -32,7 +41,7 @@ bun test ./tests/smoke.test.ts
 
 | Change type                                 | Run                                                                                                                                                        |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docs / config / registry (non-policy)       | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
+| Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
 | Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` (path-scoped validate exits non-zero for owned skill paths — alone or mixed with docs — and redirects here; `audit self` does not cover excluded skill trees) |
 | Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)                                                                   |
@@ -40,7 +49,7 @@ bun test ./tests/smoke.test.ts
 
 `validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped locally (no `--base`), it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Under CI `--base`, all-skipped code still runs global rules (then exits 0 when those pass) — keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
-Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`.
+Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional — not required for audit.
 
 Behavioral A/B dogfood (live Cursor, not part of `bun run check`): [agent-suites/README.md](agent-suites/README.md) · [refs/llm-harness.md](refs/llm-harness.md).
 
@@ -51,7 +60,7 @@ Consumer-facing decision table and routing: [docs/developer/validation.md](docs/
 - CLI: `src/`
 - Smoke tests: `tests/` (plus colocated `src/**/__tests__`)
 - Package skill (ops manual): `skeleton/SKILL.md`
-- Config: `.skeleton/config.yaml`, `.skeleton/registry.md`
+- Config: `skeleton.toml` (preferred); legacy `.skeleton/config.yaml` still loads
 - Local `skills add` installs land under `.agents/` / `.claude/` (gitignored; excluded from scan)
 
 ## Docs

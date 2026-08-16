@@ -53,11 +53,6 @@ function scanFileForSkillLinks(ctx: AuditContext, filePath: string, index: Skill
 		const slug = match[1];
 		if (!slug) continue;
 
-		if (ctx.retiredSkills.has(slug)) {
-			issues.push(issue("skill-index", rel, `references retired skill "${slug}/SKILL.md"`));
-			continue;
-		}
-
 		if (!resolveSkillPath(index, ctx.root, slug)) {
 			issues.push(issue("skill-index", rel, `links missing skill "${slug}/SKILL.md"`));
 		}

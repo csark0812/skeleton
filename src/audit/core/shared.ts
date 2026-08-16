@@ -1,6 +1,7 @@
 import { join, relative, resolve } from "node:path";
 
 export const REGISTRY_REL_PATH = ".skeleton/registry.md";
+export const CATALOG_REL_PATH = ".skeleton/catalog.md";
 export const REGISTRY_DIR_REL = ".skeleton";
 
 export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;

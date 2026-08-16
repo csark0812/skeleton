@@ -4,13 +4,13 @@ import { readFileSync } from "node:fs";
 import process from "node:process";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
+import { runCatalogCli } from "./catalog.ts";
 import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
 import { runCustomizeHook } from "./hooks/run.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
 import { printSyncResult, runReferencesCheck, runReferencesSync } from "./references/run.ts";
-import { registerPath } from "./register.ts";
 import { runValidateChanged } from "./validate/changed.ts";
 
 function usage(): void {
@@ -19,35 +19,16 @@ function usage(): void {
 Commands:
   init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
-                         [--fix[=doc-meta|anchors]] [--dry-run]
+                         [--fix[=doc-meta|anchors|ssot]] [--dry-run]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
-  register <path> [--topic=…] [--dry-run] [--json]
+  catalog [--check]         write or check .skeleton/catalog.md (gitignored)
   customize resolve <slug> [--json]
   hook customize            (reads a host hook payload on stdin)
   references sync [--dry-run] [--no-rewrite-links]
-  references check [--json] [--strict]`);
-}
+  references check [--json] [--strict]
 
-function parseRegisterArgs(argv: string[]): {
-	path: string | null;
-	topic?: string;
-	dryRun: boolean;
-	json: boolean;
-} {
-	let path: string | null = null;
-	let topic: string | undefined;
-	let dryRun = false;
-	let json = false;
-
-	for (const arg of argv) {
-		if (arg === "--dry-run") dryRun = true;
-		else if (arg === "--json") json = true;
-		else if (arg.startsWith("--topic=")) topic = arg.slice("--topic=".length);
-		else if (!(arg.startsWith("-") || path)) path = arg;
-	}
-
-	return { path, topic, dryRun, json };
+Note: \`register\` was removed — add a source-of-truth marker to the file and run \`skeleton catalog\`.`);
 }
 
 function parseValidateChangedArgs(rest: string[]): {
@@ -106,19 +87,15 @@ async function handleValidateChanged(argv: string[]): Promise<number> {
 	return runValidateChanged({ paths, staged, base });
 }
 
-function handleRegister(argv: string[]): number {
-	const opts = parseRegisterArgs(argv);
-	if (!opts.path) {
-		console.error("register: path required");
-		return 1;
-	}
-	registerPath({
-		path: opts.path,
-		topic: opts.topic,
-		dryRun: opts.dryRun,
-		json: opts.json,
-	});
-	return 0;
+function handleRegister(): number {
+	console.error(
+		"register: removed — add `<!-- source-of-truth: … -->` (or visible `source-of-truth:`) to the file, then run `skeleton catalog`.",
+	);
+	return 1;
+}
+
+function handleCatalog(argv: string[]): number {
+	return runCatalogCli({ check: argv.includes("--check") });
 }
 
 function handleCustomizeResolve(argv: string[]): number {
@@ -182,7 +159,9 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 		case "validate":
 			return rest[0] === "changed" ? handleValidateChanged(rest.slice(1)) : null;
 		case "register":
-			return handleRegister(rest);
+			return handleRegister();
+		case "catalog":
+			return handleCatalog(rest);
 		case "customize":
 			return rest[0] === "resolve" ? handleCustomizeResolve(rest.slice(1)) : null;
 		case "hook":

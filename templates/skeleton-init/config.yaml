@@ -1,17 +1,18 @@
 # yaml-language-server: $schema=node_modules/@csark0812/skeleton/schemas/config.schema.json
+# Legacy path — prefer skeleton.toml at repo root.
 
 scan:
   include:
     - "docs/**"
     - "README.md"
-    - ".skeleton/registry.md"
     - "AGENTS.md"
   exclude:
     - "refs/**"
-  banned: []
-  retiredSkills: []
 
-daysUntilStale: 180
+deny:
+  paths: []
+
+daysUntilStale: 365
 
 # Optional: basenames under .skeleton/customize/ appended on every skill inject
 # customize:

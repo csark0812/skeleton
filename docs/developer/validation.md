@@ -2,7 +2,7 @@
 
 **Source of truth for** skeleton validate changed routing.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 ## When you changed X, run Y
 
@@ -40,7 +40,7 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 ### Skipped paths
 
-Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped **without** `--base`, `validate changed` exits non-zero and prints the code gates to run. Under CI `--base`, all-skipped code still runs global rules (keep the TS lane separate in CI).
+Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run.
 
 In this repo:
 
@@ -73,7 +73,7 @@ Policy YAML is plugin-glob SSOT only (same as runtime `loadPlugins`):
 
 ### CI two-pass
 
-`validate:ci` (`--base`) runs **global rules first** (registry, banned, coverage-gaps, scan-roots, skill-index, generated-references), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
+`validate:ci` (`--base`) runs **global rules first** (deny.paths / banned, coverage-gaps, scan-roots, skill-index, generated-references, ssot), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
 
 ## Shared references
 

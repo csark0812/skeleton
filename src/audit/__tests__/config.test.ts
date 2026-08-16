@@ -9,9 +9,34 @@ describe("loadConfig", () => {
 		const root = findRepoRoot();
 		const config = loadConfig(root);
 		expect(config.scan.include.length).toBeGreaterThan(0);
-		expect(config.daysUntilStale).toBe(180);
+		expect(config.daysUntilStale).toBe(365);
 		expect(config).not.toHaveProperty("staleReviewDays");
 		expect(config).not.toHaveProperty("hubReadmes");
+	});
+
+	it("prefers skeleton.toml over legacy yaml", () => {
+		const dir = join(tmpdir(), `skel-dual-config-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		writeFileSync(
+			join(dir, "skeleton.toml"),
+			`daysUntilStale = 365
+
+[scan]
+include = ["docs/**"]
+exclude = []
+`,
+		);
+		writeFileSync(
+			join(dir, ".skeleton/config.yaml"),
+			`scan:\n  include: ["other/**"]\n  exclude: []\ndaysUntilStale: 90\n`,
+		);
+		try {
+			const config = loadConfig(dir);
+			expect(config.scan.include).toEqual(["docs/**"]);
+			expect(config.daysUntilStale).toBe(365);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("rejects invalid config", () => {
@@ -23,7 +48,7 @@ describe("loadConfig", () => {
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nskillOwnership:\n  lockfile: skills-lock.json\n  ownedSlugs: [mine]\n  foreignSlugs: [other]\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nskillOwnership:\n  lockfile: skills-lock.json\n  ownedSlugs: [mine]\n  foreignSlugs: [other]\n`,
 		);
 		try {
 			const config = loadConfig(dir);
@@ -40,7 +65,7 @@ describe("loadConfig", () => {
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nskillOwnership:\n  ownedSlugs: ["Bad_Slug"]\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nskillOwnership:\n  ownedSlugs: ["Bad_Slug"]\n`,
 		);
 		try {
 			expect(() => loadConfig(dir)).toThrow(/Invalid/);

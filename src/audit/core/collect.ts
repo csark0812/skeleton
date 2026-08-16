@@ -78,10 +78,11 @@ export function collectScanFiles(
 }
 
 export function collectBannedFiles(config: SkeletonConfig, root: string): string[] {
-	if (config.scan.banned.length === 0) return [];
+	const patterns = config.deny?.paths ?? [];
+	if (patterns.length === 0) return [];
 	const exclude = mergedExcludes(config);
 	const files = new Set<string>();
-	for (const pattern of config.scan.banned) {
+	for (const pattern of patterns) {
 		for (const abs of globSync(pattern, {
 			cwd: root,
 			absolute: true,
@@ -161,7 +162,7 @@ export function collectDocMetaPaths(ctx: DocMetaCollectContext): string[] {
 		paths.push(normalizeRelPath(relative(ctx.root, abs)));
 	}
 
-	const extras = ["docs/README.md", ".skeleton/registry.md"];
+	const extras = ["docs/README.md"];
 	for (const file of extras) {
 		const abs = join(ctx.root, file);
 		if (existsSync(abs)) paths.push(normalizeRelPath(file));

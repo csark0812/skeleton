@@ -73,7 +73,7 @@ describe("collectScanFiles", () => {
 			symlinkSync("../../.agents/skills/foo", join(root, ".claude/skills/foo"));
 
 			const config = {
-				scan: { include: [".agents/skills/**"], exclude: [], banned: [] },
+				scan: { include: [".agents/skills/**"], exclude: [] },
 				daysUntilStale: 180,
 			} as ReturnType<typeof loadConfig>;
 			const files = collectScanFiles(config, root, buildSkillIndex(root));
@@ -96,7 +96,7 @@ describe("collectScanFiles", () => {
 			mkdirSync(join(root, "docs"), { recursive: true });
 			writeFileSync(
 				join(root, ".skeleton/config.yaml"),
-				`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+				`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 			);
 			writeFileSync(join(root, "docs/a.md"), "# A\n");
 			writeFileSync(join(root, ".claude/skills/foreign/SKILL.md"), "foreign\n");
@@ -129,7 +129,7 @@ describe("collectScanFiles", () => {
 			mkdirSync(join(root, ".skeleton"), { recursive: true });
 			writeFileSync(
 				join(root, ".skeleton/config.yaml"),
-				`scan:\n  include: [".claude/skills/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+				`scan:\n  include: [".claude/skills/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 			);
 			writeFileSync(join(root, ".claude/skills/foreign/SKILL.md"), "foreign\n");
 			writeFileSync(join(root, ".claude/skills/mine/SKILL.md"), "mine\n");
@@ -160,7 +160,7 @@ describe("collectScanFiles", () => {
 			mkdirSync(join(root, ".skeleton"), { recursive: true });
 			writeFileSync(
 				join(root, ".skeleton/config.yaml"),
-				`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+				`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 			);
 			writeFileSync(join(root, "docs/code-review/references/note.md"), "# Note\n");
 			writeFileSync(join(root, "docs/ok.md"), "# OK\n");

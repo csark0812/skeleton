@@ -2,9 +2,9 @@
 
 **Source of truth for** skill customize overrides via hooks.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
-Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md).
+Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md). Customize IDE hooks are **optional** — audit/validate/catalog work without them.
 
 ## Layout
 
@@ -37,12 +37,11 @@ not add `.skeleton/customize/**` to `scan.include`.
 
 ## `alwaysInclude`
 
-In `.skeleton/config.yaml`:
+In `skeleton.toml` (or legacy `.skeleton/config.yaml`):
 
-```yaml
-customize:
-  alwaysInclude:
-    - shared-agent-references.md
+```toml
+[customize]
+alwaysInclude = ["shared-agent-references.md"]
 ```
 
 On every inject for slug `X`, the hook and `skeleton customize resolve X` concatenate:
@@ -64,14 +63,12 @@ skeleton customize resolve code-review --json
 
 There is no `bun run skeleton customize …` script by default — use the `skeleton` bin from `@csark0812/skeleton`.
 
-## Register customize files
+## Optional catalog membership
 
-```bash
-skeleton register .skeleton/customize/code-review.md
-```
+Customize files may include a `source-of-truth` marker if you want them in `skeleton catalog`. Hooks remain optional — `skeleton customize resolve` works without IDE inject.
 
 Do not edit synced toolbox `SKILL.md` files — override in `.skeleton/customize/`.
 
-Synced foreign skill bodies (declared in `skills-lock.json` with non-`local` provenance) are skipped by consumer `audit skills` / validate routing; the owning toolbox repo runs skill-body lint. Customize overlays and `.skeleton` config stay in this repo's audit corpus — see [config](config.md#skillownership).
+Synced foreign skill bodies (declared in `skills-lock.json` with non-`local` provenance) are skipped by consumer `audit skills` / validate routing; the owning toolbox repo runs skill-body lint. Customize overlays and config stay in this repo's audit corpus — see [config](config.md#skillownership).
 
 If resolve works but IDE inject does not, see [troubleshooting](troubleshooting.md#customize-hook-not-injecting).

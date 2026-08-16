@@ -16,7 +16,7 @@ export function runCoverageGapsRule(ctx: AuditContext): Issue[] {
 		issues.push(
 			issue("coverage-gaps", rel, {
 				message:
-					"markdown outside audit scan perimeter — extend .skeleton/config.yaml scan.include",
+					"markdown outside audit scan perimeter — extend skeleton.toml (or legacy .skeleton/config.yaml) scan.include",
 				severity: "warning",
 			}),
 		);

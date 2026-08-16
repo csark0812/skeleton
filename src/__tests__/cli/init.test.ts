@@ -104,8 +104,10 @@ describeHooks("skeleton init hooks", () => {
 		const cwd = makeRepo();
 		const result = runInit({ cwd });
 		expect(result.scaffold).toBe("created");
-		expect(existsSync(join(cwd, ".skeleton/config.yaml"))).toBe(true);
-		expect(existsSync(join(cwd, ".skeleton/registry.md"))).toBe(true);
+		expect(existsSync(join(cwd, "skeleton.toml"))).toBe(true);
+		expect(existsSync(join(cwd, ".skeleton/config.yaml"))).toBe(false);
+		expect(existsSync(join(cwd, ".skeleton/registry.md"))).toBe(false);
+		expect(existsSync(join(cwd, ".skeleton/customize"))).toBe(true);
 		expect(existsSync(join(cwd, ".cursor/hooks.json"))).toBe(true);
 		expect(existsSync(join(cwd, ".claude/settings.json"))).toBe(true);
 		const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
@@ -212,13 +214,13 @@ describeHooks("skeleton init hooks", () => {
 		expect(skeletonHooks).toHaveLength(1);
 	});
 
-	it("does not overwrite existing .skeleton config on re-init", () => {
+	it("does not overwrite existing skeleton.toml on re-init", () => {
 		const cwd = makeRepo();
 		runInit({ cwd });
-		const configPath = join(cwd, ".skeleton/config.yaml");
+		const configPath = join(cwd, "skeleton.toml");
 		writeFileSync(
 			configPath,
-			"scan:\n  include: [custom]\n  exclude: []\n  banned: []\ndaysUntilStale: 90\n",
+			'daysUntilStale = 90\n\n[scan]\ninclude = ["custom"]\nexclude = []\n',
 		);
 		runInit({ cwd });
 		expect(readFileSync(configPath, "utf8")).toContain("custom");

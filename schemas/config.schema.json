@@ -9,7 +9,7 @@
 		"scan": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["include", "exclude", "banned"],
+			"required": ["include", "exclude"],
 			"properties": {
 				"include": {
 					"type": "array",
@@ -20,14 +20,6 @@
 					"type": "array",
 					"items": { "type": "string" }
 				},
-				"banned": {
-					"type": "array",
-					"items": { "type": "string" }
-				},
-				"retiredSkills": {
-					"type": "array",
-					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
-				},
 				"nonPublicSkills": {
 					"type": "array",
 					"items": { "type": "string", "pattern": "^[a-z0-9-]+$" },
@@ -35,9 +27,65 @@
 				}
 			}
 		},
+		"deny": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Path denylist — matching files must not exist in the repo",
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": { "type": "string" },
+					"description": "Repo-wide globs that must not exist (often outside scan.include)"
+				}
+			}
+		},
 		"daysUntilStale": {
 			"type": "integer",
 			"minimum": 1
+		},
+		"docsLint": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Near-duplicate and SSOT-summary lint tunables",
+			"properties": {
+				"nearDuplicateThreshold": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Jaccard threshold on word shingles (default 0.72)"
+				},
+				"ssotOverlapMin": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Min fraction of SSOT tokens that must appear in H1/lead/body evidence (default 0.35)"
+				},
+				"ssotBetterMatchMargin": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 1,
+					"description": "Margin by which another file must beat own overlap for better-match warn (default 0.15)"
+				},
+				"ssotPhraseCheck": {
+					"type": "boolean",
+					"description": "When overlap fails, mention missing SSOT phrase in the message (default true)"
+				},
+				"ignorePairs": {
+					"type": "array",
+					"items": {
+						"type": "array",
+						"items": { "type": "string", "minLength": 1 },
+						"minItems": 2,
+						"maxItems": 2
+					},
+					"description": "Repo-relative path pairs skipped by near-dupe / duplicate-SSOT checks"
+				},
+				"ignoreGlobs": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Globs excluded from near-dupe / duplicate-SSOT"
+				}
+			}
 		},
 		"customize": {
 			"type": "object",

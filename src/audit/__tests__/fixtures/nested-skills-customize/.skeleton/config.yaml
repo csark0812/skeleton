@@ -4,9 +4,6 @@ scan:
   include:
     - "docs/**"
     - ".claude/skills/**"
-    - ".skeleton/registry.md"
   exclude: []
-  banned: []
-  retiredSkills: ["ci"]
 
 daysUntilStale: 180

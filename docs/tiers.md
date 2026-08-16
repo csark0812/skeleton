@@ -2,7 +2,9 @@
 
 **Source of truth for** the three-tier agent ecosystem.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+
+Map of the three-tier agent ecosystem across skeleton, toolbox, and consumer apps.
 
 | Repo | Role |
 |------|------|

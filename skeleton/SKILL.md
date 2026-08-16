@@ -1,60 +1,58 @@
 ---
 name: skeleton
-description: Agent ops manual for skeleton-enabled repos — init, register, audit, customize hooks, and toolbox skill overrides. Use when editing .skeleton/, syncing toolbox skills, or running skeleton CLI.
+description: Agent ops manual for skeleton-enabled repos — init, catalog, audit, optional customize hooks, and toolbox skill overrides. Use when editing skeleton.toml / .skeleton/, syncing toolbox skills, or running skeleton CLI.
 ---
 
 # Skeleton
 
 **Source of truth for** maintaining a skeleton-enabled repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-15 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
-Before project-specific routing: read `<repo-root>/.skeleton/registry.md` and follow links. If the project has a consumer harness playbook (commonly `docs/developer/agent-harness.md`), read it for skill sync perimeter and migration phase.
+## Agent doc routing (token-cheap)
+
+1. If `.skeleton/catalog.md` is missing, run `skeleton catalog`.
+2. Skim the catalog (path + one-line summary).
+3. For a candidate, read only the `source-of-truth` line / first ~20 lines.
+4. Open the full paper only if that line is truly relevant.
 
 Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [config](https://github.com/csark0812/skeleton/blob/main/docs/developer/config.md) · [troubleshooting](https://github.com/csark0812/skeleton/blob/main/docs/developer/troubleshooting.md).
 
 ## When to use
 
-- Edit `.skeleton/customize/<slug>.md` (project bindings for toolbox skills)
-- Run `skeleton audit`, `skeleton validate`, or `skeleton register`
+- Edit `skeleton.toml` or `.skeleton/customize/<slug>.md`
+- Run `skeleton audit`, `skeleton validate`, or `skeleton catalog`
 - Sync or update skills from an external toolbox repo
 - Avoid editing synced toolbox skill copies in the consumer repo
 
-Not for: normal feature work that only reads toolbox skills (customize injects automatically on skill reads via hooks, including skill-tree / references Reads).
+Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do not assume one-liners stay accurate without that gate.
+
+Not for: normal feature work that only reads toolbox skills (optional customize hooks can inject on skill reads).
 
 ## Layout
 
 ```
+skeleton.toml           # preferred root config (scan, stale, docsLint)
 .skeleton/
-├── config.yaml       # audit scan perimeter
-├── registry.md       # topic index → canonical files
-├── plugins/          # optional audit plugins (.ts + .mjs)
-└── customize/        # per-slug overrides for toolbox-bound skills
+├── catalog.md          # generated, gitignored — run `skeleton catalog`
+├── plugins/            # optional audit plugins (.ts + .mjs)
+└── customize/          # per-slug overrides for toolbox-bound skills
     └── <slug>.md
 ```
 
-## Customize hooks
+Legacy `.skeleton/config.yaml` still loads if no `skeleton.toml` is present.
 
-`skeleton init` merges IDE hooks that run a cwd-local
-`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` on skill reads
-(Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`). Inside this repo the
-hook runs `bun src/cli.ts hook customize`.
+## Customize hooks (optional)
 
-- Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree (`.claude/skills/<slug>/**`, `.agents/skills/<slug>/**`, or flat `<slug>/references/**`); Grep/shell still skip
+Hooks are an optional improvement, not required for audit/validate/catalog.
+
+`skeleton init` may merge IDE hooks that run a cwd-local
+`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` on skill reads.
+Inside this repo the hook runs `bun src/cli.ts hook customize`.
+
+- Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree
 - **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`
-- Project-specific dispatch overlays (e.g. product-intent council prompts) belong in customize, not in toolbox skill trees
-
-Manual resolve:
-
-```bash
-skeleton customize resolve <slug>
-```
-
-Register customize files:
-
-```bash
-skeleton register .skeleton/customize/<slug>.md
-```
+- Manual fallback: `skeleton customize resolve <slug>`
 
 Details: [docs/developer/customize.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/customize.md)
 
@@ -65,33 +63,31 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-`--skills` installs this skill and wires hooks. Append [skills add flags](https://github.com/vercel-labs/skills) after `--skills` (e.g. `-g`, `--all`, `-a codex`, `--copy`).
-
-Edit `.skeleton/config.yaml` scan trees for this repo shape.
+Edit `skeleton.toml` scan trees for this repo shape.
 
 ## Workflow
 
-1. Write canonical files with a `**Source of truth for** …` banner
-2. Run `skeleton register <path>`
-3. Run `skeleton audit self`
+1. Add `<!-- source-of-truth: one-line summary -->` (or visible `source-of-truth: …`) to canonical docs
+2. Run `skeleton catalog`
+3. Run `skeleton audit docs` (or `audit self`)
 
 ## CLI
 
 | Command                                        | Purpose                                                 |
 | ---------------------------------------------- | ------------------------------------------------------- |
-| `skeleton audit self`                          | SSOT / harness audit (`.skeleton/**` + registered docs) |
-| `skeleton audit docs`                          | Doc audit (configured scan perimeter)                   |
-| `skeleton audit docs --fix`                    | Autofix doc-meta + anchors, then re-audit               |
+| `skeleton audit self`                          | Full harness audit                                      |
+| `skeleton audit docs`                          | Doc audit (SSOT, near-dupe, links, doc-meta, …)         |
+| `skeleton audit docs --fix`                    | Autofix doc-meta + anchors + legacy SSOT rewrite        |
 | `skeleton audit skills`                        | Skill audit                                             |
+| `skeleton catalog` / `catalog --check`         | Write / warn-check gitignored agent catalog             |
 | `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
 | `skeleton validate changed`                    | Changed-file validation                                 |
-| `skeleton validate changed --staged`           | Pre-commit                                              |
+| `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 | `skeleton references sync`                     | Materialize shared references into skills               |
 | `skeleton references check`                    | Verify generated references match sources               |
 | `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
-| `skeleton register <path>`                     | Register a canonical file in registry                   |
+
+`register` was removed — add a source-of-truth marker and run `skeleton catalog`.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
-
-Framework docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [install](https://github.com/csark0812/skeleton/blob/main/docs/developer/install.md) · [validation](https://github.com/csark0812/skeleton/blob/main/docs/developer/validation.md)

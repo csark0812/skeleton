@@ -12,9 +12,8 @@ function writeConfig(root: string, alwaysInclude: string[]): void {
 			: "\n";
 	writeFileSync(
 		join(root, ".skeleton", "config.yaml"),
-		`scan:\n  include:\n    - "docs/**"\n  exclude: []\n  banned: []\ndaysUntilStale: 180${always}`,
+		`scan:\n  include:\n    - "docs/**"\n  exclude: []\ndaysUntilStale: 180${always}`,
 	);
-	writeFileSync(join(root, ".skeleton", "registry.md"), "# Registry\n");
 }
 
 describe("resolveCustomize alwaysInclude", () => {

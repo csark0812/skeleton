@@ -20,11 +20,10 @@ describe("runLinksRule", () => {
 		expect(issues.some((i) => i.message.includes("broken anchor"))).toBe(false);
 	});
 
-	it("flags retired skill references", () => {
+	it("flags missing skill links", () => {
 		const ctx = createContext({ root: FIXTURES });
-		ctx.retiredSkills = new Set(["code-review"]);
 		ctx.files = [join(FIXTURES, "retired-link.md")];
 		const issues = runLinksRule(ctx);
-		expect(issues.some((i) => i.message.includes("retired skill"))).toBe(true);
+		expect(issues.some((i) => i.message.includes("missing skill"))).toBe(true);
 	});
 });
