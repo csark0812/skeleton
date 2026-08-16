@@ -1,6 +1,6 @@
 # Validation
 
-**Source of truth for** skeleton validate changed routing.
+<!-- source-of-truth: skeleton validate changed routing -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
@@ -8,7 +8,7 @@
 
 | You changed                                               | Run                                                                                                    |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Docs, registry, non-policy `.skeleton/` config            | `skeleton validate changed <path>` or `skeleton audit self`                                            |
+| Docs, catalog, non-policy `.skeleton/` / `skeleton.toml`  | `skeleton validate changed <path>` or `skeleton audit self`                                            |
 | Owned skill body (`SKILL.md` trees authored in this repo) | `skeleton audit skills` (path-scoped validate exits non-zero and redirects here)                       |
 | Foreign / lockfile-synced skill body                      | skipped — lint in the owning skills/toolbox repo                                                       |
 | Plugin-wired policy YAML under `.skeleton/`               | Local: `skeleton audit docs` **and** `skeleton audit skills`. CI: `validate:ci` / `--base` proves both |
@@ -58,7 +58,7 @@ Skill bodies are not path-scoped on the docs lane.
 
 **Owned** skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `skeleton audit skills`. Under CI `--base`, global skill rules and (when relevant) owned skills prose prove still run.
 
-**Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies — including doc-meta on registry-cited skill `references/**` paths. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
+**Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies — including doc-meta on SSOT-bearing skill `references/**` paths. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
 
 `audit self` covers the scan corpus; excluded owned skill trees still need `audit skills`. Customize overlays under `.skeleton/customize/` stay in the consumer audit corpus.
 

@@ -1,6 +1,6 @@
 # Getting started
 
-**Source of truth for** day-one Skeleton setup in a consumer repo.
+<!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
@@ -30,7 +30,6 @@ include = [
   "README.md",
   "AGENTS.md",
 ]
-exclude = ["refs/**"]
 exclude = ["refs/**"]
 
 [deny]

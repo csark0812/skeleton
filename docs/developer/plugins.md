@@ -1,6 +1,6 @@
 # Plugins
 
-**Source of truth for** skeleton plugin authoring (build, load, suites, prose policies).
+<!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 

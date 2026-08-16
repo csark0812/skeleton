@@ -1,6 +1,6 @@
 # Code-review customize (skeleton)
 
-**Source of truth for** skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar).
+<!-- source-of-truth: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar) -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
 
@@ -13,7 +13,7 @@ Match [AGENTS.md](../../AGENTS.md) validation split:
 | Change type                                 | Run before claiming validate / merge-ready                                                                                                                 |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check` when breadth warrants)                            |
-| Docs / config / registry (non-policy)       | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
+| Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
 | Skill body (`SKILL.md` trees)               | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees)                         |
 
@@ -24,7 +24,7 @@ Match [AGENTS.md](../../AGENTS.md) validation split:
 Default filing remains merge-blockers only.
 
 - **Docs / tip / AGENTS wording is ship-blocker** only when it misroutes required validation or CI behavior (e.g. equates `audit self` with `audit skills` when coverage differs on excluded skill trees).
-- Docs polish, registry nits, and test inventory without a reachable misroute → Noted or Deferred.
+- Docs polish, catalog/SSOT nits, and test inventory without a reachable misroute → Noted or Deferred.
 - Public-contract drift (runtime vs schema vs docs vs CLI tips) that can make consumers skip required gates → Action.
 
 ## Review matrices (derive and check before theme closure)

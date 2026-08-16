@@ -21,6 +21,3 @@ exclude = [
 
 [deny]
 paths = []
-
-[docsLint]
-ssotOverlapMin = 0.2

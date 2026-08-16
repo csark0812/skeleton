@@ -1,6 +1,6 @@
 # Tiers
 
-**Source of truth for** the three-tier agent ecosystem.
+<!-- source-of-truth: the three-tier agent ecosystem -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

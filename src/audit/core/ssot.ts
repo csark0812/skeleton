@@ -12,8 +12,13 @@ export type SsotParseResult =
 	| { status: "malformed"; detail: string };
 
 const SSOT_COMMENT_RE = /<!--\s*source-of-truth:\s*([\s\S]*?)\s*-->/gi;
-const SSOT_VISIBLE_LINE_RE = /^\s*source-of-truth:\s*(.+?)\s*$/gim;
-const LEGACY_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*\s*(.+?)\s*$/gim;
+/** Horizontal whitespace only — `\s` would let `^…$` rewrite eat blank lines around the marker. */
+const HWS = "[ \\t]*";
+const SSOT_VISIBLE_LINE_RE = new RegExp(`^${HWS}source-of-truth:${HWS}(.+?)${HWS}$`, "gim");
+const LEGACY_BANNER_LINE_RE = new RegExp(
+	`^${HWS}\\*\\*Source of truth for\\*\\*${HWS}(.+?)${HWS}$`,
+	"gim",
+);
 
 /** @deprecated Prefer parseSsot — presence-only legacy check. */
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;

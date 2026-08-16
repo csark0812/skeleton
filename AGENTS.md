@@ -1,6 +1,6 @@
 # Agent entry (skeleton)
 
-**Source of truth for** agent cold-start in this repo.
+<!-- source-of-truth: agent cold-start in this repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

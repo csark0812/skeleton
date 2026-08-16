@@ -5,7 +5,7 @@ description: Agent ops manual for skeleton-enabled repos — init, catalog, audi
 
 # Skeleton
 
-**Source of truth for** maintaining a skeleton-enabled repo.
+<!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

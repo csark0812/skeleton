@@ -1,6 +1,6 @@
 # Install
 
-**Source of truth for** installing skeleton in a consumer repo.
+<!-- source-of-truth: installing skeleton in a consumer repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

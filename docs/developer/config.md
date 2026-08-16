@@ -1,6 +1,6 @@
 # Config
 
-**Source of truth for** `skeleton.toml` keys and examples.
+<!-- source-of-truth: keys and examples -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

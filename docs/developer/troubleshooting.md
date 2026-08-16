@@ -1,6 +1,6 @@
 # Troubleshooting
 
-**Source of truth for** common Skeleton validation and hook failures.
+<!-- source-of-truth: common Skeleton validation and hook failures -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
 
