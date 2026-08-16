@@ -46,6 +46,7 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
+	/** Re-read cadence (days) for doc-meta last-reviewed; separate from git edit-behind-review. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	customize?: CustomizeConfig;

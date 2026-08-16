@@ -16,7 +16,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | ---------------- | -------------------------------------------------------------------------------------------- |
 | `scan.include`   | Glob patterns for markdown/docs/skills in the audit perimeter (links, doc-meta, SSOT)        |
 | `scan.exclude`   | Removed from the perimeter (drafts, refs, local install trees)                               |
-| `daysUntilStale` | Days before a `last-reviewed` doc-meta date fails in `--strict` mode (default template: 365) |
+| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when `last-reviewed` is older than N days — not the same as “edited after review” (that uses git; see [doc system](doc-system.md#doc-meta)) |
 
 ## Optional
 

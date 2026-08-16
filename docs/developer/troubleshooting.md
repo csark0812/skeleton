@@ -97,16 +97,26 @@ skeleton build-plugin --check   # CI: fail if missing, unstamped, or content-sta
 
 Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plugins.md).
 
-## Stale `last-reviewed` warnings
+## Doc-meta freshness warnings
 
-**Cause:** SSOT-bearing / meta docs changed after the date in `<!-- doc-meta: … -->`.
+Two different signals (see [doc system](doc-system.md#doc-meta)):
 
-**Fix:** Bump the date after review, or autofix:
+**Review behind latest edit** — message mentions `content changed after last-reviewed` / a git date.
+
+**Cause:** The file’s last content commit is newer than `last-reviewed`, so the stamp no longer covers the paper.
+
+**Fix:** Re-read the doc, then bump `last-reviewed`, or:
 
 ```bash
 skeleton audit docs --fix=doc-meta
 skeleton audit docs --fix=doc-meta --dry-run
 ```
+
+**Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
+
+**Cause:** Calendar age of `last-reviewed` (even if the file was not edited). This is process hygiene, not proof the text is wrong.
+
+**Fix:** Re-affirm the paper and bump the date, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
 
 ## Still stuck?
 

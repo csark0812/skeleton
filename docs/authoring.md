@@ -13,5 +13,7 @@ Full day-one flow: [getting started](developer/getting-started.md). Banner / cat
 Index docs and SSOT-bearing files require a doc-meta comment:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 ```
+
+Bump `last-reviewed` after a real re-read when you edit the paper (git is last-edit; there is no separate authored edit date). Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).

@@ -27,7 +27,7 @@ function checkStaleReview(input: StaleReviewInput): Issue | null {
 	const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
 	if (ageDays <= staleDays) return null;
 	return issue("doc-meta", relPath, {
-		message: `doc-meta last-reviewed ${reviewedStr} is stale (>${staleDays} days)`,
+		message: `doc-meta last-reviewed ${reviewedStr} exceeds re-read cadence (>${staleDays} days) — re-affirm the paper or bump after review`,
 		severity: "warning",
 	});
 }
@@ -56,7 +56,7 @@ function checkGitFreshness(input: GitFreshnessInput): Issue | null {
 	if (committed.getTime() <= reviewed.getTime()) return null;
 
 	return issue("doc-meta", relPath, {
-		message: `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — bump last-reviewed or confirm review`,
+		message: `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — review no longer covers latest edit; bump last-reviewed after review`,
 		severity: "warning",
 	});
 }
