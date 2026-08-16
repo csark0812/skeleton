@@ -74,7 +74,7 @@ Create a file with a source-of-truth marker and (for indexes / SSOT docs) doc-me
 
 <!-- source-of-truth: Backend API conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Keep request and response shapes consistent across services.
 ```
@@ -96,7 +96,8 @@ npx skeleton validate changed --staged
 
 Audits pass → you're set. A foreign-only skill change can pass because synced
 skill bodies are validated in their owning repo; `validate changed` prints each
-skip. Stale `last-reviewed` warnings are OK until you bump dates. Failures →
+skip. Doc-meta re-read-cadence warnings are OK until you bump dates; edit-behind-review
+warnings mean re-read then bump. Failures →
 [troubleshooting](troubleshooting.md).
 
 ## 6. Optional pre-commit

@@ -41,7 +41,8 @@
 		},
 		"daysUntilStale": {
 			"type": "integer",
-			"minimum": 1
+			"minimum": 1,
+			"description": "Re-read cadence in days for doc-meta last-reviewed (warn; --strict → error). Separate from git edit-behind-review checks."
 		},
 		"docsLint": {
 			"type": "object",

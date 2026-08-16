@@ -51,10 +51,19 @@ This keeps the agent catalog honest after renames, splits, and copy-paste — wi
 Index docs and SSOT-bearing files require:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 ```
 
-SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep `last-reviewed` cadence in the owning toolbox repo. See [config](config.md#skillownership).
+`last-reviewed` is the **only** authored freshness date — a human claim that someone stood behind this text as of that day. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
+
+Audit treats two different warnings:
+
+| Signal | Meaning | Typical fix |
+| ------ | ------- | ----------- |
+| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | Re-read, then bump `last-reviewed` (or `--fix=doc-meta`) |
+| `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
+
+SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
 
 ## Example canonical doc
 
@@ -63,7 +72,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 
 <!-- source-of-truth: Backend API conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Keep request and response shapes consistent across services.
 ```

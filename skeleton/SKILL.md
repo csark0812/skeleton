@@ -27,6 +27,8 @@ Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/do
 
 Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do not assume one-liners stay accurate without that gate.
 
+Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. Prefer the “content changed after last-reviewed” warning (review must cover latest edit); `daysUntilStale` is optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
+
 Not for: normal feature work that only reads toolbox skills (optional customize hooks can inject on skill reads).
 
 ## Layout
