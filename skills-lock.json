@@ -44,9 +44,9 @@
       "computedHash": "716d9f00d77c284da181e5224013f5264e9c7e3f57b0b26f8df7c202abe51317"
     },
     "skeleton": {
-      "source": "/home/runner/work/skeleton/skeleton",
+      "source": ".",
       "sourceType": "local",
-      "computedHash": "7ac88f178799c1dfe57cd3736faa0e0d465473f0dbcb01ef3d4a7f030bc4481a"
+      "computedHash": "ea330a5c41c5ab8bf34529d142193f5cb23afff5a1e20da4d5ea95515ef78fb5"
     }
   }
 }
