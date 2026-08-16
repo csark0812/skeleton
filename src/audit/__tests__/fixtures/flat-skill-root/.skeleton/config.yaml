@@ -4,9 +4,7 @@ scan:
   include:
     - "docs/**"
     - "multi/**"
-    - ".skeleton/registry.md"
   exclude:
     - "refs/**"
-  banned: []
 
 daysUntilStale: 180

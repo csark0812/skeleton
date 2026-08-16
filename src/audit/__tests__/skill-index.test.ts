@@ -14,7 +14,6 @@ function writeMinimalConfig(root: string): void {
 		`scan:
   include: ["docs/**"]
   exclude: []
-  banned: []
 daysUntilStale: 180
 `,
 	);
@@ -57,9 +56,10 @@ describe("skill-index rule", () => {
 				config,
 				files: [],
 				docMetaPaths: [],
+				ssotEntries: [],
+				ssotErrors: [],
 				registryPaths: [],
 				registryHasTableHeader: false,
-				retiredSkills: new Set<string>(),
 				skillIndex,
 				lockedSkillSlugs: new Set<string>(),
 				policies: [],
@@ -91,9 +91,10 @@ describe("skill-index rule", () => {
 				config,
 				files: [],
 				docMetaPaths: [],
+				ssotEntries: [],
+				ssotErrors: [],
 				registryPaths: [],
 				registryHasTableHeader: false,
-				retiredSkills: new Set<string>(),
 				skillIndex,
 				lockedSkillSlugs: new Set(["foreign"]),
 				policies: [],

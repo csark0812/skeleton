@@ -2,14 +2,14 @@
 
 **Source of truth for** skeleton audit suites and rule scoping.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
 
 ## Suites
 
 ```bash
-skeleton audit docs     # links, doc-meta, registry (when full pass), prose-policy (when plugins supply policies)
+skeleton audit docs     # links, doc-meta, ssot, near-duplicate, ssot-summary, prose-policy (when plugins supply policies)
 skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
@@ -17,8 +17,9 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 Autofix (docs only):
 
 ```bash
-skeleton audit docs --fix                 # doc-meta + anchors
+skeleton audit docs --fix                 # doc-meta + anchors + legacy SSOT rewrite
 skeleton audit docs --fix=doc-meta
+skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 ```
 
@@ -29,11 +30,11 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
 | links, doc-meta, prose-policy                                                  | no     |
-| registry, banned, coverage-gaps, scan-roots, skill-index, generated-references | yes    |
+| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned/deny | yes    |
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, `scan.banned`, optional `scan.retiredSkills`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
 
 Plugins: [plugins.md](plugins.md).
 

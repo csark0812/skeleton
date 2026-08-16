@@ -2,11 +2,11 @@
 
 **Source of truth for** Package overview.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
-Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, a registry drifts, a skill index stops matching disk, or a generated reference gets edited by hand, the audit fails before merge.
+Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a generated reference gets edited by hand, the audit fails before merge.
 
 Think ESLint — for the docs and skills your agents rely on.
 
@@ -20,7 +20,7 @@ That needs to be explicit — and stay true after the next 50 PRs. Skeleton turn
 
 | Code repos                                              | Agent repos                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| ESLint catches broken imports, unused vars, style drift | Skeleton catches broken links, missing registry rows, stale doc-meta, banned artifacts |
+| ESLint catches broken imports, unused vars, style drift | Skeleton catches broken links, bad SSOT markers, stale doc-meta, deny.paths artifacts |
 | `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs and skills                                 |
 | Pre-commit + CI gate                                    | `--staged` pre-commit + `--base` CI gate                                               |
 
@@ -76,26 +76,31 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-That writes `.skeleton/`, adds the validation scripts, and wires customize hooks for Cursor, Claude Code, and Codex.
+That writes `skeleton.toml`, ensures `.skeleton/customize/`, adds validation scripts, and may wire **optional** customize hooks for Cursor, Claude Code, and Codex.
 
-Edit `.skeleton/config.yaml` for your repo layout, then verify:
+Edit `skeleton.toml` for your repo layout, then verify:
 
 ```bash
-npx skeleton audit self
+npx skeleton catalog
+npx skeleton audit docs
 ```
 
 Flag details: [install](docs/developer/install.md).
 
 ## What it checks
 
-- **Registry integrity** — `.skeleton/registry.md` topic → canonical file pointers; banner format on registered docs
+- **SSOT markers** — opt-in `source-of-truth` (comment or visible); dual/malformed forms fail; legacy banners accepted
+- **Near-duplicate docs** — shingle overlap + duplicate SSOT summaries (warn / `--strict`)
+- **SSOT summary fit** — heuristic overlap between the one-liner and the body (warn / `--strict`)
 - **Link audit** — broken refs, skill links, anchors in scanned markdown
 - **Skill index** — disk matches taxonomy READMEs in detected skill roots
 - **Banned paths** — session artifacts and other files that must not exist
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
-- **Doc meta + stale dates** — owner and `last-reviewed` on index and registry-listed files
+- **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
+
+Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
 Skeleton doesn't replace your code gates. Keep TypeScript, Python, Nx, pytest, and the rest in the repo that owns them.
 

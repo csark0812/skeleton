@@ -1,0 +1,26 @@
+# Skeleton dogfood config (preferred). Legacy .skeleton/config.yaml ignored if both exist.
+
+daysUntilStale = 365
+
+[scan]
+include = [
+  "docs/**",
+  "README.md",
+  "AGENTS.md",
+  "skeleton/**",
+]
+exclude = [
+  "refs/**",
+  "todo.md",
+  "agent-suites/**",
+  "editors/**",
+  # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
+  ".agents/**",
+  ".claude/**",
+]
+
+[deny]
+paths = []
+
+[docsLint]
+ssotOverlapMin = 0.2

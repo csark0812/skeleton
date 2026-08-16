@@ -1,0 +1,37 @@
+# https://github.com/csark0812/skeleton — root config (preferred over .skeleton/config.yaml)
+
+daysUntilStale = 365
+
+[scan]
+include = [
+  "docs/**",
+  "README.md",
+  "AGENTS.md",
+]
+exclude = [
+  "refs/**",
+]
+
+[deny]
+paths = []
+
+# Optional: basenames under .skeleton/customize/ appended on every skill inject
+# [customize]
+# alwaysInclude = ["shared-agent-references.md"]
+
+# Optional: near-dupe / SSOT-summary tunables
+# [docsLint]
+# nearDuplicateThreshold = 0.72
+# ssotOverlapMin = 0.35
+# ignoreGlobs = ["docs/changelog/**"]
+
+# Optional: skill body ownership (skills-lock.json github entries are foreign by default)
+# [skillOwnership]
+# lockfile = "skills-lock.json"
+# ownedSlugs = []
+# foreignSlugs = []
+
+# Optional: plugin `.ts` entries relative to .skeleton/ (built sibling `.mjs` required)
+# plugins = []
+# Optional: draft-marker allow-list prefixes (plus `_draft-*.md` filenames)
+# draftPathPrefixes = []

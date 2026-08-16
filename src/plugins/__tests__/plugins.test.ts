@@ -85,7 +85,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/missing.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/missing.ts\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/plugins/missing.ts"), "export default { rules: [] };\n");
 		try {
@@ -129,7 +129,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, ".skeleton/plugins/multi"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/multi/entry.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/multi/entry.ts\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/plugins/multi/util.ts"), `export const marker = "util";\n`);
 		writeFileSync(
@@ -153,7 +153,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, ".skeleton/plugins/side"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/side/entry.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/side/entry.ts\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/plugins/side/side.ts"), `export const side = 1;\n`);
 		writeFileSync(join(dir, ".skeleton/plugins/side/dyn.ts"), `export const dyn = 1;\n`);
@@ -180,7 +180,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, ".skeleton/plugins/cycle"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/cycle/a.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/cycle/a.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/cycle/a.ts"),
@@ -203,7 +203,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/empty-pol.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/empty-pol.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/empty-pol.ts"),
@@ -225,7 +225,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
@@ -283,7 +283,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
@@ -374,7 +374,7 @@ describe("plugin load + build", () => {
 		mkdirSync(join(dir, "skill-a"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
@@ -508,7 +508,7 @@ describe("plugin path containment", () => {
 		mkdirSync(join(dir, ".skeleton/plugins"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/escape.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/escape.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/escape.ts"),
@@ -557,7 +557,7 @@ describe("plugin path containment", () => {
 		writeFileSync(join(dir, "outside/x.ts"), "export default { rules: [] };\n");
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		symlinkSync(join(dir, "outside"), join(dir, ".skeleton/plugins"));
 		const absEntry = join(dir, ".skeleton/plugins/x.ts");

@@ -2,7 +2,7 @@
 
 **Source of truth for** installing skeleton in a consumer repo.
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 ## CLI
 
@@ -17,7 +17,7 @@ Init writes `.skeleton/`, merges IDE customize hooks, and adds `validate:changed
 
 ## Config
 
-Open `.skeleton/config.yaml` and set `scan.include` / `scan.exclude` / `scan.banned` for your layout. See [doc-system](doc-system.md).
+Open `skeleton.toml` and set `scan.include` / `scan.exclude` / optional `deny.paths` for your layout. See [config](config.md).
 
 ## Pre-commit (optional)
 

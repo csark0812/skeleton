@@ -3,9 +3,9 @@ import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { runAudit } from "../../audit/run.ts";
+import { checkCatalog, writeCatalog } from "../../catalog.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
 import { runBuildPlugin } from "../../plugins/build.ts";
-import { registerPath } from "../../register.ts";
 import { codeValidationHint, runValidateChanged } from "../../validate/changed.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
@@ -13,31 +13,32 @@ const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
 const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
 const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
 
-describe("register", () => {
-	it("registers a doc with banner topic", () => {
-		const docPath = join(NESTED_SKILLS_CUSTOMIZE, "docs/new-doc.md");
-		writeFileSync(docPath, "**Source of truth for** New API doc.\n");
+describe("catalog", () => {
+	it("builds catalog from SSOT-bearing files", () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-catalog-"));
 		try {
-			const result = registerPath({
-				root: NESTED_SKILLS_CUSTOMIZE,
-				path: "docs/new-doc.md",
-				dryRun: true,
-			});
-			expect(result.topic).toBe("New API doc.");
-			expect(result.registryLink).toBe("../docs/new-doc.md");
-		} finally {
-			unlinkSync(docPath);
-		}
-	});
+			mkdirSync(join(dir, "docs"), { recursive: true });
+			writeFileSync(
+				join(dir, "skeleton.toml"),
+				`daysUntilStale = 365
 
-	it("prefixes customize topic", () => {
-		const result = registerPath({
-			root: NESTED_SKILLS_CUSTOMIZE,
-			path: ".skeleton/customize/code-review.md",
-			dryRun: true,
-		});
-		expect(result.topic.startsWith("Customize:")).toBe(true);
-		expect(result.warnOutsideScan).toBe(false);
+[scan]
+include = ["docs/**"]
+exclude = []
+`,
+			);
+			writeFileSync(
+				join(dir, "docs/a.md"),
+				"<!-- source-of-truth: Alpha topic -->\n\nAlpha body with topic words.\n",
+			);
+			const written = writeCatalog(dir);
+			expect(written.entries.length).toBe(1);
+			expect(written.entries[0]?.summary).toBe("Alpha topic");
+			const check = checkCatalog(dir);
+			expect(check.ok).toBe(true);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });
 
@@ -311,7 +312,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
@@ -353,7 +354,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
@@ -402,7 +403,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
@@ -451,7 +452,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/demo/demo.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/demo/demo.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
@@ -491,7 +492,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
@@ -532,7 +533,7 @@ describe("validate changed routing", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\n  banned: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),

@@ -75,19 +75,32 @@ export type MatchedPolicyEntry = CompiledPolicyEntry & { policyName: string };
 export interface ScanConfig {
 	include: string[];
 	exclude: string[];
-	banned: string[];
-	retiredSkills?: string[];
 	nonPublicSkills?: string[];
+}
+
+export interface DenyConfig {
+	paths?: string[];
 }
 
 export interface CustomizeConfig {
 	alwaysInclude?: string[];
 }
 
+export interface DocsLintConfig {
+	nearDuplicateThreshold?: number;
+	ssotOverlapMin?: number;
+	ssotBetterMatchMargin?: number;
+	ssotPhraseCheck?: boolean;
+	ignorePairs?: [string, string][];
+	ignoreGlobs?: string[];
+}
+
 export interface SkeletonConfig {
 	scan: ScanConfig;
 	daysUntilStale: number;
+	deny?: DenyConfig;
 	customize?: CustomizeConfig;
+	docsLint?: DocsLintConfig;
 	plugins?: string[];
 	draftPathPrefixes?: string[];
 }
@@ -107,9 +120,12 @@ export interface AuditContext {
 	config: SkeletonConfig;
 	files: string[];
 	docMetaPaths: string[];
+	ssotEntries: Array<{ path: string; summary: string; form: string }>;
+	ssotErrors: Array<{ path: string; kind: string; detail: string }>;
+	/** @deprecated Prefer ssotEntries */
 	registryPaths: string[];
+	/** @deprecated Always false */
 	registryHasTableHeader: boolean;
-	retiredSkills: Set<string>;
 	skillIndex: SkillIndex;
 	policies: PolicyFile[];
 }

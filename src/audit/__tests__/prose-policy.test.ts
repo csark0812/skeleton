@@ -11,7 +11,7 @@ import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditContext {
 	const config: SkeletonConfig = {
-		scan: { include: ["docs/**"], exclude: [], banned: [] },
+		scan: { include: ["docs/**"], exclude: [] },
 		daysUntilStale: 180,
 		...(overrides.config ?? {}),
 	};
@@ -19,9 +19,10 @@ function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditCont
 		config,
 		files: [],
 		docMetaPaths: [],
+		ssotEntries: [],
+		ssotErrors: [],
 		registryPaths: [],
 		registryHasTableHeader: true,
-		retiredSkills: new Set(),
 		skillIndex: EMPTY_SKILL_INDEX,
 		lockedSkillSlugs: new Set(),
 		policies: [],
@@ -203,7 +204,7 @@ describe("prose-policy rule", () => {
 					files: [allowed, denied],
 					policies: [policy],
 					config: {
-						scan: { include: ["**"], exclude: [], banned: [] },
+						scan: { include: ["**"], exclude: [] },
 						daysUntilStale: 180,
 						draftPathPrefixes: ["drafts/"],
 					},

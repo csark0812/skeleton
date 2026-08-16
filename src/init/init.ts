@@ -35,15 +35,10 @@ function writeScaffold(cwd: string): "created" | "skipped" {
 	mkdirSync(skeletonDir, { recursive: true });
 
 	let created = false;
-	const configPath = join(skeletonDir, "config.yaml");
-	if (!existsSync(configPath)) {
-		copyFileSync(join(TEMPLATES_DIR, "config.yaml"), configPath);
-		created = true;
-	}
-
-	const registryPath = join(skeletonDir, "registry.md");
-	if (!existsSync(registryPath)) {
-		copyFileSync(join(TEMPLATES_DIR, "registry.md"), registryPath);
+	const tomlPath = join(cwd, "skeleton.toml");
+	const legacyYaml = join(skeletonDir, "config.yaml");
+	if (!(existsSync(tomlPath) || existsSync(legacyYaml))) {
+		copyFileSync(join(TEMPLATES_DIR, "skeleton.toml"), tomlPath);
 		created = true;
 	}
 
@@ -115,9 +110,9 @@ export function runInit(options: InitOptions = {}): InitResult {
 	for (const result of hooks) logHookMergeResult(result);
 
 	if (scaffold === "created") {
-		console.log("init: wrote .skeleton/config.yaml and registry.md");
+		console.log("init: wrote skeleton.toml (hooks optional — see docs)");
 	} else {
-		console.log("init: .skeleton/ already present — skipped scaffold write");
+		console.log("init: skeleton.toml or .skeleton/ already present — skipped scaffold write");
 	}
 
 	if (scripts === "updated") {

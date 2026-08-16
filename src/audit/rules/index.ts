@@ -4,11 +4,13 @@ import type { Issue } from "../core/report.ts";
 import { bannedRule } from "./banned.ts";
 import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
+import { nearDuplicateRule } from "./near-duplicate.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
-import { registryRule } from "./registry.ts";
 import { coverageGapsRule } from "./scan-gaps.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
+import { ssotRule } from "./ssot.ts";
+import { ssotSummaryRule } from "./ssot-summary.ts";
 
 export type AuditSuite = "docs" | "skills";
 
@@ -22,7 +24,9 @@ export interface AuditRule {
 
 export const docsRules: AuditRule[] = [
 	{ ...scanRootsRule, global: true },
-	{ ...registryRule, global: true },
+	{ ...ssotRule, global: true },
+	{ ...nearDuplicateRule, global: true },
+	{ ...ssotSummaryRule, global: true },
 	{ ...coverageGapsRule, global: true },
 	linksRule,
 	docMetaRule,

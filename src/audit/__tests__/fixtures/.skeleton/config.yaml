@@ -3,9 +3,6 @@
 scan:
   include:
     - "docs/**"
-    - ".skeleton/registry.md"
   exclude: []
-  banned: []
-  retiredSkills: []
 
 daysUntilStale: 180

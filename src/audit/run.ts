@@ -21,8 +21,10 @@ export interface AuditCliOptions {
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
 	const next = argv[index + 1];
 	if (next && !next.startsWith("-")) {
-		if (next !== "doc-meta" && next !== "anchors") {
-			throw new Error(`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, or --fix=anchors.`);
+		if (next !== "doc-meta" && next !== "anchors" && next !== "ssot") {
+			throw new Error(
+				`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, --fix=anchors, or --fix=ssot.`,
+			);
 		}
 		return { fix: next, nextIndex: index + 1 };
 	}
@@ -136,7 +138,7 @@ async function runAuditFixes(
 	const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
 	if (kinds.length === 0) {
 		console.error(
-			"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links).",
+			"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links, ssot → ssot).",
 		);
 		return 1;
 	}

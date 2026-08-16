@@ -1,6 +1,6 @@
 {
 	"name": "skeleton-clean",
-	"description": "Live A/B clean arm: profile=skeleton + registry-backed fixture docs. Pair with skeleton-messy via --compare-pairs.",
+	"description": "Live A/B clean arm: profile=skeleton + catalog/SSOT fixture docs. Pair with skeleton-messy via --compare-pairs.",
 	"defaults": {
 		"host": "replay",
 		"profile": "skeleton",
@@ -9,10 +9,10 @@
 	"scenarios": [
 		{
 			"name": "grounding: canonical topic",
-			"prompt": "One-shot (no AskQuestion). Read `.skeleton/registry.md` first, then open the canonical file for topic **Billing API**.\n\nReply with exactly two lines:\n1) CANONICAL_PATH=<repo-relative path>\n2) WEBHOOK=<url from that file>\n\nDo not cite legacy or draft billing docs.",
+			"prompt": "One-shot (no AskQuestion). If `.skeleton/catalog.md` is missing, run `skeleton catalog` (or `bun src/cli.ts catalog`). Skim the catalog, then open the canonical file for topic **Billing API** (match the source-of-truth summary).\n\nReply with exactly two lines:\n1) CANONICAL_PATH=<repo-relative path>\n2) WEBHOOK=<url from that file>\n\nDo not cite legacy or draft billing docs.",
 			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/grounding.patch",
 			"rubric": {
-				"mustReadPath": [".skeleton/registry"],
+				"mustReadPath": [".skeleton/catalog", "docs/fixture/billing-api"],
 				"must": [
 					"CANONICAL_PATH=docs/fixture/billing-api.md",
 					"WEBHOOK=https://api.example.com/v2/billing/webhook"
@@ -25,16 +25,16 @@
 					"audit all"
 				],
 				"judge": [
-					"The agent used the registry to select docs/fixture/billing-api.md and quoted the v2 billing webhook, not a legacy or invented URL"
+					"The agent used the catalog/SSOT skim to select docs/fixture/billing-api.md and quoted the v2 billing webhook, not a legacy or invented URL"
 				]
 			}
 		},
 		{
 			"name": "grounding: conflicting docs",
-			"prompt": "One-shot (no AskQuestion). Two billing docs exist under docs/fixture/. Only the registry decides the winner.\n\nRead `.skeleton/registry.md`, then answer: which file is canonical for **Billing API**, and what webhook URL should agents use?\n\nEnd with: CONFLICT_RESOLVED_OK",
+			"prompt": "One-shot (no AskQuestion). Two billing docs exist under docs/fixture/. Prefer the catalog / source-of-truth summary for **Billing API**.\n\nIf `.skeleton/catalog.md` is missing, run `skeleton catalog` first. Then answer: which file is canonical for **Billing API**, and what webhook URL should agents use?\n\nEnd with: CONFLICT_RESOLVED_OK",
 			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/grounding.patch",
 			"rubric": {
-				"mustReadPath": [".skeleton/registry"],
+				"mustReadPath": [".skeleton/catalog", "docs/fixture/billing-api"],
 				"must": [
 					"docs/fixture/billing-api.md",
 					"https://api.example.com/v2/billing/webhook",
@@ -42,7 +42,7 @@
 				],
 				"mustNot": ["legacy.example.com", "audit all"],
 				"judge": [
-					"The agent resolved the conflicting billing docs by preferring the registry-registered canonical file"
+					"The agent resolved the conflicting billing docs by preferring the catalog/SSOT canonical file"
 				]
 			}
 		},

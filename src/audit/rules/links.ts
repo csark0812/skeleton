@@ -20,16 +20,6 @@ interface ValidateTargetInput {
 	linkLabel: string;
 }
 
-function checkRetiredSkill(input: ValidateTargetInput): Issue | null {
-	const skillMatch = SKILL_LINK_IN_TARGET_RE.exec(input.target);
-	const slug = skillMatch?.[1];
-	if (!(slug && input.ctx.retiredSkills.has(slug))) return null;
-	return issue("links", relPath(input.sourceFile, input.ctx.root), {
-		message: `references retired skill "${slug}/SKILL.md"`,
-		link: input.linkLabel,
-	});
-}
-
 function checkMissingSkill(input: ValidateTargetInput, relSource: string): Issue | null {
 	if (!input.target.includes("/SKILL.md")) return null;
 	const slug = SKILL_LINK_IN_TARGET_RE.exec(input.target)?.[1];
@@ -111,8 +101,6 @@ function validateTarget(input: ValidateTargetInput): Issue[] {
 	if (isPlaceholderLink(target)) return [];
 
 	const parts = resolveTargetParts(sourceFile, target, ctx.root);
-	const retired = checkRetiredSkill(input);
-	if (retired) return [retired];
 
 	const missingSkill = checkMissingSkill(input, parts.relSource);
 	if (missingSkill) return [missingSkill];

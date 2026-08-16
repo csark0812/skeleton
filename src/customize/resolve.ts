@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
-import { parseRegistry } from "../audit/core/registry.ts";
 import { normalizeRelPath, REGISTRY_DIR_REL } from "../audit/core/shared.ts";
 
 const CUSTOMIZE_PREFIX = "Customize: ";
@@ -22,16 +21,6 @@ function customizePathForSlug(root: string, slug: string): string {
 	return join(customizeDir(root), `${slug}.md`);
 }
 
-function findCustomizeViaRegistry(root: string, slug: string): string | null {
-	for (const rel of parseRegistry(root).paths) {
-		const expected = `${REGISTRY_DIR_REL}/customize/${slug}.md`;
-		if (normalizeRelPath(rel) === expected && existsSync(join(root, rel))) {
-			return rel;
-		}
-	}
-	return null;
-}
-
 function resolveSlugFile(
 	root: string,
 	slug: string,
@@ -43,16 +32,6 @@ function resolveSlugFile(
 			path: normalizeRelPath(relative(root, direct)),
 		};
 	}
-
-	const registryPath = findCustomizeViaRegistry(root, slug);
-	if (registryPath) {
-		const abs = join(root, registryPath);
-		return {
-			content: readFileSync(abs, "utf8"),
-			path: registryPath,
-		};
-	}
-
 	return { content: null, path: null };
 }
 

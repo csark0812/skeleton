@@ -1,4 +1,4 @@
-import { findRepoRoot, loadConfig, retiredSkills } from "../config/load.ts";
+import { findRepoRoot, loadConfig } from "../config/load.ts";
 import type { SkeletonConfig } from "../config/types.ts";
 import type { PolicyFile } from "../policies/types.ts";
 import {
@@ -8,17 +8,29 @@ import {
 	filterToPaths,
 	includeExplicitMarkdownPaths,
 } from "./collect.ts";
-import { parseRegistry } from "./registry.ts";
 import { buildSkillIndex, listSkillMarkdownPaths, type SkillIndex } from "./skill-roots.ts";
+import type { SsotForm } from "./ssot.ts";
+import { collectSsotEntries, type SsotFileEntry } from "./ssot-collect.ts";
 
 export interface AuditContext {
 	root: string;
 	config: SkeletonConfig;
 	files: string[];
 	docMetaPaths: string[];
+	/** Opt-in SSOT-bearing files (catalog membership). */
+	ssotEntries: SsotFileEntry[];
+	ssotErrors: Array<{
+		path: string;
+		kind: "dual" | "malformed";
+		detail: string;
+		forms?: SsotForm[];
+	}>;
+	/**
+	 * @deprecated Prefer ssotEntries — kept empty for plugin type stability during transition.
+	 */
 	registryPaths: string[];
+	/** @deprecated Always false — hand registry removed. */
 	registryHasTableHeader: boolean;
-	retiredSkills: Set<string>;
 	skillIndex: SkillIndex;
 	/**
 	 * Foreign (synced) skill slugs — same as `skillIndex.foreignSlugs`.
@@ -57,11 +69,12 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		files = filterToPaths(files, options.paths, root);
 	}
 
-	const registry = parseRegistry(root);
+	const ssot = collectSsotEntries(files, root);
+	const ssotPaths = ssot.entries.map((e) => e.path);
 	const allDocMetaPaths = collectDocMetaPaths({
 		config,
 		root,
-		registryPaths: registry.paths,
+		registryPaths: ssotPaths,
 		skillIndex,
 	});
 
@@ -73,9 +86,10 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 			options.paths && options.paths.length > 0
 				? filterDocMetaPaths(allDocMetaPaths, options.paths, skillIndex)
 				: allDocMetaPaths,
-		registryPaths: registry.paths,
-		registryHasTableHeader: registry.hasTableHeader,
-		retiredSkills: new Set(retiredSkills(config)),
+		ssotEntries: ssot.entries,
+		ssotErrors: ssot.errors,
+		registryPaths: [],
+		registryHasTableHeader: false,
 		skillIndex,
 		lockedSkillSlugs: new Set(skillIndex.foreignSlugs),
 		policies: options.policies ?? [],

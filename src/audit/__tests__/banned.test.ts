@@ -9,7 +9,7 @@ import { runBannedRule } from "../rules/banned.ts";
 import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
 describe("banned rule", () => {
-	it("flags files matching scan.banned globs repo-wide", () => {
+	it("flags files matching deny.paths globs repo-wide", () => {
 		const root = mkdtempSync(join(tmpdir(), "skeleton-banned-"));
 		mkdirSync(join(root, ".skeleton"), { recursive: true });
 		mkdirSync(join(root, "apps", "web"), { recursive: true });
@@ -19,7 +19,8 @@ describe("banned rule", () => {
 			`scan:
   include: ["docs/**"]
   exclude: []
-  banned: ["apps/**/*_ANALYSIS.md"]
+deny:
+  paths: ["apps/**/*_ANALYSIS.md"]
 daysUntilStale: 180
 `,
 		);
@@ -35,9 +36,10 @@ daysUntilStale: 180
 			config,
 			files: [],
 			docMetaPaths: [],
+			ssotEntries: [],
+			ssotErrors: [],
 			registryPaths: [],
 			registryHasTableHeader: false,
-			retiredSkills: new Set<string>(),
 			skillIndex: EMPTY_SKILL_INDEX,
 			lockedSkillSlugs: new Set<string>(),
 			policies: [],

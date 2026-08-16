@@ -18,9 +18,10 @@ import { parseAuditArgs } from "../run.ts";
 
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
-		expect(parseFixKinds(true)).toEqual(["doc-meta", "anchors"]);
+		expect(parseFixKinds(true)).toEqual(["doc-meta", "anchors", "ssot"]);
 		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
+		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
 	});
 });
@@ -248,7 +249,7 @@ describe("applyFixes dry-run", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
@@ -284,7 +285,7 @@ describe("applyFixes dry-run", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
@@ -672,7 +673,7 @@ describe("applyFixes dry-run", () => {
 		mkdirSync(join(dir, "docs"), { recursive: true });
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
-			`scan:\n  include: ["docs/**"]\n  exclude: []\n  banned: []\ndaysUntilStale: 180\n`,
+			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/registry.md"),
