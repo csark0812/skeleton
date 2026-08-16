@@ -1,8 +1,8 @@
 # Troubleshooting
 
-**Source of truth for** common Skeleton validation and hook failures.
+<!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 
@@ -99,7 +99,7 @@ Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plu
 
 ## Stale `last-reviewed` warnings
 
-**Cause:** Registry-listed / meta docs changed after the date in `<!-- doc-meta: … -->`.
+**Cause:** SSOT-bearing / meta docs changed after the date in `<!-- doc-meta: … -->`.
 
 **Fix:** Bump the date after review, or autofix:
 

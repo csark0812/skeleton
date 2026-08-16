@@ -1,8 +1,8 @@
 # Plugins
 
-**Source of truth for** skeleton plugin authoring (build, load, suites, prose policies).
+<!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-07-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
 Skeleton plugins extend audit with consumer-specific rules and prose-policy YAML. Core stays thin; product policies live in plugins (e.g. PostPrint later).
 
@@ -10,7 +10,14 @@ Config keys (`plugins`, `draftPathPrefixes`): [config](config.md). Build failure
 
 ## Module contract
 
-Entry path in `.skeleton/config.yaml` is relative to `.skeleton/`:
+Entry path is relative to `.skeleton/` — set `plugins` in root `skeleton.toml` (preferred) or legacy `.skeleton/config.yaml`:
+
+```toml
+plugins = ["plugins/example/example.ts"]
+draftPathPrefixes = ["drafts/"]
+```
+
+Legacy YAML:
 
 ```yaml
 plugins:

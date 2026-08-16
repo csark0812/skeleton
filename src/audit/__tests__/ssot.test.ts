@@ -3,7 +3,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createContext } from "../core/context.ts";
-import { parseSsot } from "../core/ssot.ts";
+import { parseSsot, rewriteLegacySsotToComment } from "../core/ssot.ts";
 import { runSsotRule } from "../rules/ssot.ts";
 
 describe("parseSsot", () => {
@@ -32,6 +32,15 @@ describe("parseSsot", () => {
 		);
 		expect(r.status).toBe("ok");
 		if (r.status === "ok") expect(r.entry.summary).toBe("Real topic");
+	});
+
+	it("legacy rewrite preserves blank lines around the banner", () => {
+		const input =
+			"# Title\n\n**Source of truth for** Topic name.\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\nBody.\n";
+		const next = rewriteLegacySsotToComment(input);
+		expect(next).toBe(
+			"# Title\n\n<!-- source-of-truth: Topic name -->\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\nBody.\n",
+		);
 	});
 });
 

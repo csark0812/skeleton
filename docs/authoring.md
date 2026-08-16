@@ -1,6 +1,6 @@
 # Authoring conventions
 
-**Source of truth for** Skeleton framework authoring conventions.
+<!-- source-of-truth: Skeleton framework authoring conventions -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

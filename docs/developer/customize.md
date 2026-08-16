@@ -1,6 +1,6 @@
 # Customize
 
-**Source of truth for** skill customize overrides via hooks.
+<!-- source-of-truth: skill customize overrides via hooks -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

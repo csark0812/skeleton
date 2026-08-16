@@ -1,6 +1,6 @@
 # Audit
 
-**Source of truth for** skeleton audit suites and rule scoping.
+<!-- source-of-truth: skeleton audit suites and rule scoping -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
@@ -30,7 +30,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
 | links, doc-meta, prose-policy                                                  | no     |
-| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned/deny | yes    |
+| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned (`deny.paths`) | yes    |
 
 ## Config
 
@@ -45,7 +45,7 @@ Lint skill **bodies** where they are authored:
 | Repo role             | What to audit                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------ |
 | Skills / toolbox repo | All (or owned) `SKILL.md` trees via `audit skills`                                   |
-| Consumer app repo     | `.skeleton/customize/**`, config/registry/policies; skip foreign synced skill bodies |
+| Consumer app repo     | `.skeleton/customize/**`, config/policies; skip foreign synced skill bodies          |
 
 Classification (defaults work with no config):
 

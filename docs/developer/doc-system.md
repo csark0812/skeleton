@@ -1,6 +1,6 @@
 # Doc system
 
-**Source of truth for** skeleton doc and catalog conventions.
+<!-- source-of-truth: skeleton doc and catalog conventions -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 

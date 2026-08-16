@@ -1,6 +1,6 @@
 # Install
 
-**Source of truth for** installing skeleton in a consumer repo.
+<!-- source-of-truth: installing skeleton in a consumer repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
@@ -13,7 +13,7 @@ npx skeleton init --skills
 
 `--skills` runs `npx skills add csark0812/skeleton …` with sensible defaults (`--skill skeleton`, `-a cursor claude-code`, `-y`). Pass any [skills add flags](https://github.com/vercel-labs/skills) after `--skills` — e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`, `--list`.
 
-Init writes `.skeleton/`, merges IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts.
+Init writes `skeleton.toml` / `.skeleton/`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts.
 
 ## Config
 
