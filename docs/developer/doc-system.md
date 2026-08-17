@@ -4,7 +4,13 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog,buildCatalogContent,catalogAuditWarnings -->
+<!-- code-fit: targets=src/audit/core/ssot-fit.ts surface=evaluateSsotFit,ssotEvidenceOverlap,buildEvidenceText -->
+<!-- code-fit: targets=src/audit/rules/doc-meta.ts surface=runDocMetaRule,docMetaRule -->
+
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
+
+Catalog CLI: `runCatalogCli`, `checkCatalog`, `writeCatalog`, `buildCatalogContent`, `catalogAuditWarnings`. Summary fit: `evaluateSsotFit` / `ssotEvidenceOverlap` / `buildEvidenceText`. Doc-meta rule: `runDocMetaRule` (`docMetaRule`).
 
 ## Source of truth (opt-in)
 
@@ -45,6 +51,23 @@ Audit checks that each opt-in one-liner still matches its paper (warn / `--stric
 - Too-short summaries and duplicate SSOT lines (via `near-duplicate`) stay high-signal guards
 
 This keeps the agent catalog honest after renames, splits, and copy-paste — without an LLM.
+
+## Code-fit (surface fit)
+
+Opt-in markers stake that a doc covers named code files:
+
+```markdown
+<!-- code-fit: targets=src/cli.ts,src/audit/run.ts -->
+<!-- code-fit: targets=src/big.ts surface=runAudit,parseAuditArgs -->
+```
+
+`audit docs` then checks (errors on failure):
+
+- Target paths exist
+- Public surface names (exports + `case "…"` labels) appear in the doc body — or the explicit `surface=` list (required when auto-extract exceeds `docsLint.codeFitSurfaceCap`, default 25)
+- Identifier overlap (doc tokens grounded in the module). When extractable surface is **empty**, coverage is skipped and only lexical overlap applies
+
+Unmarked prose is ignored. Marked docs are always re-checked when the docs suite runs (including under `--paths`). This is **surface fit**, not a docs↔code truth checker.
 
 ## Doc meta
 

@@ -4,7 +4,12 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/audit/config/load.ts surface=loadConfig,loadConfigDetailed,findRepoRoot,mergedExcludes -->
+<!-- code-fit: targets=src/audit/config/types.ts surface=SkeletonConfig,ScanConfig,DocsLintConfig,DenyConfig,SkillOwnershipConfig,CustomizeConfig -->
+
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
+
+Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `CustomizeConfig`).
 
 Preferred path: **`skeleton.toml` at the repo root**. Legacy `.skeleton/config.yaml` still loads when no TOML is present. If both exist, TOML wins and the CLI warns that YAML is ignored.
 
@@ -28,7 +33,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `customize.alwaysInclude` | Basenames under `.skeleton/customize/` appended on every skill inject — [customize](customize.md)       |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
-| `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                   |
+| `docsLint`                | Near-duplicate / SSOT-summary / code-fit thresholds and ignore pairs (see below)            |
 
 Deleted skills need no denylist: links to missing `…/SKILL.md` fail under the links / skill-index rules.
 
@@ -51,8 +56,12 @@ paths = ["apps/**/*_ANALYSIS.md"]
 | `ssotPhraseCheck`        | When overlap fails, mention missing SSOT phrase in the message (default `true`) |
 | `ignorePairs`            | Path pairs skipped by near-dupe / duplicate-SSOT                     |
 | `ignoreGlobs`            | Globs skipped by near-dupe / duplicate-SSOT                          |
+| `codeFitOverlapMin`      | Min fraction of doc tokens that also appear as code identifiers (default `0.03`) |
+| `codeFitSurfaceCap`      | Max auto-extracted names before `surface=` is required (default `25`) |
 
 `ssot-summary` scores stemmed unigrams against H1 + lead + body (SSOT line stripped). Exact phrase match only explains a failed overlap — abstract titles can pass without verbatim phrasing. Better-match warns only when own overlap is weak and another SSOT paper fits better; the message lists rewrite / retarget / consider-combine options.
+
+`code-fit` (surface fit, not behavioral truth): opt-in HTML comment markers with `targets=` (and optional `surface=`). Docs declare code files; audit checks public-name coverage and light identifier overlap. See [doc system](doc-system.md#code-fit-surface-fit).
 
 ## `skillOwnership`
 

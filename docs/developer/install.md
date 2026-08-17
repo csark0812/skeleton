@@ -4,6 +4,10 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/init/init.ts surface=runInit,InitOptions,InitResult,skillsAddArgs -->
+
+Install path runs `runInit` (`InitOptions` / `InitResult`); `--skills` builds `skillsAddArgs` for the skills CLI.
+
 ## CLI
 
 ```bash

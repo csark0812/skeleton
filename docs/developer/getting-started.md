@@ -4,7 +4,12 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/init/init.ts surface=runInit,InitOptions,InitResult -->
+<!-- code-fit: targets=src/cli.ts surface=init,audit,validate,catalog -->
+
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
+
+Day-one CLI: `init`, then `audit` / `validate` / `catalog`. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts` (`init` / `audit` / `validate` / `catalog` handlers).
 
 ## 1. Install and init
 

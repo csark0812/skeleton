@@ -2,6 +2,7 @@ import { generatedReferencesRule } from "../../references/check.ts";
 import type { AuditContext } from "../core/context.ts";
 import type { Issue } from "../core/report.ts";
 import { bannedRule } from "./banned.ts";
+import { codeFitRule } from "./code-fit.ts";
 import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { nearDuplicateRule } from "./near-duplicate.ts";
@@ -17,6 +18,11 @@ export type AuditSuite = "docs" | "skills";
 export interface AuditRule {
 	id: string;
 	global?: boolean;
+	/**
+	 * When true, still run under `--paths` / path-scoped validate (globals are skipped).
+	 * Used by rules that must re-check the full scan corpus (e.g. code-fit markers).
+	 */
+	alwaysRun?: boolean;
 	/** Which audit suites include this rule. Default: `["docs"]`. */
 	suites?: AuditSuite[];
 	run: (ctx: AuditContext) => Issue[];
@@ -30,6 +36,7 @@ export const docsRules: AuditRule[] = [
 	{ ...coverageGapsRule, global: true },
 	linksRule,
 	docMetaRule,
+	codeFitRule,
 	{ ...bannedRule, global: true },
 	prosePolicyRule,
 ];

@@ -4,6 +4,11 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,codeValidationHint -->
+<!-- code-fit: targets=src/audit/run.ts surface=runAudit,parseAuditArgs -->
+
+Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
+
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 
 ## `validate changed: all paths were skipped`
