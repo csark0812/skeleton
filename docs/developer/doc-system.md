@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog,buildCatalogContent,catalogAuditWarnings -->
 <!-- code-fit: targets=src/audit/core/ssot-fit.ts surface=evaluateSsotFit,ssotEvidenceOverlap,buildEvidenceText -->
@@ -83,7 +83,7 @@ Audit treats two different warnings:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | Re-read, then bump `last-reviewed` (or `--fix=doc-meta`) |
+| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | **Required:** re-read the entire document, then bump `last-reviewed` only if the content is still correct. Do not change the date alone. |
 | `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Skeleton framework authoring conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog -->
 
@@ -18,4 +18,4 @@ Index docs and SSOT-bearing files require a doc-meta comment:
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 ```
 
-Bump `last-reviewed` after a real re-read when you edit the paper (git is last-edit; there is no separate authored edit date). Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).
+After editing a paper, re-read the entire document and bump `last-reviewed` only when the content is still correct. Do not change the date alone: git is the last-edit signal, and there is no separate authored edit date. Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).

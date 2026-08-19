@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,codeValidationHint -->
 <!-- code-fit: targets=src/audit/run.ts surface=runAudit,parseAuditArgs -->
@@ -110,7 +110,7 @@ Two different signals (see [doc system](doc-system.md#doc-meta)):
 
 **Cause:** The file’s last content commit is newer than `last-reviewed`, so the stamp no longer covers the paper.
 
-**Fix:** Re-read the doc, then bump `last-reviewed`, or:
+**Fix:** Re-read the entire document. Bump `last-reviewed` only if the content is still correct; changing the date alone does not satisfy the check. Then, if useful, use:
 
 ```bash
 skeleton audit docs --fix=doc-meta
