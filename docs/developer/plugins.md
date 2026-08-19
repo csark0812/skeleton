@@ -4,7 +4,12 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/plugins/load.ts surface=loadPlugins,collectWiredPolicyRelPaths,mjsPathForTs -->
+<!-- code-fit: targets=src/plugins/build.ts surface=runBuildPlugin,parseBuildPluginArgs,BuildPluginResult -->
+
 Skeleton plugins extend audit with consumer-specific rules and prose-policy YAML. Core stays thin; product policies live in plugins (e.g. PostPrint later).
+
+Runtime load: `loadPlugins`, `collectWiredPolicyRelPaths`, `mjsPathForTs`. Build: `runBuildPlugin` / `parseBuildPluginArgs` (`BuildPluginResult`).
 
 Config keys (`plugins`, `draftPathPrefixes`): [config](config.md). Build failures: [troubleshooting](troubleshooting.md).
 

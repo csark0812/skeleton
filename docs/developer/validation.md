@@ -4,6 +4,10 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,ValidateChangedOptions,codeValidationHint -->
+
+Router for changed paths: `runValidateChanged` (`ValidateChangedOptions`). Skipped code paths get a `codeValidationHint`. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
+
 ## When you changed X, run Y
 
 | You changed                                               | Run                                                                                                    |

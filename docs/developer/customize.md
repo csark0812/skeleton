@@ -4,6 +4,11 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
+<!-- code-fit: targets=src/customize/resolve.ts surface=resolveCustomize,resolveCustomizeFromRoot,CUSTOMIZE_PREFIX -->
+<!-- code-fit: targets=src/hooks/run.ts surface=runCustomizeHook -->
+
+Resolve overlays with `resolveCustomize` / `resolveCustomizeFromRoot` (`CUSTOMIZE_PREFIX`). Hook entry: `runCustomizeHook`.
+
 Hook inject failures: [troubleshooting](troubleshooting.md). `customize.alwaysInclude` key: [config](config.md). Customize IDE hooks are **optional** — audit/validate/catalog work without them.
 
 ## Layout

@@ -39,6 +39,10 @@ interface GitFreshnessInput {
 	lockedSkillSlugs: Set<string>;
 }
 
+export function gitFreshnessMessage(reviewedStr: string, gitDate: string): string {
+	return `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — REQUIRED: re-read the entire document, then bump last-reviewed only if the content is still correct; do not change the date alone`;
+}
+
 function checkGitFreshness(input: GitFreshnessInput): Issue | null {
 	const { relPath, content, root, lockedSkillSlugs } = input;
 	const reviewedStr = docMetaLastReviewed(content);
@@ -56,7 +60,7 @@ function checkGitFreshness(input: GitFreshnessInput): Issue | null {
 	if (committed.getTime() <= reviewed.getTime()) return null;
 
 	return issue("doc-meta", relPath, {
-		message: `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — review no longer covers latest edit; bump last-reviewed after review`,
+		message: gitFreshnessMessage(reviewedStr, gitDate),
 		severity: "warning",
 	});
 }

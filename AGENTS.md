@@ -4,7 +4,9 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 
-SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server.
+<!-- code-fit: targets=src/cli.ts surface=catalog,audit,validate,init -->
+
+SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day-one commands from `src/cli.ts`: `catalog`, `audit`, `validate`, `init` (also `build-plugin` / `references` when needed). Prefer `bun src/cli.ts` in this repo.
 
 ## Doc routing (before long reads)
 

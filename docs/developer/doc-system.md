@@ -2,9 +2,15 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+
+<!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog,buildCatalogContent,catalogAuditWarnings -->
+<!-- code-fit: targets=src/audit/core/ssot-fit.ts surface=evaluateSsotFit,ssotEvidenceOverlap,buildEvidenceText -->
+<!-- code-fit: targets=src/audit/rules/doc-meta.ts surface=runDocMetaRule,docMetaRule -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
+
+Catalog CLI: `runCatalogCli`, `checkCatalog`, `writeCatalog`, `buildCatalogContent`, `catalogAuditWarnings`. Summary fit: `evaluateSsotFit` / `ssotEvidenceOverlap` / `buildEvidenceText`. Doc-meta rule: `runDocMetaRule` (`docMetaRule`).
 
 ## Source of truth (opt-in)
 
@@ -46,6 +52,23 @@ Audit checks that each opt-in one-liner still matches its paper (warn / `--stric
 
 This keeps the agent catalog honest after renames, splits, and copy-paste — without an LLM.
 
+## Code-fit (surface fit)
+
+Opt-in markers stake that a doc covers named code files:
+
+```markdown
+<!-- code-fit: targets=src/cli.ts,src/audit/run.ts -->
+<!-- code-fit: targets=src/big.ts surface=runAudit,parseAuditArgs -->
+```
+
+`audit docs` then checks (errors on failure):
+
+- Target paths exist
+- Public surface names (exports + `case "…"` labels) appear in the doc body — or the explicit `surface=` list (required when auto-extract exceeds `docsLint.codeFitSurfaceCap`, default 25)
+- Identifier overlap (doc tokens grounded in the module). When extractable surface is **empty**, coverage is skipped and only lexical overlap applies
+
+Unmarked prose is ignored. Marked docs are always re-checked when the docs suite runs (including under `--paths`). This is **surface fit**, not a docs↔code truth checker.
+
 ## Doc meta
 
 Index docs and SSOT-bearing files require:
@@ -60,7 +83,7 @@ Audit treats two different warnings:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | Re-read, then bump `last-reviewed` (or `--fix=doc-meta`) |
+| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | **Required:** re-read the entire document, then bump `last-reviewed` only if the content is still correct. Do not change the date alone. |
 | `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).

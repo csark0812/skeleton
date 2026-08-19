@@ -25,6 +25,8 @@ export type AuditSuite = "docs" | "skills";
 export interface AuditRule {
 	id: string;
 	global?: boolean;
+	/** When true, still run under `--paths` (see code-fit). */
+	alwaysRun?: boolean;
 	suites?: AuditSuite[];
 	run: (ctx: AuditContext) => Issue[];
 }

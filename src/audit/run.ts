@@ -115,13 +115,13 @@ function labelForSuite(suite: string): string {
 }
 
 function shouldRunRule(
-	rule: { global?: boolean },
+	rule: { global?: boolean; alwaysRun?: boolean },
 	options: AuditCliOptions,
 	pathScoped: boolean,
 ): boolean {
 	if (options.globalOnly) return Boolean(rule.global);
-	if (options.pathScopedOnly) return !rule.global;
-	if (pathScoped && rule.global) return false;
+	if (options.pathScopedOnly) return !rule.global || Boolean(rule.alwaysRun);
+	if (pathScoped && rule.global && !rule.alwaysRun) return false;
 	return true;
 }
 

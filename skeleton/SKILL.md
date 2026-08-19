@@ -3,11 +3,15 @@ name: skeleton
 description: Agent ops manual for skeleton-enabled repos — init, catalog, audit, optional customize hooks, and toolbox skill overrides. Use when editing skeleton.toml / .skeleton/, syncing toolbox skills, or running skeleton CLI.
 ---
 
+<!-- code-fit: targets=src/cli.ts surface=catalog,audit,validate,init -->
+
 # Skeleton
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+
+Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
 
 ## Agent doc routing (token-cheap)
 
