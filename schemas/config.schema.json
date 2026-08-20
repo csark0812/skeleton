@@ -137,6 +137,23 @@
 				}
 			}
 		},
+		"reviewProof": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["mode"],
+			"description": "Bind an explicit documentation review to exact document and code-target bytes",
+			"properties": {
+				"mode": {
+					"const": "hash",
+					"description": "Store SHA-256 review evidence"
+				},
+				"lockfile": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Repo-relative review proof lockfile (default: .skeleton/review-lock.json)"
+				}
+			}
+		},
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },

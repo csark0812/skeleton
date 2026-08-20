@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: installing skeleton in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/init/init.ts surface=runInit,InitOptions,InitResult,skillsAddArgs -->
 
@@ -15,7 +15,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-`--skills` runs `npx skills add csark0812/skeleton …` with sensible defaults (`--skill skeleton`, `-a cursor claude-code`, `-y`). Pass any [skills add flags](https://github.com/vercel-labs/skills) after `--skills` — e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`, `--list`.
+`--skills` runs `npx skills add csark0812/skeleton …` with sensible defaults (`--skill skeleton`, `-a cursor claude-code codex`, `-y`). Pass any [skills add flags](https://github.com/vercel-labs/skills) after `--skills` — e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`, `--list`.
 
 Init writes `skeleton.toml` / `.skeleton/`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts.
 

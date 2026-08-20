@@ -10,6 +10,7 @@ import { collectSsotEntries, type SsotFileEntry } from "./audit/core/ssot-collec
 export interface CatalogOptions {
 	root?: string;
 	check?: boolean;
+	strict?: boolean;
 }
 
 export interface CatalogCheckResult {
@@ -82,17 +83,18 @@ export function catalogAuditWarnings(root: string): string[] {
 	return [];
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: write and strict/non-strict check modes share one CLI seam
 export function runCatalogCli(options: CatalogOptions = {}): number {
 	const root = options.root ?? findRepoRoot();
 	if (options.check) {
 		const result = checkCatalog(root);
 		if (result.missing) {
 			console.error(`catalog: missing ${CATALOG_REL_PATH} — run \`skeleton catalog\``);
-			return 0; // warn-only exit
+			return options.strict ? 1 : 0;
 		}
 		if (result.stale) {
 			console.error(`catalog: ${CATALOG_REL_PATH} is outdated — run \`skeleton catalog\``);
-			return 0;
+			return options.strict ? 1 : 0;
 		}
 		console.log(`catalog: ${CATALOG_REL_PATH} up to date (${result.entries.length} entries)`);
 		return 0;

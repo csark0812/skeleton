@@ -37,6 +37,7 @@ Files without an SSOT marker are fine — they are simply not listed in the agen
 ```bash
 skeleton catalog
 skeleton catalog --check   # warn if missing/outdated (local)
+skeleton catalog --check --strict  # fail if missing/outdated
 ```
 
 Local `audit docs` warns when the catalog is missing/stale; the check is skipped when `CI=true`.
@@ -67,7 +68,7 @@ Opt-in markers stake that a doc covers named code files:
 - Public surface names (exports + `case "…"` labels) appear in the doc body — or the explicit `surface=` list (required when auto-extract exceeds `docsLint.codeFitSurfaceCap`, default 25)
 - Identifier overlap (doc tokens grounded in the module). When extractable surface is **empty**, coverage is skipped and only lexical overlap applies
 
-Unmarked prose is ignored. Marked docs are always re-checked when the docs suite runs (including under `--paths`). This is **surface fit**, not a docs↔code truth checker.
+Unmarked prose is ignored. Marked docs are always re-checked when the docs suite runs (including under `--paths`). `validate changed` also treats targets as dependency edges and adds linked docs when code changes. Surface checks are heuristic; hash review proof supplies the exact invalidation signal.
 
 ## Doc meta
 
@@ -79,14 +80,22 @@ Index docs and SSOT-bearing files require:
 
 `last-reviewed` is the **only** authored freshness date — a human claim that someone stood behind this text as of that day. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
 
-Audit treats two different warnings:
+Audit treats review invalidation and calendar cadence differently:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git) | Review no longer covers the latest edit — the high-precision “accurately stale” gate | **Required:** re-read the entire document, then bump `last-reviewed` only if the content is still correct. Do not change the date alone. |
+| Content changed after `last-reviewed` (git or hash proof) | Blocking error: review no longer covers the latest edit or linked target bytes | **Required:** re-read the entire document against current targets, then attest it. Do not change the date alone. |
 | `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
+
+### Explicit review attestation
+
+```bash
+skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
+```
+
+The command requires explicit paths. It sets `last-reviewed` to today only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and target hashes. Bare `--fix` never touches review dates.
 
 ## Example canonical doc
 

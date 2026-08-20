@@ -52,6 +52,26 @@ describe("references", () => {
 		expect(skill).not.toContain("../references/");
 	});
 
+	it("syncs references for skills under nested agent roots", () => {
+		const root = mkdtempSync(join(tmpdir(), "skeleton-reference-nested-"));
+		try {
+			mkdirSync(join(root, ".skeleton", "references"), { recursive: true });
+			mkdirSync(join(root, ".agents", "skills", "demo"), { recursive: true });
+			writeFileSync(join(root, ".skeleton", "references", "shared.md"), "# Shared\n");
+			writeFileSync(
+				join(root, ".agents", "skills", "demo", "SKILL.md"),
+				"See [shared.md](../../../../references/shared.md).\n",
+			);
+
+			const result = syncReferences({ root });
+			expect(result.written).toEqual([".agents/skills/demo/references/shared.md"]);
+			expect(result.rewritten).toEqual([".agents/skills/demo/SKILL.md"]);
+			expect(runGeneratedReferencesCheck(root)).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it("check fails on stale generated copies", () => {
 		const root = join(FIXTURE, "case-check");
 		rmSync(root, { recursive: true, force: true });

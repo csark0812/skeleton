@@ -2,11 +2,11 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
-<!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,ValidateChangedOptions,codeValidationHint -->
+<!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,evaluateValidateChanged,ValidateChangedOptions,codeValidationHint -->
 
-Router for changed paths: `runValidateChanged` (`ValidateChangedOptions`). Skipped code paths get a `codeValidationHint`. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
+Router for changed paths: `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates and also drive `code-fit` document-impact discovery. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
 
 ## When you changed X, run Y
 
@@ -16,8 +16,9 @@ Router for changed paths: `runValidateChanged` (`ValidateChangedOptions`). Skipp
 | Owned skill body (`SKILL.md` trees authored in this repo) | `skeleton audit skills` (path-scoped validate exits non-zero and redirects here)                       |
 | Foreign / lockfile-synced skill body                      | skipped — lint in the owning skills/toolbox repo                                                       |
 | Plugin-wired policy YAML under `.skeleton/`               | Local: `skeleton audit docs` **and** `skeleton audit skills`. CI: `validate:ci` / `--base` proves both |
-| TypeScript / app code / `package.json`                    | Repo-native gates (`test` + `typecheck` + `build`) — not Skeleton                                      |
-| Missing paths or only skipped code paths                  | Pass real paths, or use `--staged` / `--base`; for all-skipped code see below                          |
+| TypeScript / app code                                     | Repo-native gates plus Skeleton audits for documents linked by `code-fit`                              |
+| `package.json` / `project.json`                           | Repo-native gates; no docs dependency routing                                                          |
+| Missing paths or code paths with no impacted documents    | Pass real paths, or use `--staged` / `--base`; run the printed native gates                            |
 
 Common failures: [troubleshooting](troubleshooting.md). Suites and rule scoping: [audit](audit.md).
 
@@ -27,6 +28,7 @@ Common failures: [troubleshooting](troubleshooting.md). Suites and rule scoping:
 skeleton validate changed              # git diff HEAD
 skeleton validate changed --staged     # pre-commit
 skeleton validate changed --base origin/main  # CI merge-base diff
+skeleton validate changed --json              # one versioned result document
 ```
 
 ## Path routing
@@ -40,11 +42,16 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 | Other `.skeleton/**` YAML (not `config.yaml`, not plugin-wired)                     | exits non-zero — not referenced by any plugin `policies` glob                                                                                                                    |
 | `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                                                                                                                                          |
 | Other `.json`                                                                       | JSONC-tolerant syntax check                                                                                                                                                      |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (see below)                                                                                                                                                                 |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`                               | classify as code; discover and audit scanned docs whose `code-fit` target matches; still require native code gates                                                            |
+| `package.json`, `project.json`                                                     | skip to native code gates                                                                                                                                                       |
 
-### Skipped paths
+### Code paths and impacted documents
 
-Intentional — Skeleton validates SSOT/docs only. If **every** input path is skipped, `validate changed` exits non-zero and prints the code gates to run.
+Skeleton does not claim to validate application code. It classifies code paths, prints the repo-native gates, and builds an exact reverse dependency map from `code-fit` targets to scanned documents.
+
+- Hash mode: changed code bytes make the linked document's `review-proof` entry invalid until explicit re-review and attestation.
+- Date mode: a linked document must be included in the changed set and carry today's explicit review date.
+- No linked document: a local code-only invocation exits non-zero and prints native gates. Under `--base`, global Skeleton rules still run; the separate code job remains required.
 
 In this repo:
 
@@ -54,7 +61,7 @@ bun run typecheck
 bun run build
 ```
 
-Mixed doc+code paths still skip code and audit the docs portion.
+Mixed doc+code paths audit both directly changed and discovered impacted documents. JSON output exposes `classification.code` and `impactedDocuments`, including the exact target that caused each impact.
 
 ### Skill-body paths
 
@@ -78,6 +85,10 @@ Policy YAML is plugin-glob SSOT only (same as runtime `loadPlugins`):
 ### CI two-pass
 
 `validate:ci` (`--base`) runs **global rules first** (`deny.paths` via rule `banned`, coverage-gaps, scan-roots, skill-index, generated-references, ssot, near-duplicate, ssot-summary), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
+
+## Machine-readable result
+
+`validate changed --json` emits one object with input paths, classification buckets, impacted documents, nested audit results, and router diagnostics. Validate it with `schemas/result.schema.json`; TypeScript consumers can import `ValidateChangedResult` from `@csark0812/skeleton/result-types`.
 
 ## Shared references
 

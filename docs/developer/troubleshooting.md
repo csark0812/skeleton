@@ -102,7 +102,7 @@ skeleton build-plugin --check   # CI: fail if missing, unstamped, or content-sta
 
 Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plugins.md).
 
-## Doc-meta freshness warnings
+## Doc-meta and review-proof failures
 
 Two different signals (see [doc system](doc-system.md#doc-meta)):
 
@@ -110,12 +110,14 @@ Two different signals (see [doc system](doc-system.md#doc-meta)):
 
 **Cause:** The file’s last content commit is newer than `last-reviewed`, so the stamp no longer covers the paper.
 
-**Fix:** Re-read the entire document. Bump `last-reviewed` only if the content is still correct; changing the date alone does not satisfy the check. Then, if useful, use:
+**Fix:** Re-read the entire document. Bump `last-reviewed` only if the content is still correct; changing the date alone does not satisfy the check. Record the completed review for explicit paths:
 
 ```bash
-skeleton audit docs --fix=doc-meta
-skeleton audit docs --fix=doc-meta --dry-run
+skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
+skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
+
+If the diagnostic code is `review-document-changed` or `review-code-target-changed`, hash proof found exact byte drift. Review the whole document against every current `code-fit` target, then run the command above. Do not hand-edit the lockfile.
 
 **Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
 

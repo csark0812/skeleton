@@ -47,12 +47,11 @@ function parsePolicyYaml(content: string, fileStem: string): PolicyFileYaml {
 }
 
 /**
- * Compile YAML entries. Case-insensitive matching by default; policy name
- * `skill-hub-duplication` is always case-sensitive (PostPrint convention).
- * Patterns starting with `^` omit the `i` flag even when case-insensitive.
+ * Compile YAML entries. Matching is case-insensitive by default. The legacy
+ * `skill-hub-duplication` name remains case-sensitive for 1.x compatibility;
+ * new policies must use the explicit `caseSensitive` field.
  */
 export function compilePolicy(name: string, raw: PolicyEntry[]): PolicyFile {
-	const caseInsensitive = name !== "skill-hub-duplication";
 	const entries = raw.map((entry) => {
 		const mode = entry.mode ?? "pattern";
 		if (mode === "fingerprint") {
@@ -63,7 +62,8 @@ export function compilePolicy(name: string, raw: PolicyEntry[]): PolicyFile {
 		}
 		let regex: RegExp;
 		try {
-			const flags = entry.pattern.startsWith("^") || !caseInsensitive ? "" : "i";
+			const caseSensitive = entry.caseSensitive ?? name === "skill-hub-duplication";
+			const flags = caseSensitive ? "" : "i";
 			regex = new RegExp(entry.pattern, flags);
 		} catch (err) {
 			throw new Error(
@@ -73,6 +73,23 @@ export function compilePolicy(name: string, raw: PolicyEntry[]): PolicyFile {
 		return { ...entry, mode, regex };
 	});
 	return { name, entries };
+}
+
+/** Make sure that every non-regex policy has an installed evaluator. */
+export function assertPolicyHandlers(policies: PolicyFile[], rules: Array<{ id: string }>): void {
+	const ruleIds = new Set(rules.map((rule) => rule.id));
+	const fingerprintEntries = policies.flatMap((policy) =>
+		policy.entries
+			.filter((entry) => entry.mode === "fingerprint")
+			.map((entry) => ({ policyName: policy.name, entry })),
+	);
+	const missing = fingerprintEntries.find(
+		({ entry }) => !(entry.handledBy && ruleIds.has(entry.handledBy)),
+	);
+	if (!missing) return;
+	throw new Error(
+		`Policy ${missing.policyName} entry ${missing.entry.id} requires loaded rule handler ${missing.entry.handledBy ?? "(missing handledBy)"}`,
+	);
 }
 
 export function loadPolicyFile(absPath: string, content: string): PolicyFile {

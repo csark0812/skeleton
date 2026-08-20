@@ -22,6 +22,7 @@ jobs:
       - run: bun test
       - run: bun run typecheck
       - run: bun run build
+      - run: bun scripts/verify-package.ts
       - run: node dist/cli.js audit self
       - run: npm run validate:ci
 

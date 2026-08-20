@@ -60,6 +60,24 @@ exclude = []
 		}
 	});
 
+	it("accepts hash review proof config", () => {
+		const dir = join(tmpdir(), `skel-review-proof-config-${Date.now()}`);
+		mkdirSync(join(dir, ".skeleton"), { recursive: true });
+		writeFileSync(
+			join(dir, "skeleton.toml"),
+			`daysUntilStale = 180\n[scan]\ninclude = ["docs/**"]\nexclude = []\n[reviewProof]\nmode = "hash"\nlockfile = ".skeleton/custom-review-lock.json"\n`,
+		);
+		try {
+			const config = loadConfig(dir);
+			expect(config.reviewProof).toEqual({
+				mode: "hash",
+				lockfile: ".skeleton/custom-review-lock.json",
+			});
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("rejects invalid skillOwnership slug patterns", () => {
 		const dir = join(tmpdir(), `skel-ownership-bad-${Date.now()}`);
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });

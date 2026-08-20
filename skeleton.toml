@@ -11,13 +11,16 @@ include = [
 ]
 exclude = [
   "refs/**",
-  "todo.md",
+  "docs/archive/**",
   "agent-suites/**",
   "editors/**",
   # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
   ".agents/**",
   ".claude/**",
 ]
+
+[reviewProof]
+mode = "hash"
 
 [deny]
 paths = []

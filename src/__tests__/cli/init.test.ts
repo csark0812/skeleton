@@ -247,6 +247,21 @@ describeHooks("skeleton init hooks", () => {
 		expect(calls).toEqual([{ args: skillsAddArgs(), cwd }]);
 	});
 
+	it("installs the package skill for Cursor, Claude Code, and Codex by default", () => {
+		expect(skillsAddArgs()).toEqual([
+			"skills",
+			"add",
+			"csark0812/skeleton",
+			"--skill",
+			"skeleton",
+			"-a",
+			"cursor",
+			"claude-code",
+			"codex",
+			"-y",
+		]);
+	});
+
 	it("passes skills add flags through to npx", () => {
 		const cwd = makeRepo();
 		const calls: Array<{ args: string[]; cwd: string }> = [];

@@ -15,6 +15,12 @@ exclude = [
 [deny]
 paths = []
 
+# Optional but recommended: make review claims verifiable against exact document
+# and code-fit target bytes. Commit the generated lockfile.
+# [reviewProof]
+# mode = "hash"
+# lockfile = ".skeleton/review-lock.json"
+
 # Optional: basenames under .skeleton/customize/ appended on every skill inject
 # [customize]
 # alwaysInclude = ["shared-agent-references.md"]

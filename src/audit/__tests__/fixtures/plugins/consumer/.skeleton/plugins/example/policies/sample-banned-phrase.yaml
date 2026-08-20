@@ -11,5 +11,6 @@ entries:
     message: "`<!-- status: draft -->` only allowed in `_draft-*.md` or draftPathPrefixes"
   - id: fingerprint-skip
     mode: fingerprint
+    handledBy: fixture-fingerprint
     message: "should never fire from prose-policy"
     canonical: docs/clean.md

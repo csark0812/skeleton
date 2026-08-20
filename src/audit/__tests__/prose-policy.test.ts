@@ -5,7 +5,12 @@ import { join } from "node:path";
 import type { SkeletonConfig } from "../config/types.ts";
 import type { AuditContext } from "../core/context.ts";
 import { isDraftPlacementAllowed, normalizeDraftPrefix } from "../core/draft.ts";
-import { compilePolicy, loadPolicyFile, policiesForFile } from "../policies/load.ts";
+import {
+	assertPolicyHandlers,
+	compilePolicy,
+	loadPolicyFile,
+	policiesForFile,
+} from "../policies/load.ts";
 import { runProsePolicyRule } from "../rules/prose-policy.ts";
 import { EMPTY_SKILL_INDEX } from "./empty-skill-index.ts";
 
@@ -50,11 +55,40 @@ describe("compilePolicy", () => {
 		expect(policy.entries[0]?.regex?.test("foo")).toBe(false);
 	});
 
+	it("uses explicit per-entry case sensitivity", () => {
+		const policy = compilePolicy("sample", [
+			{ id: "a", pattern: "Foo", message: "x", caseSensitive: true },
+		]);
+		expect(policy.entries[0]?.regex?.test("Foo")).toBe(true);
+		expect(policy.entries[0]?.regex?.test("foo")).toBe(false);
+	});
+
 	it("skips fingerprint regex", () => {
 		const policy = compilePolicy("sample", [
-			{ id: "fp", mode: "fingerprint", message: "x", canonical: "a.md" },
+			{
+				id: "fp",
+				mode: "fingerprint",
+				message: "x",
+				canonical: "a.md",
+				handledBy: "duplicate-rule",
+			},
 		]);
 		expect(policy.entries[0]?.regex).toBeNull();
+	});
+
+	it("requires fingerprint policies to name a loaded rule handler", () => {
+		expect(() =>
+			loadPolicyFile(
+				"/tmp/fingerprint.yaml",
+				`name: sample\nentries:\n  - id: fp\n    mode: fingerprint\n    message: x\n`,
+			),
+		).toThrow(/handledBy/);
+
+		const policy = compilePolicy("sample", [
+			{ id: "fp", mode: "fingerprint", message: "x", handledBy: "duplicate-rule" },
+		]);
+		expect(() => assertPolicyHandlers([policy], [])).toThrow(/duplicate-rule/);
+		expect(() => assertPolicyHandlers([policy], [{ id: "duplicate-rule" }])).not.toThrow();
 	});
 
 	it("filters by scope", () => {
@@ -131,7 +165,13 @@ describe("prose-policy rule", () => {
 	it("hits line matches and skips fingerprint", () => {
 		const policy = compilePolicy("sample", [
 			{ id: "banned", pattern: "BADWORD", message: "no BADWORD" },
-			{ id: "fp", mode: "fingerprint", message: "fp", canonical: "a.md" },
+			{
+				id: "fp",
+				mode: "fingerprint",
+				message: "fp",
+				canonical: "a.md",
+				handledBy: "duplicate-rule",
+			},
 		]);
 		const dir = join(tmpdir(), `prose-${Date.now()}`);
 		const file = join(dir, "docs/a.md");
@@ -155,7 +195,13 @@ describe("prose-policy rule", () => {
 	it("still matches pattern entries under cold-start-duplication policy name", () => {
 		const policy = compilePolicy("cold-start-duplication", [
 			{ id: "banned", pattern: "BADWORD", message: "no BADWORD" },
-			{ id: "fp", mode: "fingerprint", message: "fp", canonical: "a.md" },
+			{
+				id: "fp",
+				mode: "fingerprint",
+				message: "fp",
+				canonical: "a.md",
+				handledBy: "duplicate-rule",
+			},
 		]);
 		const dir = join(tmpdir(), `prose-csd-${Date.now()}`);
 		const file = join(dir, "docs/a.md");
@@ -212,6 +258,29 @@ describe("prose-policy rule", () => {
 			);
 			expect(issues).toHaveLength(1);
 			expect(issues[0]?.file).toBe("docs/live.md");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("uses explicit draft-only placement independent of entry id", () => {
+		const policy = compilePolicy("deprecated-prose", [
+			{
+				id: "status-comment",
+				pattern: "^\\s*<!--\\s*status:\\s*draft\\s*-->\\s*$",
+				message: "draft only in allow-list",
+				placement: "draft-only",
+			},
+		]);
+		const dir = join(tmpdir(), `draft-explicit-${Date.now()}`);
+		const denied = join(dir, "docs/live.md");
+		mkdirSync(join(dir, "docs"), { recursive: true });
+		writeFileSync(denied, "<!-- status: draft -->\n");
+		try {
+			const issues = runProsePolicyRule(
+				makeCtx({ root: dir, files: [denied], policies: [policy] }),
+			);
+			expect(issues).toHaveLength(1);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

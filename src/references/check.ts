@@ -129,7 +129,7 @@ export function runGeneratedReferencesCheck(
 	const needed = new Set<string>();
 	for (const plan of plans) {
 		for (const refPath of plan.refPaths) {
-			needed.add(generatedRefPath(plan.skill, refPath));
+			needed.add(generatedRefPath(plan.skillDir, refPath));
 		}
 	}
 
@@ -141,7 +141,7 @@ export function runGeneratedReferencesCheck(
 	issues.push(...checkOrphanedCopies(root, needed, skillIndex));
 
 	for (const plan of plans) {
-		issues.push(...checkStaleSharedLinks(root, join(root, plan.skill)));
+		issues.push(...checkStaleSharedLinks(root, join(root, plan.skillDir)));
 	}
 
 	return issues;

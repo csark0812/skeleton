@@ -1,12 +1,18 @@
 import { beforeAll, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import Ajv from "ajv";
+import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { runAudit } from "../../audit/run.ts";
-import { checkCatalog, writeCatalog } from "../../catalog.ts";
+import { checkCatalog, runCatalogCli, writeCatalog } from "../../catalog.ts";
 import { resolveCustomize } from "../../customize/resolve.ts";
 import { runBuildPlugin } from "../../plugins/build.ts";
-import { codeValidationHint, runValidateChanged } from "../../validate/changed.ts";
+import {
+	codeValidationHint,
+	evaluateValidateChanged,
+	runValidateChanged,
+} from "../../validate/changed.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
@@ -14,6 +20,21 @@ const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
 const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
 
 describe("catalog", () => {
+	it("can fail closed when a strict check finds no generated catalog", () => {
+		const dir = mkdtempSync(join(tmpdir(), "skel-catalog-strict-"));
+		try {
+			mkdirSync(join(dir, "docs"), { recursive: true });
+			writeFileSync(
+				join(dir, "skeleton.toml"),
+				'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
+			);
+			expect(runCatalogCli({ root: dir, check: true })).toBe(0);
+			expect(runCatalogCli({ root: dir, check: true, strict: true })).toBe(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("builds catalog from SSOT-bearing files", () => {
 		const dir = mkdtempSync(join(tmpdir(), "skel-catalog-"));
 		try {
@@ -65,7 +86,19 @@ describe("audit global scoping", () => {
 			root: FLAT_SKILL_ROOT,
 			pathScopedOnly: true,
 		});
-		expect(exit).toBe(0);
+		expect(exit).toBe(1);
+	});
+
+	it("fails when --only names no loaded rule", async () => {
+		const exit = await runAudit({
+			suite: "docs",
+			strict: false,
+			json: false,
+			paths: [],
+			only: new Set(["does-not-exist"]),
+			root: FLAT_SKILL_ROOT,
+		});
+		expect(exit).toBe(1);
 	});
 
 	it("runs global rules when globalOnly", async () => {
@@ -95,6 +128,49 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(0);
 	});
 
+	it("returns one structured result for nested validation audits", async () => {
+		const log = spyOn(console, "log").mockImplementation(() => {});
+		const error = spyOn(console, "error").mockImplementation(() => {});
+		try {
+			const result = await evaluateValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["docs/README.md"],
+			});
+			expect(result).toMatchObject({
+				schemaVersion: 1,
+				command: "validate-changed",
+				classification: { docs: ["docs/README.md"] },
+			});
+			expect(result.audits).toHaveLength(1);
+			const schema = JSON.parse(
+				readFileSync(join(import.meta.dir, "../../../schemas/result.schema.json"), "utf8"),
+			);
+			expect(new Ajv({ strict: false }).compile(schema)(result)).toBe(true);
+			expect(log).not.toHaveBeenCalled();
+			expect(error).not.toHaveBeenCalled();
+		} finally {
+			log.mockRestore();
+			error.mockRestore();
+		}
+	});
+
+	it("prints one JSON document for validate changed", async () => {
+		const lines: string[] = [];
+		const log = spyOn(console, "log").mockImplementation((value) => lines.push(String(value)));
+		try {
+			const exit = await runValidateChanged({
+				root: FLAT_SKILL_ROOT,
+				paths: ["docs/README.md"],
+				json: true,
+			});
+			expect(exit).toBe(0);
+			expect(lines).toHaveLength(1);
+			expect(JSON.parse(lines[0] ?? "{}").command).toBe("validate-changed");
+		} finally {
+			log.mockRestore();
+		}
+	});
+
 	it("fails when all paths are skipped code", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		mkdirSync(dirname(tsPath), { recursive: true });
@@ -107,6 +183,91 @@ describe("validate changed routing", () => {
 			expect(exit).toBe(1);
 		} finally {
 			unlinkSync(tsPath);
+		}
+	});
+
+	it("discovers and audits documents impacted by changed code-fit targets", async () => {
+		const root = mkdtempSync(join(tmpdir(), "skel-code-impact-"));
+		try {
+			mkdirSync(join(root, "docs"), { recursive: true });
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`daysUntilStale = 365
+[scan]
+include = ["docs/**"]
+exclude = []
+[reviewProof]
+mode = "hash"
+`,
+			);
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
+			writeFileSync(
+				join(root, "docs/example.md"),
+				`# Example
+
+<!-- source-of-truth: example runThing behavior -->
+
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+
+<!-- code-fit: targets=src/example.ts surface=runThing -->
+
+The runThing export provides the example behavior.
+`,
+			);
+			attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-19" });
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+
+			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
+			expect(result.classification.code).toEqual(["src/example.ts"]);
+			expect(result.impactedDocuments).toEqual([
+				{
+					path: "docs/example.md",
+					codeTargets: ["src/example.ts"],
+					reasons: [{ kind: "changed-code-target", target: "src/example.ts" }],
+				},
+			]);
+			expect(result.classification.docs).toContain("docs/example.md");
+			expect(result.exitCode).toBe(1);
+			expect(
+				result.audits
+					.flatMap((audit) => audit.diagnostics)
+					.some((item) => item.code === "review-code-target-changed"),
+			).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("fails closed on changed code impacts when hash review proof is not enabled", async () => {
+		const root = mkdtempSync(join(tmpdir(), "skel-date-impact-"));
+		try {
+			mkdirSync(join(root, "docs"), { recursive: true });
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
+			);
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			writeFileSync(
+				join(root, "docs/example.md"),
+				`# Example
+
+<!-- source-of-truth: example runThing behavior -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-01 -->
+<!-- code-fit: targets=src/example.ts surface=runThing -->
+
+The runThing export provides the example behavior.
+`,
+			);
+
+			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
+			expect(result.exitCode).toBe(1);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({ code: "impacted-document-review-required" }),
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
 		}
 	});
 

@@ -239,16 +239,26 @@ interface EvaluateGatesInput {
 	groundingTokenDeltas: number[];
 }
 
+// The existing runs reuse one repository, harness, scenario author, and execution
+// period. Keep public claims preliminary until a separately designed replication
+// confirms the result with independent prompts and execution batches.
+const INDEPENDENT_REPLICATION_CONFIRMED = false;
+
 function evaluateGates(input: EvaluateGatesInput) {
 	const { perScenario, groundingNames, nRuns, protocolTargetN, groundingTokenDeltas } = input;
-	const preliminary = nRuns < protocolTargetN;
+	const preliminary = nRuns < protocolTargetN || !INDEPENDENT_REPLICATION_CONFIRMED;
 	const groundingGate = groundingNames.some((name) => {
 		const m = perScenario[name]?.mcnemar;
 		return m && m.n > 0 && m.pValue < 0.05 && m.b > m.c;
 	});
 	const tokenMed = median(groundingTokenDeltas);
 	const tokenGate = tokenMed !== undefined && tokenMed > 0;
-	return { preliminary, groundingGate, tokenGate };
+	return {
+		preliminary,
+		groundingGate,
+		tokenGate,
+		independentReplication: INDEPENDENT_REPLICATION_CONFIRMED,
+	};
 }
 
 function scenarioSummaryEntry(name: string, s: ScenarioStats) {
@@ -303,6 +313,7 @@ function buildSummaryObject(input: BuildSummaryInput) {
 		gates: {
 			groundingMcnemarP05: gates.groundingGate,
 			groundingTokenMedianMessyHigher: gates.tokenGate,
+			independentReplication: gates.independentReplication,
 			readmeFinalClaimsAllowed: !gates.preliminary && gates.groundingGate && gates.tokenGate,
 		},
 		overall: {
@@ -374,7 +385,7 @@ function buildSummaryMarkdown(input: BuildMarkdownInput): string {
 		`<!-- doc-meta: owner=eng | last-reviewed=${new Date().toISOString().slice(0, 10)} -->`,
 		"",
 		gates.preliminary
-			? `**Status: preliminary (N=${runs.length} / target ${protocolTargetN}).** Do not treat McNemar p-values as final README claims until N=${protocolTargetN}.`
+			? `**Status: preliminary self-benchmark (N=${runs.length}; initial target ${protocolTargetN}).** The runs are repeated observations from one authored harness, not an independent replication or a general product-effect estimate.`
 			: `**Status: protocol complete (N=${runs.length}).**`,
 		"",
 		`Generated: ${summary.generatedAt}`,
@@ -387,6 +398,7 @@ function buildSummaryMarkdown(input: BuildMarkdownInput): string {
 		`| ---- | ------ |`,
 		`| Grounding McNemar p<0.05 (clean>messy) | ${gates.groundingGate ? "PASS" : "FAIL / n/a"} |`,
 		`| Grounding median token Δ (messy−clean) > 0 | ${gates.tokenGate ? "PASS" : "FAIL / n/a"} |`,
+		`| Independent replication | ${gates.independentReplication ? "PASS" : "NOT RUN"} |`,
 		`| Final README claims allowed | ${summary.gates.readmeFinalClaimsAllowed ? "yes" : "no"} |`,
 		"",
 		"## Per-scenario",

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/cli.ts surface=audit,build-plugin,catalog,customize,hook,init,references,register,validate -->
 <!-- code-fit: targets=src/audit/run.ts surface=runAudit,parseAuditArgs,AuditCliOptions,docs,skills,self -->
@@ -12,23 +12,25 @@ When to run which command: [validation](validation.md). Common failures: [troubl
 ## Suites
 
 ```bash
-skeleton audit docs     # links, doc-meta, ssot, near-duplicate, ssot-summary, prose-policy (when plugins supply policies), code-fit (when markers present)
+skeleton audit docs     # links, doc-meta, review-proof, ssot, near-duplicate, ssot-summary, prose-policy, code-fit
 skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
-`code-fit` is **surface fit** (opt-in markers → target code files): public-name coverage plus light identifier overlap. It is not a behavioral docs↔code truth checker. Marked docs are re-checked whenever the docs suite runs, even under `--paths`.
+`code-fit` is **surface fit** (opt-in markers → target code files): public-name coverage plus light identifier overlap. `validate changed` also uses these markers as a dependency graph: changed target code adds each linked document to validation. When hash review proof is enabled, target-byte drift invalidates the document review even when lexical surface fit still passes.
 
 CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `references`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
 ```bash
-skeleton audit docs --fix                 # doc-meta + anchors + legacy SSOT rewrite
-skeleton audit docs --fix=doc-meta
+skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
+skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
+
+`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, updates the authored date to today, and writes hash evidence when `[reviewProof] mode = "hash"` is configured.
 
 ## Global vs path-scoped
 
@@ -36,14 +38,18 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
-| links, doc-meta, prose-policy, code-fit (`alwaysRun` — all marked docs)          | no*    |
+| links, doc-meta, review-proof, prose-policy, code-fit (`alwaysRun` — all marked docs) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned (`deny.paths`) | yes    |
 
 \* `code-fit` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so code drift is not skipped when only other files change.
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewProof`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+
+## Machine-readable results
+
+`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and the active review-proof mode/status. Validate output uses the same nested audit object. The public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`.
 
 Plugins: [plugins.md](plugins.md).
 

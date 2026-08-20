@@ -5,6 +5,7 @@ import { collectDocMetaFixes } from "../fix/doc-meta.ts";
 import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
 import { docMetaLastReviewed, replaceDocMetaLastReviewed } from "./shared.ts";
+import { rewriteLegacySsotToComment } from "./ssot.ts";
 
 export type FixKind = "doc-meta" | "anchors" | "ssot";
 
@@ -85,9 +86,10 @@ function coalesceOneFile(input: {
 }
 
 function rewriteSsotOnto(base: string, ssotContent: string): string {
-	// SSOT fix already rewrote the full file; prefer it when present alone,
-	// otherwise apply legacy→comment rewrite markers from ssot content by using ssot body.
-	return ssotContent || base;
+	// Re-run the narrow SSOT transform on the content that already contains
+	// anchor/meta edits. Falling back to the collector snapshot is safe when
+	// this is the only available edit.
+	return rewriteLegacySsotToComment(base) ?? ssotContent ?? base;
 }
 
 function overlayLastReviewed(targetContent: string, metaContent: string): string {
@@ -151,7 +153,7 @@ export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): Apply
 }
 
 export function parseFixKinds(raw: string | true): FixKind[] {
-	if (raw === true) return ["doc-meta", "anchors", "ssot"];
+	if (raw === true) return ["anchors", "ssot"];
 	switch (raw) {
 		case "doc-meta":
 			return ["doc-meta"];
