@@ -2,9 +2,11 @@ export type Severity = "error" | "warning";
 
 export interface Issue {
 	rule: string;
+	code?: string;
 	file: string;
 	link?: string;
 	message: string;
+	remediation?: string;
 	severity: Severity;
 }
 
@@ -16,18 +18,38 @@ export interface ReportOptions {
 	successSuffix?: string;
 }
 
+export interface IssueOptions {
+	link?: string;
+	severity?: Severity;
+	code?: string;
+	remediation?: string;
+}
+
+export interface IssueDetails extends IssueOptions {
+	message: string;
+}
+
+export function issue(rule: string, file: string, details: string | IssueDetails): Issue;
+/** @deprecated Prefer the details-object form. Retained for 1.x plugin compatibility. */
+// biome-ignore lint/complexity/useMaxParams: the four-argument shape is a frozen 1.x plugin ABI
+export function issue(rule: string, file: string, message: string, options?: IssueOptions): Issue;
+// biome-ignore lint/complexity/useMaxParams: implementation must accept the frozen 1.x overload
 export function issue(
 	rule: string,
 	file: string,
-	details: string | { message: string; link?: string; severity?: Severity },
+	details: string | IssueDetails,
+	options?: IssueOptions,
 ): Issue {
 	const message = typeof details === "string" ? details : details.message;
+	const selected = typeof details === "string" ? options : details;
 	return {
 		rule,
+		...(selected?.code ? { code: selected.code } : {}),
 		file,
-		link: typeof details === "string" ? undefined : details.link,
+		link: selected?.link,
 		message,
-		severity: typeof details === "string" ? "error" : (details.severity ?? "error"),
+		...(selected?.remediation ? { remediation: selected.remediation } : {}),
+		severity: selected?.severity ?? "error",
 	};
 }
 

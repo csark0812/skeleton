@@ -60,8 +60,10 @@ function checkGitFreshness(input: GitFreshnessInput): Issue | null {
 	if (committed.getTime() <= reviewed.getTime()) return null;
 
 	return issue("doc-meta", relPath, {
+		code: "review-behind-git-edit",
 		message: gitFreshnessMessage(reviewedStr, gitDate),
-		severity: "warning",
+		severity: "error",
+		remediation: "Re-read the entire document, then use explicit review attestation for that path.",
 	});
 }
 

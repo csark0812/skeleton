@@ -2,14 +2,14 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/audit/config/load.ts surface=loadConfig,loadConfigDetailed,findRepoRoot,mergedExcludes -->
-<!-- code-fit: targets=src/audit/config/types.ts surface=SkeletonConfig,ScanConfig,DocsLintConfig,DenyConfig,SkillOwnershipConfig,CustomizeConfig -->
+<!-- code-fit: targets=src/audit/config/types.ts surface=SkeletonConfig,ScanConfig,DocsLintConfig,DenyConfig,SkillOwnershipConfig,ReviewProofConfig,CustomizeConfig -->
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
 
-Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `CustomizeConfig`).
+Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewProofConfig`, `CustomizeConfig`).
 
 Preferred path: **`skeleton.toml` at the repo root**. Legacy `.skeleton/config.yaml` still loads when no TOML is present. If both exist, TOML wins and the CLI warns that YAML is ignored.
 
@@ -33,6 +33,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `customize.alwaysInclude` | Basenames under `.skeleton/customize/` appended on every skill inject — [customize](customize.md)       |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
+| `reviewProof`             | Hash-backed evidence for exact reviewed document and `code-fit` target bytes (see below)               |
 | `docsLint`                | Near-duplicate / SSOT-summary / code-fit thresholds and ignore pairs (see below)            |
 
 Deleted skills need no denylist: links to missing `…/SKILL.md` fail under the links / skill-index rules.
@@ -62,6 +63,18 @@ paths = ["apps/**/*_ANALYSIS.md"]
 `ssot-summary` scores stemmed unigrams against H1 + lead + body (SSOT line stripped). Exact phrase match only explains a failed overlap — abstract titles can pass without verbatim phrasing. Better-match warns only when own overlap is weak and another SSOT paper fits better; the message lists rewrite / retarget / consider-combine options.
 
 `code-fit` (surface fit, not behavioral truth): opt-in HTML comment markers with `targets=` (and optional `surface=`). Docs declare code files; audit checks public-name coverage and light identifier overlap. See [doc system](doc-system.md#code-fit-surface-fit).
+
+## `reviewProof`
+
+```toml
+[reviewProof]
+mode = "hash"
+# lockfile = ".skeleton/review-lock.json"
+```
+
+Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every declared `code-fit` target. Any byte change invalidates the review until a human re-reads and attests the document again. Commit the lockfile.
+
+Without this section, Skeleton uses compatibility date mode. Changed code targets still pull linked documents into `validate changed`; the document must co-change with a current explicit review date.
 
 ## `skillOwnership`
 

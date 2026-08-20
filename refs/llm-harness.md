@@ -38,7 +38,7 @@ bun run agent:evidence:aggregate
 bun run agent:evidence:excerpt -- --run-dir agent-suites/evidence/runs/<id>
 ```
 
-### Endpoints and significance gates
+### Endpoints and evidence gates
 
 | Endpoint          | Unit                                              | Test                                                    |
 | ----------------- | ------------------------------------------------- | ------------------------------------------------------- |
@@ -52,14 +52,15 @@ bun run agent:evidence:excerpt -- --run-dir agent-suites/evidence/runs/<id>
 - N ≥ 10 deposited runs
 - At least one grounding scenario with McNemar p < 0.05 and b > c
 - Grounding median token Δ > 0 (messy uses more tokens)
+- An independently authored prompt set and separate execution batch reproduce the direction
 
-Until then, README and SUMMARY stay labeled **preliminary**.
+Until all gates pass, README and SUMMARY stay labeled **preliminary**. Repeated runs from this one authored harness estimate variance inside the harness; they do not provide independent replication.
 
 ## Metric log
 
 | Date       | N   | Clean grounding | Messy grounding | Median Δ tokens (grounding) | Notes                                                                                                                                 |
 | ---------- | --- | --------------- | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-07-17 | 10  | 20/20           | 8/20            | ~312k                       | Sequential batch; conflicting docs 10/0 (p=0.002); docs routing 10/0 (`audit all`); skill+customize tied; gates → final README claims |
+| 2026-07-17 | 10  | 20/20           | 8/20            | ~312k                       | Preliminary self-benchmark; sequential batch; conflicting docs 10/0 (p=0.002); docs routing 10/0 (`audit all`); no independent replication |
 | 2026-07-17 | 1   | 2/2             | 0/2             | ~379k                       | Superseded by N=10 row (early deposit)                                                                                                |
 
 See [`agent-suites/evidence/SUMMARY.md`](../agent-suites/evidence/SUMMARY.md) for full tables.

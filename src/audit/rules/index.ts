@@ -7,6 +7,7 @@ import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { nearDuplicateRule } from "./near-duplicate.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
+import { reviewProofRule } from "./review-proof.ts";
 import { coverageGapsRule } from "./scan-gaps.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
@@ -36,6 +37,7 @@ export const docsRules: AuditRule[] = [
 	{ ...coverageGapsRule, global: true },
 	linksRule,
 	docMetaRule,
+	reviewProofRule,
 	codeFitRule,
 	{ ...bannedRule, global: true },
 	prosePolicyRule,

@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../../audit/config/load.ts";
+import { issue } from "../../audit/core/report.ts";
 import { type AuditSuite, assembleRules } from "../../audit/rules/index.ts";
 import { runAudit } from "../../audit/run.ts";
 import { parseBuildPluginArgs, runBuildPlugin, stampPathForMjs } from "../build.ts";
@@ -24,6 +25,23 @@ describe("parseBuildPluginArgs", () => {
 	it("fails closed on --check=value and unknown flags", () => {
 		expect(() => parseBuildPluginArgs(["--check=true"])).toThrow(/boolean flag/);
 		expect(() => parseBuildPluginArgs(["--force"])).toThrow(/unknown flag/);
+	});
+});
+
+describe("public issue helper", () => {
+	it("supports the legacy message plus options signature at runtime", () => {
+		expect(
+			issue("plugin-rule", "docs/a.md", "legacy warning", {
+				severity: "warning",
+				link: "line 7",
+			}),
+		).toEqual({
+			rule: "plugin-rule",
+			file: "docs/a.md",
+			message: "legacy warning",
+			severity: "warning",
+			link: "line 7",
+		});
 	});
 });
 

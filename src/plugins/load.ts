@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { globSync } from "tinyglobby";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
-import { loadPolicyFile } from "../audit/policies/load.ts";
+import { assertPolicyHandlers, loadPolicyFile } from "../audit/policies/load.ts";
 import type { PolicyFile } from "../audit/policies/types.ts";
 import type { AuditRule } from "../audit/rules/index.ts";
 import { assertUnderSkeleton, mjsPathForTs, resolvePluginTsPath, skeletonDir } from "./paths.ts";
@@ -200,6 +200,7 @@ export async function loadPlugins(root: string, config: SkeletonConfig): Promise
 			policies.push(...loadPoliciesFromGlobs(root, normalized.policies));
 		}
 	}
+	assertPolicyHandlers(policies, rules);
 
 	return { rules, policies };
 }

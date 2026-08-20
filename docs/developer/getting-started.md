@@ -70,6 +70,15 @@ see [config](config.md#skillownership).
 
 Plugin-enabled example and more keys: [config](config.md).
 
+For the strongest review gate, enable hash-backed evidence:
+
+```toml
+[reviewProof]
+mode = "hash"
+```
+
+Commit `.skeleton/review-lock.json` after the first explicit review.
+
 ## 3. Write a canonical doc
 
 Create a file with a source-of-truth marker and (for indexes / SSOT docs) doc-meta:
@@ -101,9 +110,13 @@ npx skeleton validate changed --staged
 
 Audits pass → you're set. A foreign-only skill change can pass because synced
 skill bodies are validated in their owning repo; `validate changed` prints each
-skip. Doc-meta re-read-cadence warnings are OK until you bump dates; edit-behind-review
-warnings require re-reading the entire document, then bumping only if it is still correct.
-Changing the date alone does not satisfy the check. Failures →
+skip. Code changes also pull in documents whose `code-fit` marker names the changed file. Review failures require a complete re-read, followed by explicit attestation:
+
+```bash
+npx skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
+```
+
+Changing the date alone is not a review. Re-read-cadence warnings remain advisory unless `--strict`. Failures →
 [troubleshooting](troubleshooting.md).
 
 ## 6. Optional pre-commit

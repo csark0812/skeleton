@@ -12,6 +12,8 @@ export interface SharedRefLink {
 
 export interface SkillReferencePlan {
 	skill: string;
+	/** Repo-relative directory containing this concrete skill instance. */
+	skillDir: string;
 	refPaths: Set<string>;
 	links: SharedRefLink[];
 }
@@ -96,19 +98,19 @@ function collectLinksForFile(root: string, relFile: string): SharedRefLink[] {
 
 interface TransitiveRefInput {
 	root: string;
-	slug: string;
+	skillDir: string;
 	refPaths: Set<string>;
 	links: SharedRefLink[];
 }
 
 function expandTransitiveRefs(input: TransitiveRefInput): void {
-	const { root, slug, refPaths, links } = input;
+	const { root, skillDir, refPaths, links } = input;
 	const queue = [...refPaths];
 	while (queue.length > 0) {
 		const refPath = queue.pop();
 		if (!(refPath && canonicalExists(root, refPath))) continue;
 		const canonicalContent = readFileSync(join(root, CANONICAL_REFS_DIR, refPath), "utf8");
-		const syntheticSource = generatedRefPath(slug, refPath);
+		const syntheticSource = generatedRefPath(skillDir, refPath);
 		for (const link of findLocalCanonicalLinks(root, canonicalContent, syntheticSource)) {
 			if (refPaths.has(link.refPath)) continue;
 			refPaths.add(link.refPath);
@@ -118,20 +120,35 @@ function expandTransitiveRefs(input: TransitiveRefInput): void {
 	}
 }
 
-function planForSkill(root: string, slug: string): SkillReferencePlan | null {
-	const skillDir = join(root, slug);
-	if (!existsSync(join(skillDir, "SKILL.md"))) return null;
+function planForSkill(root: string, slug: string, skillDir: string): SkillReferencePlan | null {
+	const absSkillDir = join(root, skillDir);
+	if (!existsSync(join(absSkillDir, "SKILL.md"))) return null;
 
 	const refPaths = new Set<string>();
 	const links: SharedRefLink[] = [];
-	for (const relFile of walkMarkdownFiles(skillDir, root)) {
+	for (const relFile of walkMarkdownFiles(absSkillDir, root)) {
 		for (const link of collectLinksForFile(root, relFile)) {
 			refPaths.add(link.refPath);
 			links.push(link);
 		}
 	}
-	expandTransitiveRefs({ root, slug, refPaths, links });
-	return refPaths.size > 0 ? { skill: slug, refPaths, links } : null;
+	expandTransitiveRefs({ root, skillDir, refPaths, links });
+	return refPaths.size > 0 ? { skill: slug, skillDir, refPaths, links } : null;
+}
+
+function concreteSkillDirs(
+	root: string,
+	index: ReturnType<typeof buildSkillIndex>,
+	slug: string,
+): string[] {
+	const dirs: string[] = [];
+	for (const skillRoot of index.roots) {
+		const rel = normalizeRelPath(
+			skillRoot.kind === "nested" ? join(skillRoot.relPath, slug) : slug,
+		);
+		if (existsSync(join(root, rel, "SKILL.md"))) dirs.push(rel);
+	}
+	return [...new Set(dirs)];
 }
 
 export function discoverSkillReferencePlans(
@@ -142,24 +159,30 @@ export function discoverSkillReferencePlans(
 	const plans: SkillReferencePlan[] = [];
 
 	for (const slug of index.ownedSlugs) {
-		const plan = planForSkill(root, slug);
-		if (plan) plans.push(plan);
+		for (const skillDir of concreteSkillDirs(root, index, slug)) {
+			const plan = planForSkill(root, slug, skillDir);
+			if (plan) plans.push(plan);
+		}
 	}
 
-	return plans.sort((a, b) => a.skill.localeCompare(b.skill));
+	return plans.sort((a, b) => a.skillDir.localeCompare(b.skillDir));
 }
 
 export function canonicalRefPath(_root: string, refPath: string): string {
 	return normalizeRelPath(join(CANONICAL_REFS_DIR, refPath));
 }
 
-export function generatedRefPath(skill: string, refPath: string): string {
-	return normalizeRelPath(join(skill, "references", refPath));
+export function generatedRefPath(skillDir: string, refPath: string): string {
+	return normalizeRelPath(join(skillDir, "references", refPath));
 }
 
-export function rewriteSharedRefTarget(sourceFile: string, skill: string, refPath: string): string {
+export function rewriteSharedRefTarget(
+	sourceFile: string,
+	skillDir: string,
+	refPath: string,
+): string {
 	const sourceDir = sourceFile.slice(0, sourceFile.lastIndexOf("/"));
-	const target = generatedRefPath(skill, refPath);
+	const target = generatedRefPath(skillDir, refPath);
 	if (!sourceDir) return target;
 	const fromParts = sourceDir.split("/");
 	const toParts = target.split("/");
@@ -173,9 +196,13 @@ export function rewriteSharedRefTarget(sourceFile: string, skill: string, refPat
 	return rel || (toParts.at(-1) ?? refPath);
 }
 
-export function rewriteSharedRefLinks(content: string, sourceFile: string, skill: string): string {
+export function rewriteSharedRefLinks(
+	content: string,
+	sourceFile: string,
+	skillDir: string,
+): string {
 	return content.replace(SHARED_REF_LINK_RE, (_match, refPath: string) => {
-		const rewritten = rewriteSharedRefTarget(sourceFile, skill, normalizeRelPath(refPath));
+		const rewritten = rewriteSharedRefTarget(sourceFile, skillDir, normalizeRelPath(refPath));
 		return `(${rewritten})`;
 	});
 }

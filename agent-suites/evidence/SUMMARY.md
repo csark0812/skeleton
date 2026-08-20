@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
-**Status: protocol complete (N=10).**
+**Status: preliminary self-benchmark (N=10).** These runs are repeated observations from one authored harness, repository, and execution period. They are not an independent replication or a general product-effect estimate.
 
 Generated: 2026-07-17T18:40:49.591Z
 
@@ -16,7 +16,8 @@ Runs: `2026-07-17-run-001`, `2026-07-17-run-002`, `2026-07-17-run-003`, `2026-07
 | ---- | ------ |
 | Grounding McNemar p<0.05 (clean>messy) | PASS |
 | Grounding median token Δ (messy−clean) > 0 | PASS |
-| Final README claims allowed | yes |
+| Independent replication | NOT RUN |
+| Final README claims allowed | no |
 
 ## Per-scenario
 
@@ -39,4 +40,3 @@ Runs: `2026-07-17-run-001`, `2026-07-17-run-002`, `2026-07-17-run-003`, `2026-07
 McNemar **b** = clean pass / messy fail; **c** = clean fail / messy pass. Positive token Δ means messy used more tokens.
 
 See [transcripts/](transcripts/) for curated clean vs messy excerpts.
-

@@ -28,13 +28,16 @@
 				"message": { "type": "string" },
 				"scope": { "type": "string" },
 				"severity": { "enum": ["error", "warning"] },
-				"canonical": { "type": "string" }
+				"canonical": { "type": "string" },
+				"caseSensitive": { "type": "boolean" },
+				"placement": { "enum": ["any", "draft-only"] },
+				"handledBy": { "type": "string", "minLength": 1 }
 			},
 			"if": {
 				"properties": { "mode": { "const": "fingerprint" } },
 				"required": ["mode"]
 			},
-			"then": true,
+			"then": { "required": ["handledBy"] },
 			"else": { "required": ["pattern"] }
 		}
 	}

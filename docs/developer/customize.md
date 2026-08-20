@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skill customize overrides via hooks -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/customize/resolve.ts surface=resolveCustomize,resolveCustomizeFromRoot,CUSTOMIZE_PREFIX -->
 <!-- code-fit: targets=src/hooks/run.ts surface=runCustomizeHook -->

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 Injected on skill read. Prefer this overlay over portable thinned sections when both apply. Portable ledger / exit-gate rules still apply and must not be weakened.
 
@@ -12,13 +12,13 @@ Match [AGENTS.md](../../AGENTS.md) validation split:
 
 | Change type                                 | Run before claiming validate / merge-ready                                                                                                                 |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check` when breadth warrants)                            |
+| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build`; validate also audits documents linked to changed code targets                         |
 | Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
 | Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` — path-scoped validate exits non-zero and redirects here (`audit self` does not cover excluded skill trees)                         |
 | Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo                                                                                                           |
 
-`validate:changed` skips code and command-config JSON by design. Code-only green from that command is not coverage.
+`validate:changed` classifies code separately and leaves its correctness to native gates. It also discovers documents whose `code-fit` target changed. A hash review-proof failure blocks until the document is re-read and explicitly attested. Code-only green is never code coverage.
 
 ## Action bar (skeleton)
 
@@ -27,6 +27,8 @@ Default filing remains merge-blockers only.
 - **Docs / tip / AGENTS wording is ship-blocker** only when it misroutes required validation or CI behavior (e.g. equates `audit self` with `audit skills` when coverage differs on excluded skill trees).
 - Docs polish, catalog/SSOT nits, and test inventory without a reachable misroute → Noted or Deferred.
 - Public-contract drift (runtime vs schema vs docs vs CLI tips) that can make consumers skip required gates → Action.
+
+For review-proof changes, inspect the document bytes, every `code-fit` target, `.skeleton/review-lock.json`, result schema, and explicit attestation CLI together. A mechanical date or lockfile update is an Action.
 
 ## Review matrices (derive and check before theme closure)
 
@@ -37,11 +39,12 @@ Close themes only after variant coverage for applicable rows
 
 | Dimension        | Check                                                                                       |
 | ---------------- | ------------------------------------------------------------------------------------------- |
-| Input mixes      | skipped/code-only, skill-only, policy-only, docs+policy, docs+skills, mixed skipped+audited |
+| Input mixes      | code with/without impacted docs, skill-only, policy-only, docs+policy, docs+skills, mixed inputs |
 | Modes            | local / pre-commit (no `--base`) vs CI `--base`                                             |
 | Fail posture     | fail-closed redirects, fail-open “green means coverage” lies, orphan `.skeleton` YAML       |
 | Policy           | plugin-wired vs unwired YAML; `config.yaml` not treated as policy                           |
 | Equivalence tips | `audit docs` / `audit skills` / `audit self` only when they truly cover the same corpus     |
+| Review mode      | date compatibility vs hash proof; changed doc bytes vs changed target bytes                 |
 
 Hotspots: `src/validate/changed.ts`, `AGENTS.md`, `docs/developer/validation.md`.
 

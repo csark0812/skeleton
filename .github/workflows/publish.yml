@@ -44,16 +44,16 @@ jobs:
           scope: "@csark0812"
 
       - name: Install npm (OIDC provenance)
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.6.2
 
       - run: bun install --frozen-lockfile
-      - run: bun test
-      - run: bun run build
-      - run: node dist/cli.js audit self
-      - run: node dist/cli.js audit skills
 
       - name: Refresh skills-lock.json
         run: npx -y skills add . --skill skeleton -y --copy
+
+      - run: bun run check
+      - run: node dist/cli.js audit skills
+      - run: bun scripts/verify-package.ts
 
       - name: Configure git
         run: |
@@ -89,13 +89,11 @@ jobs:
           git commit -m "chore: release v$NEW_VERSION [skip ci]"
           git tag "v$NEW_VERSION"
 
-      - run: bun run build
+      - name: Publish verified npm package
+        run: npm publish --access public --provenance
 
       - name: Push release commit and tag
         run: git push origin HEAD:main --follow-tags
-
-      - name: Publish npm package
-        run: npm publish --access public --provenance
 
       - name: Verify skills channel
         run: |

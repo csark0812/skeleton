@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/plugins/load.ts surface=loadPlugins,collectWiredPolicyRelPaths,mjsPathForTs -->
 <!-- code-fit: targets=src/plugins/build.ts surface=runBuildPlugin,parseBuildPluginArgs,BuildPluginResult -->
@@ -92,32 +92,34 @@ entries:
     message: "do not use FORBIDDEN"
   - id: draft-marker
     pattern: "^\\s*<!--\\s*status:\\s*draft\\s*-->\\s*$"
+    placement: draft-only
     message: "draft markers only in allow-listed paths"
   - id: fingerprint-example
     mode: fingerprint
-    message: "ignored by core prose-policy (consumer duplication rules)"
+    handledBy: duplicate-doc-rule
+    message: "evaluated by the declared consumer duplication rule"
     canonical: docs/canonical.md
 ```
 
-| Behavior       | Detail                                                                                       |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| Pattern        | Required unless `mode: fingerprint` (schema + runtime)                                       |
-| Scope          | `matchesGlobScope` on `entry.scope`; omit = all scanned files                                |
-| Case           | Case-insensitive unless policy `name` is `skill-hub-duplication`, or pattern starts with `^` |
-| Multiline      | Pattern containing `[\\s\\S]` tests whole file                                               |
-| Fingerprint    | Skipped by core prose-policy                                                                 |
-| `draft-marker` | Allowed in `_draft-*.md` **or** under `draftPathPrefixes`                                    |
+| Behavior    | Detail                                                                                              |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| Pattern     | Required unless `mode: fingerprint` (schema + runtime)                                              |
+| Scope       | `matchesGlobScope` on `entry.scope`; omit = all scanned files                                       |
+| Case        | Case-insensitive by default; set `caseSensitive: true` for exact matching                            |
+| Placement   | `placement: draft-only` allows a match only in `_draft-*.md` or configured `draftPathPrefixes`       |
+| Multiline   | Pattern containing `[\\s\\S]` tests the whole file                                                  |
+| Fingerprint | Must declare `handledBy: <rule-id>`; plugin load fails unless that rule is exported and loaded       |
 
 ## Autofix
 
 ```bash
 skeleton audit docs --fix
-skeleton audit docs --fix=doc-meta
 skeleton audit docs --fix=anchors
 skeleton audit docs --fix --dry-run
+skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Applies doc-meta `last-reviewed` bumps and broken-anchor repairs, then re-audits.
+Bare `--fix` applies safe mechanical anchor and legacy-SSOT repairs. Review attestation is a separate explicit operation and never runs without `--confirm-reviewed` plus paths.
 
 ## Example layout
 

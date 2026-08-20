@@ -18,7 +18,7 @@ import { parseAuditArgs } from "../run.ts";
 
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
-		expect(parseFixKinds(true)).toEqual(["doc-meta", "anchors", "ssot"]);
+		expect(parseFixKinds(true)).toEqual(["anchors", "ssot"]);
 		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
@@ -29,8 +29,12 @@ describe("parseFixKinds", () => {
 describe("parseAuditArgs --fix", () => {
 	it("accepts --fix=kind and space-separated kind", () => {
 		expect(parseAuditArgs(["--fix"]).fix).toBe(true);
-		expect(parseAuditArgs(["--fix=doc-meta"]).fix).toBe("doc-meta");
-		expect(parseAuditArgs(["--fix", "doc-meta"]).fix).toBe("doc-meta");
+		expect(parseAuditArgs(["--paths=docs/a.md", "--fix=doc-meta", "--confirm-reviewed"]).fix).toBe(
+			"doc-meta",
+		);
+		expect(
+			parseAuditArgs(["--paths=docs/a.md", "--fix", "doc-meta", "--confirm-reviewed"]).fix,
+		).toBe("doc-meta");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).fix).toBe("anchors");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).dryRun).toBe(true);
 	});
@@ -43,6 +47,12 @@ describe("parseAuditArgs --fix", () => {
 		expect(() => parseAuditArgs(["--fix", "anchors", "--dry-run=true"])).toThrow(
 			/--dry-run \(boolean flag\)/,
 		);
+	});
+
+	it("rejects unknown audit flags instead of silently ignoring them", () => {
+		expect(() => parseAuditArgs(["--strcit"])).toThrow(/unknown flag/i);
+		expect(() => parseAuditArgs(["--paths="])).toThrow(/paths.*empty/i);
+		expect(() => parseAuditArgs(["--only="])).toThrow(/only.*empty/i);
 	});
 });
 
@@ -114,6 +124,34 @@ describe("findBestAnchorMatch", () => {
 });
 
 describe("coalesceFixEdits", () => {
+	it("preserves doc-meta, anchor, and SSOT changes on the same file", () => {
+		const original =
+			"# Source\n\n**Source of truth for** source.\n\n<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n\nSee [target](./target.md#old).\n";
+		const meta: FixEdit = {
+			file: "docs/source.md",
+			description: "reviewed",
+			content: original.replace("2020-01-01", "2026-08-19"),
+		};
+		const anchors: FixEdit = {
+			file: "docs/source.md",
+			description: "anchor",
+			content: original.replace("#old", "#new"),
+		};
+		const ssot: FixEdit = {
+			file: "docs/source.md",
+			description: "ssot",
+			content: original.replace(
+				"**Source of truth for** source.",
+				"<!-- source-of-truth: source -->",
+			),
+		};
+
+		const [merged] = coalesceFixEdits([meta], [anchors], [ssot]);
+		expect(merged?.content).toContain("last-reviewed=2026-08-19");
+		expect(merged?.content).toContain("./target.md#new");
+		expect(merged?.content).toContain("<!-- source-of-truth: source -->");
+	});
+
 	it("overlays last-reviewed onto anchor content for the same file", () => {
 		const meta: FixEdit = {
 			file: "docs/source.md",

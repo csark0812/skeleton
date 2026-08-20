@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/cli.ts surface=audit,validate,catalog,init,build-plugin,references -->
 
@@ -23,14 +23,14 @@ That needs to be explicit — and stay true after the next 50 PRs. Skeleton turn
 | Code repos                                              | Agent repos                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ESLint catches broken imports, unused vars, style drift | Skeleton catches broken links, bad SSOT markers, stale doc-meta, deny.paths artifacts |
-| `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs and skills                                 |
+| `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs, skills, and docs linked to changed code   |
 | Pre-commit + CI gate                                    | `--staged` pre-commit + `--base` CI gate                                               |
 
 Skill linters ask: _"Is this SKILL.md well-formed?"_
 
 Skeleton asks the repo-level question: _"Does this whole thing still agree with itself?"_
 
-## Why a clean SSOT helps agents
+## Preliminary agent-behavior evidence
 
 ### Question
 
@@ -38,19 +38,19 @@ Does an intact Skeleton contract change agent behavior — grounding on the righ
 
 ### What we did
 
-We ran a paired live A/B harness with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): `skeleton-clean` vs `skeleton-messy`. Same prompts and scenario set; the only intentional difference was SSOT / conflict structure and context profile.
+We ran a paired live A/B self-benchmark with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): `skeleton-clean` vs `skeleton-messy`. The same authored prompts compare an intact fixture with a conflicting fixture.
 
 Scenarios covered contested grounding (conflicting docs), docs-only validation routing, canonical grounding, owned-skill routing, and customize ownership. Protocol: **N=10** sequential paired compares on 2026-07-17; McNemar on paired pass/fail; median token deltas with a bootstrap CI on the mean.
 
 Full method: [refs/llm-harness.md](refs/llm-harness.md). Suites: [agent-suites/README.md](agent-suites/README.md). Aggregated numbers: [SUMMARY.md](agent-suites/evidence/SUMMARY.md). Side-by-side excerpts: [evidence/transcripts/](agent-suites/evidence/transcripts/).
 
-### What improved
+### What the benchmark observed
 
 ![Pass rate by scenario — clean vs messy](agent-suites/evidence/charts/pass-rates.svg)
 
 ![Median extra tokens on messy](agent-suites/evidence/charts/token-delta.svg)
 
-On tasks that depend on an intact SSOT, the clean fixture was both more accurate and cheaper:
+Inside this harness, tasks that depend on an intact SSOT favored the clean fixture:
 
 - **Contested grounding** — In every paired run, clean settled on the SSOT canonical; messy never did (McNemar p = 0.002). Clean hops the catalog/SSOT path; messy thrashes across conflicting docs.
 - **Docs routing** — Clean consistently chose the correct audit lane; messy invented a non-existent `audit all` path (McNemar p = 0.002).
@@ -65,7 +65,7 @@ Charts regenerate from `SUMMARY.json` via `bun run agent:evidence:charts`.
 
 ### Limits
 
-Fixture A/B on Skeleton’s own contract (live model + prompt variance) — not a general coding-task or SWE-bench claim. Skill/customize may not separate when the entry doc already teaches the correct rule.
+This is preliminary evidence from Skeleton’s own authored fixture, prompt set, repository, and execution period. Repeated runs characterize variance inside that harness; they do not independently establish a causal product effect. It is not a general coding-task or SWE-bench claim. Skill/customize did not separate when the entry doc already taught the correct rule.
 
 ### Industry context
 
@@ -99,6 +99,8 @@ Flag details: [install](docs/developer/install.md).
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
 - **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files
+- **Review proof** — optional hashes bind a human review to exact document and `code-fit` target bytes
+- **Code impact routing** — changed source files automatically pull linked documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
@@ -114,6 +116,7 @@ Config lives in **`skeleton.toml`** at the repo root (preferred). Optional under
 skeleton.toml          # scan perimeter, deny.paths, docsLint, …
 .skeleton/
 ├── catalog.md         # generated by `skeleton catalog` (gitignored)
+├── review-lock.json   # generated review evidence when reviewProof.mode = "hash"
 ├── plugins/           # optional consumer audit plugins (.ts + built .mjs)
 └── customize/         # project-specific skill overrides (optional)
     └── code-review.md
@@ -139,8 +142,9 @@ Synced skills stay pristine. Project overrides live in `.skeleton/customize/<slu
 
 ```bash
 skeleton init [--skills] [--force-hooks]
-skeleton catalog [--check]
-skeleton audit docs|skills|self [--strict] [--paths=a,b] [--fix[=doc-meta|anchors|ssot]] [--dry-run]
+skeleton catalog [--check] [--strict]
+skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-meta|anchors|ssot]] [--dry-run]
+skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 skeleton build-plugin [path] [--check]
 skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton references sync|check
@@ -156,7 +160,8 @@ skeleton customize resolve <slug>
 | Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo |
 | `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                       |
 | Other `.json`                                                                       | JSONC-tolerant syntax check                   |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`, `package.json`, `project.json` | skip (exits 1 if all skip)                    |
+| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`                               | native code gates + audit documents whose `code-fit` target changed |
+| `package.json`, `project.json`                                                     | native code gates (exits 1 if no auditable paths) |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
 
@@ -195,7 +200,7 @@ bun run check
 
 `bun run check` = lint + test + typecheck + build + `audit:self`.
 
-`validate:changed` is docs/config only for path-scoped work — it skips code/config extensions (see table above). Owned skill-body edits need `audit skills`. All-skip, owned skill paths (alone or mixed with docs), and missing paths exit non-zero.
+`validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document that names a changed file in `code-fit`. Owned skill-body edits need `audit skills`. Code-only changes with no linked document still exit non-zero locally and point to native gates.
 
 For code: `bun test`, `bun run typecheck`, `bun run build`.
 

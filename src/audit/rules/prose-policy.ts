@@ -62,13 +62,14 @@ interface PolicyEntryInput {
 		message: string;
 		pattern?: string;
 		severity?: Issue["severity"];
+		placement?: "any" | "draft-only";
 	};
 	draftPrefixes: string[];
 }
 
 function checkPolicyEntry(input: PolicyEntryInput): Issue[] {
 	const { rel, content, lines, entry, draftPrefixes } = input;
-	if (entry.id === "draft-marker") {
+	if (entry.placement === "draft-only" || entry.id === "draft-marker") {
 		return checkDraftEntry({ rel, lines, entry, draftPrefixes });
 	}
 	const isMultiline = entry.pattern?.includes("[\\s\\S]");

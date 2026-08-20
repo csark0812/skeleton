@@ -2,7 +2,7 @@
 	"generatedAt": "2026-07-17T18:40:49.591Z",
 	"protocolTargetN": 10,
 	"nRuns": 10,
-	"preliminary": false,
+	"preliminary": true,
 	"runIds": [
 		"2026-07-17-run-001",
 		"2026-07-17-run-002",
@@ -20,7 +20,8 @@
 	"gates": {
 		"groundingMcnemarP05": true,
 		"groundingTokenMedianMessyHigher": true,
-		"readmeFinalClaimsAllowed": true
+		"independentReplication": false,
+		"readmeFinalClaimsAllowed": false
 	},
 	"overall": {
 		"meanTokenDelta": 142649.96,

@@ -64,31 +64,31 @@ function walkMarkdownFiles(dir: string, root: string): string[] {
 interface GeneratedCollectInput {
 	dir: string;
 	refsDir: string;
-	skill: string;
+	skillDir: string;
 	files: string[];
 }
 
 function collectGeneratedInDir(input: GeneratedCollectInput): void {
-	const { dir, refsDir, skill, files } = input;
+	const { dir, refsDir, skillDir, files } = input;
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		const fullPath = join(dir, entry.name);
 		if (entry.isDirectory()) {
-			collectGeneratedInDir({ dir: fullPath, refsDir, skill, files });
+			collectGeneratedInDir({ dir: fullPath, refsDir, skillDir, files });
 			continue;
 		}
 		if (!entry.name.endsWith(".md")) continue;
 		const content = readFileSync(fullPath, "utf8");
 		if (!isGeneratedReference(content)) continue;
 		const refPath = normalizeRelPath(relative(refsDir, fullPath));
-		files.push(generatedRefPath(skill, refPath));
+		files.push(generatedRefPath(skillDir, refPath));
 	}
 }
 
-function listGeneratedReferenceFiles(skillDir: string, skill: string): string[] {
-	const refsDir = join(skillDir, "references");
+function listGeneratedReferenceFiles(root: string, skillDir: string): string[] {
+	const refsDir = join(root, skillDir, "references");
 	if (!existsSync(refsDir)) return [];
 	const files: string[] = [];
-	collectGeneratedInDir({ dir: refsDir, refsDir, skill, files });
+	collectGeneratedInDir({ dir: refsDir, refsDir, skillDir, files });
 	return files;
 }
 
@@ -107,7 +107,7 @@ function syncGeneratedCopy(ctx: SyncPlanContext, refPath: string): void {
 		throw new Error(`canonical reference missing: ${sourceRel}`);
 	}
 
-	const targetRel = generatedRefPath(plan.skill, refPath);
+	const targetRel = generatedRefPath(plan.skillDir, refPath);
 	const targetPath = join(root, targetRel);
 	const canonicalContent = readFileSync(canonicalPath, "utf8");
 	const nextContent = formatGeneratedHeader(sourceRel) + canonicalContent;
@@ -129,17 +129,17 @@ function rewritePlanLinks(ctx: SyncPlanContext, skillDir: string): void {
 	for (const relFile of walkMarkdownFiles(skillDir, root)) {
 		const filePath = join(root, relFile);
 		const content = readFileSync(filePath, "utf8");
-		const next = rewriteSharedRefLinks(content, relFile, plan.skill);
+		const next = rewriteSharedRefLinks(content, relFile, plan.skillDir);
 		if (next === content) continue;
 		if (!options.dryRun) writeFileSync(filePath, next, "utf8");
 		result.rewritten.push(relFile);
 	}
 }
 
-function removeStaleGenerated(ctx: SyncPlanContext, skillDir: string): void {
+function removeStaleGenerated(ctx: SyncPlanContext): void {
 	const { root, plan, options, result } = ctx;
-	for (const generatedRel of listGeneratedReferenceFiles(skillDir, plan.skill)) {
-		const refPath = generatedRel.slice(`${plan.skill}/references/`.length);
+	for (const generatedRel of listGeneratedReferenceFiles(root, plan.skillDir)) {
+		const refPath = generatedRel.slice(`${plan.skillDir}/references/`.length);
 		if (plan.refPaths.has(refPath)) continue;
 		if (!options.dryRun) unlinkSync(join(root, generatedRel));
 		result.removed.push(generatedRel);
@@ -147,12 +147,12 @@ function removeStaleGenerated(ctx: SyncPlanContext, skillDir: string): void {
 }
 
 function syncPlan(ctx: SyncPlanContext): void {
-	const skillDir = join(ctx.root, ctx.plan.skill);
+	const skillDir = join(ctx.root, ctx.plan.skillDir);
 	for (const refPath of ctx.plan.refPaths) {
 		syncGeneratedCopy(ctx, refPath);
 	}
 	rewritePlanLinks(ctx, skillDir);
-	removeStaleGenerated(ctx, skillDir);
+	removeStaleGenerated(ctx);
 }
 
 export function syncReferences(options: SyncOptions = {}): SyncResult {

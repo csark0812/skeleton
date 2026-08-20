@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 <!-- code-fit: targets=src/cli.ts surface=catalog,audit,validate,init -->
 
@@ -47,9 +47,15 @@ bun test ./tests/smoke.test.ts
 | Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
 | Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` (path-scoped validate exits non-zero for owned skill paths — alone or mixed with docs — and redirects here; `audit self` does not cover excluded skill trees) |
 | Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)                                                                   |
-| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build` (+ `bun run lint` or `bun run check`)                                                  |
+| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build`; `validate:changed` also discovers and audits docs that target the changed code                                            |
 
-`validate:changed` **skips** `.ts`/`.tsx`/`.js`/`.jsx`/`.mjs`/`.cjs`/`.py` and command-config JSON (`package.json`, `project.json`). That is intentional — code stays outside the SSOT router. If every path is skipped locally (no `--base`), it exits non-zero and points you at `bun test` + `bun run typecheck` + `bun run build`. Under CI `--base`, all-skipped code still runs global rules (then exits 0 when those pass) — keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+`validate:changed` classifies code paths but leaves their correctness to `bun test` + `typecheck` + `build`. It scans `code-fit` markers and adds every document linked to changed code to the docs audit. With hash review proof, changed target bytes invalidate the recorded review. Without hash mode, the linked document must co-change with a current explicit review attestation. Code-only changes with no linked docs exit non-zero locally and print the native gates. Under CI `--base`, code-only changes still run global rules; keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+
+Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, attest only explicit paths:
+
+```bash
+bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
+```
 
 Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional — not required for audit.
 

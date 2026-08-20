@@ -9,7 +9,7 @@ description: Agent ops manual for skeleton-enabled repos — init, catalog, audi
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
 Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
 
@@ -31,7 +31,7 @@ Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/do
 
 Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do not assume one-liners stay accurate without that gate.
 
-Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. Prefer the “content changed after last-reviewed” warning (review must cover latest edit); `daysUntilStale` is optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
+Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. When hash review proof is enabled, `.skeleton/review-lock.json` binds that claim to the exact document and `code-fit` target bytes. `daysUntilStale` remains an optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
 
 Not for: normal feature work that only reads toolbox skills (optional customize hooks can inject on skill reads).
 
@@ -41,6 +41,7 @@ Not for: normal feature work that only reads toolbox skills (optional customize 
 skeleton.toml           # preferred root config (scan, stale, docsLint)
 .skeleton/
 ├── catalog.md          # generated, gitignored — run `skeleton catalog`
+├── review-lock.json    # review hashes when reviewProof.mode = "hash"
 ├── plugins/            # optional audit plugins (.ts + .mjs)
 └── customize/          # per-slug overrides for toolbox-bound skills
     └── <slug>.md
@@ -75,7 +76,16 @@ Edit `skeleton.toml` scan trees for this repo shape.
 
 1. Add `<!-- source-of-truth: one-line summary -->` (or visible `source-of-truth: …`) to canonical docs
 2. Run `skeleton catalog`
-3. Run `skeleton audit docs` (or `audit self`)
+3. Add `code-fit` targets where a code change can invalidate the paper
+4. Run `skeleton audit docs` (or `audit self`)
+
+After a complete human re-read, record review evidence for explicit paths only:
+
+```bash
+skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
+```
+
+Do not run this command as a mechanical date cleanup. Bare `--fix` changes anchors and legacy SSOT markers only.
 
 ## CLI
 
@@ -83,11 +93,12 @@ Edit `skeleton.toml` scan trees for this repo shape.
 | ---------------------------------------------- | ------------------------------------------------------- |
 | `skeleton audit self`                          | Full docs + config audit (excluded skill trees still need `audit skills`) |
 | `skeleton audit docs`                          | Doc audit (SSOT, near-dupe, links, doc-meta, …)         |
-| `skeleton audit docs --fix`                    | Autofix doc-meta + anchors + legacy SSOT rewrite        |
+| `skeleton audit docs --fix`                    | Autofix anchors + legacy SSOT rewrite                   |
+| `skeleton audit docs --paths=… --fix=doc-meta --confirm-reviewed` | Record a completed review for explicit documents |
 | `skeleton audit skills`                        | Skill audit                                             |
-| `skeleton catalog` / `catalog --check`         | Write / warn-check gitignored agent catalog             |
+| `skeleton catalog` / `catalog --check --strict` | Write / check the gitignored agent catalog              |
 | `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
-| `skeleton validate changed`                    | Changed-file validation                                 |
+| `skeleton validate changed`                    | Changed-file validation + code-impact doc discovery     |
 | `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 | `skeleton references sync`                     | Materialize shared references into skills               |
@@ -97,3 +108,5 @@ Edit `skeleton.toml` scan trees for this repo shape.
 `register` was removed — add a source-of-truth marker and run `skeleton catalog`.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
+
+Machine consumers: `audit --json` and `validate changed --json` each emit one versioned result document. Validate it with the exported `schemas/result.schema.json`; use `@csark0812/skeleton/result-types` for TypeScript.

@@ -28,6 +28,14 @@ export interface SkillOwnershipConfig {
 	foreignSlugs?: string[];
 }
 
+/** Verifiable evidence that a human review covered exact document and code bytes. */
+export interface ReviewProofConfig {
+	/** Hash mode stores reviewed document and code-target digests in a lockfile. */
+	mode: "hash";
+	/** Repo-relative proof lockfile (default: .skeleton/review-lock.json). */
+	lockfile?: string;
+}
+
 /** Tunables for near-duplicate, SSOT-summary, and code-fit docs lint. */
 export interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
@@ -58,6 +66,7 @@ export interface SkeletonConfig {
 	deny?: DenyConfig;
 	customize?: CustomizeConfig;
 	skillOwnership?: SkillOwnershipConfig;
+	reviewProof?: ReviewProofConfig;
 	docsLint?: DocsLintConfig;
 	/**
 	 * Plugin entry paths relative to `.skeleton/` (e.g. `plugins/example.ts`).

@@ -20,9 +20,10 @@ Commands:
   init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
                          [--fix[=doc-meta|anchors|ssot]] [--dry-run]
+                         [--confirm-reviewed (doc-meta only; requires --paths)]
   build-plugin [path] [--check]
-  validate changed [paths…] [--staged] [--base <ref>]
-  catalog [--check]         write or check .skeleton/catalog.md (gitignored)
+  validate changed [paths…] [--staged] [--base <ref>] [--json]
+  catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   customize resolve <slug> [--json]
   hook customize            (reads a host hook payload on stdin)
   references sync [--dry-run] [--no-rewrite-links]
@@ -31,24 +32,34 @@ Commands:
 Note: \`register\` was removed — add a source-of-truth marker to the file and run \`skeleton catalog\`.`);
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
 function parseValidateChangedArgs(rest: string[]): {
 	paths: string[];
 	staged: boolean;
 	base?: string;
+	json: boolean;
 } {
 	const paths: string[] = [];
 	let staged = false;
 	let base: string | undefined;
+	let json = false;
 
 	for (let i = 0; i < rest.length; i++) {
 		const arg = rest[i];
 		if (arg === "--staged") staged = true;
-		else if (arg === "--base") base = rest[++i];
-		else if (arg?.startsWith("--base=")) base = arg.slice("--base=".length);
+		else if (arg === "--json") json = true;
+		else if (arg === "--base") {
+			const value = rest[++i];
+			if (!value || value.startsWith("-")) throw new Error("validate changed: --base needs a ref");
+			base = value;
+		} else if (arg?.startsWith("--base=")) {
+			base = arg.slice("--base=".length);
+			if (!base) throw new Error("validate changed: --base cannot be empty");
+		} else if (arg?.startsWith("-")) throw new Error(`validate changed: unknown flag ${arg}`);
 		else if (arg && !arg.startsWith("-")) paths.push(arg);
 	}
 
-	return { paths, staged, base };
+	return { paths, staged, base, json };
 }
 
 async function handleAudit(argv: string[]): Promise<number> {
@@ -83,8 +94,8 @@ async function handleBuildPlugin(argv: string[]): Promise<number> {
 }
 
 async function handleValidateChanged(argv: string[]): Promise<number> {
-	const { paths, staged, base } = parseValidateChangedArgs(argv);
-	return runValidateChanged({ paths, staged, base });
+	const { paths, staged, base, json } = parseValidateChangedArgs(argv);
+	return runValidateChanged({ paths, staged, base, json });
 }
 
 function handleRegister(): number {
@@ -95,7 +106,12 @@ function handleRegister(): number {
 }
 
 function handleCatalog(argv: string[]): number {
-	return runCatalogCli({ check: argv.includes("--check") });
+	for (const arg of argv) {
+		if (arg !== "--check" && arg !== "--strict") {
+			throw new Error(`catalog: unknown flag ${arg}`);
+		}
+	}
+	return runCatalogCli({ check: argv.includes("--check"), strict: argv.includes("--strict") });
 }
 
 function handleCustomizeResolve(argv: string[]): number {
