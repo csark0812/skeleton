@@ -90,7 +90,9 @@ jobs:
           git tag "v$NEW_VERSION"
 
       - name: Publish verified npm package
-        run: npm publish --access public --provenance
+        # The release bump changes package.json after the verified check. Do not rerun
+        # prepack here: review proof correctly treats that version change as new drift.
+        run: npm publish --ignore-scripts --access public --provenance
 
       - name: Push release commit and tag
         run: git push origin HEAD:main --follow-tags
