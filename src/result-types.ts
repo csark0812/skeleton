@@ -24,38 +24,3 @@ export interface AuditResult {
 	reviewProof: ReviewProofResult;
 	successSuffix?: string;
 }
-
-export interface ValidateClassificationResult {
-	docs: string[];
-	code: string[];
-	skills: string[];
-	shell: string[];
-	json: string[];
-	policy: string[];
-	skipped: string[];
-	foreignSkills: string[];
-	missing: string[];
-	orphanPolicies: string[];
-}
-
-export type DocumentImpactReason =
-	| { kind: "changed-document" }
-	| { kind: "changed-code-target"; target: string };
-
-export interface ImpactedDocument {
-	path: string;
-	codeTargets: string[];
-	reasons: DocumentImpactReason[];
-}
-
-export interface ValidateChangedResult {
-	schemaVersion: 1;
-	command: "validate-changed";
-	ok: boolean;
-	exitCode: 0 | 1;
-	input: { paths: string[]; staged: boolean; base?: string };
-	classification: ValidateClassificationResult;
-	impactedDocuments: ImpactedDocument[];
-	audits: AuditResult[];
-	diagnostics: Issue[];
-}

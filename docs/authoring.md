@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: Skeleton framework authoring conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog -->
+<!-- review-deps: paths=src/catalog.ts -->
 
 Every canonical doc in a skeleton-enabled repo carries a `source-of-truth` marker (comment or visible line). Opt in that way — no hand-maintained registry. Refresh the agent index with `skeleton catalog` (`runCatalogCli` / `checkCatalog` / `writeCatalog`).
 

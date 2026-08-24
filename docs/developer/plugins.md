@@ -2,10 +2,9 @@
 
 <!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/plugins/load.ts surface=loadPlugins,collectWiredPolicyRelPaths,mjsPathForTs -->
-<!-- code-fit: targets=src/plugins/build.ts surface=runBuildPlugin,parseBuildPluginArgs,BuildPluginResult -->
+<!-- review-deps: paths=src/plugins/load.ts,src/plugins/build.ts -->
 
 Skeleton plugins extend audit with consumer-specific rules and prose-policy YAML. Core stays thin; product policies live in plugins (e.g. PostPrint later).
 

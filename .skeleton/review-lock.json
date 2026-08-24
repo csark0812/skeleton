@@ -1,113 +1,123 @@
 {
-	"version": 1,
+	"version": 2,
 	"documents": {
 		".skeleton/customize/code-review.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:fc821749367500cf64f98ac3b4b225babbc1dc3f5ccc71a0249f9e24d7665712",
-			"codeTargets": {}
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:abfe0693e95a679faf78f5b81d6b47f4502808adb4274692ba307c3c7fbae68e",
+			"reviewDependencies": {
+				"AGENTS.md": "sha256:a2db8d1b66713851db18b98a6e2fc89a90ce065c59b76f127056b8cffaa1b051",
+				"docs/developer/validation.md": "sha256:4446fad5d1fba85c4cd5a33de25440ad289cbd141956dee0cfa493007ad09fb2",
+				"src/validate/changed.ts": "sha256:c2210201db3962ca99e603a5ece323d5ffbd8a8145ee577bfa191831f977be5a"
+			}
 		},
 		"AGENTS.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:99efe8675832fdd5fa52c2fce1f36ade30c9104b86ff8bdb4035814f3fab2766",
-			"codeTargets": {
-				"src/cli.ts": "sha256:4b50c1a95acbd500969f2876fd6a0a881e1bdc63d11429676c75aeb02ab98309"
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:a2db8d1b66713851db18b98a6e2fc89a90ce065c59b76f127056b8cffaa1b051",
+			"reviewDependencies": {
+				"package.json": "sha256:81351ae415d130424c51269ef7bc36048c36124d46ae3de99bf4ff08d6fa1755",
+				"src/cli.ts": "sha256:c07eed56523e34160fb8c67db0d184b5806ac8611a8f138486391cd410b2326a"
 			}
 		},
 		"README.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:740f7f31d5b43197cab18e9e21395587d0b8a1a32b4a956a427f898231f03289",
-			"codeTargets": {
-				"src/cli.ts": "sha256:4b50c1a95acbd500969f2876fd6a0a881e1bdc63d11429676c75aeb02ab98309"
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:202beb1fbdc8fe31a0fc8024f6113c171f16964f4d7c9f794988502c9430ebfb",
+			"reviewDependencies": {
+				"package.json": "sha256:81351ae415d130424c51269ef7bc36048c36124d46ae3de99bf4ff08d6fa1755",
+				"src/cli.ts": "sha256:c07eed56523e34160fb8c67db0d184b5806ac8611a8f138486391cd410b2326a"
 			}
 		},
 		"docs/authoring.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:8799138db66a72e9744f654f3b318e3c2d5823b9f4cbbcfba225831906748084",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:f15d6b8abf6075cc5456eeeb3762fc6fe166547afb81b9c875b7f1a45090a7d2",
+			"reviewDependencies": {
 				"src/catalog.ts": "sha256:8606f54aff1a5f15c971da6eda44a665535d880cec6a9e97d21a365a8325c25d"
 			}
 		},
 		"docs/developer/audit.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:2dc2a27d2c13ac9d4855234ecf31e9fcca5894a64303d7380e5539e157359ccb",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:6efc327ce6ae2b25222eec502fcbf730d214b0c8a0a4b26464d8dc656718ec8d",
+			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:e024e3bf02d4017609ee6d46883ecaa362d0bd9201c20bceac3f7fed5ab00c7a",
-				"src/cli.ts": "sha256:4b50c1a95acbd500969f2876fd6a0a881e1bdc63d11429676c75aeb02ab98309"
+				"src/cli.ts": "sha256:c07eed56523e34160fb8c67db0d184b5806ac8611a8f138486391cd410b2326a"
 			}
 		},
 		"docs/developer/config.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:132a01c49323a5674786b7d5e211105bb0fccfc8f8fd75361d760f8fc4c3f501",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:70c1965e52a5333c0b4b32d6aa61c0bcce6a24bcf8e4b5ff25a7c812166c27fc",
+			"reviewDependencies": {
 				"src/audit/config/load.ts": "sha256:38b0f063408beb411872195f3f1e6183795d40b97380f5f5dec9169660556b1f",
-				"src/audit/config/types.ts": "sha256:eb85fb19132f8a37e8880986d9eef8b4bd4b103196acef0acbfb80e1e91475e1"
+				"src/audit/config/types.ts": "sha256:2c76827153f7af8fb513e90b3439e947bc479ba9d0e26a038c1ff549ea7c0d1f"
 			}
 		},
 		"docs/developer/customize.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:6c6b866fcfe8c2aa1ee98da59a2a0166c429322a61a569a012e97d9879b1eef7",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:2ca93b842bc49feddaad115b145df9aabc5809ea72af75ef0af0f66b6c00ceb3",
+			"reviewDependencies": {
 				"src/customize/resolve.ts": "sha256:0bf0940f2b719ba07d80b282d1c005e1b50e34d78b73682d030b6e1a1d624bc4",
 				"src/hooks/run.ts": "sha256:5bcd20491434abb6534c308bce0abc91cf9e6f5fb13640025ac9d868c038e1ef"
 			}
 		},
 		"docs/developer/doc-system.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:40939f43d02a185085ac5ddaa244fd6c5efe83be1b32f2b9e251688211c129f6",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:7bf994578b83d207071730fbe21821ae6c818ed0f4d32f6a8f5984928e723d07",
+			"reviewDependencies": {
 				"src/audit/core/ssot-fit.ts": "sha256:9b78c8ea894e4156d1c52183de17e004e8ddb2664920a61148d5620937cb0c8f",
 				"src/audit/rules/doc-meta.ts": "sha256:680e6fd05b98a795c298c03ce9023eb72a2fcbeefce02edb203b618e662c3b43",
 				"src/catalog.ts": "sha256:8606f54aff1a5f15c971da6eda44a665535d880cec6a9e97d21a365a8325c25d"
 			}
 		},
 		"docs/developer/getting-started.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:f5fce991198a5fbe1d1dbaa5cc54ddccf7088a3a5616353d49f7b4fe34248ff1",
-			"codeTargets": {
-				"src/cli.ts": "sha256:4b50c1a95acbd500969f2876fd6a0a881e1bdc63d11429676c75aeb02ab98309",
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:df038e9a52af0d692a3b8171d5da2d891ff5eae0b055b38d5de315f3830d0deb",
+			"reviewDependencies": {
+				"src/cli.ts": "sha256:c07eed56523e34160fb8c67db0d184b5806ac8611a8f138486391cd410b2326a",
 				"src/init/init.ts": "sha256:80a2bb7d7b6d6e016456dcb3568d161426fd02ebae838200f8cbbcfd48a100b3"
 			}
 		},
 		"docs/developer/install.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:a1bfeea3f75bc173cf4556062327a82506154c298fa9a20b610769336d4404ca",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:df0f3d50120594144727dd992bc26a2393282f84550f2dfde8f760521ec79095",
+			"reviewDependencies": {
 				"src/init/init.ts": "sha256:80a2bb7d7b6d6e016456dcb3568d161426fd02ebae838200f8cbbcfd48a100b3"
 			}
 		},
 		"docs/developer/plugins.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:d17c948671c307a9c939859005446861ab7073c093e21751fdfb52a89d3553ad",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:10a45d19b6ff5deee331fcc9b6f8d6aa3644e514d732e97283ba0a7079f00173",
+			"reviewDependencies": {
 				"src/plugins/build.ts": "sha256:31897250e86e9e0e99e3da7ede5f2adbf67143db40b1b697c9705398b80d151d",
 				"src/plugins/load.ts": "sha256:4d4af512ccbac69ec8835d562bc6d7ae36732327f763280d03257445e7ea4294"
 			}
 		},
 		"docs/developer/troubleshooting.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:635e42d2f44b2ecaa1917a8c915e6de779c3eb8431ee3b97d75e7edec622f5bd",
-			"codeTargets": {
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:4b3fb14ec0c51eef30abda032e2e92a4a6909731254741b93bd21229973143dc",
+			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:e024e3bf02d4017609ee6d46883ecaa362d0bd9201c20bceac3f7fed5ab00c7a",
-				"src/validate/changed.ts": "sha256:ac1f02677725ef7b4f36dfea46f5a1152cb6bbbf41ba1dd25662db8527cb0876"
+				"src/validate/changed.ts": "sha256:c2210201db3962ca99e603a5ece323d5ffbd8a8145ee577bfa191831f977be5a"
 			}
 		},
 		"docs/developer/validation.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:eaa0a1cf9390488df47cd7042450ff7d8ef01f379fe5454192009a939f64b888",
-			"codeTargets": {
-				"src/validate/changed.ts": "sha256:ac1f02677725ef7b4f36dfea46f5a1152cb6bbbf41ba1dd25662db8527cb0876"
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:4446fad5d1fba85c4cd5a33de25440ad289cbd141956dee0cfa493007ad09fb2",
+			"reviewDependencies": {
+				"src/validate/changed.ts": "sha256:c2210201db3962ca99e603a5ece323d5ffbd8a8145ee577bfa191831f977be5a"
 			}
 		},
 		"docs/tiers.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:31f02bc12839de75cfa17f22876f6a6462feb351acf29327b5dab0fbf9bdfc19",
-			"codeTargets": {}
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:2985d2955129c6a35d5b84a481d15c51c3434a650a7bc3c4f575ee0224d5b007",
+			"reviewDependencies": {
+				"docs/developer/getting-started.md": "sha256:df038e9a52af0d692a3b8171d5da2d891ff5eae0b055b38d5de315f3830d0deb",
+				"docs/developer/install.md": "sha256:df0f3d50120594144727dd992bc26a2393282f84550f2dfde8f760521ec79095",
+				"docs/developer/validation.md": "sha256:4446fad5d1fba85c4cd5a33de25440ad289cbd141956dee0cfa493007ad09fb2"
+			}
 		},
 		"skeleton/SKILL.md": {
-			"reviewedAt": "2026-08-19",
-			"documentHash": "sha256:360a4ad38e3ba63b982091fb51e3c3d3db7015ebfeabe8ad8bf36928d3b96e9b",
-			"codeTargets": {
-				"src/cli.ts": "sha256:4b50c1a95acbd500969f2876fd6a0a881e1bdc63d11429676c75aeb02ab98309"
+			"reviewedAt": "2026-08-24",
+			"documentHash": "sha256:f00c7ae237d9b20dd70f99707c4a68c5305ecf62c8335d4eaf22ee9fffca6a1c",
+			"reviewDependencies": {
+				"src/cli.ts": "sha256:c07eed56523e34160fb8c67db0d184b5806ac8611a8f138486391cd410b2326a"
 			}
 		}
 	}

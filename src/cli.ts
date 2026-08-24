@@ -22,7 +22,7 @@ Commands:
                          [--fix[=doc-meta|anchors|ssot]] [--dry-run]
                          [--confirm-reviewed (doc-meta only; requires --paths)]
   build-plugin [path] [--check]
-  validate changed [paths…] [--staged] [--base <ref>] [--json]
+  validate changed [paths…] [--staged] [--base <ref>]
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   customize resolve <slug> [--json]
   hook customize            (reads a host hook payload on stdin)
@@ -37,17 +37,14 @@ function parseValidateChangedArgs(rest: string[]): {
 	paths: string[];
 	staged: boolean;
 	base?: string;
-	json: boolean;
 } {
 	const paths: string[] = [];
 	let staged = false;
 	let base: string | undefined;
-	let json = false;
 
 	for (let i = 0; i < rest.length; i++) {
 		const arg = rest[i];
 		if (arg === "--staged") staged = true;
-		else if (arg === "--json") json = true;
 		else if (arg === "--base") {
 			const value = rest[++i];
 			if (!value || value.startsWith("-")) throw new Error("validate changed: --base needs a ref");
@@ -59,7 +56,7 @@ function parseValidateChangedArgs(rest: string[]): {
 		else if (arg && !arg.startsWith("-")) paths.push(arg);
 	}
 
-	return { paths, staged, base, json };
+	return { paths, staged, base };
 }
 
 async function handleAudit(argv: string[]): Promise<number> {
@@ -94,8 +91,8 @@ async function handleBuildPlugin(argv: string[]): Promise<number> {
 }
 
 async function handleValidateChanged(argv: string[]): Promise<number> {
-	const { paths, staged, base, json } = parseValidateChangedArgs(argv);
-	return runValidateChanged({ paths, staged, base, json });
+	const { paths, staged, base } = parseValidateChangedArgs(argv);
+	return runValidateChanged({ paths, staged, base });
 }
 
 function handleRegister(): number {

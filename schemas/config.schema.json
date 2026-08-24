@@ -47,7 +47,7 @@
 		"docsLint": {
 			"type": "object",
 			"additionalProperties": false,
-			"description": "Near-duplicate, SSOT-summary, and code-fit lint tunables",
+			"description": "Near-duplicate and SSOT-summary lint tunables",
 			"properties": {
 				"nearDuplicateThreshold": {
 					"type": "number",
@@ -85,17 +85,6 @@
 					"type": "array",
 					"items": { "type": "string", "minLength": 1 },
 					"description": "Globs excluded from near-dupe / duplicate-SSOT"
-				},
-				"codeFitOverlapMin": {
-					"type": "number",
-					"minimum": 0,
-					"maximum": 1,
-					"description": "Min fraction of doc tokens that must also appear as code identifiers (default 0.03)"
-				},
-				"codeFitSurfaceCap": {
-					"type": "integer",
-					"minimum": 1,
-					"description": "Max auto-extracted surface names before surface= is required (default 25)"
 				}
 			}
 		},

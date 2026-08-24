@@ -90,12 +90,11 @@ try {
 		join(consumer, "consumer.ts"),
 		`import { issue } from "@csark0812/skeleton/plugin-types";
 import type { AuditContext, AuditRule } from "@csark0812/skeleton/plugin-types";
-import type { AuditResult, ValidateChangedResult } from "@csark0812/skeleton/result-types";
+import type { AuditResult } from "@csark0812/skeleton/result-types";
 
 const rule: AuditRule = { id: "consumer", run: (ctx: AuditContext) => [issue("consumer", ctx.root, { message: "ok" })] };
 const audit = {} as AuditResult;
-const validate = {} as ValidateChangedResult;
-void [rule, audit.reviewProof.status, validate.impactedDocuments];
+void [rule, audit.reviewProof.status];
 `,
 	);
 

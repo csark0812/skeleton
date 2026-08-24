@@ -1,8 +1,8 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"$id": "https://github.com/csark0812/skeleton/schemas/result.schema.json",
-	"title": "Skeleton command result",
-	"oneOf": [{ "$ref": "#/$defs/auditResult" }, { "$ref": "#/$defs/validateChangedResult" }],
+	"title": "Skeleton audit result",
+	"$ref": "#/$defs/auditResult",
 	"$defs": {
 		"issue": {
 			"type": "object",
@@ -73,10 +73,7 @@
 						"warnings": { "type": "integer", "minimum": 0 }
 					}
 				},
-				"diagnostics": {
-					"type": "array",
-					"items": { "$ref": "#/$defs/issue" }
-				},
+				"diagnostics": { "type": "array", "items": { "$ref": "#/$defs/issue" } },
 				"catalog": {
 					"type": "object",
 					"additionalProperties": false,
@@ -93,114 +90,11 @@
 					"required": ["mode", "status"],
 					"properties": {
 						"mode": { "enum": ["date", "hash"] },
-						"status": {
-							"enum": ["not-enabled", "not-checked", "valid", "invalid"]
-						},
+						"status": { "enum": ["not-enabled", "not-checked", "valid", "invalid"] },
 						"lockfile": { "type": "string" }
 					}
 				},
 				"successSuffix": { "type": "string" }
-			}
-		},
-		"classification": {
-			"type": "object",
-			"additionalProperties": false,
-			"required": [
-				"docs",
-				"code",
-				"skills",
-				"shell",
-				"json",
-				"policy",
-				"skipped",
-				"foreignSkills",
-				"missing",
-				"orphanPolicies"
-			],
-			"properties": {
-				"docs": { "type": "array", "items": { "type": "string" } },
-				"code": { "type": "array", "items": { "type": "string" } },
-				"skills": { "type": "array", "items": { "type": "string" } },
-				"shell": { "type": "array", "items": { "type": "string" } },
-				"json": { "type": "array", "items": { "type": "string" } },
-				"policy": { "type": "array", "items": { "type": "string" } },
-				"skipped": { "type": "array", "items": { "type": "string" } },
-				"foreignSkills": { "type": "array", "items": { "type": "string" } },
-				"missing": { "type": "array", "items": { "type": "string" } },
-				"orphanPolicies": { "type": "array", "items": { "type": "string" } }
-			}
-		},
-		"impactReason": {
-			"oneOf": [
-				{
-					"type": "object",
-					"additionalProperties": false,
-					"required": ["kind"],
-					"properties": { "kind": { "const": "changed-document" } }
-				},
-				{
-					"type": "object",
-					"additionalProperties": false,
-					"required": ["kind", "target"],
-					"properties": {
-						"kind": { "const": "changed-code-target" },
-						"target": { "type": "string" }
-					}
-				}
-			]
-		},
-		"impactedDocument": {
-			"type": "object",
-			"additionalProperties": false,
-			"required": ["path", "codeTargets", "reasons"],
-			"properties": {
-				"path": { "type": "string" },
-				"codeTargets": { "type": "array", "items": { "type": "string" } },
-				"reasons": { "type": "array", "items": { "$ref": "#/$defs/impactReason" } }
-			}
-		},
-		"validateChangedResult": {
-			"type": "object",
-			"additionalProperties": false,
-			"required": [
-				"schemaVersion",
-				"command",
-				"ok",
-				"exitCode",
-				"input",
-				"classification",
-				"impactedDocuments",
-				"audits",
-				"diagnostics"
-			],
-			"properties": {
-				"schemaVersion": { "const": 1 },
-				"command": { "const": "validate-changed" },
-				"ok": { "type": "boolean" },
-				"exitCode": { "enum": [0, 1] },
-				"input": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": ["paths", "staged"],
-					"properties": {
-						"paths": { "type": "array", "items": { "type": "string" } },
-						"staged": { "type": "boolean" },
-						"base": { "type": "string", "minLength": 1 }
-					}
-				},
-				"classification": { "$ref": "#/$defs/classification" },
-				"impactedDocuments": {
-					"type": "array",
-					"items": { "$ref": "#/$defs/impactedDocument" }
-				},
-				"audits": {
-					"type": "array",
-					"items": { "$ref": "#/$defs/auditResult" }
-				},
-				"diagnostics": {
-					"type": "array",
-					"items": { "$ref": "#/$defs/issue" }
-				}
 			}
 		}
 	}

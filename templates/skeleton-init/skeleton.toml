@@ -16,7 +16,7 @@ exclude = [
 paths = []
 
 # Optional but recommended: make review claims verifiable against exact document
-# and code-fit target bytes. Commit the generated lockfile.
+# and review-dependency bytes. Commit the generated lockfile.
 # [reviewProof]
 # mode = "hash"
 # lockfile = ".skeleton/review-lock.json"

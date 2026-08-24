@@ -36,7 +36,7 @@ export interface ReviewProofConfig {
 	lockfile?: string;
 }
 
-/** Tunables for near-duplicate, SSOT-summary, and code-fit docs lint. */
+/** Tunables for near-duplicate and SSOT-summary docs lint. */
 export interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
 	nearDuplicateThreshold?: number;
@@ -50,13 +50,6 @@ export interface DocsLintConfig {
 	ignorePairs?: [string, string][];
 	/** Globs excluded from near-dupe / duplicate-SSOT (still catalogued if they have SSOT). */
 	ignoreGlobs?: string[];
-	/**
-	 * Min fraction of code identifiers that must appear in the doc (code-fit).
-	 * Default 0.03 — separate from ssotOverlapMin (doc-grounding vs large modules).
-	 */
-	codeFitOverlapMin?: number;
-	/** Max auto-extracted surface names before surface= is required (default 25). */
-	codeFitSurfaceCap?: number;
 }
 
 export interface SkeletonConfig {

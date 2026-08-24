@@ -2,10 +2,9 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/init/init.ts surface=runInit,InitOptions,InitResult -->
-<!-- code-fit: targets=src/cli.ts surface=init,audit,validate,catalog -->
+<!-- review-deps: paths=src/init/init.ts,src/cli.ts -->
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
@@ -110,7 +109,7 @@ npx skeleton validate changed --staged
 
 Audits pass → you're set. A foreign-only skill change can pass because synced
 skill bodies are validated in their owning repo; `validate changed` prints each
-skip. Code changes also pull in documents whose `code-fit` marker names the changed file. Review failures require a complete re-read, followed by explicit attestation:
+skip. Any changed repository file also pulls in documents whose `review-deps` marker matches it. Review failures require a complete re-read, followed by explicit attestation:
 
 ```bash
 npx skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed

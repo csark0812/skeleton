@@ -2,7 +2,9 @@
 
 <!-- source-of-truth: the three-tier agent ecosystem -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+
+<!-- review-deps: paths=docs/developer/getting-started.md,docs/developer/install.md,docs/developer/validation.md -->
 
 Map of the three-tier agent ecosystem across skeleton, toolbox, and consumer apps.
 

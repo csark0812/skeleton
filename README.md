@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/cli.ts surface=audit,validate,catalog,init,build-plugin,references -->
+<!-- review-deps: paths=src/cli.ts,package.json -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
@@ -23,7 +23,7 @@ That needs to be explicit — and stay true after the next 50 PRs. Skeleton turn
 | Code repos                                              | Agent repos                                                                            |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | ESLint catches broken imports, unused vars, style drift | Skeleton catches broken links, bad SSOT markers, stale doc-meta, deny.paths artifacts |
-| `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs, skills, and docs linked to changed code   |
+| `eslint --fix` on changed files                         | `skeleton validate changed` on changed docs, skills, and matching document dependencies |
 | Pre-commit + CI gate                                    | `--staged` pre-commit + `--base` CI gate                                               |
 
 Skill linters ask: _"Is this SKILL.md well-formed?"_
@@ -99,8 +99,8 @@ Flag details: [install](docs/developer/install.md).
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
 - **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files
-- **Review proof** — optional hashes bind a human review to exact document and `code-fit` target bytes
-- **Code impact routing** — changed source files automatically pull linked documents into validation
+- **Review proof** — optional hashes bind a human review to exact document and `review-deps` bytes
+- **Dependency routing** — changed repository files automatically pull matching documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
@@ -160,8 +160,7 @@ skeleton customize resolve <slug>
 | Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo |
 | `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                       |
 | Other `.json`                                                                       | JSONC-tolerant syntax check                   |
-| `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`                               | native code gates + audit documents whose `code-fit` target changed |
-| `package.json`, `project.json`                                                     | native code gates (exits 1 if no auditable paths) |
+| Any repository file                                                                 | native gates where applicable + audit documents whose `review-deps` path or glob matched |
 
 Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
 
@@ -200,7 +199,7 @@ bun run check
 
 `bun run check` = lint + test + typecheck + build + `audit:self`.
 
-`validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document that names a changed file in `code-fit`. Owned skill-body edits need `audit skills`. Code-only changes with no linked document still exit non-zero locally and point to native gates.
+`validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document whose `review-deps` declaration matches a changed file. Owned skill-body edits need `audit skills`. Code-only changes with no linked document still exit non-zero locally and point to native gates.
 
 For code: `bun test`, `bun run typecheck`, `bun run build`.
 

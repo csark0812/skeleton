@@ -2,9 +2,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
-import { parseCodeFitMarkers } from "../audit/core/code-fit.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
 import { type Issue, issue } from "../audit/core/report.ts";
+import {
+	reviewDependencyMatchesPath,
+	reviewDependencyPatterns,
+} from "../audit/core/review-deps.ts";
 import { formatLocalReviewDate } from "../audit/core/review-proof.ts";
 import { docMetaLastReviewed, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import {
@@ -17,13 +20,8 @@ import {
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { evaluateAudit, printAuditResult } from "../audit/run.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
-import type {
-	AuditResult,
-	ImpactedDocument,
-	ValidateChangedResult,
-	ValidateClassificationResult,
-} from "../result-types.ts";
-import { gitDiffChangedFiles } from "./git-diff.ts";
+import type { AuditResult } from "../result-types.ts";
+import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
 const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
@@ -36,7 +34,41 @@ export interface ValidateChangedOptions {
 	staged?: boolean;
 	base?: string;
 	root?: string;
-	json?: boolean;
+}
+
+interface DocumentImpactReason {
+	kind: "changed-document" | "changed-review-dependency";
+	dependency?: string;
+	target?: string;
+}
+
+interface ImpactedDocument {
+	path: string;
+	reviewDependencies: string[];
+	reasons: DocumentImpactReason[];
+}
+
+interface ValidateClassificationResult {
+	docs: string[];
+	code: string[];
+	skills: string[];
+	shell: string[];
+	json: string[];
+	policy: string[];
+	skipped: string[];
+	foreignSkills: string[];
+	missing: string[];
+	orphanPolicies: string[];
+}
+
+interface ValidateChangedResult {
+	ok: boolean;
+	exitCode: 0 | 1;
+	input: { paths: string[]; staged: boolean; base?: string };
+	classification: ValidateClassificationResult;
+	impactedDocuments: ImpactedDocument[];
+	audits: AuditResult[];
+	diagnostics: Issue[];
 }
 
 type Bucket = "docs" | "code" | "skills" | "shell" | "json" | "policy" | "skip" | "foreign-skill";
@@ -175,15 +207,24 @@ function validateShell(relPath: string, root: string): Issue | null {
 	);
 }
 
-function resolvePaths(options: ValidateChangedOptions): string[] {
+interface ResolvedPaths {
+	paths: string[];
+	deleted: Set<string>;
+}
+
+function resolvePaths(options: ValidateChangedOptions): ResolvedPaths {
 	if (options.paths && options.paths.length > 0) {
-		return options.paths.map((p) => normalizeRelPath(p));
+		return { paths: options.paths.map((p) => normalizeRelPath(p)), deleted: new Set() };
 	}
-	return gitDiffChangedFiles({
+	const changed: ChangedGitPath[] = gitDiffChangedFiles({
 		staged: options.staged,
 		base: options.base,
 		root: options.root,
 	});
+	return {
+		paths: changed.map((entry) => entry.path),
+		deleted: new Set(changed.filter((entry) => entry.deleted).map((entry) => entry.path)),
+	};
 }
 
 type PackageManager = "bun" | "npm" | "pnpm" | "yarn";
@@ -330,21 +371,39 @@ function discoverImpactedDocuments(input: {
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
 	const impacted: ImpactedDocument[] = [];
 	for (const abs of collectScanFiles(input.config, input.root, input.skillIndex)) {
-		const path = relPathFromAbs(abs, input.root);
-		const content = readFileSync(abs, "utf8");
-		const codeTargets = [
-			...new Set(
-				parseCodeFitMarkers(content).flatMap((marker) => marker.targets.map(normalizeRelPath)),
-			),
-		].sort();
-		const reasons: ImpactedDocument["reasons"] = [];
-		if (changed.has(path)) reasons.push({ kind: "changed-document" });
-		for (const target of codeTargets) {
-			if (changed.has(target)) reasons.push({ kind: "changed-code-target", target });
-		}
-		if (reasons.length > 0) impacted.push({ path, codeTargets, reasons });
+		const document = impactedDocumentForPath(abs, input.root, changed);
+		if (document) impacted.push(document);
 	}
 	return impacted.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function impactedDocumentForPath(
+	abs: string,
+	root: string,
+	changed: Set<string>,
+): ImpactedDocument | null {
+	const path = relPathFromAbs(abs, root);
+	const reviewDependencies = reviewDependencyPatterns(readFileSync(abs, "utf8"));
+	const reasons = impactReasons(path, reviewDependencies, changed);
+	return reasons.length > 0 ? { path, reviewDependencies, reasons } : null;
+}
+
+function impactReasons(
+	path: string,
+	reviewDependencies: string[],
+	changed: Set<string>,
+): ImpactedDocument["reasons"] {
+	const reasons: ImpactedDocument["reasons"] = changed.has(path)
+		? [{ kind: "changed-document" }]
+		: [];
+	for (const dependency of reviewDependencies) {
+		for (const target of changed) {
+			if (reviewDependencyMatchesPath(dependency, target)) {
+				reasons.push({ kind: "changed-review-dependency", dependency, target });
+			}
+		}
+	}
+	return reasons;
 }
 
 function dateModeImpactDiagnostics(input: {
@@ -358,14 +417,14 @@ function dateModeImpactDiagnostics(input: {
 	const today = formatLocalReviewDate(new Date());
 	const diagnostics: Issue[] = [];
 	for (const impacted of input.impactedDocuments) {
-		if (!impacted.reasons.some((reason) => reason.kind === "changed-code-target")) continue;
+		if (!impacted.reasons.some((reason) => reason.kind === "changed-review-dependency")) continue;
 		const content = readFileSync(join(input.root, impacted.path), "utf8");
 		if (changed.has(impacted.path) && docMetaLastReviewed(content) === today) continue;
 		diagnostics.push(
 			validationIssue(
 				"impacted-document-review-required",
 				impacted.path,
-				"a linked code-fit target changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
+				"a linked review dependency changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
 			),
 		);
 	}
@@ -516,8 +575,6 @@ function resultFor(input: {
 		diagnostics.some((item) => item.severity === "error") ||
 		audits.some((audit) => audit.exitCode !== 0);
 	return {
-		schemaVersion: 1,
-		command: "validate-changed",
 		ok: !failed,
 		exitCode: failed ? 1 : 0,
 		input: {
@@ -552,7 +609,8 @@ export async function evaluateValidateChanged(
 	options: ValidateChangedOptions = {},
 ): Promise<ValidateChangedResult> {
 	const root = options.root ?? findRepoRoot();
-	const relPaths = resolvePaths(options);
+	const resolvedPaths = resolvePaths(options);
+	const relPaths = resolvedPaths.paths;
 
 	if (relPaths.length === 0) {
 		return resultFor({ options, relPaths, classification: emptyClassification() });
@@ -584,6 +642,9 @@ export async function evaluateValidateChanged(
 		wiredPolicies,
 		skillIndex,
 	});
+	classification.missing = classification.missing.filter(
+		(path) => !resolvedPaths.deleted.has(path),
+	);
 	const impactedDocuments = discoverImpactedDocuments({ relPaths, root, config, skillIndex });
 	for (const impacted of impactedDocuments) {
 		if (!classification.buckets.docs.includes(impacted.path)) {
@@ -623,11 +684,7 @@ export async function evaluateValidateChanged(
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
-export function printValidateChangedResult(result: ValidateChangedResult, json: boolean): number {
-	if (json) {
-		console.log(JSON.stringify(result, null, 2));
-		return result.exitCode;
-	}
+export function printValidateChangedResult(result: ValidateChangedResult): number {
 	if (result.input.paths.length === 0) {
 		console.log("validate changed: no changed files.");
 		return result.exitCode;
@@ -638,6 +695,14 @@ export function printValidateChangedResult(result: ValidateChangedResult, json: 
 		);
 	}
 	for (const audit of result.audits) printAuditResult(audit, false);
+	for (const impacted of result.impactedDocuments) {
+		for (const reason of impacted.reasons) {
+			if (reason.kind !== "changed-review-dependency") continue;
+			console.log(
+				`validate changed: ${impacted.path} requires review (dependency ${reason.dependency} matched ${reason.target})`,
+			);
+		}
+	}
 	for (const diagnostic of result.diagnostics) {
 		const path = diagnostic.file === "." ? "" : `${diagnostic.file}: `;
 		console.error(`validate changed: ${path}${diagnostic.message}`);
@@ -659,5 +724,5 @@ export function printValidateChangedResult(result: ValidateChangedResult, json: 
 }
 
 export async function runValidateChanged(options: ValidateChangedOptions = {}): Promise<number> {
-	return printValidateChangedResult(await evaluateValidateChanged(options), options.json ?? false);
+	return printValidateChangedResult(await evaluateValidateChanged(options));
 }

@@ -2,10 +2,9 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/audit/config/load.ts surface=loadConfig,loadConfigDetailed,findRepoRoot,mergedExcludes -->
-<!-- code-fit: targets=src/audit/config/types.ts surface=SkeletonConfig,ScanConfig,DocsLintConfig,DenyConfig,SkillOwnershipConfig,ReviewProofConfig,CustomizeConfig -->
+<!-- review-deps: paths=src/audit/config/load.ts,src/audit/config/types.ts -->
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
 
@@ -33,8 +32,8 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `customize.alwaysInclude` | Basenames under `.skeleton/customize/` appended on every skill inject — [customize](customize.md)       |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
-| `reviewProof`             | Hash-backed evidence for exact reviewed document and `code-fit` target bytes (see below)               |
-| `docsLint`                | Near-duplicate / SSOT-summary / code-fit thresholds and ignore pairs (see below)            |
+| `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes (see below)                   |
+| `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
 Deleted skills need no denylist: links to missing `…/SKILL.md` fail under the links / skill-index rules.
 
@@ -57,12 +56,10 @@ paths = ["apps/**/*_ANALYSIS.md"]
 | `ssotPhraseCheck`        | When overlap fails, mention missing SSOT phrase in the message (default `true`) |
 | `ignorePairs`            | Path pairs skipped by near-dupe / duplicate-SSOT                     |
 | `ignoreGlobs`            | Globs skipped by near-dupe / duplicate-SSOT                          |
-| `codeFitOverlapMin`      | Min fraction of doc tokens that also appear as code identifiers (default `0.03`) |
-| `codeFitSurfaceCap`      | Max auto-extracted names before `surface=` is required (default `25`) |
 
 `ssot-summary` scores stemmed unigrams against H1 + lead + body (SSOT line stripped). Exact phrase match only explains a failed overlap — abstract titles can pass without verbatim phrasing. Better-match warns only when own overlap is weak and another SSOT paper fits better; the message lists rewrite / retarget / consider-combine options.
 
-`code-fit` (surface fit, not behavioral truth): opt-in HTML comment markers with `targets=` (and optional `surface=`). Docs declare code files; audit checks public-name coverage and light identifier overlap. See [doc system](doc-system.md#code-fit-surface-fit).
+`review-deps`: opt-in HTML comment markers with comma-separated `paths=`. Docs may declare exact repo-relative files or globs. Exact missing files error; empty globs warn (or error under `--strict`). See [doc system](doc-system.md#doc-meta).
 
 ## `reviewProof`
 
@@ -72,9 +69,9 @@ mode = "hash"
 # lockfile = ".skeleton/review-lock.json"
 ```
 
-Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every declared `code-fit` target. Any byte change invalidates the review until a human re-reads and attests the document again. Commit the lockfile.
+Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile.
 
-Without this section, Skeleton uses compatibility date mode. Changed code targets still pull linked documents into `validate changed`; the document must co-change with a current explicit review date.
+Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with a current explicit review date.
 
 ## `skillOwnership`
 

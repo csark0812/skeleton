@@ -2,10 +2,9 @@
 
 <!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/validate/changed.ts surface=runValidateChanged,codeValidationHint -->
-<!-- code-fit: targets=src/audit/run.ts surface=runAudit,parseAuditArgs -->
+<!-- review-deps: paths=src/validate/changed.ts,src/audit/run.ts -->
 
 Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
 
@@ -117,7 +116,7 @@ skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
 
-If the diagnostic code is `review-document-changed` or `review-code-target-changed`, hash proof found exact byte drift. Review the whole document against every current `code-fit` target, then run the command above. Do not hand-edit the lockfile.
+If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
 
 **Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
 

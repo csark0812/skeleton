@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import Ajv from "ajv";
 import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { runAudit } from "../../audit/run.ts";
 import { checkCatalog, runCatalogCli, writeCatalog } from "../../catalog.ts";
@@ -128,7 +127,7 @@ describe("validate changed routing", () => {
 		expect(exit).toBe(0);
 	});
 
-	it("returns one structured result for nested validation audits", async () => {
+	it("keeps validation evaluation internal while routing nested audits", async () => {
 		const log = spyOn(console, "log").mockImplementation(() => {});
 		const error = spyOn(console, "error").mockImplementation(() => {});
 		try {
@@ -137,15 +136,9 @@ describe("validate changed routing", () => {
 				paths: ["docs/README.md"],
 			});
 			expect(result).toMatchObject({
-				schemaVersion: 1,
-				command: "validate-changed",
 				classification: { docs: ["docs/README.md"] },
 			});
 			expect(result.audits).toHaveLength(1);
-			const schema = JSON.parse(
-				readFileSync(join(import.meta.dir, "../../../schemas/result.schema.json"), "utf8"),
-			);
-			expect(new Ajv({ strict: false }).compile(schema)(result)).toBe(true);
 			expect(log).not.toHaveBeenCalled();
 			expect(error).not.toHaveBeenCalled();
 		} finally {
@@ -154,18 +147,14 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("prints one JSON document for validate changed", async () => {
+	it("prints agent-readable dependency impact context", async () => {
 		const lines: string[] = [];
 		const log = spyOn(console, "log").mockImplementation((value) => lines.push(String(value)));
 		try {
-			const exit = await runValidateChanged({
-				root: FLAT_SKILL_ROOT,
-				paths: ["docs/README.md"],
-				json: true,
-			});
+			const exit = await runValidateChanged({ root: FLAT_SKILL_ROOT, paths: ["docs/README.md"] });
 			expect(exit).toBe(0);
-			expect(lines).toHaveLength(1);
-			expect(JSON.parse(lines[0] ?? "{}").command).toBe("validate-changed");
+			expect(lines.some((line) => line.startsWith("Doc audit passed"))).toBe(true);
+			expect(lines.some((line) => line.startsWith("validate changed passed"))).toBe(true);
 		} finally {
 			log.mockRestore();
 		}
@@ -186,7 +175,7 @@ describe("validate changed routing", () => {
 		}
 	});
 
-	it("discovers and audits documents impacted by changed code-fit targets", async () => {
+	it("discovers and audits documents impacted by changed review dependencies", async () => {
 		const root = mkdtempSync(join(tmpdir(), "skel-code-impact-"));
 		try {
 			mkdirSync(join(root, "docs"), { recursive: true });
@@ -210,7 +199,7 @@ mode = "hash"
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
-<!-- code-fit: targets=src/example.ts surface=runThing -->
+<!-- review-deps: paths=src/example.ts -->
 
 The runThing export provides the example behavior.
 `,
@@ -223,8 +212,14 @@ The runThing export provides the example behavior.
 			expect(result.impactedDocuments).toEqual([
 				{
 					path: "docs/example.md",
-					codeTargets: ["src/example.ts"],
-					reasons: [{ kind: "changed-code-target", target: "src/example.ts" }],
+					reviewDependencies: ["src/example.ts"],
+					reasons: [
+						{
+							kind: "changed-review-dependency",
+							dependency: "src/example.ts",
+							target: "src/example.ts",
+						},
+					],
 				},
 			]);
 			expect(result.classification.docs).toContain("docs/example.md");
@@ -232,14 +227,65 @@ The runThing export provides the example behavior.
 			expect(
 				result.audits
 					.flatMap((audit) => audit.diagnostics)
-					.some((item) => item.code === "review-code-target-changed"),
+					.some((item) => item.code === "review-dependency-changed"),
 			).toBe(true);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("fails closed on changed code impacts when hash review proof is not enabled", async () => {
+	it("discovers documents whose review dependencies name package.json", async () => {
+		const root = mkdtempSync(join(tmpdir(), "skel-package-impact-"));
+		try {
+			mkdirSync(join(root, "docs"), { recursive: true });
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
+			);
+			writeFileSync(join(root, "package.json"), '{"scripts":{"commands":"old"}}\n');
+			writeFileSync(
+				join(root, "docs/commands.md"),
+				`# Commands
+
+<!-- source-of-truth: project command documentation -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- review-deps: paths=package.json -->
+
+Run the project commands through the package scripts.
+`,
+			);
+
+			const result = await evaluateValidateChanged({ root, paths: ["package.json"] });
+			expect(result.impactedDocuments).toEqual([
+				{
+					path: "docs/commands.md",
+					reviewDependencies: ["package.json"],
+					reasons: [
+						{
+							kind: "changed-review-dependency",
+							dependency: "package.json",
+							target: "package.json",
+						},
+					],
+				},
+			]);
+			expect(result.classification.docs).toContain("docs/commands.md");
+			const lines: string[] = [];
+			const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
+			try {
+				expect(await runValidateChanged({ root, paths: ["package.json"] })).toBe(1);
+				expect(lines).toContain(
+					"validate changed: docs/commands.md requires review (dependency package.json matched package.json)",
+				);
+			} finally {
+				log.mockRestore();
+			}
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("fails closed on changed dependencies when hash review proof is not enabled", async () => {
 		const root = mkdtempSync(join(tmpdir(), "skel-date-impact-"));
 		try {
 			mkdirSync(join(root, "docs"), { recursive: true });
@@ -255,7 +301,7 @@ The runThing export provides the example behavior.
 
 <!-- source-of-truth: example runThing behavior -->
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-01 -->
-<!-- code-fit: targets=src/example.ts surface=runThing -->
+<!-- review-deps: paths=src/example.ts -->
 
 The runThing export provides the example behavior.
 `,

@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/cli.ts surface=catalog,audit,validate,init -->
+<!-- review-deps: paths=src/cli.ts,package.json -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day-one commands from `src/cli.ts`: `catalog`, `audit`, `validate`, `init` (also `build-plugin` / `references` when needed). Prefer `bun src/cli.ts` in this repo.
 
@@ -49,7 +49,7 @@ bun test ./tests/smoke.test.ts
 | Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)                                                                   |
 | TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build`; `validate:changed` also discovers and audits docs that target the changed code                                            |
 
-`validate:changed` classifies code paths but leaves their correctness to `bun test` + `typecheck` + `build`. It scans `code-fit` markers and adds every document linked to changed code to the docs audit. With hash review proof, changed target bytes invalidate the recorded review. Without hash mode, the linked document must co-change with a current explicit review attestation. Code-only changes with no linked docs exit non-zero locally and print the native gates. Under CI `--base`, code-only changes still run global rules; keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+`validate:changed` classifies code paths but leaves their correctness to `bun test` + `typecheck` + `build`. It scans `review-deps` markers and adds every document linked to any changed dependency to the docs audit. With hash review proof, changed dependency bytes invalidate the recorded review. Without hash mode, the linked document must co-change with a current explicit review attestation. Code-only changes with no linked docs exit non-zero locally and print the native gates. Under CI `--base`, code-only changes still run global rules; keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
 Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, attest only explicit paths:
 

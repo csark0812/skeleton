@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, relative } from "node:path";
-import { parseCodeFitMarkers } from "./code-fit.ts";
 import type { AuditContext } from "./context.ts";
 import { createContext } from "./context.ts";
 import { resolveWritePath } from "./fix.ts";
 import { type Issue, issue } from "./report.ts";
+import { resolveReviewDependencies, reviewDependencyPatterns } from "./review-deps.ts";
 import {
 	DOC_META_RE,
 	docMetaLastReviewed,
@@ -18,11 +18,11 @@ export const DEFAULT_REVIEW_LOCKFILE = ".skeleton/review-lock.json";
 interface ReviewProofEntry {
 	reviewedAt: string;
 	documentHash: string;
-	codeTargets: Record<string, string>;
+	reviewDependencies: Record<string, string>;
 }
 
 interface ReviewProofLock {
-	version: 1;
+	version: 2;
 	documents: Record<string, ReviewProofEntry>;
 }
 
@@ -52,7 +52,7 @@ function hash(content: string): string {
 }
 
 function emptyLock(): ReviewProofLock {
-	return { version: 1, documents: {} };
+	return { version: 2, documents: {} };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -87,14 +87,14 @@ function parseEntry(value: unknown): ReviewProofEntry | null {
 	if (!isRecord(value)) return null;
 	if (!isCalendarDate(value.reviewedAt)) return null;
 	if (!isHash(value.documentHash)) return null;
-	if (!isRecord(value.codeTargets)) return null;
-	const codeTargets: Record<string, string> = {};
-	for (const [target, targetHash] of Object.entries(value.codeTargets)) {
+	if (!isRecord(value.reviewDependencies)) return null;
+	const reviewDependencies: Record<string, string> = {};
+	for (const [target, targetHash] of Object.entries(value.reviewDependencies)) {
 		if (!isSafeRepoPath(target)) return null;
 		if (!isHash(targetHash)) return null;
-		codeTargets[target] = targetHash;
+		reviewDependencies[target] = targetHash;
 	}
-	return { reviewedAt: value.reviewedAt, documentHash: value.documentHash, codeTargets };
+	return { reviewedAt: value.reviewedAt, documentHash: value.documentHash, reviewDependencies };
 }
 
 function lockPath(ctx: Pick<AuditContext, "config">): string {
@@ -104,7 +104,7 @@ function lockPath(ctx: Pick<AuditContext, "config">): string {
 function parseLock(content: string): ReviewProofLock | null {
 	try {
 		const parsed: unknown = JSON.parse(content);
-		if (!isRecord(parsed) || parsed.version !== 1 || !isRecord(parsed.documents)) return null;
+		if (!isRecord(parsed) || parsed.version !== 2 || !isRecord(parsed.documents)) return null;
 		const documents: Record<string, ReviewProofEntry> = {};
 		for (const [path, value] of Object.entries(parsed.documents)) {
 			const entry = parseEntry(value);
@@ -112,7 +112,7 @@ function parseLock(content: string): ReviewProofLock | null {
 			if (!entry) return null;
 			documents[path] = entry;
 		}
-		return { version: 1, documents };
+		return { version: 2, documents };
 	} catch {
 		return null;
 	}
@@ -124,15 +124,11 @@ function loadLock(root: string, relPath: string): ReviewProofLock | null {
 	return parseLock(readFileSync(abs, "utf8"));
 }
 
-function codeTargets(content: string): string[] {
-	return [...new Set(parseCodeFitMarkers(content).flatMap((marker) => marker.targets))].sort();
-}
-
-function hashTargets(root: string, targets: string[]): Record<string, string> {
+function hashDependencies(root: string, targets: string[]): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const target of targets) {
 		const abs = resolveWritePath(root, target);
-		if (!existsSync(abs)) throw new Error(`Cannot attest missing code-fit target: ${target}`);
+		if (!existsSync(abs)) throw new Error(`Cannot attest missing review dependency: ${target}`);
 		out[target] = hash(readFileSync(abs, "utf8"));
 	}
 	return out;
@@ -146,12 +142,12 @@ function sortedLock(lock: ReviewProofLock): ReviewProofLock {
 		documents[path] = {
 			reviewedAt: entry.reviewedAt,
 			documentHash: entry.documentHash,
-			codeTargets: Object.fromEntries(
-				Object.entries(entry.codeTargets).sort(([a], [b]) => a.localeCompare(b)),
+			reviewDependencies: Object.fromEntries(
+				Object.entries(entry.reviewDependencies).sort(([a], [b]) => a.localeCompare(b)),
 			),
 		};
 	}
-	return { version: 1, documents };
+	return { version: 2, documents };
 }
 
 function validateReviewedAt(reviewedAt: string): void {
@@ -218,7 +214,10 @@ export function attestDocuments(options: AttestDocumentsOptions): AttestDocument
 			lock.documents[relPath] = {
 				reviewedAt,
 				documentHash: hash(updated),
-				codeTargets: hashTargets(ctx.root, codeTargets(updated)),
+				reviewDependencies: hashDependencies(
+					ctx.root,
+					resolveReviewDependencies(ctx.root, reviewDependencyPatterns(updated)).targets,
+				),
 			};
 		}
 	}
@@ -238,12 +237,13 @@ export function attestDocuments(options: AttestDocumentsOptions): AttestDocument
 	};
 }
 
-function changedTargetIssue(relPath: string, target: string): Issue {
+function changedDependencyIssue(relPath: string, target: string): Issue {
 	return issue("review-proof", relPath, {
-		code: "review-code-target-changed",
-		message: `code-fit target changed after the recorded review: ${target}`,
+		code: "review-dependency-changed",
+		message: `review dependency changed after the recorded review: ${target}`,
 		link: target,
-		remediation: "Re-read the entire document against the current target, then attest it again.",
+		remediation:
+			"Re-read the entire document against the current dependencies, then attest it again.",
 	});
 }
 
@@ -254,6 +254,24 @@ function validateEntry(input: {
 	entry: ReviewProofEntry;
 }): Issue[] {
 	const { ctx, relPath, content, entry } = input;
+	const issues = documentProofIssues(relPath, content, entry);
+	const currentTargets = currentDependencies({ root: ctx.root, relPath, content, issues });
+	if (!currentTargets) return issues;
+	const recordedTargets = Object.keys(entry.reviewDependencies).sort();
+	if (JSON.stringify(currentTargets) !== JSON.stringify(recordedTargets)) {
+		issues.push(
+			issue("review-proof", relPath, {
+				code: "review-dependency-set-changed",
+				message: "review dependency set changed after the recorded review",
+			}),
+		);
+		return issues;
+	}
+	issues.push(...dependencyHashIssues({ root: ctx.root, relPath, targets: currentTargets, entry }));
+	return issues;
+}
+
+function documentProofIssues(relPath: string, content: string, entry: ReviewProofEntry): Issue[] {
 	const issues: Issue[] = [];
 	if (entry.reviewedAt !== docMetaLastReviewed(content)) {
 		issues.push(
@@ -272,31 +290,49 @@ function validateEntry(input: {
 			}),
 		);
 	}
-	const currentTargets = codeTargets(content);
-	const recordedTargets = Object.keys(entry.codeTargets).sort();
-	if (JSON.stringify(currentTargets) !== JSON.stringify(recordedTargets)) {
+	return issues;
+}
+
+function currentDependencies(input: {
+	root: string;
+	relPath: string;
+	content: string;
+	issues: Issue[];
+}): string[] | null {
+	const { root, relPath, content, issues } = input;
+	try {
+		return resolveReviewDependencies(root, reviewDependencyPatterns(content)).targets;
+	} catch (error) {
 		issues.push(
 			issue("review-proof", relPath, {
-				code: "review-code-target-set-changed",
-				message: "code-fit target set changed after the recorded review",
+				code: "review-dependency-invalid",
+				message: error instanceof Error ? error.message : String(error),
 			}),
 		);
-		return issues;
+		return null;
 	}
-	for (const target of currentTargets) {
-		const abs = resolveWritePath(ctx.root, target);
+}
+
+function dependencyHashIssues(input: {
+	root: string;
+	relPath: string;
+	targets: string[];
+	entry: ReviewProofEntry;
+}): Issue[] {
+	const { root, relPath, targets, entry } = input;
+	const issues: Issue[] = [];
+	for (const target of targets) {
+		const abs = resolveWritePath(root, target);
 		if (!existsSync(abs)) {
 			issues.push(
 				issue("review-proof", relPath, {
-					code: "review-code-target-missing",
-					message: `recorded code-fit target is missing: ${target}`,
+					code: "review-dependency-missing",
+					message: `recorded review dependency is missing: ${target}`,
 					link: target,
 				}),
 			);
-			continue;
-		}
-		if (entry.codeTargets[target] !== hash(readFileSync(abs, "utf8"))) {
-			issues.push(changedTargetIssue(relPath, target));
+		} else if (entry.reviewDependencies[target] !== hash(readFileSync(abs, "utf8"))) {
+			issues.push(changedDependencyIssue(relPath, target));
 		}
 	}
 	return issues;

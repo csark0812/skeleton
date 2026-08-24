@@ -3,13 +3,13 @@ name: skeleton
 description: Agent ops manual for skeleton-enabled repos — init, catalog, audit, optional customize hooks, and toolbox skill overrides. Use when editing skeleton.toml / .skeleton/, syncing toolbox skills, or running skeleton CLI.
 ---
 
-<!-- code-fit: targets=src/cli.ts surface=catalog,audit,validate,init -->
+<!-- review-deps: paths=src/cli.ts -->
 
 # Skeleton
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
 Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
 
@@ -31,7 +31,7 @@ Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/do
 
 Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do not assume one-liners stay accurate without that gate.
 
-Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. When hash review proof is enabled, `.skeleton/review-lock.json` binds that claim to the exact document and `code-fit` target bytes. `daysUntilStale` remains an optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
+Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. When hash review proof is enabled, `.skeleton/review-lock.json` binds that claim to the exact document and `review-deps` bytes. `daysUntilStale` remains an optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
 
 Not for: normal feature work that only reads toolbox skills (optional customize hooks can inject on skill reads).
 
@@ -76,7 +76,7 @@ Edit `skeleton.toml` scan trees for this repo shape.
 
 1. Add `<!-- source-of-truth: one-line summary -->` (or visible `source-of-truth: …`) to canonical docs
 2. Run `skeleton catalog`
-3. Add `code-fit` targets where a code change can invalidate the paper
+3. Add `review-deps` paths or globs where repository changes can invalidate the paper
 4. Run `skeleton audit docs` (or `audit self`)
 
 After a complete human re-read, record review evidence for explicit paths only:
@@ -98,7 +98,7 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton audit skills`                        | Skill audit                                             |
 | `skeleton catalog` / `catalog --check --strict` | Write / check the gitignored agent catalog              |
 | `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
-| `skeleton validate changed`                    | Changed-file validation + code-impact doc discovery     |
+| `skeleton validate changed`                    | Changed-file validation + dependency-driven doc discovery |
 | `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 | `skeleton references sync`                     | Materialize shared references into skills               |
@@ -109,4 +109,4 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 
-Machine consumers: `audit --json` and `validate changed --json` each emit one versioned result document. Validate it with the exported `schemas/result.schema.json`; use `@csark0812/skeleton/result-types` for TypeScript.
+Machine consumers: `audit --json` emits one versioned result document. Validate it with the exported `schemas/result.schema.json`; use `@csark0812/skeleton/result-types` for TypeScript. `validate changed` is plain text only, with affected documents, matching dependencies, native gates, and a final pass/fail line.

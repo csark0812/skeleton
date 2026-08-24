@@ -2,11 +2,9 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/catalog.ts surface=runCatalogCli,checkCatalog,writeCatalog,buildCatalogContent,catalogAuditWarnings -->
-<!-- code-fit: targets=src/audit/core/ssot-fit.ts surface=evaluateSsotFit,ssotEvidenceOverlap,buildEvidenceText -->
-<!-- code-fit: targets=src/audit/rules/doc-meta.ts surface=runDocMetaRule,docMetaRule -->
+<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
@@ -53,22 +51,15 @@ Audit checks that each opt-in one-liner still matches its paper (warn / `--stric
 
 This keeps the agent catalog honest after renames, splits, and copy-paste — without an LLM.
 
-## Code-fit (surface fit)
+## Review dependencies
 
-Opt-in markers stake that a doc covers named code files:
+Opt-in markers declare the repository state a doc depends on:
 
 ```markdown
-<!-- code-fit: targets=src/cli.ts,src/audit/run.ts -->
-<!-- code-fit: targets=src/big.ts surface=runAudit,parseAuditArgs -->
+<!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
 ```
 
-`audit docs` then checks (errors on failure):
-
-- Target paths exist
-- Public surface names (exports + `case "…"` labels) appear in the doc body — or the explicit `surface=` list (required when auto-extract exceeds `docsLint.codeFitSurfaceCap`, default 25)
-- Identifier overlap (doc tokens grounded in the module). When extractable surface is **empty**, coverage is skipped and only lexical overlap applies
-
-Unmarked prose is ignored. Marked docs are always re-checked when the docs suite runs (including under `--paths`). `validate changed` also treats targets as dependency edges and adds linked docs when code changes. Surface checks are heuristic; hash review proof supplies the exact invalidation signal.
+Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes. Hash review proof supplies the exact invalidation signal.
 
 ## Doc meta
 
@@ -84,7 +75,7 @@ Audit treats review invalidation and calendar cadence differently:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git or hash proof) | Blocking error: review no longer covers the latest edit or linked target bytes | **Required:** re-read the entire document against current targets, then attest it. Do not change the date alone. |
+| Content changed after `last-reviewed` (git or hash proof) | Blocking error: review no longer covers the latest edit or linked dependency bytes | **Required:** re-read the entire document against current dependencies, then attest it. Do not change the date alone. |
 | `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
@@ -95,7 +86,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
 ```
 
-The command requires explicit paths. It sets `last-reviewed` to today only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and target hashes. Bare `--fix` never touches review dates.
+The command requires explicit paths. It sets `last-reviewed` to today only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and dependency hashes. Bare `--fix` never touches review dates.
 
 ## Example canonical doc
 

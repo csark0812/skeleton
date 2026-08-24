@@ -30,7 +30,7 @@ mode = "hash"
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
 
-<!-- code-fit: targets=src/example.ts surface=runThing -->
+<!-- review-deps: paths=src/example.ts -->
 
 Call runThing for the example command behavior.
 `,
@@ -54,7 +54,7 @@ describe("hash-backed review proof", () => {
 		expect(formatLocalReviewDate(new Date(2026, 7, 19, 23, 30))).toBe("2026-08-19");
 	});
 
-	it("binds the reviewed document and code target bytes", async () => {
+	it("binds the reviewed document and dependency bytes", async () => {
 		const root = makeRepo();
 		try {
 			attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-19" });
@@ -70,7 +70,7 @@ describe("hash-backed review proof", () => {
 			const codeDrift = await evaluateAudit(auditOptions(root));
 			expect(codeDrift.exitCode).toBe(1);
 			expect(codeDrift.reviewProof.status).toBe("invalid");
-			expect(codeDrift.diagnostics.some((item) => item.code === "review-code-target-changed")).toBe(
+			expect(codeDrift.diagnostics.some((item) => item.code === "review-dependency-changed")).toBe(
 				true,
 			);
 
@@ -117,7 +117,7 @@ describe("hash-backed review proof", () => {
 			writeFileSync(
 				join(root, ".skeleton/review-lock.json"),
 				JSON.stringify({
-					version: 1,
+					version: 2,
 					documents: { "docs/example.md": { reviewedAt: "2026-08-19" } },
 				}),
 			);

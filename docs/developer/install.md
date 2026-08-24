@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: installing skeleton in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
 
-<!-- code-fit: targets=src/init/init.ts surface=runInit,InitOptions,InitResult,skillsAddArgs -->
+<!-- review-deps: paths=src/init/init.ts -->
 
 Install path runs `runInit` (`InitOptions` / `InitResult`); `--skills` builds `skillsAddArgs` for the skills CLI.
 
