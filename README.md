@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-31 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -176,7 +176,7 @@ CI: `skeleton validate changed --base origin/main` (global rules first, then cha
 
 Skeleton never calls Nx or another app task runner. Consumer repos keep ownership of test, typecheck, and build.
 
-See [tiers](docs/tiers.md).
+See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812/toolbox) packages portable process skills, and [Christopher's profile](https://github.com/csark0812) connects the broader builder story.
 
 ## Docs
 
