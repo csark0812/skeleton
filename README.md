@@ -2,15 +2,15 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-31 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
-Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a generated reference gets edited by hand, the audit fails before merge.
+Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a local link breaks, the audit fails before merge.
 
-Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `catalog`, `init`, `build-plugin`, `references` (plus `customize` / `hook` when using overlays). Commands dispatch through that entry file.
+Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `catalog`, `init`, and `build-plugin` (plus `customize` / `hook` when using overlays). Commands dispatch through that entry file.
 
 Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, or manage memory. It checks whether the repo around those systems still holds together.
 
@@ -106,6 +106,8 @@ Flag details: [install](docs/developer/install.md).
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
+Shared reference files can live in any scanned path. Public repositories can link skills directly to GitHub-hosted references; Skeleton leaves those external links unchanged and does not check their remote reachability.
+
 Skeleton doesn't replace your code gates. Keep TypeScript, Python, Nx, pytest, and the rest in the repo that owns them.
 
 ## The contract
@@ -147,7 +149,6 @@ skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-me
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 skeleton build-plugin [path] [--check]
 skeleton validate changed [--staged | --base <ref>] [paths…]
-skeleton references sync|check
 skeleton customize resolve <slug>
 ```
 

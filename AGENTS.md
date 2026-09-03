@@ -2,11 +2,11 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-31 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
-SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day-one commands from `src/cli.ts`: `catalog`, `audit`, `validate`, `init` (also `build-plugin` / `references` when needed). Prefer `bun src/cli.ts` in this repo.
+SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day-one commands from `src/cli.ts`: `catalog`, `audit`, `validate`, `init` (also `build-plugin` when needed). Prefer `bun src/cli.ts` in this repo.
 
 ## Doc routing (before long reads)
 

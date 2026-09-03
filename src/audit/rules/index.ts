@@ -1,4 +1,3 @@
-import { generatedReferencesRule } from "../../references/check.ts";
 import type { AuditContext } from "../core/context.ts";
 import type { Issue } from "../core/report.ts";
 import { bannedRule } from "./banned.ts";
@@ -45,7 +44,6 @@ export const docsRules: AuditRule[] = [
 
 export const skillsRules: AuditRule[] = [
 	{ ...skillIndexRule, global: true },
-	{ ...generatedReferencesRule, global: true },
 	// Path-scoped: bare audit skills unions excluded skill trees into the corpus.
 	prosePolicyRule,
 ];

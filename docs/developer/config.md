@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/audit/config/load.ts,src/audit/config/types.ts -->
 
@@ -102,7 +102,7 @@ See [audit](audit.md#skill-ownership-consumer-vs-toolbox) and [validation](valid
 | Concern                              | Keys / behavior                                                                                                                           |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | Path-scoped `validate changed`       | Files in `scan.include` (minus exclude) get docs audit; owned skill trees route to skills; foreign lock skills skip (body lint + doc-meta); code extensions skip |
-| Global rules (`--base` / full audit) | `deny.paths` (rule `banned`), SSOT dual/malformed, near-dupe, ssot-summary, coverage outside include, scan-roots, skill-index, generated-references |
+| Global rules (`--base` / full audit) | `deny.paths` (rule `banned`), SSOT dual/malformed, near-dupe, ssot-summary, coverage outside include, scan-roots, skill-index |
 | Prose policies                       | Idle until `plugins` contribute policy YAML                                                                                               |
 | Customize inject                     | `customize.alwaysInclude` (optional hooks / `customize resolve`); customize paths are always in the audit corpus                          |
 | Skill body ownership                 | `skillOwnership` + `skills-lock.json` (foreign bodies skipped)                                                                            |

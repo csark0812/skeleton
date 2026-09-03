@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
 
@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `references`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -38,7 +38,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
 | links, doc-meta, review-proof, review-deps, prose-policy (`alwaysRun` — all marked docs) | no* |
-| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, generated-references, banned (`deny.paths`) | yes    |
+| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
 \* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.
 

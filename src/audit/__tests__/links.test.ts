@@ -20,6 +20,12 @@ describe("runLinksRule", () => {
 		expect(issues.some((i) => i.message.includes("broken anchor"))).toBe(false);
 	});
 
+	it("accepts public GitHub reference URLs without requiring a local copy", () => {
+		const ctx = createContext({ root: FIXTURES });
+		ctx.files = [join(FIXTURES, "github-reference.md")];
+		expect(runLinksRule(ctx)).toEqual([]);
+	});
+
 	it("flags missing skill links", () => {
 		const ctx = createContext({ root: FIXTURES });
 		ctx.files = [join(FIXTURES, "retired-link.md")];

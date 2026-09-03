@@ -9,7 +9,7 @@ description: Agent ops manual for skeleton-enabled repos — init, catalog, audi
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
 
@@ -101,8 +101,6 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton validate changed`                    | Changed-file validation + dependency-driven doc discovery |
 | `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
-| `skeleton references sync`                     | Materialize shared references into skills               |
-| `skeleton references check`                    | Verify generated references match sources               |
 | `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
 
 `register` was removed — add a source-of-truth marker and run `skeleton catalog`.

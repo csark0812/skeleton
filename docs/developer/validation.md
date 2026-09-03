@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/validate/changed.ts -->
 
@@ -83,7 +83,7 @@ Policy YAML is plugin-glob SSOT only (same as runtime `loadPlugins`):
 
 ### CI two-pass
 
-`validate:ci` (`--base`) runs **global rules first** (`deny.paths` via rule `banned`, coverage-gaps, scan-roots, skill-index, generated-references, ssot, near-duplicate, ssot-summary), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
+`validate:ci` (`--base`) runs **global rules first** (`deny.paths` via rule `banned`, coverage-gaps, scan-roots, skill-index, ssot, near-duplicate, ssot-summary), then path-scoped audit on changed files. When the diff includes **wired policy YAML**, CI also runs the full docs + skills prove described above instead of redirecting. Pre-commit stays path-scoped and still fail-closes on wired policy changes.
 
 ## Agent-readable result
 
@@ -91,22 +91,14 @@ Policy YAML is plugin-glob SSOT only (same as runtime `loadPlugins`):
 
 ## Shared references
 
-When skills share reference docs, keep canonical files in `.skeleton/references/` and materialize self-contained copies into each skill:
+Keep shared reference files wherever they fit the repository, and include local reference paths in `scan.include` when Skeleton should audit them. Local Markdown links receive the normal broken-path and anchor checks.
 
-```bash
-skeleton references sync    # write generated copies + rewrite ../references/ links
-skeleton references check   # verify copies match canonical sources
+Skills in a public repository can link directly to an ordinary GitHub-hosted file. Use a stable public URL, for example:
+
+```md
+[Shared guidance](https://raw.githubusercontent.com/example/toolbox/main/references/shared-guidance.md)
 ```
 
-Generated copies carry a provenance header:
-
-```markdown
-<!-- skeleton: generated-reference
-source: .skeleton/references/dialogue-contract.md
-redundancy: intentional
--->
-```
-
-Edit canonical files only. Run `references sync` after changes. The `generated-references` audit rule runs in `audit skills` / `audit self`.
+Skeleton does not copy shared files into skills, rewrite their links, or fetch external URLs. Remote reachability belongs to the publishing repository or a separate network check. Keep references inside a skill only when that skill owns the behavior.
 
 See [audit](audit.md).

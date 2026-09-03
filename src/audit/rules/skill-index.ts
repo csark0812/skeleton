@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { isGeneratedReference } from "../../references/constants.ts";
 import { nonPublicSkills } from "../config/load.ts";
 import type { AuditContext } from "../core/context.ts";
 import { type Issue, issue } from "../core/report.ts";
@@ -48,7 +47,6 @@ function scanFileForSkillLinks(ctx: AuditContext, filePath: string, index: Skill
 	const issues: Issue[] = [];
 	const rel = relative(ctx.root, filePath).replace(/\\/g, "/");
 	const content = readFileSync(filePath, "utf8");
-	if (isGeneratedReference(content)) return issues;
 	for (const match of content.matchAll(SKILL_LINK_RE)) {
 		const slug = match[1];
 		if (!slug) continue;

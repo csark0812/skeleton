@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-31 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=AGENTS.md,src/validate/changed.ts,docs/developer/validation.md -->
 
@@ -78,7 +78,7 @@ Hotspots: `src/plugins/load.ts`, `src/plugins/build.ts`, `src/plugins/paths.ts`.
 | ---------- | --------------------------------------------------------------------------------- |
 | Link forms | inline, titled (`](url "title")`), reference definitions, destination binding     |
 | Collision  | duplicate URL text in label/title, prefix/suffix anchors, later duplicate targets |
-| Surfaces   | `.md`, `.mdc`, fenced code, inline code, generated references                     |
+| Surfaces   | `.md`, `.mdc`, fenced code, inline code, skill-owned reference files              |
 | Offsets    | parser spans vs whole-file `indexOf` / unsafe substring rewrite                   |
 
 Hotspots: `src/audit/core/markdown.ts`, `src/audit/fix/anchors.ts`, `src/audit/core/fix.ts`.
