@@ -103,8 +103,12 @@ void [rule, audit.reviewProof.status];
 	run({ command: "node", args: [join(packageDir, "dist", "cli.js"), "--help"], cwd: consumer });
 
 	const packageJson = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8")) as {
+		bin?: Record<string, string>;
 		exports?: Record<string, unknown>;
 	};
+	if (packageJson.bin?.skeleton !== "dist/cli.js") {
+		throw new Error("Packed package is missing the skeleton CLI bin mapping");
+	}
 	for (const key of ["./plugin-types", "./result-types", "./schemas/result.schema.json"]) {
 		if (!(key in (packageJson.exports ?? {}))) throw new Error(`Packed exports missing ${key}`);
 	}
