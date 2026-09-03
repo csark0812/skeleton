@@ -1,6 +1,6 @@
 # Behavioral evidence
 
-**Source of truth for** committed artifacts from the Skeleton live A/B benchmark.
+**Source of truth for** committed artifacts from the Skeleton direct-agent A/B benchmark.
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
@@ -18,7 +18,7 @@
 `runs/` — raw per-run `compare-report.json` (+ optional suite reports). Deposit locally, then aggregate:
 
 ```bash
-# after each live compare:
+# after each direct compare:
 mkdir -p agent-suites/evidence/runs/$(date +%Y-%m-%d)-run-NNN
 cp "$TMPDIR/skeleton-compare-run-NNN/compare-report.json" \
   agent-suites/evidence/runs/$(date +%Y-%m-%d)-run-NNN/

@@ -5,24 +5,24 @@
 			"reviewedAt": "2026-09-02",
 			"documentHash": "sha256:f9df3e875c53499eda112a7c70d2fb76c0cbbb0dfec250dc55e6d1201b04c33f",
 			"reviewDependencies": {
-				"AGENTS.md": "sha256:f3059ccf7ba993212a97be4e628e3e4c7688739036e7b0151b2005f8dcb4393b",
+				"AGENTS.md": "sha256:cb166286f3b8d469149488c9bf20941cffe3edb8891b1998467d600e192d7903",
 				"docs/developer/validation.md": "sha256:6e843854039b7a62700ccccabea9284cc00f19ce70deb3115bf77f3acc42f94a",
 				"src/validate/changed.ts": "sha256:c2210201db3962ca99e603a5ece323d5ffbd8a8145ee577bfa191831f977be5a"
 			}
 		},
 		"AGENTS.md": {
 			"reviewedAt": "2026-09-02",
-			"documentHash": "sha256:f3059ccf7ba993212a97be4e628e3e4c7688739036e7b0151b2005f8dcb4393b",
+			"documentHash": "sha256:cb166286f3b8d469149488c9bf20941cffe3edb8891b1998467d600e192d7903",
 			"reviewDependencies": {
-				"package.json": "sha256:33c803d5fc5280994f12cf4b3e69c7706378d111dbd3a026b092f742b6d99c04",
+				"package.json": "sha256:3411d4e9efaac85b784328fef349e51fe5dc47751611c9d86f7517c56da2be7a",
 				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
 			}
 		},
 		"README.md": {
 			"reviewedAt": "2026-09-02",
-			"documentHash": "sha256:265b48daf1265ce64be229be53c5545c43dc882585cb2e96f6858fc0410d182d",
+			"documentHash": "sha256:2cddd454afcfdf9acda2ff2402b0a338ea2ad10a0bc551fa27c51e24a0cb04b6",
 			"reviewDependencies": {
-				"package.json": "sha256:33c803d5fc5280994f12cf4b3e69c7706378d111dbd3a026b092f742b6d99c04",
+				"package.json": "sha256:3411d4e9efaac85b784328fef349e51fe5dc47751611c9d86f7517c56da2be7a",
 				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
 			}
 		},

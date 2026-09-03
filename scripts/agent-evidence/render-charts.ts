@@ -112,7 +112,7 @@ function passRateChart(summary: Summary): string {
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Pass rate by scenario, clean vs messy">
   <rect width="100%" height="100%" fill="#ffffff"/>
   <text x="${margin.left}" y="28" fill="${LABEL}" font-size="16" font-weight="600" font-family="${FONT}">Pass rate by scenario</text>
-  <text x="${margin.left}" y="48" fill="${AXIS}" font-size="12" font-family="${FONT}">N=${summary.nRuns} paired live compares · higher is better</text>
+  <text x="${margin.left}" y="48" fill="${AXIS}" font-size="12" font-family="${FONT}">N=${summary.nRuns} paired direct compares · higher is better</text>
   <rect x="${width - 210}" y="18" width="12" height="12" fill="${CLEAN}" rx="2"/>
   <text x="${width - 192}" y="28" fill="${LABEL}" font-size="12" font-family="${FONT}">skeleton-clean</text>
   <rect x="${width - 100}" y="18" width="12" height="12" fill="${MESSY}" rx="2"/>

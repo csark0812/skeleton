@@ -38,7 +38,7 @@ Does an intact Skeleton contract change agent behavior — grounding on the righ
 
 ### What we did
 
-We ran a paired live A/B self-benchmark with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): `skeleton-clean` vs `skeleton-messy`. The same authored prompts compare an intact fixture with a conflicting fixture.
+We ran a paired direct-agent A/B self-benchmark with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): `skeleton-clean` vs `skeleton-messy`. The same authored prompts compare an intact fixture with a conflicting fixture.
 
 Scenarios covered contested grounding (conflicting docs), docs-only validation routing, canonical grounding, owned-skill routing, and customize ownership. Protocol: **N=10** sequential paired compares on 2026-07-17; McNemar on paired pass/fail; median token deltas with a bootstrap CI on the mean.
 

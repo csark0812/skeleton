@@ -20,17 +20,7 @@ new file mode 100644
 @@ -0,0 +1,5 @@
 +# Billing API (legacy notes)
 +
-+This draft is **not** registered. Wrong webhook: `https://legacy.example.com/hooks/bill`
++This draft is **not** canonical. Wrong webhook: `https://legacy.example.com/hooks/bill`
 +
-+Agents must not cite this URL when the registry points at billing-api.md.
-
---- a/.skeleton/registry.md
-+++ b/.skeleton/registry.md
-@@ -22,6 +22,7 @@
- | Plugins               | [plugins.md](../docs/developer/plugins.md)                 |
- | Customize             | [customize.md](../docs/developer/customize.md)             |
- | Skeleton skill        | [SKILL.md](../skeleton/SKILL.md)                           |
-+| Billing API          | [billing-api.md](../docs/fixture/billing-api.md)           |
- 
- ## Customizations
++Agents must not cite this URL when the catalog points at billing-api.md.
  

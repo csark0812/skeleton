@@ -1,8 +1,8 @@
 {
 	"name": "skeleton-messy",
-	"description": "Live A/B messy arm: profile=shared, no useful catalog, conflicting fixture docs. Pair with skeleton-clean via --compare-pairs.",
+	"description": "Direct-agent A/B messy arm: profile=shared, no useful catalog, conflicting fixture docs. Pair with skeleton-clean via --compare-pairs.",
 	"defaults": {
-		"host": "replay",
+		"host": "cursor",
 		"profile": "shared",
 		"skills": "none"
 	},
