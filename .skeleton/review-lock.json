@@ -14,7 +14,7 @@
 			"reviewedAt": "2026-09-02",
 			"documentHash": "sha256:f3059ccf7ba993212a97be4e628e3e4c7688739036e7b0151b2005f8dcb4393b",
 			"reviewDependencies": {
-				"package.json": "sha256:0a39e1e0be2da4f9f3a1f752482ec22bab36c53af619c2505fe7ee65658e9da1",
+				"package.json": "sha256:4d014adbf60f1b00f7750432da912f611d3fedd660956090b5525cb89cc639a7",
 				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
 			}
 		},
@@ -22,7 +22,7 @@
 			"reviewedAt": "2026-09-02",
 			"documentHash": "sha256:265b48daf1265ce64be229be53c5545c43dc882585cb2e96f6858fc0410d182d",
 			"reviewDependencies": {
-				"package.json": "sha256:0a39e1e0be2da4f9f3a1f752482ec22bab36c53af619c2505fe7ee65658e9da1",
+				"package.json": "sha256:4d014adbf60f1b00f7750432da912f611d3fedd660956090b5525cb89cc639a7",
 				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
 			}
 		},
