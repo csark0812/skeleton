@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
 
 <!-- review-deps: paths=src/init/init.ts,src/cli.ts -->
 

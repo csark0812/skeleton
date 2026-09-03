@@ -10,7 +10,6 @@ import { runCustomizeHook } from "./hooks/run.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
-import { printSyncResult, runReferencesCheck, runReferencesSync } from "./references/run.ts";
 import { runValidateChanged } from "./validate/changed.ts";
 
 function usage(): void {
@@ -26,9 +25,6 @@ Commands:
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   customize resolve <slug> [--json]
   hook customize            (reads a host hook payload on stdin)
-  references sync [--dry-run] [--no-rewrite-links]
-  references check [--json] [--strict]
-
 Note: \`register\` was removed — add a source-of-truth marker to the file and run \`skeleton catalog\`.`);
 }
 
@@ -141,25 +137,6 @@ function handleInit(argv: string[]): number {
 	return 0;
 }
 
-function handleReferences(argv: string[]): number {
-	const sub = argv[0];
-	if (sub === "sync") {
-		const dryRun = argv.includes("--dry-run");
-		const rewriteLinks = !argv.includes("--no-rewrite-links");
-		const result = runReferencesSync({ dryRun, rewriteLinks });
-		printSyncResult(result);
-		return 0;
-	}
-	if (sub === "check") {
-		return runReferencesCheck({
-			json: argv.includes("--json"),
-			strict: argv.includes("--strict"),
-		});
-	}
-	usage();
-	return 1;
-}
-
 async function dispatchCommand(argv: string[]): Promise<number | null> {
 	const command = argv[0];
 	const rest = argv.slice(1);
@@ -181,8 +158,6 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 			return handleHook(rest);
 		case "init":
 			return handleInit(rest);
-		case "references":
-			return handleReferences(rest);
 		default:
 			return null;
 	}
