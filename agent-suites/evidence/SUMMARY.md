@@ -1,6 +1,6 @@
 # Behavioral evidence summary
 
-**Source of truth for** aggregated Skeleton A/B live compares (`skeleton-clean` vs `skeleton-messy`).
+**Source of truth for** aggregated Skeleton A/B direct-agent compares (`skeleton-clean` vs `skeleton-messy`).
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 

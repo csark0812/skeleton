@@ -4,7 +4,7 @@ Readable trees used to build `skeleton-clean` / `skeleton-messy` seed patches un
 
 | Tree | Role |
 | ---- | ---- |
-| `clean/docs/fixture/` | Registered Billing API SoT + legacy decoy |
+| `clean/docs/fixture/` | Canonical Billing API SSOT + legacy decoy |
 | `clean/skill-trees/` | Bodies seeded into worktree `fixture-skills/` |
 | `messy/docs/fixture/` | Conflicting SoT claims (no correct webhook) |
 | `messy/skill-trees/` | Same skill bodies for messy arm |

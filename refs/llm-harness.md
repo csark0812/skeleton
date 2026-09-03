@@ -11,7 +11,7 @@ Implementation: [`agent-suites/`](../agent-suites/) via [`@post-print/agent-test
 ## Design
 
 - **Paired A/B:** `skeleton-clean` vs `skeleton-messy` (identical scenario names)
-- **Primary signal:** live Cursor (`bun run agent:test:live:compare`)
+- **Primary signal:** direct Cursor (`bun run agent:test:direct:compare`)
 - **Not in `bun run check`:** keeps deterministic CI fast
 
 ## Protocol (N=10)
@@ -22,7 +22,7 @@ Implementation: [`agent-suites/`](../agent-suites/) via [`@post-print/agent-test
 ```bash
 set -a && source .env && set +a
 OUT="$TMPDIR/skeleton-compare-run-$(printf '%03d' "$i")"
-bunx agent-test --suites-dir agent-suites --live \
+bunx agent-test --suites-dir agent-suites \
   --compare-pairs skeleton-clean:skeleton-messy \
   --fail-on=behavior --out-dir "$OUT"
 mkdir -p "agent-suites/evidence/runs/$(date +%Y-%m-%d)-run-$(printf '%03d' "$i")"

@@ -1,8 +1,8 @@
 {
 	"name": "skeleton-clean",
-	"description": "Live A/B clean arm: profile=skeleton + catalog/SSOT fixture docs. Pair with skeleton-messy via --compare-pairs.",
+	"description": "Direct-agent A/B clean arm: profile=skeleton + catalog/SSOT fixture docs. Pair with skeleton-messy via --compare-pairs.",
 	"defaults": {
-		"host": "replay",
+		"host": "cursor",
 		"profile": "skeleton",
 		"skills": "none"
 	},

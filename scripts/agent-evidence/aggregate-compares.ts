@@ -380,7 +380,7 @@ function buildSummaryMarkdown(input: BuildMarkdownInput): string {
 	const lines: string[] = [
 		"# Behavioral evidence summary",
 		"",
-		`**Source of truth for** aggregated Skeleton A/B live compares (\`skeleton-clean\` vs \`skeleton-messy\`).`,
+		`**Source of truth for** aggregated Skeleton A/B direct-agent compares (\`skeleton-clean\` vs \`skeleton-messy\`).`,
 		"",
 		`<!-- doc-meta: owner=eng | last-reviewed=${new Date().toISOString().slice(0, 10)} -->`,
 		"",
@@ -471,7 +471,7 @@ async function main(): Promise<void> {
 	const runs = await collectRuns(runsDir);
 	if (runs.length === 0) {
 		console.error(`No compare-report.json files under ${runsDir}`);
-		console.error("Deposit runs after: bun run agent:test:live:compare");
+		console.error("Deposit runs after: bun run agent:test:direct:compare");
 		process.exit(1);
 	}
 	await writeSummaryOutputs(outDir, buildAggregateContext(runs), runs);
