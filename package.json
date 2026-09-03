@@ -4,7 +4,7 @@
 	"description": "SSOT audit CLI for agent harness repos",
 	"type": "module",
 	"bin": {
-		"skeleton": "./dist/cli.js"
+		"skeleton": "dist/cli.js"
 	},
 	"exports": {
 		"./plugin-types": {
