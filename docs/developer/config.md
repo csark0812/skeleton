@@ -84,7 +84,7 @@ exclude = ["src/**/__tests__/**", "src/**/*.test.ts"]
 
 Files that match `include` (minus `exclude` and built-in test or fixture excludes) must appear in at least one scanned paper's `review-deps`. The global `review-coverage` rule checks the whole set. `validate changed` also fails `uncovered-changed-path` when a changed candidate has no owner.
 
-Omit the section to use built-in code defaults (`**/*.{ts,tsx,js,jsx,mjs,cjs,py}`, `package.json`, `project.json`). Built-in excludes drop tests, fixtures, templates, plugin `.mjs` artifacts, and `.skeleton/plugins/**`. Set `include = []` to disable the gate.
+Omit the section to use built-in code defaults (`**/*.{ts,tsx,js,jsx,mjs,cjs,py}`, `package.json`, `project.json`). Built-in excludes drop tests, fixtures, templates, and `.skeleton/plugins/**`. Production `.mjs` stays in the coverage set. Set `include = []` to disable the gate.
 
 ## `skillOwnership`
 

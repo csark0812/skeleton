@@ -49,7 +49,7 @@
 				"src/audit/core/markdown.ts": "sha256:fad91c2ed2fb18ef09faf1a2bad8b2e631dba30e1201bd57d9f8b508cf8183df",
 				"src/audit/core/repo-files.ts": "sha256:9a008fa832ba85f6a9075347706f0c12756e6b12124d9a4df23ff60055c3bfc8",
 				"src/audit/core/report.ts": "sha256:e6afa845a67ae3c48c3db3776c7ad599c55d665810f689fd6c021feaa4773ec3",
-				"src/audit/core/review-coverage.ts": "sha256:1b54bf15c47e1e8517d9a97df55db71c98e6326ea632156e13c08c0367a213ba",
+				"src/audit/core/review-coverage.ts": "sha256:c0d1c619588b99aa17ef676e2e20d61fc5ef44d99b7f292d8c56b03880c4df26",
 				"src/audit/core/review-deps.ts": "sha256:ebf37de0fe8a88a6ea3e75dec94d5e975e3ed55be3c55fff1130a41b297655ed",
 				"src/audit/core/review-proof.ts": "sha256:cebc6edb3eb784335367df29125a9b5e6c2844836123655521a2b7afca47fe7b",
 				"src/audit/core/shared.ts": "sha256:5d8ec137c0b2eb1bbe6041b09dba6c23fd825f946f241fb4616b790765825b11",
@@ -86,7 +86,7 @@
 		},
 		"docs/developer/config.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:484ff0ac5212f580315b8949e6b9b9b64796f03f6d9fd6318f43382deeec3e38",
+			"documentHash": "sha256:1e0797f91bb7a97a688f71016da93e9f5edfea1317299bde0157f22390b020ad",
 			"reviewDependencies": {
 				"src/audit/config/load.ts": "sha256:38b0f063408beb411872195f3f1e6183795d40b97380f5f5dec9169660556b1f",
 				"src/audit/config/types.ts": "sha256:5c23c9da56d56b818238c5669de30a1ca5cd2d02d2acd6e196810f6ae0cab1b0"

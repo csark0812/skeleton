@@ -22,7 +22,6 @@ export const DEFAULT_REVIEW_COVERAGE_EXCLUDE = [
 	"node_modules/**",
 	".git/**",
 	".skeleton/plugins/**",
-	"**/*.mjs",
 ];
 
 export function reviewCoveragePatterns(config: SkeletonConfig): {

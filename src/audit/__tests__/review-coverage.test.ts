@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../config/load.ts";
+import { pathRequiresReviewCoverage } from "../core/review-coverage.ts";
 import { evaluateAudit } from "../run.ts";
 
 function makeRepo(marker: string): string {
@@ -44,6 +45,50 @@ describe("review-coverage", () => {
 				include: ["src/**/*.ts"],
 				exclude: [],
 			});
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("treats production .mjs as a default coverage candidate", () => {
+		const root = makeRepo("<!-- review-deps: paths=src/owned.ts -->");
+		try {
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`daysUntilStale = 365
+[scan]
+include = ["docs/**"]
+exclude = []
+`,
+			);
+			const config = loadConfig(root);
+			expect(pathRequiresReviewCoverage("src/app.mjs", config)).toBe(true);
+			expect(pathRequiresReviewCoverage(".skeleton/plugins/example/example.mjs", config)).toBe(
+				false,
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps production .mjs covered when include names only that extension", () => {
+		const root = makeRepo("<!-- review-deps: paths=src/owned.ts -->");
+		try {
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`daysUntilStale = 365
+[scan]
+include = ["docs/**"]
+exclude = []
+[reviewCoverage]
+include = ["**/*.mjs"]
+`,
+			);
+			const config = loadConfig(root);
+			expect(pathRequiresReviewCoverage("src/app.mjs", config)).toBe(true);
+			expect(pathRequiresReviewCoverage(".skeleton/plugins/example/example.mjs", config)).toBe(
+				false,
+			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

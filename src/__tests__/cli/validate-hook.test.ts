@@ -84,6 +84,43 @@ describe("validate changed hook gates", () => {
 		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 	});
 
+	it("fails mixed docs and uncovered production .mjs", async () => {
+		const root = makeRoot();
+		writeToml(root);
+		writeOwnedDoc(root);
+		mkdirSync(join(root, "src"), { recursive: true });
+		writeFileSync(join(root, "src/app.mjs"), "export const n = 1;\n");
+
+		const result = await evaluateValidateChanged({
+			root,
+			paths: ["docs/example.md", "src/app.mjs"],
+		});
+		expect(result.exitCode).toBe(1);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ code: "uncovered-changed-path", file: "src/app.mjs" }),
+		);
+		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
+	});
+
+	it("fails uncovered production .mjs under --base after global rules", async () => {
+		const root = makeRoot();
+		writeToml(root);
+		writeOwnedDoc(root);
+		mkdirSync(join(root, "src"), { recursive: true });
+		writeFileSync(join(root, "src/app.mjs"), "export const n = 1;\n");
+
+		const result = await evaluateValidateChanged({
+			root,
+			paths: ["src/app.mjs"],
+			base: "HEAD",
+		});
+		expect(result.exitCode).toBe(1);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ code: "uncovered-changed-path", file: "src/app.mjs" }),
+		);
+		expect(result.audits.some((audit) => audit.suite === "self")).toBe(true);
+	});
+
 	it("fails uncovered code under --base after global rules", async () => {
 		const root = makeRoot();
 		writeToml(root);
