@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
 
@@ -16,7 +16,7 @@ skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
-`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes.
+`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
 CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 

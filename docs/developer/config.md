@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/audit/config/load.ts,src/audit/config/types.ts -->
 
@@ -106,7 +106,7 @@ See [audit](audit.md#skill-ownership-consumer-vs-toolbox) and [validation](valid
 | Prose policies                       | Idle until `plugins` contribute policy YAML                                                                                               |
 | Customize inject                     | `customize.alwaysInclude` (optional hooks / `customize resolve`); customize paths are always in the audit corpus                          |
 | Skill body ownership                 | `skillOwnership` + `skills-lock.json` (foreign bodies skipped)                                                                            |
-| Catalog                              | Local audit warns if `.skeleton/catalog.md` missing/stale; skipped when `CI=true`                                                         |
+| Catalog                              | Local audit and `validate changed` write `.skeleton/catalog.md` on each run; skipped when `CI=true`                                       |
 
 ## Example: toolbox / docs-only
 

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -10,7 +10,7 @@ SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day
 
 ## Doc routing (before long reads)
 
-1. If `.skeleton/catalog.md` is missing, run `bun src/cli.ts catalog` (or `skeleton catalog`).
+1. Local `audit` / `validate` writes `.skeleton/catalog.md` (skipped when `CI=true`).
 2. Skim the catalog summaries.
 3. For a hit, read only the source-of-truth line / first ~20 lines of that file.
 4. Open the full doc only if it is truly relevant.

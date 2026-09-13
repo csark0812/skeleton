@@ -68,19 +68,11 @@ export function writeCatalog(root: string): { path: string; entries: SsotFileEnt
 	return { path: normalizeRelPath(CATALOG_REL_PATH), entries };
 }
 
-/** Warn-only catalog drift for local audit; skip when CI=true. */
-export function catalogAuditWarnings(root: string): string[] {
-	if (process.env.CI === "true") return [];
-	const result = checkCatalog(root);
-	if (result.missing) {
-		return [
-			`${CATALOG_REL_PATH} missing — run \`skeleton catalog\` so agents can skim SSOT summaries`,
-		];
-	}
-	if (result.stale) {
-		return [`${CATALOG_REL_PATH} outdated — run \`skeleton catalog\` to refresh`];
-	}
-	return [];
+/** Write the gitignored catalog on local machine runs. Skip when CI=true. */
+export function refreshLocalCatalog(root: string): "current" | "skipped-ci" {
+	if (process.env.CI === "true") return "skipped-ci";
+	writeCatalog(root);
+	return "current";
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: write and strict/non-strict check modes share one CLI seam

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton-specific code-review overlays (validation ladder, invariant matrices, Action bar) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=AGENTS.md,src/validate/changed.ts,docs/developer/validation.md -->
 

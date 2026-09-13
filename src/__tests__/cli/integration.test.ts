@@ -1,5 +1,5 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { attestDocuments } from "../../audit/core/review-proof.ts";
@@ -17,6 +17,15 @@ const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
 const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
 const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
+
+function removeFixtureCatalogs(): void {
+	for (const root of [FLAT_SKILL_ROOT, NESTED_SKILLS_CUSTOMIZE, PLUGIN_CONSUMER]) {
+		const catalog = join(root, ".skeleton/catalog.md");
+		if (existsSync(catalog)) unlinkSync(catalog);
+	}
+}
+
+afterEach(removeFixtureCatalogs);
 
 describe("catalog", () => {
 	it("can fail closed when a strict check finds no generated catalog", () => {
@@ -274,8 +283,8 @@ Run the project commands through the package scripts.
 			const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
 			try {
 				expect(await runValidateChanged({ root, paths: ["package.json"] })).toBe(1);
-				expect(lines).toContain(
-					"validate changed: docs/commands.md requires review (dependency package.json matched package.json)",
+				expect(lines.join("\n")).toContain(
+					"docs/commands.md: error: review required\n  changed: package.json",
 				);
 			} finally {
 				log.mockRestore();

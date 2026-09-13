@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/validate/changed.ts,src/audit/run.ts -->
 
@@ -116,7 +116,7 @@ skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
 
-If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
+If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
 
 **Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
 

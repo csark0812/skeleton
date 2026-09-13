@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
-import { type Issue, issue } from "../audit/core/report.ts";
+import { type Issue, isRereadIssue, issue, printReport } from "../audit/core/report.ts";
 import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
@@ -19,6 +19,7 @@ import {
 } from "../audit/core/skill-roots.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { evaluateAudit, printAuditResult } from "../audit/run.ts";
+import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
 import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
@@ -170,6 +171,16 @@ function parseJsonContent(content: string): unknown {
 
 function validationIssue(code: string, file: string, message: string): Issue {
 	return issue("validate-changed", file, { code, message, severity: "error" });
+}
+
+function rereadValidationIssue(file: string, target: string): Issue {
+	return issue("validate-changed", file, {
+		code: "impacted-document-review-required",
+		message:
+			"a linked review dependency changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
+		severity: "error",
+		link: target,
+	});
 }
 
 function validateJson(relPath: string, root: string): Issue | null {
@@ -415,20 +426,27 @@ function dateModeImpactDiagnostics(input: {
 	if (input.config.reviewProof) return [];
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
 	const today = formatLocalReviewDate(new Date());
-	const diagnostics: Issue[] = [];
-	for (const impacted of input.impactedDocuments) {
-		if (!impacted.reasons.some((reason) => reason.kind === "changed-review-dependency")) continue;
-		const content = readFileSync(join(input.root, impacted.path), "utf8");
-		if (changed.has(impacted.path) && docMetaLastReviewed(content) === today) continue;
-		diagnostics.push(
-			validationIssue(
-				"impacted-document-review-required",
-				impacted.path,
-				"a linked review dependency changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
-			),
-		);
+	return input.impactedDocuments.flatMap((impacted) =>
+		dateModeIssuesForDocument({ impacted, changed, today, root: input.root }),
+	);
+}
+
+function dateModeIssuesForDocument(input: {
+	impacted: ImpactedDocument;
+	changed: Set<string>;
+	today: string;
+	root: string;
+}): Issue[] {
+	const content = readFileSync(join(input.root, input.impacted.path), "utf8");
+	if (input.changed.has(input.impacted.path) && docMetaLastReviewed(content) === input.today) {
+		return [];
 	}
-	return diagnostics;
+	const issues: Issue[] = [];
+	for (const reason of input.impacted.reasons) {
+		if (reason.kind !== "changed-review-dependency" || !reason.target) continue;
+		issues.push(rereadValidationIssue(input.impacted.path, reason.target));
+	}
+	return issues;
 }
 
 function classificationDiagnostics(
@@ -609,6 +627,7 @@ export async function evaluateValidateChanged(
 	options: ValidateChangedOptions = {},
 ): Promise<ValidateChangedResult> {
 	const root = options.root ?? findRepoRoot();
+	refreshLocalCatalog(root);
 	const resolvedPaths = resolvePaths(options);
 	const relPaths = resolvedPaths.paths;
 
@@ -694,16 +713,19 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 			`validate changed: skipping foreign skill ${path} (owned upstream; see skills-lock.json / skillOwnership)`,
 		);
 	}
-	for (const audit of result.audits) printAuditResult(audit, false);
-	for (const impacted of result.impactedDocuments) {
-		for (const reason of impacted.reasons) {
-			if (reason.kind !== "changed-review-dependency") continue;
-			console.log(
-				`validate changed: ${impacted.path} requires review (dependency ${reason.dependency} matched ${reason.target})`,
-			);
+	if (result.ok) {
+		for (const audit of result.audits) printAuditResult(audit, false);
+	} else {
+		for (const audit of result.audits.filter((item) => !item.ok)) {
+			printAuditResult(audit, false);
 		}
 	}
-	for (const diagnostic of result.diagnostics) {
+	const rereadDiagnostics = result.diagnostics.filter(isRereadIssue);
+	const otherDiagnostics = result.diagnostics.filter((item) => !isRereadIssue(item));
+	if (rereadDiagnostics.length > 0) {
+		printReport(rereadDiagnostics, { label: "validate changed" });
+	}
+	for (const diagnostic of otherDiagnostics) {
 		const path = diagnostic.file === "." ? "" : `${diagnostic.file}: `;
 		console.error(`validate changed: ${path}${diagnostic.message}`);
 	}

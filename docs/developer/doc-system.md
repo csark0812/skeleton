@@ -2,13 +2,13 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
-Catalog CLI: `runCatalogCli`, `checkCatalog`, `writeCatalog`, `buildCatalogContent`, `catalogAuditWarnings`. Summary fit: `evaluateSsotFit` / `ssotEvidenceOverlap` / `buildEvidenceText`. Doc-meta rule: `runDocMetaRule` (`docMetaRule`).
+Catalog CLI: `runCatalogCli`, `checkCatalog`, `writeCatalog`, `buildCatalogContent`, `refreshLocalCatalog`. Summary fit: `evaluateSsotFit` / `ssotEvidenceOverlap` / `buildEvidenceText`. Doc-meta rule: `runDocMetaRule` (`docMetaRule`).
 
 ## Source of truth (opt-in)
 
@@ -30,7 +30,7 @@ Files without an SSOT marker are fine — they are simply not listed in the agen
 
 ## Catalog
 
-`.skeleton/catalog.md` is **generated and gitignored**. Agents should run `skeleton catalog` if it is missing, then skim summaries before opening full papers.
+`.skeleton/catalog.md` is **generated and gitignored**. Local `audit docs`, `audit self`, and `validate changed` write it on each run. The write is skipped when `CI=true`.
 
 ```bash
 skeleton catalog
@@ -38,7 +38,7 @@ skeleton catalog --check   # warn if missing/outdated (local)
 skeleton catalog --check --strict  # fail if missing/outdated
 ```
 
-Local `audit docs` warns when the catalog is missing/stale; the check is skipped when `CI=true`.
+Use `skeleton catalog` when you want a refresh without an audit.
 
 ## SSOT summary fit (`ssot-summary`)
 

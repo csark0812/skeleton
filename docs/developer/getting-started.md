@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/init/init.ts,src/cli.ts -->
 
@@ -94,11 +94,13 @@ Keep request and response shapes consistent across services.
 
 ## 4. Refresh the agent catalog
 
+Local `npx skeleton audit docs` and `npx skeleton validate changed` write `.skeleton/catalog.md`. You can also run:
+
 ```bash
 npx skeleton catalog
 ```
 
-Writes gitignored `.skeleton/catalog.md` from SSOT-bearing files. Agents skim this before opening full papers.
+The file is gitignored. Agents skim it before they open full papers.
 
 ## 5. Verify
 

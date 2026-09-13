@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/validate/changed.ts -->
 
@@ -17,7 +17,7 @@ Router for changed paths: `runValidateChanged` / `evaluateValidateChanged` (`Val
 | Foreign / lockfile-synced skill body                      | skipped — lint in the owning skills/toolbox repo                                                       |
 | Plugin-wired policy YAML under `.skeleton/`               | Local: `skeleton audit docs` **and** `skeleton audit skills`. CI: `validate:ci` / `--base` proves both |
 | TypeScript / app code                                     | Repo-native gates plus Skeleton audits for documents linked by `review-deps`                           |
-| `package.json` / `project.json`                           | Repo-native gates; no docs dependency routing                                                          |
+| `package.json` / `project.json`                           | Repo-native gates. `review-deps` discovery still applies                                               |
 | Missing paths or code paths with no impacted documents    | Pass real paths, or use `--staged` / `--base`; run the printed native gates                            |
 
 Common failures: [troubleshooting](troubleshooting.md). Suites and rule scoping: [audit](audit.md).
@@ -60,7 +60,7 @@ bun run typecheck
 bun run build
 ```
 
-Mixed doc+code paths audit both directly changed and discovered impacted documents. Plain-text output names every linked document that requires review and the declared dependency that matched.
+Mixed doc+code paths audit both directly changed and discovered impacted documents. Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it.
 
 ### Skill-body paths
 
