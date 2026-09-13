@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: skill customize overrides via hooks -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-<!-- review-deps: paths=src/customize/resolve.ts,src/hooks/run.ts -->
+<!-- review-deps: paths=src/customize/resolve.ts,src/hooks/** -->
 
 Resolve overlays with `resolveCustomize` / `resolveCustomizeFromRoot` (`CUSTOMIZE_PREFIX`). Hook entry: `runCustomizeHook`.
 

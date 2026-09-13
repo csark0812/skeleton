@@ -15,11 +15,14 @@ exclude = [
 [deny]
 paths = []
 
-# Optional but recommended: make review claims verifiable against exact document
-# and review-dependency bytes. Commit the generated lockfile.
-# [reviewProof]
-# mode = "hash"
+[reviewProof]
+mode = "hash"
 # lockfile = ".skeleton/review-lock.json"
+
+# Defaults apply when this section is omitted. Empty include disables the gate.
+# [reviewCoverage]
+# include = ["**/*.{ts,tsx,js,jsx,mjs,cjs,py}", "package.json", "project.json"]
+# exclude = ["**/__tests__/**", "**/*.test.*", "**/*.spec.*", "**/fixtures/**", "templates/**"]
 
 # Optional: basenames under .skeleton/customize/ appended on every skill inject
 # [customize]

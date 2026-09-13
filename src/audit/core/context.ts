@@ -8,6 +8,7 @@ import {
 	filterToPaths,
 	includeExplicitMarkdownPaths,
 } from "./collect.ts";
+import type { FileSource } from "./repo-files.ts";
 import { buildSkillIndex, listSkillMarkdownPaths, type SkillIndex } from "./skill-roots.ts";
 import type { SsotForm } from "./ssot.ts";
 import { collectSsotEntries, type SsotFileEntry } from "./ssot-collect.ts";
@@ -39,6 +40,8 @@ export interface AuditContext {
 	lockedSkillSlugs: Set<string>;
 	/** Compiled prose policies from plugins (empty when no plugins / no policy globs). */
 	policies: PolicyFile[];
+	/** Read document and dependency bytes from the worktree or the git index. */
+	fileSource?: FileSource;
 }
 
 export interface AuditOptions {
@@ -52,6 +55,8 @@ export interface AuditOptions {
 	 * matches path-scoped / validate `--base` prove.
 	 */
 	includeExcludedSkillTrees?: boolean;
+	/** When `index`, review-proof and coverage reads use `git show :path`. */
+	fileSource?: FileSource;
 }
 
 export function createContext(options: AuditOptions = {}): AuditContext {
@@ -93,5 +98,6 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		skillIndex,
 		lockedSkillSlugs: new Set(skillIndex.foreignSlugs),
 		policies: options.policies ?? [],
+		fileSource: options.fileSource,
 	};
 }

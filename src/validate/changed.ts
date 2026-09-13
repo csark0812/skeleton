@@ -3,7 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
+import { type FileSource, readRepoText } from "../audit/core/repo-files.ts";
 import { type Issue, isRereadIssue, issue, printReport } from "../audit/core/report.ts";
+import {
+	collectReviewDependencyPatterns,
+	pathHasReviewOwner,
+	pathRequiresReviewCoverage,
+} from "../audit/core/review-coverage.ts";
 import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
@@ -23,6 +29,7 @@ import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
 import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
+import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
 const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
@@ -183,27 +190,36 @@ function rereadValidationIssue(file: string, target: string): Issue {
 	});
 }
 
-function validateJson(relPath: string, root: string): Issue | null {
-	const abs = join(root, relPath);
+function validateJson(relPath: string, root: string, fileSource: FileSource): Issue | null {
+	const content = readRepoText(root, relPath, fileSource);
+	if (content === null) return validationIssue("invalid-json", relPath, "path not found");
 	try {
-		parseJsonContent(readFileSync(abs, "utf8"));
+		parseJsonContent(content);
 		return null;
 	} catch (error) {
 		return validationIssue("invalid-json", relPath, `invalid JSON: ${error}`);
 	}
 }
 
-function validatePolicy(relPath: string, root: string): Issue | null {
-	const abs = join(root, relPath);
+function validatePolicy(relPath: string, root: string, fileSource: FileSource): Issue | null {
+	const content = readRepoText(root, relPath, fileSource);
+	if (content === null) return validationIssue("invalid-policy", relPath, "path not found");
 	try {
-		loadPolicyFile(abs, readFileSync(abs, "utf8"));
+		loadPolicyFile(join(root, relPath), content);
 		return null;
 	} catch (error) {
 		return validationIssue("invalid-policy", relPath, `invalid policy: ${error}`);
 	}
 }
 
-function validateShell(relPath: string, root: string): Issue | null {
+function validateShell(relPath: string, root: string, fileSource: FileSource): Issue | null {
+	if (fileSource === "index") {
+		const content = readRepoText(root, relPath, fileSource);
+		if (content === null) return validationIssue("invalid-shell", relPath, "path not found");
+		const bash = spawnSync("bash", ["-n"], { input: content, encoding: "utf8" });
+		if (bash.status === 0) return null;
+		return validationIssue("invalid-shell", relPath, `shell syntax check failed: ${bash.stderr}`);
+	}
 	const abs = join(root, relPath);
 	const shellcheck = spawnSync("shellcheck", [abs], { encoding: "utf8" });
 	if (shellcheck.status === 0) return null;
@@ -346,18 +362,22 @@ function classifyPaths(ctx: ClassifyContext): PathClassification {
 	return state;
 }
 
-function validateLocalBuckets(buckets: Record<BucketKey, string[]>, root: string): Issue[] {
+function validateLocalBuckets(
+	buckets: Record<BucketKey, string[]>,
+	root: string,
+	fileSource: FileSource,
+): Issue[] {
 	const diagnostics: Issue[] = [];
 	for (const relPath of buckets.shell) {
-		const found = validateShell(relPath, root);
+		const found = validateShell(relPath, root, fileSource);
 		if (found) diagnostics.push(found);
 	}
 	for (const relPath of buckets.json) {
-		const found = validateJson(relPath, root);
+		const found = validateJson(relPath, root, fileSource);
 		if (found) diagnostics.push(found);
 	}
 	for (const relPath of buckets.policy) {
-		const found = validatePolicy(relPath, root);
+		const found = validatePolicy(relPath, root, fileSource);
 		if (found) diagnostics.push(found);
 	}
 	return diagnostics;
@@ -378,24 +398,33 @@ function discoverImpactedDocuments(input: {
 	root: string;
 	config: ReturnType<typeof loadConfig>;
 	skillIndex: SkillIndex;
+	fileSource: FileSource;
 }): ImpactedDocument[] {
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
 	const impacted: ImpactedDocument[] = [];
 	for (const abs of collectScanFiles(input.config, input.root, input.skillIndex)) {
-		const document = impactedDocumentForPath(abs, input.root, changed);
+		const document = impactedDocumentForPath({
+			abs,
+			root: input.root,
+			changed,
+			fileSource: input.fileSource,
+		});
 		if (document) impacted.push(document);
 	}
 	return impacted.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-function impactedDocumentForPath(
-	abs: string,
-	root: string,
-	changed: Set<string>,
-): ImpactedDocument | null {
-	const path = relPathFromAbs(abs, root);
-	const reviewDependencies = reviewDependencyPatterns(readFileSync(abs, "utf8"));
-	const reasons = impactReasons(path, reviewDependencies, changed);
+function impactedDocumentForPath(input: {
+	abs: string;
+	root: string;
+	changed: Set<string>;
+	fileSource: FileSource;
+}): ImpactedDocument | null {
+	const path = relPathFromAbs(input.abs, input.root);
+	const content = readRepoText(input.root, path, input.fileSource);
+	if (content === null) return null;
+	const reviewDependencies = reviewDependencyPatterns(content);
+	const reasons = impactReasons(path, reviewDependencies, input.changed);
 	return reasons.length > 0 ? { path, reviewDependencies, reasons } : null;
 }
 
@@ -422,12 +451,19 @@ function dateModeImpactDiagnostics(input: {
 	impactedDocuments: ImpactedDocument[];
 	relPaths: string[];
 	root: string;
+	fileSource: FileSource;
 }): Issue[] {
 	if (input.config.reviewProof) return [];
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
 	const today = formatLocalReviewDate(new Date());
 	return input.impactedDocuments.flatMap((impacted) =>
-		dateModeIssuesForDocument({ impacted, changed, today, root: input.root }),
+		dateModeIssuesForDocument({
+			impacted,
+			changed,
+			today,
+			root: input.root,
+			fileSource: input.fileSource,
+		}),
 	);
 }
 
@@ -436,8 +472,14 @@ function dateModeIssuesForDocument(input: {
 	changed: Set<string>;
 	today: string;
 	root: string;
+	fileSource: FileSource;
 }): Issue[] {
-	const content = readFileSync(join(input.root, input.impacted.path), "utf8");
+	const content = readRepoText(input.root, input.impacted.path, input.fileSource);
+	if (!content) {
+		return input.impacted.reasons
+			.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
+			.map((reason) => rereadValidationIssue(input.impacted.path, reason.target ?? ""));
+	}
 	if (input.changed.has(input.impacted.path) && docMetaLastReviewed(content) === input.today) {
 		return [];
 	}
@@ -449,11 +491,31 @@ function dateModeIssuesForDocument(input: {
 	return issues;
 }
 
-function classificationDiagnostics(
-	classification: PathClassification,
-	root: string,
-	base?: string,
+function uncoveredChangedPathDiagnostics(
+	relPaths: string[],
+	config: ReturnType<typeof loadConfig>,
+	patterns: string[],
 ): Issue[] {
+	return relPaths
+		.map(normalizeRelPath)
+		.filter((path) => pathRequiresReviewCoverage(path, config))
+		.filter((path) => !pathHasReviewOwner(path, patterns))
+		.map((path) =>
+			validationIssue(
+				"uncovered-changed-path",
+				path,
+				"no scanned document claims this path with review-deps. Add a review-deps marker on the owning paper.",
+			),
+		);
+}
+
+function classificationDiagnostics(input: {
+	classification: PathClassification;
+	root: string;
+	base: string | undefined;
+	coverageCandidateCount: number;
+}): Issue[] {
+	const { classification, root, base, coverageCandidateCount } = input;
 	const diagnostics: Issue[] = [];
 	for (const orphan of classification.orphans) {
 		diagnostics.push(
@@ -471,6 +533,7 @@ function classificationDiagnostics(
 	if (
 		(classification.skipped.length > 0 || classification.buckets.code.length > 0) &&
 		audited === 0 &&
+		coverageCandidateCount === 0 &&
 		!base
 	) {
 		diagnostics.push(
@@ -504,7 +567,7 @@ function auditOptions(
 	suite: "docs" | "skills" | "self",
 	root: string,
 	paths: string[],
-	extra: { globalOnly?: boolean; pathScopedOnly?: boolean } = {},
+	extra: { globalOnly?: boolean; pathScopedOnly?: boolean; fileSource?: FileSource } = {},
 ) {
 	return {
 		suite,
@@ -517,64 +580,87 @@ function auditOptions(
 	};
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity lint/complexity/noExcessiveLinesPerFunction: branches correspond directly to public validation buckets
+async function auditSkillChanges(input: {
+	skills: string[];
+	root: string;
+	base?: string;
+	fileSource: FileSource;
+}): Promise<AuditResult[]> {
+	const sourceOpt = { fileSource: input.fileSource };
+	if (input.skills.length === 0) return [];
+	if (!input.base) {
+		return [await evaluateAudit(auditOptions("skills", input.root, [], sourceOpt))];
+	}
+	return [
+		await evaluateAudit(
+			auditOptions("skills", input.root, input.skills, {
+				pathScopedOnly: true,
+				...sourceOpt,
+			}),
+		),
+	];
+}
+
+async function auditPolicyChanges(input: {
+	root: string;
+	skillIndex: SkillIndex;
+	fileSource: FileSource;
+}): Promise<AuditResult[]> {
+	const sourceOpt = { fileSource: input.fileSource };
+	const audits = [await evaluateAudit(auditOptions("docs", input.root, [], sourceOpt))];
+	const skillPaths = listSkillMarkdownPaths(input.root, input.skillIndex);
+	if (skillPaths.length === 0) return audits;
+	audits.push(
+		await evaluateAudit(
+			auditOptions("skills", input.root, skillPaths, {
+				pathScopedOnly: true,
+				...sourceOpt,
+			}),
+		),
+	);
+	return audits;
+}
+
 async function evaluateBucketAudits(input: {
 	classification: PathClassification;
 	root: string;
 	skillIndex: SkillIndex;
 	base?: string;
+	fileSource: FileSource;
 }): Promise<{ audits: AuditResult[]; diagnostics: Issue[] }> {
-	const { classification, root, skillIndex, base } = input;
+	const { classification, root, skillIndex, base, fileSource } = input;
 	const audits: AuditResult[] = [];
-	const diagnostics = validateLocalBuckets(classification.buckets, root);
+	const diagnostics = validateLocalBuckets(classification.buckets, root, fileSource);
+	const sourceOpt = { fileSource };
 
 	if (base) {
-		audits.push(await evaluateAudit(auditOptions("self", root, [], { globalOnly: true })));
+		audits.push(
+			await evaluateAudit(auditOptions("self", root, [], { globalOnly: true, ...sourceOpt })),
+		);
 	}
 	if (classification.buckets.docs.length > 0) {
 		audits.push(
 			await evaluateAudit(
-				auditOptions("docs", root, classification.buckets.docs, { pathScopedOnly: true }),
+				auditOptions("docs", root, classification.buckets.docs, {
+					pathScopedOnly: true,
+					...sourceOpt,
+				}),
 			),
 		);
 	}
-	if (classification.buckets.skills.length > 0) {
-		if (!base) {
-			diagnostics.push(
-				validationIssue(
-					"full-skills-audit-required",
-					classification.buckets.skills[0] ?? ".",
-					"skill paths need the full skills suite; run skeleton audit skills (audit self covers docs and .skeleton; excluded skill trees still need audit skills)",
-				),
-			);
-		} else {
-			audits.push(
-				await evaluateAudit(
-					auditOptions("skills", root, classification.buckets.skills, {
-						pathScopedOnly: true,
-					}),
-				),
-			);
-		}
-	}
-	if (classification.buckets.policy.length > 0) {
-		if (!base) {
-			diagnostics.push(
-				validationIssue(
-					"full-policy-audit-required",
-					classification.buckets.policy[0] ?? ".",
-					"policy YAML changes need full prose passes; run skeleton audit docs and skeleton audit skills",
-				),
-			);
-		} else {
-			audits.push(await evaluateAudit(auditOptions("docs", root, [])));
-			const skillPaths = listSkillMarkdownPaths(root, skillIndex);
-			if (skillPaths.length > 0) {
-				audits.push(
-					await evaluateAudit(auditOptions("skills", root, skillPaths, { pathScopedOnly: true })),
-				);
-			}
-		}
+	audits.push(
+		...(await auditSkillChanges({
+			skills: classification.buckets.skills,
+			root,
+			base,
+			fileSource,
+		})),
+	);
+	if (
+		classification.buckets.policy.length > 0 &&
+		!diagnostics.some((item) => item.code === "invalid-policy")
+	) {
+		audits.push(...(await auditPolicyChanges({ root, skillIndex, fileSource })));
 	}
 	return { audits, diagnostics };
 }
@@ -637,6 +723,7 @@ export async function evaluateValidateChanged(
 
 	const config = loadConfig(root);
 	const skillIndex = buildSkillIndex(root, config.skillOwnership);
+	const fileSource: FileSource = options.staged ? "index" : "worktree";
 	let wiredPolicies: Set<string>;
 	try {
 		wiredPolicies = await collectWiredPolicyRelPaths(root, config);
@@ -664,7 +751,13 @@ export async function evaluateValidateChanged(
 	classification.missing = classification.missing.filter(
 		(path) => !resolvedPaths.deleted.has(path),
 	);
-	const impactedDocuments = discoverImpactedDocuments({ relPaths, root, config, skillIndex });
+	const impactedDocuments = discoverImpactedDocuments({
+		relPaths,
+		root,
+		config,
+		skillIndex,
+		fileSource,
+	});
 	for (const impacted of impactedDocuments) {
 		if (!classification.buckets.docs.includes(impacted.path)) {
 			classification.buckets.docs.push(impacted.path);
@@ -672,25 +765,41 @@ export async function evaluateValidateChanged(
 	}
 	classification.buckets.docs.sort();
 
-	const diagnostics = classificationDiagnostics(classification, root, options.base);
-	if (diagnostics.length > 0) {
-		return resultFor({
-			options,
-			relPaths,
-			classification: publicClassification(classification),
-			impactedDocuments,
-			diagnostics,
-		});
-	}
+	const ownerPatterns = collectReviewDependencyPatterns({
+		root,
+		config,
+		skillIndex,
+		fileSource,
+	});
+	const coverageCandidateCount = relPaths.filter((path) =>
+		pathRequiresReviewCoverage(path, config),
+	).length;
+	const diagnostics = [
+		...classificationDiagnostics({
+			classification,
+			root,
+			base: options.base,
+			coverageCandidateCount,
+		}),
+		...uncoveredChangedPathDiagnostics(relPaths, config, ownerPatterns),
+		...stageRequiredDiagnostics({
+			staged: options.staged ?? false,
+			stagedPaths: relPaths,
+			impactedDocuments: impactedDocuments.map((item) => item.path),
+			config,
+			root,
+		}),
+	];
 
 	const evaluated = await evaluateBucketAudits({
 		classification,
 		root,
 		skillIndex,
 		base: options.base,
+		fileSource,
 	});
 	evaluated.diagnostics.push(
-		...dateModeImpactDiagnostics({ config, impactedDocuments, relPaths, root }),
+		...dateModeImpactDiagnostics({ config, impactedDocuments, relPaths, root, fileSource }),
 	);
 	return resultFor({
 		options,
@@ -698,7 +807,7 @@ export async function evaluateValidateChanged(
 		classification: publicClassification(classification),
 		impactedDocuments,
 		audits: evaluated.audits,
-		diagnostics: evaluated.diagnostics,
+		diagnostics: [...diagnostics, ...evaluated.diagnostics],
 	});
 }
 

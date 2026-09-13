@@ -22,5 +22,13 @@ exclude = [
 [reviewProof]
 mode = "hash"
 
+[reviewCoverage]
+include = ["src/**/*.ts", "package.json"]
+exclude = [
+  "src/**/__tests__/**",
+  "src/**/*.test.ts",
+  "src/**/fixtures/**",
+]
+
 [deny]
 paths = []

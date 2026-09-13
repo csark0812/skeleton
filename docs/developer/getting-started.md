@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-<!-- review-deps: paths=src/init/init.ts,src/cli.ts -->
+<!-- review-deps: paths=src/init/**,src/cli.ts -->
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
@@ -17,7 +17,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `skeleton.toml`, ensures `.skeleton/customize/`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts to `package.json`. Hooks are not required for audit.
+Init writes `skeleton.toml`, ensures `.skeleton/customize/`, writes `.pre-commit-config.yaml`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts to `package.json`. Hash review proof is on by default. IDE customize hooks are not required for audit.
 
 ## 2. Set the scan perimeter
 
@@ -69,14 +69,14 @@ see [config](config.md#skillownership).
 
 Plugin-enabled example and more keys: [config](config.md).
 
-For the strongest review gate, enable hash-backed evidence:
+Init enables hash-backed review evidence:
 
 ```toml
 [reviewProof]
 mode = "hash"
 ```
 
-Commit `.skeleton/review-lock.json` after the first explicit review.
+Commit `.skeleton/review-lock.json` after the first explicit review. Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
 
 ## 3. Write a canonical doc
 
@@ -120,13 +120,15 @@ npx skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewe
 Changing the date alone is not a review. Re-read-cadence warnings remain advisory unless `--strict`. Failures →
 [troubleshooting](troubleshooting.md).
 
-## 6. Optional pre-commit
+## 6. Install the git hook
+
+Init writes `.pre-commit-config.yaml` with `skeleton validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then:
 
 ```bash
 pre-commit install
 ```
 
-Hook configs typically run `skeleton validate changed --staged`. Details: [install](install.md).
+Details: [install](install.md).
 
 ## Day-one checklist
 
@@ -136,7 +138,8 @@ Hook configs typically run `skeleton validate changed --staged`. Details: [insta
 - [ ] Write a canonical doc with source-of-truth (+ doc-meta as needed)
 - [ ] `npx skeleton catalog`
 - [ ] `npx skeleton audit docs`
-- [ ] (Optional) `pre-commit install` / IDE customize hooks
+- [ ] `pre-commit install`
+- [ ] (Optional) IDE customize hooks
 
 ## Next
 

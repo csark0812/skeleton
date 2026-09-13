@@ -4,6 +4,7 @@ import type { AuditResult, CatalogStatus, ReviewProofResult } from "../result-ty
 import type { SkeletonConfig } from "./config/types.ts";
 import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
+import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
 import { attestDocuments } from "./core/review-proof.ts";
 import { rulesForSuite } from "./rules/index.ts";
@@ -21,6 +22,7 @@ export interface AuditCliOptions {
 	fix?: string | true | null;
 	dryRun?: boolean;
 	confirmReviewed?: boolean;
+	fileSource?: FileSource;
 }
 
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
@@ -276,6 +278,7 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 		root: options.root,
 		paths: pathScoped ? options.paths : undefined,
 		includeExcludedSkillTrees: options.suite === "skills" && !pathScoped,
+		fileSource: options.fileSource,
 	});
 	const loaded = await loadPlugins(base.root, base.config);
 	const ctx = { ...base, policies: loaded.policies };

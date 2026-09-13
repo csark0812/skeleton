@@ -28,6 +28,14 @@ export interface SkillOwnershipConfig {
 	foreignSlugs?: string[];
 }
 
+/** Files that must appear in at least one scanned document's review-deps. */
+export interface ReviewCoverageConfig {
+	/** Repo-relative globs that require an owning paper. Empty include disables the gate. */
+	include?: string[];
+	/** Globs removed from the coverage set. */
+	exclude?: string[];
+}
+
 /** Verifiable evidence that a human review covered exact document and code bytes. */
 export interface ReviewProofConfig {
 	/** Hash mode stores reviewed document and code-target digests in a lockfile. */
@@ -60,6 +68,7 @@ export interface SkeletonConfig {
 	customize?: CustomizeConfig;
 	skillOwnership?: SkillOwnershipConfig;
 	reviewProof?: ReviewProofConfig;
+	reviewCoverage?: ReviewCoverageConfig;
 	docsLint?: DocsLintConfig;
 	/**
 	 * Plugin entry paths relative to `.skeleton/` (e.g. `plugins/example.ts`).

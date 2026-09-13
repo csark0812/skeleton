@@ -8,6 +8,7 @@ import {
 	mergeHookConfigs,
 	mergePackageJsonScripts,
 } from "./merge-hooks.ts";
+import { mergePrecommitConfig } from "./merge-precommit.ts";
 import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
 import { resolveHookCommand } from "./resolve-hook-command.ts";
 import { skillsAddArgs } from "./skills-args.ts";
@@ -28,6 +29,7 @@ export interface InitResult {
 	hooks: MergeHookResult[];
 	scripts: MergeAction;
 	skills: "installed" | "skipped";
+	precommit: MergeAction;
 }
 
 function writeScaffold(cwd: string): "created" | "skipped" {
@@ -106,11 +108,12 @@ export function runInit(options: InitOptions = {}): InitResult {
 	const hookCommand = resolveHookCommand(cwd);
 	const hooks = mergeHookConfigs({ cwd, hookCommand, forceHooks: options.forceHooks });
 	const scripts = mergePackageJsonScripts(cwd);
+	const precommit = mergePrecommitConfig(cwd);
 
 	for (const result of hooks) logHookMergeResult(result);
 
 	if (scaffold === "created") {
-		console.log("init: wrote skeleton.toml (hooks optional — see docs)");
+		console.log("init: wrote skeleton.toml (IDE customize hooks optional)");
 	} else {
 		console.log("init: skeleton.toml or .skeleton/ already present — skipped scaffold write");
 	}
@@ -119,6 +122,12 @@ export function runInit(options: InitOptions = {}): InitResult {
 		console.log("init: merged validate/audit scripts into package.json");
 	}
 
+	if (precommit === "added") {
+		console.log("init: wrote .pre-commit-config.yaml (run pre-commit install once per machine)");
+	} else if (precommit === "updated") {
+		console.log("init: added skeleton validate hook to .pre-commit-config.yaml");
+	}
+
 	const skills = installSkillsIfRequested(options, cwd);
-	return { scaffold, hooks, scripts, skills };
+	return { scaffold, hooks, scripts, skills, precommit };
 }

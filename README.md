@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -157,15 +157,15 @@ skeleton customize resolve <slug>
 | Path                                                                                | Action                                        |
 | ----------------------------------------------------------------------------------- | --------------------------------------------- |
 | Docs in scan perimeter                                                              | path-scoped audit                             |
-| Owned skill bodies (`SKILL.md` trees)                                               | exit 1 → run `audit skills`                   |
+| Owned skill bodies (`SKILL.md` trees)                                               | run `audit skills`                            |
 | Foreign / lockfile-synced skill bodies                                              | skip → lint in the owning skills/toolbox repo |
 | `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                       |
 | Other `.json`                                                                       | JSONC-tolerant syntax check                   |
 | Any repository file                                                                 | native gates where applicable + audit documents whose `review-deps` path or glob matched |
 
-Pre-commit: `skeleton validate changed --staged` (path-scoped, fast).
+Pre-commit: `skeleton validate changed --staged` (index bytes, coverage, owning papers).
 
-CI: `skeleton validate changed --base origin/main` (global rules first, then changed files).
+CI: `skeleton validate changed --base origin/main` (global rules first, then changed files, same coverage fail).
 
 ## Ecosystem
 
@@ -200,8 +200,8 @@ bun run check
 
 `bun run check` = lint + test + typecheck + build + `audit:self`.
 
-`validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document whose `review-deps` declaration matches a changed file. Owned skill-body edits need `audit skills`. Code-only changes with no linked document still exit non-zero locally and point to native gates.
+`validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document whose `review-deps` declaration matches a changed file. A coverage-candidate path with no owning paper fails on local and CI runs. Owned skill-body edits run the skills suite. `--staged` reads git index bytes.
 
 For code: `bun test`, `bun run typecheck`, `bun run build`.
 
-Optional: `brew install pre-commit` (or `pipx install pre-commit`), then `pre-commit install` to wire `.pre-commit-config.yaml`.
+`skeleton init` writes `.pre-commit-config.yaml`. Install [pre-commit](https://pre-commit.com/) once (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`.

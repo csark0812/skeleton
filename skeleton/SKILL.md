@@ -99,7 +99,7 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton catalog` / `catalog --check --strict` | Write / check the gitignored agent catalog              |
 | `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
 | `skeleton validate changed`                    | Changed-file validation + dependency-driven doc discovery |
-| `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
+| `skeleton validate changed --staged`           | Pre-commit hook (index bytes + coverage + owning papers) |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 | `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
 
