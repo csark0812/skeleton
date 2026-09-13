@@ -57,7 +57,7 @@ Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, at
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Pre-commit: `.pre-commit-config.yaml` runs `bun src/cli.ts validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional.
+Pre-commit: `.pre-commit-config.yaml` runs `bun src/cli.ts validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then `pre-commit install`.
 
 Behavioral A/B dogfood (live Cursor, not part of `bun run check`): [agent-suites/README.md](agent-suites/README.md) · [refs/llm-harness.md](refs/llm-harness.md).
 

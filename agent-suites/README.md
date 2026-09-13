@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-07-17 -->
 
-These suites measure whether a clean Skeleton structure (registry, validation lanes, customize) improves **grounding**, **validation routing**, and **token efficiency** versus a messy control tree — not portable skill conformance (that lives in [toolbox](https://github.com/csark0812/toolbox) `agent-suites/`).
+These suites measure whether a clean Skeleton structure (catalog, validation lanes) improves **grounding**, **validation routing**, and **token efficiency** versus a messy control tree — not portable skill conformance (that lives in [toolbox](https://github.com/csark0812/toolbox) `agent-suites/`).
 
 Committed stats and transcript excerpts: [`evidence/`](evidence/). Protocol SSOT: [`refs/llm-harness.md`](../refs/llm-harness.md).
 
@@ -26,7 +26,6 @@ Paired scenario **names** match across clean/messy for `--compare-pairs skeleton
 | `grounding: conflicting docs` | SoT winner via registry                             |
 | `routing: docs-only change`   | `validate:changed` lane                             |
 | `routing: owned skill body`   | `audit:skills` lane                                 |
-| `customize: project binding`  | `.skeleton/customize/` vs editing synced `SKILL.md` |
 
 ## Commands
 

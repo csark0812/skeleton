@@ -2,22 +2,15 @@ import { spawnSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import {
-	type MergeAction,
-	type MergeHookResult,
-	mergeHookConfigs,
-	mergePackageJsonScripts,
-} from "./merge-hooks.ts";
 import { mergePrecommitConfig } from "./merge-precommit.ts";
+import { type MergeAction, mergePackageJsonScripts } from "./merge-scripts.ts";
 import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
-import { resolveHookCommand } from "./resolve-hook-command.ts";
 import { skillsAddArgs } from "./skills-args.ts";
 
 const TEMPLATES_DIR = resolveTemplatesDir();
 
 export interface InitOptions {
 	cwd?: string;
-	forceHooks?: boolean;
 	skills?: boolean;
 	noSkills?: boolean;
 	skillsFlags?: string[];
@@ -26,7 +19,6 @@ export interface InitOptions {
 
 export interface InitResult {
 	scaffold: "created" | "skipped";
-	hooks: MergeHookResult[];
 	scripts: MergeAction;
 	skills: "installed" | "skipped";
 	precommit: MergeAction;
@@ -44,7 +36,6 @@ function writeScaffold(cwd: string): "created" | "skipped" {
 		created = true;
 	}
 
-	mkdirSync(join(skeletonDir, "customize"), { recursive: true });
 	return created ? "created" : "skipped";
 }
 
@@ -79,17 +70,6 @@ function runSkillsAdd(args: string[], cwd: string): number {
 	return result.status ?? 1;
 }
 
-function logHookMergeResult(result: MergeHookResult): void {
-	if (result.action === "conflict") {
-		console.error(
-			`init: skipped ${result.platform} hook (user-edited) — re-run with --force-hooks to restore`,
-		);
-		return;
-	}
-	if (result.action === "added") console.log(`init: added ${result.platform} customize hook`);
-	if (result.action === "updated") console.log(`init: updated ${result.platform} customize hook`);
-}
-
 function installSkillsIfRequested(options: InitOptions, cwd: string): InitResult["skills"] {
 	if (!(options.skills && !options.noSkills)) return "skipped";
 	const args = skillsAddArgs({ skillsFlags: options.skillsFlags });
@@ -105,15 +85,11 @@ export function runInit(options: InitOptions = {}): InitResult {
 	assertPackageResolvable(cwd);
 
 	const scaffold = writeScaffold(cwd);
-	const hookCommand = resolveHookCommand(cwd);
-	const hooks = mergeHookConfigs({ cwd, hookCommand, forceHooks: options.forceHooks });
 	const scripts = mergePackageJsonScripts(cwd);
 	const precommit = mergePrecommitConfig(cwd);
 
-	for (const result of hooks) logHookMergeResult(result);
-
 	if (scaffold === "created") {
-		console.log("init: wrote skeleton.toml (IDE customize hooks optional)");
+		console.log("init: wrote skeleton.toml");
 	} else {
 		console.log("init: skeleton.toml or .skeleton/ already present — skipped scaffold write");
 	}
@@ -129,5 +105,5 @@ export function runInit(options: InitOptions = {}): InitResult {
 	}
 
 	const skills = installSkillsIfRequested(options, cwd);
-	return { scaffold, hooks, scripts, skills, precommit };
+	return { scaffold, scripts, skills, precommit };
 }

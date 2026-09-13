@@ -1,14 +1,16 @@
-const SKELETON_INIT_FLAGS = new Set(["--force-hooks", "--skills", "--no-skills"]);
+const SKELETON_INIT_FLAGS = new Set(["--skills", "--no-skills"]);
 
 export interface ParsedInitArgs {
-	forceHooks: boolean;
 	skills: boolean;
 	noSkills: boolean;
 	skillsFlags: string[];
 }
 
 export function parseInitArgs(argv: string[]): ParsedInitArgs {
-	const forceHooks = argv.includes("--force-hooks");
+	if (argv.includes("--force-hooks")) {
+		throw new Error("init: --force-hooks was removed with customize hooks");
+	}
+
 	const noSkills = argv.includes("--no-skills");
 	const skills = argv.includes("--skills");
 
@@ -24,5 +26,5 @@ export function parseInitArgs(argv: string[]): ParsedInitArgs {
 		if (skills) skillsFlags.push(arg);
 	}
 
-	return { forceHooks, skills, noSkills, skillsFlags };
+	return { skills, noSkills, skillsFlags };
 }

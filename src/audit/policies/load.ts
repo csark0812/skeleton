@@ -11,8 +11,6 @@ const SCHEMA_CANDIDATES = [
 	join(dirname(fileURLToPath(import.meta.url)), "../../../schemas/policy-file.schema.json"),
 	// dist/cli.js → ../schemas
 	join(dirname(fileURLToPath(import.meta.url)), "../schemas/policy-file.schema.json"),
-	// dist/hooks → ../../schemas
-	join(dirname(fileURLToPath(import.meta.url)), "../../schemas/policy-file.schema.json"),
 ];
 
 function resolvePolicySchemaPath(): string {

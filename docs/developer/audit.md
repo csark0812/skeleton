@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `init`, and `validate`. `register`, `customize`, and `hook` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -59,7 +59,7 @@ Lint skill **bodies** where they are authored:
 | Repo role             | What to audit                                                                        |
 | --------------------- | ------------------------------------------------------------------------------------ |
 | Skills / toolbox repo | All (or owned) `SKILL.md` trees via `audit skills`                                   |
-| Consumer app repo     | `.skeleton/customize/**`, config/policies; skip foreign synced skill bodies          |
+| Consumer app repo     | config/policies; skip foreign synced skill bodies                                    |
 
 Classification (defaults work with no config):
 
@@ -68,7 +68,7 @@ Classification (defaults work with no config):
 3. `skills-lock.json` entry with `sourceType` other than `local` (e.g. `github`) → foreign
 4. Otherwise → owned
 
-Foreign skills remain discoverable for link resolution and customize inject, but are omitted from docs/self/skills corpora, doc-meta scope, and CI policy skill proves.
+Foreign skills remain discoverable for link resolution, but are omitted from docs/self/skills corpora, doc-meta scope, and CI policy skill proves.
 
 ### `scan.nonPublicSkills`
 

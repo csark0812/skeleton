@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
 import process from "node:process";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { runCatalogCli } from "./catalog.ts";
-import { resolveCustomizeFromRoot } from "./customize/resolve.ts";
-import { runCustomizeHook } from "./hooks/run.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
@@ -16,16 +13,14 @@ function usage(): void {
 	console.error(`Usage: skeleton <command>
 
 Commands:
-  init [--force-hooks] [--skills] [--no-skills] [skills add flags…]
+  init [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
                          [--fix[=doc-meta|anchors|ssot]] [--dry-run]
                          [--confirm-reviewed (doc-meta only; requires --paths)]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
-  customize resolve <slug> [--json]
-  hook customize            (reads a host hook payload on stdin)
-Note: \`register\` was removed — add a source-of-truth marker to the file and run \`skeleton catalog\`.`);
+Note: \`register\`, \`customize\`, and \`hook\` were removed.`);
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
@@ -107,29 +102,9 @@ function handleCatalog(argv: string[]): number {
 	return runCatalogCli({ check: argv.includes("--check"), strict: argv.includes("--strict") });
 }
 
-function handleCustomizeResolve(argv: string[]): number {
-	const slug = argv[0];
-	const json = argv.includes("--json");
-	if (!slug) {
-		console.error("customize resolve: slug required");
-		return 1;
-	}
-	const result = resolveCustomizeFromRoot(slug);
-	if (json) {
-		console.log(JSON.stringify(result, null, 2));
-	} else if (result.content) {
-		process.stdout.write(result.content);
-	}
-	return 0;
-}
-
-function handleHook(argv: string[]): number {
-	if (argv[0] !== "customize") {
-		usage();
-		return 1;
-	}
-	process.stdout.write(runCustomizeHook(readFileSync(0, "utf8")));
-	return 0;
+function handleRemovedOverlay(command: string): number {
+	console.error(`${command}: removed — overlay inject is gone. Edit the skill in its owning repo.`);
+	return 1;
 }
 
 function handleInit(argv: string[]): number {
@@ -153,9 +128,8 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 		case "catalog":
 			return handleCatalog(rest);
 		case "customize":
-			return rest[0] === "resolve" ? handleCustomizeResolve(rest.slice(1)) : null;
 		case "hook":
-			return handleHook(rest);
+			return handleRemovedOverlay(command);
 		case "init":
 			return handleInit(rest);
 		default:

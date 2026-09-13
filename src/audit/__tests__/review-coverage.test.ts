@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig } from "../config/load.ts";
-import { pathRequiresReviewCoverage } from "../core/review-coverage.ts";
+import { collectReviewCoverageFiles, pathRequiresReviewCoverage } from "../core/review-coverage.ts";
 import { evaluateAudit } from "../run.ts";
 
 function makeRepo(marker: string): string {
@@ -89,6 +89,40 @@ include = ["**/*.mjs"]
 			expect(pathRequiresReviewCoverage(".skeleton/plugins/example/example.mjs", config)).toBe(
 				false,
 			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("drops nested vendor trees from the default coverage set", () => {
+		const root = makeRepo("<!-- review-deps: paths=src/owned.ts -->");
+		try {
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`daysUntilStale = 365
+[scan]
+include = ["docs/**"]
+exclude = []
+`,
+			);
+			mkdirSync(join(root, "apps/pkg/node_modules/dep"), { recursive: true });
+			mkdirSync(join(root, "apps/pkg/dist"), { recursive: true });
+			mkdirSync(join(root, "apps/pkg/.venv/lib"), { recursive: true });
+			writeFileSync(join(root, "apps/pkg/node_modules/dep/index.js"), "module.exports = 1;\n");
+			writeFileSync(join(root, "apps/pkg/dist/out.js"), "export default 1;\n");
+			writeFileSync(join(root, "apps/pkg/.venv/lib/site.py"), "x = 1\n");
+			writeFileSync(join(root, "apps/pkg/app.ts"), "export const app = 1;\n");
+
+			const config = loadConfig(root);
+			expect(pathRequiresReviewCoverage("apps/pkg/node_modules/dep/index.js", config)).toBe(false);
+			expect(pathRequiresReviewCoverage("apps/pkg/dist/out.js", config)).toBe(false);
+			expect(pathRequiresReviewCoverage("apps/pkg/.venv/lib/site.py", config)).toBe(false);
+			expect(pathRequiresReviewCoverage("apps/pkg/app.ts", config)).toBe(true);
+			expect(collectReviewCoverageFiles(root, config)).toEqual([
+				"apps/pkg/app.ts",
+				"src/orphan.ts",
+				"src/owned.ts",
+			]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

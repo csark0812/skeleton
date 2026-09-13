@@ -10,11 +10,6 @@ export interface DenyConfig {
 	paths?: string[];
 }
 
-export interface CustomizeConfig {
-	/** Basenames under `.skeleton/customize/` appended on every customize inject. */
-	alwaysInclude?: string[];
-}
-
 /**
  * Ownership policy for skill-body linting.
  * Lockfile `sourceType` other than `local` (e.g. `github`) marks skills foreign by default.
@@ -65,7 +60,6 @@ export interface SkeletonConfig {
 	/** Re-read cadence (days) for doc-meta last-reviewed; separate from git edit-behind-review. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
-	customize?: CustomizeConfig;
 	skillOwnership?: SkillOwnershipConfig;
 	reviewProof?: ReviewProofConfig;
 	reviewCoverage?: ReviewCoverageConfig;

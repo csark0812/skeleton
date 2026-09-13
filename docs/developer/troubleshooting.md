@@ -1,6 +1,6 @@
 # Troubleshooting
 
-<!-- source-of-truth: common Skeleton validation and hook failures -->
+<!-- source-of-truth: common Skeleton validation failures -->
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
@@ -67,21 +67,6 @@ comes from `skills-lock.json` and optional `skillOwnership` overrides; see
 skeleton validate changed --staged
 skeleton validate changed --base origin/main
 ```
-
-## Customize hook not injecting
-
-**Checklist:**
-
-1. Package installed: `node_modules/@csark0812/skeleton` present (or linked in monorepos). Init writes a cwd-local `node …/dist/cli.js hook customize` command, so `PATH` / `node_modules/.bin` is not required.
-2. Init hooks present: `.cursor/hooks.json`, `.claude/settings.json`, and/or `.codex/hooks.json` contain a skeleton `hook customize` command (or the legacy `customize-on-skill-read` entrypoint).
-3. Host matcher matches the tool: Cursor `Read`, Claude `Read`/`Skill`, Codex `read_file`. Grep/shell never inject.
-4. Slug resolve works:
-
-```bash
-skeleton customize resolve <slug>
-```
-
-If resolve prints content but the IDE still skips inject, re-run `npx skeleton init` (or `--force-hooks` if you intentionally overrode the skeleton-owned hook fields). Details: [customize](customize.md).
 
 ## Plugin `.mjs` missing or stale
 

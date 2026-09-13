@@ -8,7 +8,7 @@
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
 
-Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewProofConfig`, `ReviewCoverageConfig`, `CustomizeConfig`).
+Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewProofConfig`, `ReviewCoverageConfig`).
 
 Preferred path: **`skeleton.toml` at the repo root**. Legacy `.skeleton/config.yaml` still loads when no TOML is present. If both exist, TOML wins and the CLI warns that YAML is ignored.
 
@@ -30,7 +30,6 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `scan.nonPublicSkills`    | Slugs on disk that must **not** appear in nested skills README `## Taxonomy`                            |
 | `plugins`                 | Plugin entry paths relative to `.skeleton/` (each needs a built sibling `.mjs`) — [plugins](plugins.md) |
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
-| `customize.alwaysInclude` | Basenames under `.skeleton/customize/` appended on every skill inject — [customize](customize.md)       |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
 | `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes (see below)                   |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
@@ -84,11 +83,11 @@ exclude = ["src/**/__tests__/**", "src/**/*.test.ts"]
 
 Files that match `include` (minus `exclude` and built-in test or fixture excludes) must appear in at least one scanned paper's `review-deps`. The global `review-coverage` rule checks the whole set. `validate changed` also fails `uncovered-changed-path` when a changed candidate has no owner.
 
-Omit the section to use built-in code defaults (`**/*.{ts,tsx,js,jsx,mjs,cjs,py}`, `package.json`, `project.json`). Built-in excludes drop tests, fixtures, templates, and `.skeleton/plugins/**`. Production `.mjs` stays in the coverage set. Set `include = []` to disable the gate.
+Omit the section to use built-in code defaults (`**/*.{ts,tsx,js,jsx,mjs,cjs,py}`, `package.json`, `project.json`). Built-in excludes drop tests, fixtures, templates, nested `node_modules` / `dist` / `.venv`, and `.skeleton/plugins/**`. Production `.mjs` stays in the coverage set. Set `include = []` to disable the gate.
 
 ## `skillOwnership`
 
-When a consumer repo syncs skills from a toolbox (via `skills-lock.json`), Skeleton skips foreign skill **bodies** so linting stays with the owning repo. That skip covers skill-body lint (`audit skills`), path-scoped validate routing, and **doc-meta** for paths under foreign skill trees — including SSOT-bearing `references/**` files. Consumer customizations under `.skeleton/customize/` remain audited here.
+When a consumer repo syncs skills from a toolbox (via `skills-lock.json`), Skeleton skips foreign skill **bodies** so linting stays with the owning repo. That skip covers skill-body lint (`audit skills`), path-scoped validate routing, and **doc-meta** for paths under foreign skill trees — including SSOT-bearing `references/**` files.
 
 | Key            | Purpose                                                                 |
 | -------------- | ----------------------------------------------------------------------- |
@@ -117,7 +116,6 @@ See [audit](audit.md#skill-ownership-consumer-vs-toolbox) and [validation](valid
 | Path-scoped `validate changed`       | Files in `scan.include` (minus exclude) get docs audit; owned skill trees run the skills suite; foreign lock skills skip; coverage-candidate code without an owning paper fails |
 | Global rules (`--base` / full audit) | `deny.paths` (rule `banned`), SSOT dual/malformed, near-dupe, ssot-summary, coverage outside include, review-coverage, scan-roots, skill-index |
 | Prose policies                       | Idle until `plugins` contribute policy YAML                                                                                               |
-| Customize inject                     | `customize.alwaysInclude` (optional hooks / `customize resolve`); customize paths are always in the audit corpus                          |
 | Skill body ownership                 | `skillOwnership` + `skills-lock.json` (foreign bodies skipped)                                                                            |
 | Catalog                              | Local audit and `validate changed` write `.skeleton/catalog.md` on each run; skipped when `CI=true`                                       |
 
