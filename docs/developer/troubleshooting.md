@@ -2,59 +2,54 @@
 
 <!-- source-of-truth: common Skeleton validation and hook failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-<!-- review-deps: paths=src/validate/changed.ts,src/audit/run.ts -->
+<!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
 
 Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
 
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 
+## `uncovered-changed-path`
+
+**Cause:** A coverage-candidate file changed and no scanned paper lists it in `review-deps`.
+
+**Fix:** Add a `review-deps` path or glob on the owning paper. Then re-read that paper and attest it.
+
+The same error fires on local, `--staged`, and `--base` runs. A mixed docs commit does not hide it.
+
+## `stage-required`
+
+**Cause:** `--staged` saw an impacted paper or hash lockfile that differs from HEAD and is not in the index.
+
+**Fix:** Stage the attested document. In hash mode, stage `.skeleton/review-lock.json` too.
+
 ## `validate changed: all paths were skipped`
 
-**Cause:** Every input was code/config (`.ts`, `.py`, `package.json`, etc.). Skeleton does not validate app code.
+**Cause:** Every input was outside the docs, skills, policy, and coverage-candidate set.
 
-**Local / pre-commit (no `--base`):** exits non-zero. Run your repo’s code gates, for example:
+**Fix:** Pass docs or skill paths if you intended SSOT validation. Run your repo code gates for application tests.
 
-```bash
-bun test
-bun run typecheck
-bun run build
-```
+## Owned skill-only paths
 
-(or the equivalent npm/Nx scripts). Pass docs/skill paths if you intended SSOT validation.
+**Cause:** Changes under an owned skill tree need the skills suite.
 
-**CI (`--base`):** does not fail closed on all-skipped code — global rules still run. Keep `bun test` / typecheck / build as a separate CI lane.
-
-## Owned skill-only paths exit non-zero
-
-**Cause:** Changes under an owned skill tree (`SKILL.md` or skill-tree markdown) are not covered by path-scoped docs audit.
-
-**Fix:**
+`validate changed` runs that suite. You can also run:
 
 ```bash
 skeleton audit skills
 ```
-
-Under CI, `skeleton validate changed --base origin/main` still applies global skill rules.
 
 Foreign / lockfile-synced skill bodies are skipped with a log message because
 their owning skills or toolbox repo is responsible for linting them. Ownership
 comes from `skills-lock.json` and optional `skillOwnership` overrides; see
 [config](config.md#skillownership).
 
-## Plugin policy YAML redirects
+## Plugin policy YAML
 
-**Cause:** You changed YAML matched by a plugin `policies` glob. Local validate schema-checks then fails closed so prose coverage is not assumed.
+**Cause:** You changed YAML matched by a plugin `policies` glob.
 
-**Fix (local / pre-commit):**
-
-```bash
-skeleton audit docs
-skeleton audit skills
-```
-
-`audit self` alone is not enough if skill trees are under `scan.exclude`. CI `--base` / `validate:ci` proves docs + skills without the redirect.
+`validate changed` schema-checks the file, then runs full docs and owned-skill prose. `audit self` alone does not cover excluded skill trees.
 
 ## Orphan `.skeleton/**/*.yaml`
 
@@ -116,7 +111,7 @@ skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
 
-If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
+If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
 
 **Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
 

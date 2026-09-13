@@ -1,5 +1,5 @@
-import { beforeAll, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { attestDocuments } from "../../audit/core/review-proof.ts";
@@ -17,6 +17,15 @@ const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
 const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
 const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
+
+function removeFixtureCatalogs(): void {
+	for (const root of [FLAT_SKILL_ROOT, NESTED_SKILLS_CUSTOMIZE, PLUGIN_CONSUMER]) {
+		const catalog = join(root, ".skeleton/catalog.md");
+		if (existsSync(catalog)) unlinkSync(catalog);
+	}
+}
+
+afterEach(removeFixtureCatalogs);
 
 describe("catalog", () => {
 	it("can fail closed when a strict check finds no generated catalog", () => {
@@ -165,11 +174,14 @@ describe("validate changed routing", () => {
 		mkdirSync(dirname(tsPath), { recursive: true });
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
-			const exit = await runValidateChanged({
+			const result = await evaluateValidateChanged({
 				root: FLAT_SKILL_ROOT,
 				paths: ["src/example.ts"],
 			});
-			expect(exit).toBe(1);
+			expect(result.exitCode).toBe(1);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({ code: "uncovered-changed-path", file: "src/example.ts" }),
+			);
 		} finally {
 			unlinkSync(tsPath);
 		}
@@ -274,8 +286,8 @@ Run the project commands through the package scripts.
 			const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
 			try {
 				expect(await runValidateChanged({ root, paths: ["package.json"] })).toBe(1);
-				expect(lines).toContain(
-					"validate changed: docs/commands.md requires review (dependency package.json matched package.json)",
+				expect(lines.join("\n")).toContain(
+					"docs/commands.md: error: review required\n  changed: package.json",
 				);
 			} finally {
 				log.mockRestore();
@@ -317,80 +329,69 @@ The runThing export provides the example behavior.
 		}
 	});
 
-	it("under --base, all-skipped code does not fail-closed before global rules", async () => {
+	it("under --base, uncovered code still runs global rules", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		mkdirSync(dirname(tsPath), { recursive: true });
 		writeFileSync(tsPath, "export const n = 1;\n");
-		const lines: string[] = [];
-		const capture = (msg?: unknown, ...rest: unknown[]) => {
-			lines.push([msg, ...rest].map(String).join(" "));
-		};
-		const errSpy = spyOn(console, "error").mockImplementation(capture);
-		const logSpy = spyOn(console, "log").mockImplementation(capture);
 		try {
-			await runValidateChanged({
+			const result = await evaluateValidateChanged({
 				root: FLAT_SKILL_ROOT,
 				paths: ["src/example.ts"],
 				base: "HEAD",
 			});
-			const joined = lines.join("\n");
-			expect(joined.includes("all paths were skipped")).toBe(false);
-			expect(joined.includes("Self audit")).toBe(true);
+			expect(result.exitCode).toBe(1);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({ code: "uncovered-changed-path", file: "src/example.ts" }),
+			);
+			expect(result.audits.some((audit) => audit.suite === "self")).toBe(true);
+			expect(
+				result.diagnostics.some((item) => item.message.includes("all paths were skipped")),
+			).toBe(false);
 		} finally {
-			errSpy.mockRestore();
-			logSpy.mockRestore();
 			unlinkSync(tsPath);
 		}
 	});
 
-	it("passes mixed docs and skipped ts", async () => {
+	it("fails mixed docs and uncovered ts", async () => {
 		const tsPath = join(FLAT_SKILL_ROOT, "src/example.ts");
 		mkdirSync(dirname(tsPath), { recursive: true });
 		writeFileSync(tsPath, "export const n = 1;\n");
 		try {
-			const exit = await runValidateChanged({
+			const result = await evaluateValidateChanged({
 				root: FLAT_SKILL_ROOT,
 				paths: ["docs/README.md", "src/example.ts"],
 			});
-			expect(exit).toBe(0);
+			expect(result.exitCode).toBe(1);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({ code: "uncovered-changed-path", file: "src/example.ts" }),
+			);
+			expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 		} finally {
 			unlinkSync(tsPath);
 		}
 	});
 
-	it("fails skill-only paths without --base and points at audit skills", async () => {
-		const err = spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const exit = await runValidateChanged({
-				root: FLAT_SKILL_ROOT,
-				paths: ["multi/SKILL.md"],
-			});
-			expect(exit).toBe(1);
-			const msg = err.mock.calls.flat().join("\n");
-			expect(msg).toContain("audit skills");
-			expect(msg).toContain("excluded skill trees still need audit skills");
-			expect(msg).not.toMatch(/Or:\s+skeleton audit self/);
-		} finally {
-			err.mockRestore();
-		}
+	it("runs the skills suite for skill-only paths without --base", async () => {
+		const result = await evaluateValidateChanged({
+			root: FLAT_SKILL_ROOT,
+			paths: ["multi/SKILL.md"],
+		});
+		expect(result.diagnostics.some((item) => item.code === "full-skills-audit-required")).toBe(
+			false,
+		);
+		expect(result.audits.some((audit) => audit.suite === "skills")).toBe(true);
 	});
 
-	it("fails docs+owned-skill mixes without --base (path-scoped skills are not coverage)", async () => {
-		const err = spyOn(console, "error").mockImplementation(() => {});
-		const log = spyOn(console, "log").mockImplementation(() => {});
-		try {
-			const exit = await runValidateChanged({
-				root: FLAT_SKILL_ROOT,
-				paths: ["docs/README.md", "multi/SKILL.md"],
-			});
-			expect(exit).toBe(1);
-			const msg = [...err.mock.calls, ...log.mock.calls].flat().join("\n");
-			expect(msg).toContain("audit skills");
-			expect(msg).toMatch(/skill paths need the full skills suite/i);
-		} finally {
-			err.mockRestore();
-			log.mockRestore();
-		}
+	it("runs the skills suite for docs+owned-skill mixes without --base", async () => {
+		const result = await evaluateValidateChanged({
+			root: FLAT_SKILL_ROOT,
+			paths: ["docs/README.md", "multi/SKILL.md"],
+		});
+		expect(result.diagnostics.some((item) => item.code === "full-skills-audit-required")).toBe(
+			false,
+		);
+		expect(result.audits.some((audit) => audit.suite === "skills")).toBe(true);
+		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 	});
 
 	it("fails skill+unwired-policy paths as orphan policy (not wired by plugin globs)", async () => {
@@ -422,51 +423,40 @@ The runThing export provides the example behavior.
 		expect(exit).toBe(1);
 	});
 
-	it("schema-checks wired policy YAML then fail-closes without --base", async () => {
-		const err = spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const exit = await runValidateChanged({
-				root: PLUGIN_CONSUMER,
-				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
-			});
-			expect(exit).toBe(1);
-			expect(err.mock.calls.flat().join("\n")).toContain("audit docs");
-			expect(err.mock.calls.flat().join("\n")).toContain("audit skills");
-		} finally {
-			err.mockRestore();
-		}
+	it("schema-checks wired policy YAML then runs full docs and skills without --base", async () => {
+		const result = await evaluateValidateChanged({
+			root: PLUGIN_CONSUMER,
+			paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml"],
+		});
+		expect(result.exitCode).toBe(1);
+		expect(result.diagnostics.some((item) => item.code === "full-policy-audit-required")).toBe(
+			false,
+		);
+		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 	});
 
-	it("fail-closes wired policy YAML even when docs co-change (path-scoped is not prose coverage)", async () => {
-		const err = spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const exit = await runValidateChanged({
-				root: PLUGIN_CONSUMER,
-				paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml", "docs/clean.md"],
-			});
-			expect(exit).toBe(1);
-			expect(err.mock.calls.flat().join("\n")).toMatch(/full prose-policy pass|audit docs/);
-			expect(err.mock.calls.flat().join("\n")).toContain("audit skills");
-		} finally {
-			err.mockRestore();
-		}
+	it("runs full docs and skills for wired policy YAML even when docs co-change", async () => {
+		const result = await evaluateValidateChanged({
+			root: PLUGIN_CONSUMER,
+			paths: [".skeleton/plugins/example/policies/sample-banned-phrase.yaml", "docs/clean.md"],
+		});
+		expect(result.exitCode).toBe(1);
+		expect(result.diagnostics.some((item) => item.code === "full-policy-audit-required")).toBe(
+			false,
+		);
+		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 	});
 
-	it("fail-closes ./prefixed wired policy paths the same as plain .skeleton/ paths", async () => {
-		const err = spyOn(console, "error").mockImplementation(() => {});
-		try {
-			const exit = await runValidateChanged({
-				root: PLUGIN_CONSUMER,
-				paths: [
-					"./.skeleton/plugins/example/policies/sample-banned-phrase.yaml",
-					"./docs/clean.md",
-				],
-			});
-			expect(exit).toBe(1);
-			expect(err.mock.calls.flat().join("\n")).toMatch(/full prose-policy pass|audit docs/);
-		} finally {
-			err.mockRestore();
-		}
+	it("treats ./prefixed wired policy paths the same as plain .skeleton/ paths", async () => {
+		const result = await evaluateValidateChanged({
+			root: PLUGIN_CONSUMER,
+			paths: ["./.skeleton/plugins/example/policies/sample-banned-phrase.yaml", "./docs/clean.md"],
+		});
+		expect(result.exitCode).toBe(1);
+		expect(result.diagnostics.some((item) => item.code === "full-policy-audit-required")).toBe(
+			false,
+		);
+		expect(result.audits.some((audit) => audit.suite === "docs")).toBe(true);
 	});
 
 	it("fails orphan .skeleton/policies YAML not exported by a plugin", async () => {

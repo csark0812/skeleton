@@ -112,6 +112,18 @@ describeHooks("skeleton init hooks", () => {
 		expect(existsSync(join(cwd, ".claude/settings.json"))).toBe(true);
 		const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
 		expect(pkg.scripts["validate:changed"]).toBe("skeleton validate changed");
+		expect(existsSync(join(cwd, ".pre-commit-config.yaml"))).toBe(true);
+		const hook = readFileSync(join(cwd, ".pre-commit-config.yaml"), "utf8");
+		expect(hook).toContain("validate changed --staged");
+		expect(hook).not.toContain("bun test");
+		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain('mode = "hash"');
+	});
+
+	it("skips an existing skeleton pre-commit hook on re-init", () => {
+		const cwd = makeRepo();
+		runInit({ cwd });
+		const result = runInit({ cwd });
+		expect(result.precommit).toBe("skipped");
 	});
 
 	it("idempotent re-run skips unchanged hooks and scaffold", () => {

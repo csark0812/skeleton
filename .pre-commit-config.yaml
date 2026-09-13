@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: skeleton-validate-staged
         name: skeleton validate changed (staged)
-        entry: bun run validate:changed -- --staged
+        entry: bun src/cli.ts validate changed --staged
         language: system
         pass_filenames: false
       - id: skeleton-test

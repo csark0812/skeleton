@@ -9,13 +9,13 @@ description: Agent ops manual for skeleton-enabled repos — init, catalog, audi
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
 
 ## Agent doc routing (token-cheap)
 
-1. If `.skeleton/catalog.md` is missing, run `skeleton catalog`.
+1. Local `audit` / `validate` writes `.skeleton/catalog.md` (skipped when `CI=true`).
 2. Skim the catalog (path + one-line summary).
 3. For a candidate, read only the `source-of-truth` line / first ~20 lines.
 4. Open the full paper only if that line is truly relevant.
@@ -40,7 +40,7 @@ Not for: normal feature work that only reads toolbox skills (optional customize 
 ```
 skeleton.toml           # preferred root config (scan, stale, docsLint)
 .skeleton/
-├── catalog.md          # generated, gitignored — run `skeleton catalog`
+├── catalog.md          # generated, gitignored — local audit writes it
 ├── review-lock.json    # review hashes when reviewProof.mode = "hash"
 ├── plugins/            # optional audit plugins (.ts + .mjs)
 └── customize/          # per-slug overrides for toolbox-bound skills
@@ -75,9 +75,9 @@ Edit `skeleton.toml` scan trees for this repo shape.
 ## Workflow
 
 1. Add `<!-- source-of-truth: one-line summary -->` (or visible `source-of-truth: …`) to canonical docs
-2. Run `skeleton catalog`
+2. Run `skeleton audit docs` (or `validate changed`) so the local catalog is written
 3. Add `review-deps` paths or globs where repository changes can invalidate the paper
-4. Run `skeleton audit docs` (or `audit self`)
+4. Run `skeleton catalog` only when you want a refresh without an audit
 
 After a complete human re-read, record review evidence for explicit paths only:
 
@@ -99,7 +99,7 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton catalog` / `catalog --check --strict` | Write / check the gitignored agent catalog              |
 | `skeleton build-plugin [--check]`              | Build / verify plugin `.mjs` siblings                   |
 | `skeleton validate changed`                    | Changed-file validation + dependency-driven doc discovery |
-| `skeleton validate changed --staged`           | Pre-commit (optional)                                   |
+| `skeleton validate changed --staged`           | Pre-commit hook (index bytes + coverage + owning papers) |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 | `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
 

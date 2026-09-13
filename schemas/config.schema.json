@@ -126,6 +126,23 @@
 				}
 			}
 		},
+		"reviewCoverage": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Require files matching include to appear in at least one scanned document's review-deps. Omit the section to use built-in code defaults. Set include to [] to disable.",
+			"properties": {
+				"include": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Repo-relative globs that require an owning paper. Empty array disables coverage and uncovered-changed-path."
+				},
+				"exclude": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Globs removed from the coverage set (added to built-in test and fixture excludes)"
+				}
+			}
+		},
 		"reviewProof": {
 			"type": "object",
 			"additionalProperties": false,

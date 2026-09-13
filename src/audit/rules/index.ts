@@ -5,6 +5,7 @@ import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { nearDuplicateRule } from "./near-duplicate.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
+import { reviewCoverageRule } from "./review-coverage.ts";
 import { reviewDepsRule } from "./review-deps.ts";
 import { reviewProofRule } from "./review-proof.ts";
 import { coverageGapsRule } from "./scan-gaps.ts";
@@ -34,6 +35,7 @@ export const docsRules: AuditRule[] = [
 	{ ...nearDuplicateRule, global: true },
 	{ ...ssotSummaryRule, global: true },
 	{ ...coverageGapsRule, global: true },
+	{ ...reviewCoverageRule, global: true },
 	linksRule,
 	docMetaRule,
 	reviewProofRule,

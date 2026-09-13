@@ -2,21 +2,21 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-<!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
+<!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
 
 When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
 
 ## Suites
 
 ```bash
-skeleton audit docs     # links, doc-meta, review-proof, review-deps, ssot, near-duplicate, ssot-summary, prose-policy
+skeleton audit docs     # links, doc-meta, review-proof, review-deps, review-coverage, ssot, near-duplicate, ssot-summary, prose-policy
 skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
-`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes.
+`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
 CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `customize`, `hook`, `init`, `register` (removed — errors with migration text), and `validate`. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
@@ -38,13 +38,13 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
 | links, doc-meta, review-proof, review-deps, prose-policy (`alwaysRun` — all marked docs) | no* |
-| ssot, near-duplicate, ssot-summary, coverage-gaps, scan-roots, skill-index, banned (`deny.paths`) | yes    |
+| ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
 \* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewProof`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewProof`, optional `reviewCoverage`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
 
 ## Machine-readable results
 

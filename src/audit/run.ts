@@ -1,13 +1,12 @@
-import process from "node:process";
-import { catalogAuditWarnings, checkCatalog } from "../catalog.ts";
+import { refreshLocalCatalog } from "../catalog.ts";
 import { loadPlugins } from "../plugins/load.ts";
 import type { AuditResult, CatalogStatus, ReviewProofResult } from "../result-types.ts";
 import type { SkeletonConfig } from "./config/types.ts";
 import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
+import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
 import { attestDocuments } from "./core/review-proof.ts";
-import { CATALOG_REL_PATH } from "./core/shared.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
@@ -23,6 +22,7 @@ export interface AuditCliOptions {
 	fix?: string | true | null;
 	dryRun?: boolean;
 	confirmReviewed?: boolean;
+	fileSource?: FileSource;
 }
 
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
@@ -150,11 +150,7 @@ function labelForSuite(suite: string): string {
 
 function catalogStatusFor(root: string, suite: string): CatalogStatus {
 	if (suite !== "docs" && suite !== "self") return "not-applicable";
-	if (process.env.CI === "true") return "skipped-ci";
-	const result = checkCatalog(root);
-	if (result.missing) return "missing";
-	if (result.stale) return "stale";
-	return "current";
+	return refreshLocalCatalog(root);
 }
 
 function buildAuditResult(input: {
@@ -282,6 +278,7 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 		root: options.root,
 		paths: pathScoped ? options.paths : undefined,
 		includeExcludedSkillTrees: options.suite === "skills" && !pathScoped,
+		fileSource: options.fileSource,
 	});
 	const loaded = await loadPlugins(base.root, base.config);
 	const ctx = { ...base, policies: loaded.policies };
@@ -325,11 +322,6 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 	const issues = [];
 	for (const rule of executableRules) {
 		issues.push(...rule.run(ctx));
-	}
-	if (options.suite === "docs" || options.suite === "self") {
-		for (const message of catalogAuditWarnings(ctx.root)) {
-			issues.push(issue("catalog", CATALOG_REL_PATH, { message, severity: "warning" }));
-		}
 	}
 
 	const executed = executableRules.map((rule) => rule.id);

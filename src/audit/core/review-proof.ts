@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, relative } from "node:path";
+import { dirname } from "node:path";
 import type { AuditContext } from "./context.ts";
 import { createContext } from "./context.ts";
 import { resolveWritePath } from "./fix.ts";
+import { type FileSource, readRepoText } from "./repo-files.ts";
 import { type Issue, issue } from "./report.ts";
 import { resolveReviewDependencies, reviewDependencyPatterns } from "./review-deps.ts";
 import {
@@ -118,10 +119,14 @@ function parseLock(content: string): ReviewProofLock | null {
 	}
 }
 
-function loadLock(root: string, relPath: string): ReviewProofLock | null {
-	const abs = resolveWritePath(root, relPath);
-	if (!existsSync(abs)) return null;
-	return parseLock(readFileSync(abs, "utf8"));
+function loadLock(
+	root: string,
+	relPath: string,
+	source: FileSource = "worktree",
+): ReviewProofLock | null {
+	const content = readRepoText(root, relPath, source);
+	if (content === null) return null;
+	return parseLock(content);
 }
 
 function hashDependencies(root: string, targets: string[]): Record<string, string> {
@@ -267,7 +272,15 @@ function validateEntry(input: {
 		);
 		return issues;
 	}
-	issues.push(...dependencyHashIssues({ root: ctx.root, relPath, targets: currentTargets, entry }));
+	issues.push(
+		...dependencyHashIssues({
+			root: ctx.root,
+			relPath,
+			targets: currentTargets,
+			entry,
+			fileSource: ctx.fileSource,
+		}),
+	);
 	return issues;
 }
 
@@ -318,12 +331,14 @@ function dependencyHashIssues(input: {
 	relPath: string;
 	targets: string[];
 	entry: ReviewProofEntry;
+	fileSource?: FileSource;
 }): Issue[] {
 	const { root, relPath, targets, entry } = input;
+	const source = input.fileSource ?? "worktree";
 	const issues: Issue[] = [];
 	for (const target of targets) {
-		const abs = resolveWritePath(root, target);
-		if (!existsSync(abs)) {
+		const content = readRepoText(root, target, source);
+		if (content === null) {
 			issues.push(
 				issue("review-proof", relPath, {
 					code: "review-dependency-missing",
@@ -331,7 +346,7 @@ function dependencyHashIssues(input: {
 					link: target,
 				}),
 			);
-		} else if (entry.reviewDependencies[target] !== hash(readFileSync(abs, "utf8"))) {
+		} else if (entry.reviewDependencies[target] !== hash(content)) {
 			issues.push(changedDependencyIssue(relPath, target));
 		}
 	}
@@ -341,8 +356,9 @@ function dependencyHashIssues(input: {
 export function runReviewProofRule(ctx: AuditContext): Issue[] {
 	if (!ctx.config.reviewProof) return [];
 	const relLock = lockPath(ctx);
-	const absLock = resolveWritePath(ctx.root, relLock);
-	if (!existsSync(absLock)) {
+	const source = ctx.fileSource ?? "worktree";
+	const lockContent = readRepoText(ctx.root, relLock, source);
+	if (lockContent === null) {
 		return [
 			issue("review-proof", relLock, {
 				code: "review-proof-lock-missing",
@@ -350,7 +366,7 @@ export function runReviewProofRule(ctx: AuditContext): Issue[] {
 			}),
 		];
 	}
-	const lock = parseLock(readFileSync(absLock, "utf8"));
+	const lock = parseLock(lockContent);
 	if (!lock) {
 		return [
 			issue("review-proof", relLock, {
@@ -362,10 +378,9 @@ export function runReviewProofRule(ctx: AuditContext): Issue[] {
 
 	const issues: Issue[] = [];
 	for (const relPath of ctx.docMetaPaths) {
-		const abs = resolveWritePath(ctx.root, relPath);
-		if (!existsSync(abs)) continue;
-		const content = readFileSync(abs, "utf8");
-		const entry = lock.documents[normalizeRelPath(relative(ctx.root, abs))];
+		const content = readRepoText(ctx.root, relPath, source);
+		if (content === null) continue;
+		const entry = lock.documents[normalizeRelPath(relPath)];
 		if (!entry) {
 			issues.push(
 				issue("review-proof", relPath, {

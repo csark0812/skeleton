@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-02 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -10,7 +10,7 @@ SSOT audit CLI (`@csark0812/skeleton`). Not an app — no long-lived server. Day
 
 ## Doc routing (before long reads)
 
-1. If `.skeleton/catalog.md` is missing, run `bun src/cli.ts catalog` (or `skeleton catalog`).
+1. Local `audit` / `validate` writes `.skeleton/catalog.md` (skipped when `CI=true`).
 2. Skim the catalog summaries.
 3. For a hit, read only the source-of-truth line / first ~20 lines of that file.
 4. Open the full doc only if it is truly relevant.
@@ -41,15 +41,15 @@ bun test ./tests/smoke.test.ts
 
 ## Validation split
 
-| Change type                                 | Run                                                                                                                                                        |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                                                                               |
-| Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (local → `audit docs` **and** `audit skills`; `audit self` alone is not enough — excluded skill trees stay uncovered) |
-| Owned skill body (`SKILL.md` trees)         | `bun run audit:skills` (path-scoped validate exits non-zero for owned skill paths — alone or mixed with docs — and redirects here; `audit self` does not cover excluded skill trees) |
-| Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)                                                                   |
-| TypeScript under `src/`                     | `bun test` (or scoped path) + `bun run typecheck` + `bun run build`; `validate:changed` also discovers and audits docs that target the changed code                                            |
+| Change type                                 | Run                                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Docs / config (non-policy)                  | `bun run validate:changed -- <path>` or `bun run audit:self`                                 |
+| Plugin-wired policy YAML under `.skeleton/` | `bun run validate:changed -- <path>` (runs full docs and owned-skill prose)                  |
+| Owned skill body (`SKILL.md` trees)         | `bun run validate:changed -- <path>` (runs `audit skills`) or `bun run audit:skills`         |
+| Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)     |
+| TypeScript under `src/`                     | `bun test` + `bun run typecheck` + `bun run build`. `validate:changed` fails uncovered paths |
 
-`validate:changed` classifies code paths but leaves their correctness to `bun test` + `typecheck` + `build`. It scans `review-deps` markers and adds every document linked to any changed dependency to the docs audit. With hash review proof, changed dependency bytes invalidate the recorded review. Without hash mode, the linked document must co-change with a current explicit review attestation. Code-only changes with no linked docs exit non-zero locally and print the native gates. Under CI `--base`, code-only changes still run global rules; keep the TS lane in CI separately. Owned skill paths (alone or mixed with docs) exit non-zero without `--base` and point at `audit skills`; foreign lockfile skills are skipped. Plugin-wired policy YAML (matched by a plugin `policies` glob) schema-checks; local fails closed to `audit docs` **and** `audit skills` (`audit self` covers docs + `.skeleton` but not excluded skill trees), while `--base` runs full docs prose plus path-scoped skills prove over **owned** skill-tree markdown. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+`validate:changed` classifies code paths and leaves correctness to `bun test` + `typecheck` + `build`. It scans `review-deps` and audits every linked document. A coverage-candidate path with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide that. Hash review proof invalidates a paper when dependency bytes change. Date mode requires the paper in the change set with today's review date. `--staged` reads index bytes and fails `stage-required` when an impacted paper or the hash lockfile differs from HEAD and is not staged. Owned skill paths run the skills suite. Wired policy YAML runs full docs plus owned-skill prose. Foreign lockfile skills are skipped. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
 Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, attest only explicit paths:
 
@@ -57,7 +57,7 @@ Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, at
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Optional local hooks: install [pre-commit](https://pre-commit.com/) (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional — not required for audit.
+Pre-commit: `.pre-commit-config.yaml` runs `bun src/cli.ts validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional.
 
 Behavioral A/B dogfood (live Cursor, not part of `bun run check`): [agent-suites/README.md](agent-suites/README.md) · [refs/llm-harness.md](refs/llm-harness.md).
 
