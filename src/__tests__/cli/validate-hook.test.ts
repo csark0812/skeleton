@@ -171,6 +171,26 @@ describe("validate changed hook gates", () => {
 		);
 	});
 
+	it("does not flag deleted coverage files as uncovered", async () => {
+		const root = makeRoot();
+		writeToml(root);
+		writeOwnedDoc(root);
+		mkdirSync(join(root, "src"), { recursive: true });
+		writeFileSync(join(root, "src/gone.ts"), "export const gone = 1;\n");
+		runGit(root, ["init"]);
+		runGit(root, ["add", "-A"]);
+		runGit(root, ["commit", "-m", "init"]);
+		runGit(root, ["rm", "src/gone.ts"]);
+		runGit(root, ["commit", "-m", "remove gone"]);
+
+		const result = await evaluateValidateChanged({
+			root,
+			base: "HEAD~1",
+		});
+		expect(result.diagnostics.some((item) => item.code === "uncovered-changed-path")).toBe(false);
+		expect(result.diagnostics.some((item) => item.file === "src/gone.ts")).toBe(false);
+	});
+
 	it("fails --staged when attested lockfile and document stay unstaged", async () => {
 		const root = makeRoot();
 		writeToml(

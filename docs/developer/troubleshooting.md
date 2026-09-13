@@ -12,7 +12,7 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 
 ## `uncovered-changed-path`
 
-**Cause:** A coverage-candidate file changed and no scanned paper lists it in `review-deps`.
+**Cause:** A live coverage-candidate file changed and no scanned paper lists it in `review-deps`. Deleted files do not fire this code.
 
 **Fix:** Add a `review-deps` path or glob on the owning paper. Then re-read that paper and attest it.
 

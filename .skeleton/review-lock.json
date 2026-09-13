@@ -3,7 +3,7 @@
 	"documents": {
 		"AGENTS.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:d80bd8595987f637e889ca2e9bd3e439c06cd7ed18afe59d295b57db53acd8e9",
+			"documentHash": "sha256:aebd013b628edf711e3c300e23a85ad413814735a6226df8c90bd79a246ae2f3",
 			"reviewDependencies": {
 				"package.json": "sha256:f2466500367e981801284bdf5a2582e121e1a2f88ae07bea1c79a4dbcea50b3b",
 				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79"
@@ -127,19 +127,19 @@
 		},
 		"docs/developer/troubleshooting.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:039007b44df0f025b1b1c544402148e12069b4c7df0706c7786306d5f31a17d5",
+			"documentHash": "sha256:87a98e05206f9d4376022e358204d3e8508e0d18cffd790e1627a6d84f803bc5",
 			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:01ee82a04363f23ad4d22b44d8773e7637fc08aecdfc54eb16d3feb8b177ead7",
-				"src/validate/changed.ts": "sha256:231ac839e2411a1826598a470a29a69f14387af3c6e0c115b73224b98500dd9a",
+				"src/validate/changed.ts": "sha256:2d651eddbab2ae064f56649a7b094766beb43fff45f48849c53506d75eaacd49",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
 		},
 		"docs/developer/validation.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:ce9da365562eaa63f860a96315c03d48755704f29b0f6c4ffb2c41bb6b98f41a",
+			"documentHash": "sha256:8fb7fefb248562f954dd1069c2ea92cbdf811edbc2f43a0361d1c5384625b94a",
 			"reviewDependencies": {
-				"src/validate/changed.ts": "sha256:231ac839e2411a1826598a470a29a69f14387af3c6e0c115b73224b98500dd9a",
+				"src/validate/changed.ts": "sha256:2d651eddbab2ae064f56649a7b094766beb43fff45f48849c53506d75eaacd49",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
@@ -150,7 +150,7 @@
 			"reviewDependencies": {
 				"docs/developer/getting-started.md": "sha256:e62fa3c2a9449ab21363019c4551ad0d34278cd8a9de13ba88a4408b3bae6111",
 				"docs/developer/install.md": "sha256:bfba088b3cf9a7733dde57c833c74c0863e0cfe5b68ed252165fa2d588d49924",
-				"docs/developer/validation.md": "sha256:ce9da365562eaa63f860a96315c03d48755704f29b0f6c4ffb2c41bb6b98f41a"
+				"docs/developer/validation.md": "sha256:8fb7fefb248562f954dd1069c2ea92cbdf811edbc2f43a0361d1c5384625b94a"
 			}
 		},
 		"skeleton/SKILL.md": {
