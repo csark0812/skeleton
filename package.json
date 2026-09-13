@@ -34,7 +34,7 @@
 	},
 	"packageManager": "bun@1.2.21",
 	"scripts": {
-		"build": "bun build src/cli.ts --target=node --outfile=dist/cli.js && bun build src/hooks/customize-on-skill-read.ts --target=node --outfile=dist/hooks/customize-on-skill-read.js && bun build src/plugin-types.ts --target=node --format=esm --outfile=dist/plugin-types.js --packages=external && bun build src/result-types.ts --target=node --format=esm --outfile=dist/result-types.js --packages=external && tsc -p tsconfig.types.json",
+		"build": "bun build src/cli.ts --target=node --outfile=dist/cli.js && bun build src/plugin-types.ts --target=node --format=esm --outfile=dist/plugin-types.js --packages=external && bun build src/result-types.ts --target=node --format=esm --outfile=dist/result-types.js --packages=external && tsc -p tsconfig.types.json",
 		"test": "bun test",
 		"test:audit": "bun test src/audit/__tests__",
 		"test:cli": "bun test src/__tests__/cli",

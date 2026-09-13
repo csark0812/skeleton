@@ -22,11 +22,7 @@ mode = "hash"
 # Defaults apply when this section is omitted. Empty include disables the gate.
 # [reviewCoverage]
 # include = ["**/*.{ts,tsx,js,jsx,mjs,cjs,py}", "package.json", "project.json"]
-# exclude = ["**/__tests__/**", "**/*.test.*", "**/*.spec.*", "**/fixtures/**", "templates/**"]
-
-# Optional: basenames under .skeleton/customize/ appended on every skill inject
-# [customize]
-# alwaysInclude = ["shared-agent-references.md"]
+# exclude = ["**/__tests__/**", "**/*.test.*", "**/*.spec.*", "**/fixtures/**", "templates/**", "**/node_modules/**", "**/dist/**"]
 
 # Optional: near-dupe / SSOT-summary tunables
 # [docsLint]

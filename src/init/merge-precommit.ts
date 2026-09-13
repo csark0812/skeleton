@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { MergeAction } from "./merge-hooks.ts";
+import type { MergeAction } from "./merge-scripts.ts";
 import { resolveTemplatesDir } from "./package-paths.ts";
 
 const TEMPLATES_DIR = resolveTemplatesDir();

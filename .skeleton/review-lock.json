@@ -1,31 +1,20 @@
 {
 	"version": 2,
 	"documents": {
-		".skeleton/customize/code-review.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:61c3b86c898279893352dbdeafc6f9ac591730197d4614cb4d4cfc5b1ce0587b",
-			"reviewDependencies": {
-				"AGENTS.md": "sha256:db9e4e6756b85cd5882afda5e51ee676586af1dc621d2d4f111f93bc5820c0ba",
-				"docs/developer/validation.md": "sha256:278fed2d2b57985acbf555a532f4616ceda4c85c5e3b4f38f0433788642c1006",
-				"src/validate/changed.ts": "sha256:231ac839e2411a1826598a470a29a69f14387af3c6e0c115b73224b98500dd9a",
-				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
-				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
-			}
-		},
 		"AGENTS.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:db9e4e6756b85cd5882afda5e51ee676586af1dc621d2d4f111f93bc5820c0ba",
+			"documentHash": "sha256:aebd013b628edf711e3c300e23a85ad413814735a6226df8c90bd79a246ae2f3",
 			"reviewDependencies": {
-				"package.json": "sha256:0e72b7a7756de63dc8fa2994246129ae116a80188d23283e1b860f0812d58d5f",
-				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
+				"package.json": "sha256:f2466500367e981801284bdf5a2582e121e1a2f88ae07bea1c79a4dbcea50b3b",
+				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79"
 			}
 		},
 		"README.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:0dad5ac464bf617c00127ecafa1dbda459561f512030ec46ef22b7a48c5cf5b9",
+			"documentHash": "sha256:a7cc81e0e5a42deaf00c6c9826629d43ea7b981f7c496176748858bce353975e",
 			"reviewDependencies": {
-				"package.json": "sha256:0e72b7a7756de63dc8fa2994246129ae116a80188d23283e1b860f0812d58d5f",
-				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
+				"package.json": "sha256:f2466500367e981801284bdf5a2582e121e1a2f88ae07bea1c79a4dbcea50b3b",
+				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79"
 			}
 		},
 		"docs/authoring.md": {
@@ -37,11 +26,11 @@
 		},
 		"docs/developer/audit.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:d4cc4c04d85e1edf70c91925e1e6581892a6ebd1bf8188a14d1d694c445d6829",
+			"documentHash": "sha256:79dbe2165648a0a1bf808b677df375841b9f19cefbdbaf5dd64bd3c54b0e0360",
 			"reviewDependencies": {
-				"src/audit/config/load.ts": "sha256:38b0f063408beb411872195f3f1e6183795d40b97380f5f5dec9169660556b1f",
-				"src/audit/config/types.ts": "sha256:5c23c9da56d56b818238c5669de30a1ca5cd2d02d2acd6e196810f6ae0cab1b0",
-				"src/audit/core/collect.ts": "sha256:853e7d16e005498e4040be12ef7f541c6b08a72ed104194dc941b58b9abdc8bf",
+				"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
+				"src/audit/config/types.ts": "sha256:259ed258475e2e2eba40b3d329b7a633916a63bf84fa1d1f29e4158da77a78ba",
+				"src/audit/core/collect.ts": "sha256:3419d6a4df81fb32936e732283ae8e31eb27f0ba027256a6fa781376641ed3fe",
 				"src/audit/core/context.ts": "sha256:c63e7a3eb7709a862e56c58044ed080446d19a1c2660a86bc1106e5723f90fc4",
 				"src/audit/core/draft.ts": "sha256:68d5d980d34a439100960ce3b199f9f28c585ebdac7aae57a5da1f3f23002abb",
 				"src/audit/core/fix.ts": "sha256:f5a2d134a70cfee721cb130bf38539000f66e053ab5a19967015718a22498287",
@@ -49,7 +38,7 @@
 				"src/audit/core/markdown.ts": "sha256:fad91c2ed2fb18ef09faf1a2bad8b2e631dba30e1201bd57d9f8b508cf8183df",
 				"src/audit/core/repo-files.ts": "sha256:9a008fa832ba85f6a9075347706f0c12756e6b12124d9a4df23ff60055c3bfc8",
 				"src/audit/core/report.ts": "sha256:e6afa845a67ae3c48c3db3776c7ad599c55d665810f689fd6c021feaa4773ec3",
-				"src/audit/core/review-coverage.ts": "sha256:c0d1c619588b99aa17ef676e2e20d61fc5ef44d99b7f292d8c56b03880c4df26",
+				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
 				"src/audit/core/review-deps.ts": "sha256:ebf37de0fe8a88a6ea3e75dec94d5e975e3ed55be3c55fff1130a41b297655ed",
 				"src/audit/core/review-proof.ts": "sha256:cebc6edb3eb784335367df29125a9b5e6c2844836123655521a2b7afca47fe7b",
 				"src/audit/core/shared.ts": "sha256:5d8ec137c0b2eb1bbe6041b09dba6c23fd825f946f241fb4616b790765825b11",
@@ -63,7 +52,7 @@
 				"src/audit/fix/doc-meta.ts": "sha256:e5a9097605b5dd03b823fe3d16d3e7ddb178c95379cd05548c3a40f986de94ad",
 				"src/audit/fix/match-anchor.ts": "sha256:d81ac6ae776b02402bedadc199425cbb3c9c593a7cda4271503479a61b153f4c",
 				"src/audit/fix/ssot.ts": "sha256:69199c2e71eaabde0a0ce9d6d2209530f834e5323a6dbbd58edfe162f60fff6d",
-				"src/audit/policies/load.ts": "sha256:62a2cc8936bfce21045ad11e38b507314fe66702bb28d7edcfa93f70e7628f0e",
+				"src/audit/policies/load.ts": "sha256:c86aaf7184cc5519b31d85aa6d6bb20f2627974240b08443632d29dd76fe8310",
 				"src/audit/policies/types.ts": "sha256:c1ee2f2b4fb7e4245b6f47031882d3dd122f31f48b06a09ea76e5b16e387ee73",
 				"src/audit/rules/banned.ts": "sha256:0e201da5dc638fac994d47fd66223c93d6d839bdd4b4fc1a1478270b7cd8a71d",
 				"src/audit/rules/doc-meta.ts": "sha256:680e6fd05b98a795c298c03ce9023eb72a2fcbeefce02edb203b618e662c3b43",
@@ -80,25 +69,16 @@
 				"src/audit/rules/ssot-summary.ts": "sha256:853abc308ba1fbc2003069c66c41f5dcef7fb94f833a0ec50e715bd46d9031e5",
 				"src/audit/rules/ssot.ts": "sha256:006ea9f05da7c3887fa7cddb82b54f931552689c78f4dd123614115984952007",
 				"src/audit/run.ts": "sha256:01ee82a04363f23ad4d22b44d8773e7637fc08aecdfc54eb16d3feb8b177ead7",
-				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a",
+				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79",
 				"src/result-types.ts": "sha256:cfebe0bb52d5143ebee0e587d89bb1aac6cf8f035c92e4b5c9312cab607ea0a5"
 			}
 		},
 		"docs/developer/config.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:1e0797f91bb7a97a688f71016da93e9f5edfea1317299bde0157f22390b020ad",
+			"documentHash": "sha256:d55b96e68d3ca4842449f53a53d40f9b467cbd4a792e55a2c7ea669a62c9bbe2",
 			"reviewDependencies": {
-				"src/audit/config/load.ts": "sha256:38b0f063408beb411872195f3f1e6183795d40b97380f5f5dec9169660556b1f",
-				"src/audit/config/types.ts": "sha256:5c23c9da56d56b818238c5669de30a1ca5cd2d02d2acd6e196810f6ae0cab1b0"
-			}
-		},
-		"docs/developer/customize.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:2691ca04c5f1b94516c42643fbe1b6b3c9c8cb6476d7dc9241aa02d656a0b5b4",
-			"reviewDependencies": {
-				"src/customize/resolve.ts": "sha256:0bf0940f2b719ba07d80b282d1c005e1b50e34d78b73682d030b6e1a1d624bc4",
-				"src/hooks/customize-on-skill-read.ts": "sha256:7d6917be04c866b3a36b51d891a5e904fb571afcdaaef516e545bc364dd613c0",
-				"src/hooks/run.ts": "sha256:5bcd20491434abb6534c308bce0abc91cf9e6f5fb13640025ac9d868c038e1ef"
+				"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
+				"src/audit/config/types.ts": "sha256:259ed258475e2e2eba40b3d329b7a633916a63bf84fa1d1f29e4158da77a78ba"
 			}
 		},
 		"docs/developer/doc-system.md": {
@@ -112,28 +92,26 @@
 		},
 		"docs/developer/getting-started.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:92d444d464a6e3ea850a75ac4286d7bac30a6a0d876e45f2998860841283d933",
+			"documentHash": "sha256:e62fa3c2a9449ab21363019c4551ad0d34278cd8a9de13ba88a4408b3bae6111",
 			"reviewDependencies": {
-				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a",
-				"src/init/init.ts": "sha256:a70cdf8a1a96a8438634cc69ce994eb84de763d4eb2f3feef947a1821c586109",
-				"src/init/merge-hooks.ts": "sha256:069088c4355dd52b7f225b5c88b2ae246c34fc3f206c9028c9d85f20a62c0362",
-				"src/init/merge-precommit.ts": "sha256:2fe8f93481571e7f56c0d380601488b36f8c9d12b2821f8dc8c324785daec2bf",
+				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79",
+				"src/init/init.ts": "sha256:0980e3648bb9164d85de86d2aac8c5d945b38867e8fb64f0f05fd72d62025e00",
+				"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
+				"src/init/merge-scripts.ts": "sha256:521d29a0db6275c3b74dd26ebcc57eb4e46bd9ae21da3dd6a0fce8a42bdce3a0",
 				"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
-				"src/init/parse-args.ts": "sha256:fa3fe7d67fdc04d95157af1cdc46d0ee9dda3f55a3d4c65a5ec95693117d1f2f",
-				"src/init/resolve-hook-command.ts": "sha256:dcad15b2281ad210d7d35230b8424af4b1fb7dbccee593e369d388c590ee71e1",
+				"src/init/parse-args.ts": "sha256:30c9b45ffefcd57957670e32333131dd472c6a935e5f4291ae0b1fdbfea10257",
 				"src/init/skills-args.ts": "sha256:347a7e793d697a66adcdaf5f3183421191ee738949b5163284f44da7b30193ea"
 			}
 		},
 		"docs/developer/install.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:bb97167a3b784a7bf3da708ea046e0e090082cdd6a37bd2b6a4f83efd96564a8",
+			"documentHash": "sha256:bfba088b3cf9a7733dde57c833c74c0863e0cfe5b68ed252165fa2d588d49924",
 			"reviewDependencies": {
-				"src/init/init.ts": "sha256:a70cdf8a1a96a8438634cc69ce994eb84de763d4eb2f3feef947a1821c586109",
-				"src/init/merge-hooks.ts": "sha256:069088c4355dd52b7f225b5c88b2ae246c34fc3f206c9028c9d85f20a62c0362",
-				"src/init/merge-precommit.ts": "sha256:2fe8f93481571e7f56c0d380601488b36f8c9d12b2821f8dc8c324785daec2bf",
+				"src/init/init.ts": "sha256:0980e3648bb9164d85de86d2aac8c5d945b38867e8fb64f0f05fd72d62025e00",
+				"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
+				"src/init/merge-scripts.ts": "sha256:521d29a0db6275c3b74dd26ebcc57eb4e46bd9ae21da3dd6a0fce8a42bdce3a0",
 				"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
-				"src/init/parse-args.ts": "sha256:fa3fe7d67fdc04d95157af1cdc46d0ee9dda3f55a3d4c65a5ec95693117d1f2f",
-				"src/init/resolve-hook-command.ts": "sha256:dcad15b2281ad210d7d35230b8424af4b1fb7dbccee593e369d388c590ee71e1",
+				"src/init/parse-args.ts": "sha256:30c9b45ffefcd57957670e32333131dd472c6a935e5f4291ae0b1fdbfea10257",
 				"src/init/skills-args.ts": "sha256:347a7e793d697a66adcdaf5f3183421191ee738949b5163284f44da7b30193ea"
 			}
 		},
@@ -149,19 +127,19 @@
 		},
 		"docs/developer/troubleshooting.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:69281df6dde433453c509710d141a7b61250993939a72f7cfc4e18e26486c193",
+			"documentHash": "sha256:87a98e05206f9d4376022e358204d3e8508e0d18cffd790e1627a6d84f803bc5",
 			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:01ee82a04363f23ad4d22b44d8773e7637fc08aecdfc54eb16d3feb8b177ead7",
-				"src/validate/changed.ts": "sha256:231ac839e2411a1826598a470a29a69f14387af3c6e0c115b73224b98500dd9a",
+				"src/validate/changed.ts": "sha256:2d651eddbab2ae064f56649a7b094766beb43fff45f48849c53506d75eaacd49",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
 		},
 		"docs/developer/validation.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:278fed2d2b57985acbf555a532f4616ceda4c85c5e3b4f38f0433788642c1006",
+			"documentHash": "sha256:8fb7fefb248562f954dd1069c2ea92cbdf811edbc2f43a0361d1c5384625b94a",
 			"reviewDependencies": {
-				"src/validate/changed.ts": "sha256:231ac839e2411a1826598a470a29a69f14387af3c6e0c115b73224b98500dd9a",
+				"src/validate/changed.ts": "sha256:2d651eddbab2ae064f56649a7b094766beb43fff45f48849c53506d75eaacd49",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
@@ -170,16 +148,16 @@
 			"reviewedAt": "2026-09-13",
 			"documentHash": "sha256:9cc412efac094e0e4194749866025ef315b9f19684314092058fc8827608d683",
 			"reviewDependencies": {
-				"docs/developer/getting-started.md": "sha256:92d444d464a6e3ea850a75ac4286d7bac30a6a0d876e45f2998860841283d933",
-				"docs/developer/install.md": "sha256:bb97167a3b784a7bf3da708ea046e0e090082cdd6a37bd2b6a4f83efd96564a8",
-				"docs/developer/validation.md": "sha256:278fed2d2b57985acbf555a532f4616ceda4c85c5e3b4f38f0433788642c1006"
+				"docs/developer/getting-started.md": "sha256:e62fa3c2a9449ab21363019c4551ad0d34278cd8a9de13ba88a4408b3bae6111",
+				"docs/developer/install.md": "sha256:bfba088b3cf9a7733dde57c833c74c0863e0cfe5b68ed252165fa2d588d49924",
+				"docs/developer/validation.md": "sha256:8fb7fefb248562f954dd1069c2ea92cbdf811edbc2f43a0361d1c5384625b94a"
 			}
 		},
 		"skeleton/SKILL.md": {
 			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:016542ac69a5dc051c0e434a75f5accf842dbe87cbae93da227493fabb45fa3a",
+			"documentHash": "sha256:2e8dc324ab417532e3ac4905a0a08bc34528824ead8b4d196c80b90468b74d86",
 			"reviewDependencies": {
-				"src/cli.ts": "sha256:1fc7a773f0295fd209a4d3baed536c24dc7bdf3d3c079118dad6f94a2de6026a"
+				"src/cli.ts": "sha256:c1ae5e72307096cbcfdef93a5144fc2286525348a551bf6af6e86d784d9d6a79"
 			}
 		}
 	}

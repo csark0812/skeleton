@@ -49,7 +49,7 @@ bun test ./tests/smoke.test.ts
 | Foreign / lockfile-synced skill body        | skipped — lint in the owning skills/toolbox repo (`skills-lock.json` / `skillOwnership`)     |
 | TypeScript under `src/`                     | `bun test` + `bun run typecheck` + `bun run build`. `validate:changed` fails uncovered paths |
 
-`validate:changed` classifies code paths and leaves correctness to `bun test` + `typecheck` + `build`. It scans `review-deps` and audits every linked document. A coverage-candidate path with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide that. Hash review proof invalidates a paper when dependency bytes change. Date mode requires the paper in the change set with today's review date. `--staged` reads index bytes and fails `stage-required` when an impacted paper or the hash lockfile differs from HEAD and is not staged. Owned skill paths run the skills suite. Wired policy YAML runs full docs plus owned-skill prose. Foreign lockfile skills are skipped. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
+`validate:changed` classifies code paths and leaves correctness to `bun test` + `typecheck` + `build`. It scans `review-deps` and audits every linked document. A live coverage-candidate path with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Deleted files do not. Mixed commits do not hide that. Hash review proof invalidates a paper when dependency bytes change. Date mode requires the paper in the change set with today's review date. `--staged` reads index bytes and fails `stage-required` when an impacted paper or the hash lockfile differs from HEAD and is not staged. Owned skill paths run the skills suite. Wired policy YAML runs full docs plus owned-skill prose. Foreign lockfile skills are skipped. Other `.skeleton/**` YAML (not `config.yaml`) fails if not wired to a plugin. Missing explicit paths also exit non-zero.
 
 Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, attest only explicit paths:
 
@@ -57,7 +57,7 @@ Never bump `last-reviewed` as a mechanical cleanup. After a complete re-read, at
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Pre-commit: `.pre-commit-config.yaml` runs `bun src/cli.ts validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then `pre-commit install`. Customize IDE hooks from `skeleton init` are optional.
+Pre-commit: `.pre-commit-config.yaml` runs `bun src/cli.ts validate changed --staged`. Install [pre-commit](https://pre-commit.com/) once per machine, then `pre-commit install`.
 
 Behavioral A/B dogfood (live Cursor, not part of `bun run check`): [agent-suites/README.md](agent-suites/README.md) · [refs/llm-harness.md](refs/llm-harness.md).
 

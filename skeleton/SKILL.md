@@ -1,6 +1,6 @@
 ---
 name: skeleton
-description: Agent ops manual for skeleton-enabled repos — init, catalog, audit, optional customize hooks, and toolbox skill overrides. Use when editing skeleton.toml / .skeleton/, syncing toolbox skills, or running skeleton CLI.
+description: Agent ops manual for skeleton-enabled repos — init, catalog, audit, and toolbox skill ownership. Use when editing skeleton.toml / .skeleton/, syncing toolbox skills, or running skeleton CLI.
 ---
 
 <!-- review-deps: paths=src/cli.ts -->
@@ -24,7 +24,7 @@ Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/do
 
 ## When to use
 
-- Edit `skeleton.toml` or `.skeleton/customize/<slug>.md`
+- Edit `skeleton.toml` or `.skeleton/`
 - Run `skeleton audit`, `skeleton validate`, or `skeleton catalog`
 - Sync or update skills from an external toolbox repo
 - Avoid editing synced toolbox skill copies in the consumer repo
@@ -33,7 +33,7 @@ Catalog honesty is enforced by `audit docs` (`ssot-summary` / near-dupe) — do 
 
 Doc-meta: one authored `last-reviewed` (human claim). Git is last-edit — no parallel edit stamp. When hash review proof is enabled, `.skeleton/review-lock.json` binds that claim to the exact document and `review-deps` bytes. `daysUntilStale` remains an optional re-read cadence. Details: [doc system](https://github.com/csark0812/skeleton/blob/main/docs/developer/doc-system.md#doc-meta).
 
-Not for: normal feature work that only reads toolbox skills (optional customize hooks can inject on skill reads).
+Not for: normal feature work that only reads toolbox skills.
 
 ## Layout
 
@@ -42,26 +42,10 @@ skeleton.toml           # preferred root config (scan, stale, docsLint)
 .skeleton/
 ├── catalog.md          # generated, gitignored — local audit writes it
 ├── review-lock.json    # review hashes when reviewProof.mode = "hash"
-├── plugins/            # optional audit plugins (.ts + .mjs)
-└── customize/          # per-slug overrides for toolbox-bound skills
-    └── <slug>.md
+└── plugins/            # optional audit plugins (.ts + .mjs)
 ```
 
 Legacy `.skeleton/config.yaml` still loads if no `skeleton.toml` is present.
-
-## Customize hooks (optional)
-
-Hooks are an optional improvement, not required for audit/validate/catalog.
-
-`skeleton init` may merge IDE hooks that run a cwd-local
-`node node_modules/@csark0812/skeleton/dist/cli.js hook customize` on skill reads.
-Inside this repo the hook runs `bun src/cli.ts hook customize`.
-
-- Hook injects `.skeleton/customize/<slug>.md` when path is `/SKILL.md` **or** under a skill tree
-- **Never edit synced toolbox `SKILL.md` files in the consumer repo** — override in `.skeleton/customize/<slug>.md`
-- Manual fallback: `skeleton customize resolve <slug>`
-
-Details: [docs/developer/customize.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/customize.md)
 
 ## Setup
 
@@ -101,9 +85,8 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton validate changed`                    | Changed-file validation + dependency-driven doc discovery |
 | `skeleton validate changed --staged`           | Pre-commit hook (index bytes + coverage + owning papers) |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
-| `skeleton customize resolve <slug>`            | Print merged customize for a skill slug                 |
 
-`register` was removed — add a source-of-truth marker and run `skeleton catalog`.
+`register`, `customize`, and `hook` were removed. Add a source-of-truth marker and run `skeleton catalog`. Edit skills in the owning repo.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 

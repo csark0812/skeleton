@@ -13,8 +13,6 @@ const SCHEMA_CANDIDATES = [
 	join(dirname(fileURLToPath(import.meta.url)), "../../../schemas/config.schema.json"),
 	// dist/cli.js → ../schemas
 	join(dirname(fileURLToPath(import.meta.url)), "../schemas/config.schema.json"),
-	// dist/hooks/customize-on-skill-read.js → ../../schemas
-	join(dirname(fileURLToPath(import.meta.url)), "../../schemas/config.schema.json"),
 ];
 
 export const ROOT_CONFIG_TOML = "skeleton.toml";

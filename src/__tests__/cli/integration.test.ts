@@ -5,7 +5,6 @@ import { dirname, join } from "node:path";
 import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { runAudit } from "../../audit/run.ts";
 import { checkCatalog, runCatalogCli, writeCatalog } from "../../catalog.ts";
-import { resolveCustomize } from "../../customize/resolve.ts";
 import { runBuildPlugin } from "../../plugins/build.ts";
 import {
 	codeValidationHint,
@@ -68,18 +67,6 @@ exclude = []
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
-	});
-});
-
-describe("customize resolve", () => {
-	it("returns customize file contents for slug", () => {
-		const result = resolveCustomize(NESTED_SKILLS_CUSTOMIZE, "code-review");
-		expect(result.content).toContain("Code review customize");
-	});
-
-	it("returns null for missing slug", () => {
-		const result = resolveCustomize(NESTED_SKILLS_CUSTOMIZE, "missing-slug");
-		expect(result.content).toBeNull();
 	});
 });
 

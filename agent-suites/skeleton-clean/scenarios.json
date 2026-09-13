@@ -71,21 +71,6 @@
 					"The agent ran audit:skills (or bun run audit:skills) for the owned skill-body edit and did not treat path-scoped validate-changed alone as sufficient"
 				]
 			}
-		},
-		{
-			"name": "customize: project binding",
-			"prompt": "One-shot (no AskQuestion). A synced skill exists at `fixture-skills/demo-skill/SKILL.md`. Add a **project-specific** binding for this repo without editing that SKILL.md body.\n\nWrite `.skeleton/customize/demo-skill.md` that injects a canary line exactly: `SKELETON_DEMO_SKILL_CANARY_7f3a`.\n\nConfirm the file exists and quote the canary. Do not modify `fixture-skills/demo-skill/SKILL.md`.",
-			"seedPatch": "agent-suites/skeleton-clean/fixtures/seeds/customize-demo.patch",
-			"rubric": {
-				"must": [
-					".skeleton/customize/demo-skill.md",
-					"SKELETON_DEMO_SKILL_CANARY_7f3a"
-				],
-				"mustNot": ["DEMO_SKILL_BASELINE edited", "audit all"],
-				"judge": [
-					"The agent created a customize overlay under .skeleton/customize/demo-skill.md with the required canary and did not rewrite the synced SKILL.md as the project binding"
-				]
-			}
 		}
 	]
 }

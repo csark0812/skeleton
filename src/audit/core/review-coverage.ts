@@ -18,9 +18,10 @@ export const DEFAULT_REVIEW_COVERAGE_EXCLUDE = [
 	"**/*.spec.*",
 	"**/fixtures/**",
 	"templates/**",
-	"dist/**",
-	"node_modules/**",
-	".git/**",
+	"**/dist/**",
+	"**/node_modules/**",
+	"**/.venv/**",
+	"**/.git/**",
 	".skeleton/plugins/**",
 ];
 

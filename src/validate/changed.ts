@@ -771,7 +771,8 @@ export async function evaluateValidateChanged(
 		skillIndex,
 		fileSource,
 	});
-	const coverageCandidateCount = relPaths.filter((path) =>
+	const livePaths = relPaths.filter((path) => !resolvedPaths.deleted.has(path));
+	const coverageCandidateCount = livePaths.filter((path) =>
 		pathRequiresReviewCoverage(path, config),
 	).length;
 	const diagnostics = [
@@ -781,7 +782,7 @@ export async function evaluateValidateChanged(
 			base: options.base,
 			coverageCandidateCount,
 		}),
-		...uncoveredChangedPathDiagnostics(relPaths, config, ownerPatterns),
+		...uncoveredChangedPathDiagnostics(livePaths, config, ownerPatterns),
 		...stageRequiredDiagnostics({
 			staged: options.staged ?? false,
 			stagedPaths: relPaths,

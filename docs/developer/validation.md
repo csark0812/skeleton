@@ -6,7 +6,7 @@
 
 <!-- review-deps: paths=src/validate/** -->
 
-Router for changed paths: `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Any changed path can drive `review-deps` document-impact discovery. A coverage candidate with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
+Router for changed paths: `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Any changed path can drive `review-deps` document-impact discovery. A live coverage candidate with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Deleted files do not. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
 
 ## When you changed X, run Y
 
@@ -42,7 +42,7 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 | `.sh`, `.bash`, `.zsh`                                                              | shellcheck or `bash -n`                                                                                             |
 | Other `.json`                                                                       | JSONC-tolerant syntax check                                                                                         |
 | Any changed repository file                                                         | discover and audit scanned docs whose `review-deps` path or glob matches                                            |
-| Coverage-candidate code or `package.json` / `project.json`                          | fail `uncovered-changed-path` when no scanned paper claims the path                                                 |
+| Coverage-candidate code or `package.json` / `project.json`                          | fail `uncovered-changed-path` when the file still exists and no scanned paper claims it                              |
 
 ### Code paths and impacted documents
 
@@ -50,7 +50,7 @@ Skeleton does not claim to validate application code. It classifies code paths, 
 
 - Hash mode: changed dependency bytes make the linked document's `review-proof` entry invalid until explicit re-review and attestation.
 - Date mode: a linked document must be included in the changed set and carry today's explicit review date.
-- No linked document: a coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this.
+- No linked document: a live coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this. Deleted files do not fail that gate.
 - `--staged`: read document, lockfile, and dependency bytes from the git index. If an impacted paper or the hash lockfile differs from HEAD and is not staged, fail `stage-required`.
 
 In this repo:
@@ -71,7 +71,7 @@ Skill bodies are not path-scoped on the docs lane.
 
 **Foreign** skills (`skills-lock.json` entries with `sourceType` other than `local`, e.g. `github`) are skipped so consumer repos don't double-lint synced toolbox copies — including doc-meta on SSOT-bearing skill `references/**` paths. Override with `skillOwnership.ownedSlugs` / `foreignSlugs` — see [config](config.md#skillownership).
 
-`audit self` covers the scan corpus; excluded owned skill trees still need `audit skills`. Customize overlays under `.skeleton/customize/` stay in the consumer audit corpus.
+`audit self` covers the scan corpus; excluded owned skill trees still need `audit skills`.
 
 ### Plugin policy YAML
 

@@ -17,7 +17,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `skeleton.toml`, ensures `.skeleton/customize/`, writes `.pre-commit-config.yaml`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts to `package.json`. Hash review proof is on by default. IDE customize hooks are not required for audit.
+Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, and adds `validate:changed` / `validate:ci` scripts to `package.json`. Hash review proof is on by default.
 
 ## 2. Set the scan perimeter
 
@@ -139,7 +139,6 @@ Details: [install](install.md).
 - [ ] `npx skeleton catalog`
 - [ ] `npx skeleton audit docs`
 - [ ] `pre-commit install`
-- [ ] (Optional) IDE customize hooks
 
 ## Next
 
@@ -148,6 +147,5 @@ Details: [install](install.md).
 | Config keys and examples                      | [config](config.md)                   |
 | What to run after a change                    | [validation](validation.md)           |
 | SSOT / catalog / doc-meta                     | [doc system](doc-system.md)           |
-| Skill overrides without editing synced skills | [customize](customize.md)             |
 | Product-specific audit rules                  | [plugins](plugins.md)                 |
 | Common failures                               | [troubleshooting](troubleshooting.md) |

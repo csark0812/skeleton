@@ -17,7 +17,7 @@ npx skeleton init --skills
 
 `--skills` runs `npx skills add csark0812/skeleton …` with sensible defaults (`--skill skeleton`, `-a cursor claude-code codex`, `-y`). Pass any [skills add flags](https://github.com/vercel-labs/skills) after `--skills` — e.g. `-g` / `--global`, `--all`, `-a codex`, `--copy`, `--list`.
 
-Init writes `skeleton.toml` / `.skeleton/`, writes `.pre-commit-config.yaml`, may merge **optional** IDE customize hooks, and adds `validate:changed` / `validate:ci` scripts.
+Init writes `skeleton.toml` / `.skeleton/`, writes `.pre-commit-config.yaml`, and adds `validate:changed` / `validate:ci` scripts.
 
 ## Config
 
