@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -29,18 +29,6 @@ That needs to be explicit — and stay true after the next 50 PRs. Skeleton turn
 Skill linters ask: _"Is this SKILL.md well-formed?"_
 
 Skeleton asks the repo-level question: _"Does this whole thing still agree with itself?"_
-
-## CLI efficacy
-
-Host compares score `cli-lanes` against `audit-all`.
-`cli-lanes` names the real CLI command. `audit-all` copies `audit all`.
-
-```bash
-bun run agent:test
-```
-
-Method: [CLI efficacy](docs/developer/cli-efficacy.md).
-Suite: [agent-suites/README.md](agent-suites/README.md).
 
 ## Quick start
 
@@ -153,7 +141,6 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 - [Install](docs/developer/install.md)
 - [Doc system](docs/developer/doc-system.md)
 - [Validation](docs/developer/validation.md)
-- [CLI efficacy](docs/developer/cli-efficacy.md)
 - [Audit rules](docs/developer/audit.md)
 - [Plugins](docs/developer/plugins.md)
 - [Authoring conventions](docs/authoring.md)

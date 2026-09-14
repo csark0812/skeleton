@@ -53,7 +53,6 @@
 		"verify:package": "bun run build && bun scripts/verify-package.ts",
 		"start": "bun src/cli.ts --help",
 		"dev": "bun src/cli.ts --help",
-		"agent:test": "agent-test",
 		"prepack": "bun run check && bun scripts/verify-package.ts"
 	},
 	"dependencies": {
@@ -68,7 +67,6 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",
-		"@post-print/agent-test": "0.3.8",
 		"@types/bun": "1.3.8",
 		"@types/github-slugger": "2.0.0",
 		"typescript": "~7.0.2"

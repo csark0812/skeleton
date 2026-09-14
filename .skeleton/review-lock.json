@@ -2,25 +2,20 @@
 	"version": 2,
 	"documents": {
 		"AGENTS.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:952b9d986d19afad61a06253a648c588a7cb54cf1ddc65c08975398f8a06a547",
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:45dd930cd4fa4656a5cb5dfca7a6a54cd2ed38590a796477c74ac254dcc06fb9",
 			"reviewDependencies": {
-				"package.json": "sha256:08bcd0b66d5e6189e8ad7c580e04a9cc603de5f0820a33a063761d46ed3aa530",
+				"package.json": "sha256:2860ebffc3c3dcbb379aa704ef9e5f5688a515327aae0974abfd1b6cb61737e4",
 				"src/cli.ts": "sha256:f3d247c97ebfb79af14903f079b663e391ef544399057baff8896d5920d625ad"
 			}
 		},
 		"README.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:5517d2f6587413fcda1857a73add9f57a83b18b775b8f0af10c67a9dbffb47cf",
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:56147954576edf49e943fddaf714b3a44663e224c3c9fe7501641c0f8616b934",
 			"reviewDependencies": {
-				"package.json": "sha256:08bcd0b66d5e6189e8ad7c580e04a9cc603de5f0820a33a063761d46ed3aa530",
+				"package.json": "sha256:2860ebffc3c3dcbb379aa704ef9e5f5688a515327aae0974abfd1b6cb61737e4",
 				"src/cli.ts": "sha256:f3d247c97ebfb79af14903f079b663e391ef544399057baff8896d5920d625ad"
 			}
-		},
-		"agent-suites/README.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:d2485cfd5427497f2491455f9ae9b181cbf7a2735a5ebf7fa72310110745b43c",
-			"reviewDependencies": {}
 		},
 		"docs/authoring.md": {
 			"reviewedAt": "2026-09-13",
@@ -78,46 +73,6 @@
 				"src/result-types.ts": "sha256:cfebe0bb52d5143ebee0e587d89bb1aac6cf8f035c92e4b5c9312cab607ea0a5"
 			}
 		},
-		"docs/developer/cli-efficacy.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:c06f1db636ea7f9f49198852182c47ff34f7bd1c4e4e2db7ab3ecbfe29a36632",
-			"reviewDependencies": {
-				"agent-suites/cli-efficacy/scenarios.json": "sha256:5b8da088183ade2fcc82e4d0c7cb7838c245c5b025d23fbc79af2ca09815bb06",
-				"package.json": "sha256:08bcd0b66d5e6189e8ad7c580e04a9cc603de5f0820a33a063761d46ed3aa530",
-				"tests/fixtures/audit-all/.cursor/rules/workspace.mdc": "sha256:5d5cfefb12d8c42c23d2b296bd697ba51f894c2607e21d2e1fb233db6ac1ec9a",
-				"tests/fixtures/audit-all/.skeleton/catalog.md": "sha256:627a09929acd87dfdc236b1bb510126e20fb8f683a3bd8c9bdcbe01754572436",
-				"tests/fixtures/audit-all/.skeleton/orphan-policy.yaml": "sha256:dbb10b44ded9edb87f77e3ce039d41bde3a9492473c9fff2a7ac883ed1243eee",
-				"tests/fixtures/audit-all/AGENTS.md": "sha256:3a39739f101268e39d23174373057564b5821059405edc74212de61696997e63",
-				"tests/fixtures/audit-all/data/ok.json": "sha256:32129da4335c3a2df10abb8669bc38f76ef165d9be4054d4404a59b1b162d0e9",
-				"tests/fixtures/audit-all/docs/billing-api-legacy.md": "sha256:bbc0ac65338895ffbb42c516051019317aef5223da87025b82d7fa93ff4ddd3e",
-				"tests/fixtures/audit-all/docs/billing-api.md": "sha256:fae073ef8ceff50dd733e3eb1568a761ef3abf7f310e9cc88c6e31209eecc011",
-				"tests/fixtures/audit-all/docs/billing-guide-v2.md": "sha256:c574e835f6f6f822045a915e74ea05f977b163cc31f100fc9beb38ea195bfae9",
-				"tests/fixtures/audit-all/docs/broken.md": "sha256:ae63d6fc4c6101a45ed9ab2e38960bfe57347c7c379836b11762636d8d9610cf",
-				"tests/fixtures/audit-all/docs/notes-alpha.md": "sha256:bac2363063dad1ac1cc167788cd16602746a324deae86782b6c35f1d9e607dc4",
-				"tests/fixtures/audit-all/docs/notes-bravo.md": "sha256:72b5bf151079ea95cf49bd630b6cc4432f87a1b9c837ecb988ee86da349d3302",
-				"tests/fixtures/audit-all/docs/notes-charlie.md": "sha256:bc66afcd492a660437f73e187446027314bee5a8723162114fb5b8aaa4cab802",
-				"tests/fixtures/audit-all/docs/notes-delta.md": "sha256:bb7cd51517b4451389893ad80d8b8cd3270981b13d263cf39d402f1867a5a50d",
-				"tests/fixtures/audit-all/docs/notes-echo.md": "sha256:c3095ebfc2d2075bdfe0a6cce0f3a46df2e2e6f1dc11a926de13c01ed51f8663",
-				"tests/fixtures/audit-all/docs/notes-foxtrot.md": "sha256:6d195eec4fb31aade426307d38353d88c6fa294542cbe0b25f315a95c8edf9fd",
-				"tests/fixtures/audit-all/docs/notes-golf.md": "sha256:fc68cd24889d1166bd06b5ea1e8733523fa74050bf19a6a752b5b196eaea4b67",
-				"tests/fixtures/audit-all/docs/notes-hotel.md": "sha256:83b140f9263a6b3af3db71d18c3e882a4c119586340ddb23f7528aac6d08429d",
-				"tests/fixtures/audit-all/owned-demo/SKILL.md": "sha256:7b1593dd4aae07be410bfcc3c032438da3ce1b2eb4200ae6c7e7ea91989d5d03",
-				"tests/fixtures/audit-all/scripts/bad.sh": "sha256:fc8cc8b3a98549e5ebdfdbe9c34823413762fb2fb8afb5cb2675f32373560699",
-				"tests/fixtures/audit-all/skeleton.toml": "sha256:361ee4bad1577dc749b33eb7e5d1473b57e7cf138c66c378d7940ec921147697",
-				"tests/fixtures/audit-all/src/orphan.ts": "sha256:f0ba4aefdb57c98c84a121ca27373047888aafe92e683b0c50064fdec05885fe",
-				"tests/fixtures/cli-lanes/.cursor/rules/workspace.mdc": "sha256:5d5cfefb12d8c42c23d2b296bd697ba51f894c2607e21d2e1fb233db6ac1ec9a",
-				"tests/fixtures/cli-lanes/.skeleton/catalog.md": "sha256:53223d3044c87b95c09eabf0ffd6e8e2268b1d393d4671bd63a24e63bfbb6d16",
-				"tests/fixtures/cli-lanes/AGENTS.md": "sha256:702c3b27988043be4c399c41c7458697dbe824b1d89cf120a207aeefc49cf9ff",
-				"tests/fixtures/cli-lanes/data/ok.json": "sha256:32129da4335c3a2df10abb8669bc38f76ef165d9be4054d4404a59b1b162d0e9",
-				"tests/fixtures/cli-lanes/docs/billing-api-legacy.md": "sha256:98e3ecb9bf4f74414ce74af5b9d81e7e81a3438506eec2a095e4b975f42952cb",
-				"tests/fixtures/cli-lanes/docs/billing-api.md": "sha256:0e740226e6a23485e8556a73a1242cbedddcc4c6612aa2839ec44da261410026",
-				"tests/fixtures/cli-lanes/docs/validation.md": "sha256:7075c2e21c4b8873abd0fe98490996c95747bab2b05bb32a0dbb2f90b5ffb09f",
-				"tests/fixtures/cli-lanes/owned-demo/SKILL.md": "sha256:a3fdee02a5ce551aa79935eeb3d534dbd8b489c975398e5b1e601753b7f61a09",
-				"tests/fixtures/cli-lanes/scripts/ok.sh": "sha256:b4d644d4279594903f1a9911956432d9473041f2984fc6014c14d7402c7d126c",
-				"tests/fixtures/cli-lanes/skeleton.toml": "sha256:361ee4bad1577dc749b33eb7e5d1473b57e7cf138c66c378d7940ec921147697",
-				"tests/fixtures/cli-lanes/src/app.ts": "sha256:8d4396f5cee3268760f4e15e0e909e7a10f7ba9565e34865f41b2aa7511f40e3"
-			}
-		},
 		"docs/developer/config.md": {
 			"reviewedAt": "2026-09-13",
 			"documentHash": "sha256:d55b96e68d3ca4842449f53a53d40f9b467cbd4a792e55a2c7ea669a62c9bbe2",
@@ -136,8 +91,8 @@
 			}
 		},
 		"docs/developer/getting-started.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:81e6409b10c68e96ebd42b5b9726efda8f50314032bf5ecc934d10002ef30bf2",
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:edc86a684617c082e3e9e5c89f42c11353c78103cdcf1838fc67dc419d6d2faa",
 			"reviewDependencies": {
 				"src/cli.ts": "sha256:f3d247c97ebfb79af14903f079b663e391ef544399057baff8896d5920d625ad",
 				"src/init/init.ts": "sha256:0980e3648bb9164d85de86d2aac8c5d945b38867e8fb64f0f05fd72d62025e00",
@@ -182,8 +137,8 @@
 			}
 		},
 		"docs/developer/validation.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:aa0cdb722f4c900684a6c155ede986960e3ce73febf94facc6241407276cffe7",
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:2eebb101ba5f9079b2c60f4771b4f0a2fc7f743562f3723f34da6ec9ef90825b",
 			"reviewDependencies": {
 				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
@@ -192,12 +147,12 @@
 			}
 		},
 		"docs/tiers.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:9cc412efac094e0e4194749866025ef315b9f19684314092058fc8827608d683",
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:68aafb9a72c95ed92ea6409309f29572b340fad7a2854cf2e8ac3931cc19e1af",
 			"reviewDependencies": {
-				"docs/developer/getting-started.md": "sha256:81e6409b10c68e96ebd42b5b9726efda8f50314032bf5ecc934d10002ef30bf2",
+				"docs/developer/getting-started.md": "sha256:edc86a684617c082e3e9e5c89f42c11353c78103cdcf1838fc67dc419d6d2faa",
 				"docs/developer/install.md": "sha256:bfba088b3cf9a7733dde57c833c74c0863e0cfe5b68ed252165fa2d588d49924",
-				"docs/developer/validation.md": "sha256:aa0cdb722f4c900684a6c155ede986960e3ce73febf94facc6241407276cffe7"
+				"docs/developer/validation.md": "sha256:2eebb101ba5f9079b2c60f4771b4f0a2fc7f743562f3723f34da6ec9ef90825b"
 			}
 		},
 		"skeleton/SKILL.md": {

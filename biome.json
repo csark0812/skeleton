@@ -12,7 +12,6 @@
 			"!**/node_modules",
 			"!**/*.d.ts",
 			"!**/refs",
-			"!**/agent-suites",
 			"!**/templates",
 			"!**/skills-lock.json"
 		]

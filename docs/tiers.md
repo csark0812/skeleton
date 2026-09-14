@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: the three-tier agent ecosystem -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
 
 <!-- review-deps: paths=docs/developer/getting-started.md,docs/developer/install.md,docs/developer/validation.md -->
 

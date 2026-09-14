@@ -12,7 +12,6 @@ include = [
 exclude = [
   "refs/**",
   "docs/archive/**",
-  "agent-suites/**",
   "editors/**",
   # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
   ".agents/**",

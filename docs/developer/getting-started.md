@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
 
 <!-- review-deps: paths=src/init/**,src/cli.ts -->
 
@@ -146,7 +146,6 @@ Details: [install](install.md).
 | --------------------------------------------- | ------------------------------------- |
 | Config keys and examples                      | [config](config.md)                   |
 | What to run after a change                    | [validation](validation.md)           |
-| Agent tests                                   | [CLI efficacy](cli-efficacy.md)       |
 | SSOT / catalog / doc-meta                     | [doc system](doc-system.md)           |
 | Product-specific audit rules                  | [plugins](plugins.md)                 |
 | Common failures                               | [troubleshooting](troubleshooting.md) |

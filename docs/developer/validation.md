@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
 
 <!-- review-deps: paths=src/validate/** -->
 
@@ -106,13 +106,3 @@ Skills in a public repository can link directly to an ordinary GitHub-hosted fil
 Skeleton does not copy shared files into skills, rewrite their links, or fetch external URLs. Remote reachability belongs to the publishing repository or a separate network check. Keep references inside a skill only when that skill owns the behavior.
 
 See [audit](audit.md).
-
-## CLI efficacy
-
-Host compares score these lanes on `cli-lanes` vs `audit-all`.
-
-```bash
-bun run agent:test
-```
-
-Details: [CLI efficacy](cli-efficacy.md).
