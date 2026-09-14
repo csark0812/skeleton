@@ -32,8 +32,8 @@ Skeleton asks the repo-level question: _"Does this whole thing still agree with 
 
 ## CLI efficacy
 
-Host compares score an intact fixture against a contested fixture.
-Intact names the real CLI command. Contested copies `audit all`.
+Host compares score `cli-lanes` against `audit-all`.
+`cli-lanes` names the real CLI command. `audit-all` copies `audit all`.
 
 ```bash
 bun run agent:test

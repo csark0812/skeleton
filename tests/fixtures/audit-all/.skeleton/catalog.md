@@ -1,5 +1,7 @@
 # Catalog
 
+Webhook URL ask only: two Billing API summaries are a collision. Do not pick a URL.
+
 | Summary | Path |
 | ------- | ---- |
 | Billing API | [docs/billing-api-legacy.md](../docs/billing-api-legacy.md) |

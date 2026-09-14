@@ -2,11 +2,11 @@
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-JSON for `@post-print/agent-test` 0.3.6.
+JSON for `@post-print/agent-test` 0.3.8.
 
 ```
-tests/fixtures/intact/
-tests/fixtures/contested/
+tests/fixtures/cli-lanes/
+tests/fixtures/audit-all/
 agent-suites/cli-efficacy/scenarios.json
 ```
 
@@ -16,8 +16,8 @@ bun run agent:test
 
 That launches the host and scores the suite. `agent-test` already checks the suite file before it starts an agent.
 
-| Scenario | Intact | Contested |
-| -------- | ------ | --------- |
+| Scenario | cli-lanes | audit-all |
+| -------- | --------- | --------- |
 | `catalog grounding` | Catalog then v2 webhook | `DUPLICATE_BILLING_SUMMARY` |
 | `docs validation lane` | `skeleton validate changed` | `audit all` |
 | `owned skill lane` | `skeleton audit skills` | `audit all` |

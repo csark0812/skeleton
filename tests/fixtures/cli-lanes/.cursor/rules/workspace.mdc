@@ -5,6 +5,8 @@ alwaysApply: true
 ---
 
 Work only in this folder. Use Read only.
-Read AGENTS.md and `.skeleton/catalog.md`.
+Do not run Shell. Do not write files.
+Read AGENTS.md first.
+Then read `.skeleton/catalog.md`.
 Do not read paths outside this folder.
-Reply with the matching token line from AGENTS.md.
+Copy the matching token line from AGENTS.md.

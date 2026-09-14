@@ -109,7 +109,7 @@ See [audit](audit.md).
 
 ## CLI efficacy
 
-Host compares score these lanes on intact vs contested fixtures.
+Host compares score these lanes on `cli-lanes` vs `audit-all`.
 
 ```bash
 bun run agent:test
