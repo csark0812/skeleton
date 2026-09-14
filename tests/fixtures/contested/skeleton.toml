@@ -1,0 +1,9 @@
+daysUntilStale = 3650
+
+[scan]
+include = ["docs/**", "AGENTS.md"]
+exclude = []
+
+[reviewCoverage]
+include = ["**/*.ts"]
+exclude = []

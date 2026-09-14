@@ -14,6 +14,4 @@ dist/
 src/audit/__tests__/fixtures/plugins/**/*.mjs
 src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
 .skeleton/catalog.md
-
-# Raw live compare dumps (aggregate into SUMMARY.*)
-agent-suites/evidence/runs/
+!tests/fixtures/**/.skeleton/catalog.md

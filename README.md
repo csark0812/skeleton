@@ -10,7 +10,7 @@ Agent repos get messy fast. Skills get copied around, docs disagree, links go st
 
 Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a local link breaks, the audit fails before merge.
 
-Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
+Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
 
 Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, or manage memory. It checks whether the repo around those systems still holds together.
 
@@ -30,46 +30,17 @@ Skill linters ask: _"Is this SKILL.md well-formed?"_
 
 Skeleton asks the repo-level question: _"Does this whole thing still agree with itself?"_
 
-## Preliminary agent-behavior evidence
+## CLI efficacy
 
-### Question
+Host compares score an intact fixture against a contested fixture.
+Intact names the real CLI command. Contested copies `audit all`.
 
-Does an intact Skeleton contract change agent behavior — grounding on the right doc, picking the right validation lane, and how much work it takes to get there?
+```bash
+bun run agent:test
+```
 
-### What we did
-
-We ran a paired live A/B self-benchmark with [`@post-print/agent-test`](https://www.npmjs.com/package/@post-print/agent-test): `skeleton-clean` vs `skeleton-messy`. The same authored prompts compare an intact fixture with a conflicting fixture.
-
-Scenarios covered contested grounding (conflicting docs), docs-only validation routing, canonical grounding, owned-skill routing, and customize ownership. Protocol: **N=10** sequential paired compares on 2026-07-17; McNemar on paired pass/fail; median token deltas with a bootstrap CI on the mean.
-
-Full method: [refs/llm-harness.md](refs/llm-harness.md). Suites: [agent-suites/README.md](agent-suites/README.md). Aggregated numbers: [SUMMARY.md](agent-suites/evidence/SUMMARY.md). Side-by-side excerpts: [evidence/transcripts/](agent-suites/evidence/transcripts/).
-
-### What the benchmark observed
-
-![Pass rate by scenario — clean vs messy](agent-suites/evidence/charts/pass-rates.svg)
-
-![Median extra tokens on messy](agent-suites/evidence/charts/token-delta.svg)
-
-Inside this harness, tasks that depend on an intact SSOT favored the clean fixture:
-
-- **Contested grounding** — In every paired run, clean settled on the SSOT canonical; messy never did (McNemar p = 0.002). Clean hops the catalog/SSOT path; messy thrashes across conflicting docs.
-- **Docs routing** — Clean consistently chose the correct audit lane; messy invented a non-existent `audit all` path (McNemar p = 0.002).
-- **Token cost** — Across grounding tasks, messy used a median **~312k** more tokens than clean (bootstrap 95% CI on the mean excludes 0). Pass rate alone understates the gap: messy can still luck into an answer while spending far more.
-
-Two scenarios did **not** show a clean accuracy win:
-
-- **Canonical grounding** — Pass rates were close; the difference was not significant. Cost still favored clean.
-- **Skill routing + customize** — Tied. The caller `AGENTS.md` already encodes both rules, so the fixtures did not separate on those prompts.
-
-Charts regenerate from `SUMMARY.json` via `bun run agent:evidence:charts`.
-
-### Limits
-
-This is preliminary evidence from Skeleton’s own authored fixture, prompt set, repository, and execution period. Repeated runs characterize variance inside that harness; they do not independently establish a causal product effect. It is not a general coding-task or SWE-bench claim. Skill/customize did not separate when the entry doc already taught the correct rule.
-
-### Industry context
-
-Not a Skeleton measurement — broader context research points the same direction: more context isn’t free. A [2026 study of repo-level context files](https://doi.org/10.48550/arxiv.2602.11988) (438 tasks) found human-written files helped ~4% on average, generated files hurt ~3%, and both raised inference cost >20%. A [2025 METR trial](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/) found experienced OSS developers took 19% longer with early-2025 AI tools while believing they were faster. Those papers motivate small instructions and explicit ownership; they do **not** measure this tool.
+Method: [CLI efficacy](docs/developer/cli-efficacy.md).
+Suite: [agent-suites/README.md](agent-suites/README.md).
 
 ## Quick start
 
@@ -146,6 +117,7 @@ skeleton catalog [--check] [--strict]
 skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-meta|anchors|ssot]] [--dry-run]
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 skeleton build-plugin [path] [--check]
+skeleton route [path…]
 skeleton validate changed [--staged | --base <ref>] [paths…]
 ```
 
@@ -181,6 +153,7 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 - [Install](docs/developer/install.md)
 - [Doc system](docs/developer/doc-system.md)
 - [Validation](docs/developer/validation.md)
+- [CLI efficacy](docs/developer/cli-efficacy.md)
 - [Audit rules](docs/developer/audit.md)
 - [Plugins](docs/developer/plugins.md)
 - [Authoring conventions](docs/authoring.md)

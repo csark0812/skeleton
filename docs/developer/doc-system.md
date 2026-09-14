@@ -30,7 +30,9 @@ Files without an SSOT marker are fine — they are simply not listed in the agen
 
 ## Catalog
 
-`.skeleton/catalog.md` is **generated and gitignored**. Local `audit docs`, `audit self`, and `validate changed` write it on each run. The write is skipped when `CI=true`.
+`.skeleton/catalog.md` is **generated and gitignored**. The file is a short summary table. Local `audit docs`, `audit self`, and `validate changed` write it on each run. The write is skipped when `CI=true`.
+
+To classify one path without an audit, run `skeleton route <path>`. Bare `skeleton route` prints the lane card.
 
 ```bash
 skeleton catalog

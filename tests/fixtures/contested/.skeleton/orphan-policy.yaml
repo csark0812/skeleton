@@ -1,0 +1,5 @@
+name: orphan
+entries:
+  - id: idle
+    pattern: "ORPHAN_POLICY_NEVER_MATCHES"
+    message: unwired policy must fail closed

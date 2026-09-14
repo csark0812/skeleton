@@ -4,9 +4,7 @@ globs:
 alwaysApply: true
 ---
 
-Follow [AGENTS.md](AGENTS.md) for cold-start and validation lanes.
+Follow [AGENTS.md](AGENTS.md) for cold-start.
 
-- Docs / config (non-policy) → `bun run validate:changed -- <path>` or `bun run audit:self`
-- Plugin-wired policy YAML → `bun run validate:changed -- <path>` (runs full docs and owned-skill prose)
-- Skill body → `bun run validate:changed -- <path>` (runs `audit skills`) or `bun run audit:skills`
-- TypeScript → `bun test` + `bun run typecheck` + `bun run build`. `validate:changed` fails uncovered coverage-candidate paths
+Run `bun src/cli.ts route <path>`. Then run the printed command.
+TypeScript also needs `bun test`, `bun run typecheck`, and `bun run build`.

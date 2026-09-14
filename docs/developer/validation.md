@@ -6,7 +6,9 @@
 
 <!-- review-deps: paths=src/validate/** -->
 
-Router for changed paths: `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Any changed path can drive `review-deps` document-impact discovery. A live coverage candidate with no owning paper fails with `uncovered-changed-path` on local and `--base` runs. Deleted files do not. Package-manager detection may mention `bun` / `npm` / `pnpm` / `yarn`.
+Run `skeleton route` for the lane card. Run `skeleton route <path>` to classify one path. Those commands do not audit.
+
+Prove the change with `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Review-deps papers are discovered from any changed path. A live coverage candidate with no owning paper fails `uncovered-changed-path`. Deleted files do not.
 
 ## When you changed X, run Y
 
@@ -25,6 +27,8 @@ Common failures: [troubleshooting](troubleshooting.md). Suites and rule scoping:
 ## Commands
 
 ```bash
+skeleton route                         # lane card; no audit
+skeleton route <path>                  # classify only; no audit
 skeleton validate changed              # git diff HEAD
 skeleton validate changed --staged     # pre-commit
 skeleton validate changed --base origin/main  # CI merge-base diff
@@ -102,3 +106,13 @@ Skills in a public repository can link directly to an ordinary GitHub-hosted fil
 Skeleton does not copy shared files into skills, rewrite their links, or fetch external URLs. Remote reachability belongs to the publishing repository or a separate network check. Keep references inside a skill only when that skill owns the behavior.
 
 See [audit](audit.md).
+
+## CLI efficacy
+
+Host compares score these lanes on intact vs contested fixtures.
+
+```bash
+bun run agent:test
+```
+
+Details: [CLI efficacy](cli-efficacy.md).

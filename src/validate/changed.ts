@@ -50,13 +50,13 @@ interface DocumentImpactReason {
 	target?: string;
 }
 
-interface ImpactedDocument {
+export interface ImpactedDocument {
 	path: string;
 	reviewDependencies: string[];
 	reasons: DocumentImpactReason[];
 }
 
-interface ValidateClassificationResult {
+export interface ValidateClassificationResult {
 	docs: string[];
 	code: string[];
 	skills: string[];
@@ -857,4 +857,46 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 
 export async function runValidateChanged(options: ValidateChangedOptions = {}): Promise<number> {
 	return printValidateChangedResult(await evaluateValidateChanged(options));
+}
+
+/** Classify paths without audits or catalog writes. Cheap agent routing. */
+export async function evaluateRouteClassification(options: {
+	paths: string[];
+	root?: string;
+}): Promise<{
+	classification: ValidateClassificationResult;
+	impactedDocuments: ImpactedDocument[];
+	pluginError?: string;
+}> {
+	const root = options.root ?? findRepoRoot();
+	const relPaths = options.paths.map((path) => normalizeRelPath(path));
+	const config = loadConfig(root);
+	const skillIndex = buildSkillIndex(root, config.skillOwnership);
+	let wiredPolicies: Set<string>;
+	try {
+		wiredPolicies = await collectWiredPolicyRelPaths(root, config);
+	} catch (error) {
+		return {
+			classification: emptyClassification(),
+			impactedDocuments: [],
+			pluginError: error instanceof Error ? error.message : String(error),
+		};
+	}
+	const classification = classifyPaths({
+		relPaths,
+		root,
+		wiredPolicies,
+		skillIndex,
+	});
+	const impactedDocuments = discoverImpactedDocuments({
+		relPaths,
+		root,
+		config,
+		skillIndex,
+		fileSource: "worktree",
+	});
+	return {
+		classification: publicClassification(classification),
+		impactedDocuments,
+	};
 }

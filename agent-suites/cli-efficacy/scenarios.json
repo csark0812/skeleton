@@ -1,0 +1,335 @@
+{
+	"name": "cli-efficacy",
+	"description": "Intact vs contested Skeleton fixtures. Host compares score ordinary user questions. AGENTS.md and the catalog hold the tokens. catalog grounding: one Billing API winner or DUPLICATE_BILLING_SUMMARY. docs validation lane: name the docs command. owned skill lane: name the skill command. review attestation lane: name the hash/date attest command. mixed change lane: name the command for docs plus code. orphan policy lane: unwired YAML fail-closed vs audit all. route first: classify one path. owned code paper: name the owning paper. uncovered code: name the uncovered diagnostic. json lane: name the JSON command. foreign skill lane: skip vs audit all. missing path: missing-path vs audit all.",
+	"hosts": ["cursor"],
+	"defaults": {
+		"host": "cursor",
+		"profile": "cursor",
+		"skills": "none",
+		"allowUserSkills": false
+	},
+	"scenarios": [
+		{
+			"name": "catalog grounding",
+			"prompt": "What is the canonical Billing API webhook URL in this repo?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": [
+							"CANONICAL_PATH=docs/billing-api.md",
+							"WEBHOOK=https://api.example.com/v2/billing/webhook"
+						],
+						"mustNot": [
+							"legacy.example.com",
+							"messy-a.example.com",
+							"messy-b.example.com",
+							"messy-c.example.com",
+							"DUPLICATE_BILLING_SUMMARY"
+						]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["DUPLICATE_BILLING_SUMMARY"],
+						"mustNot": ["https://api.example.com/v2/billing/webhook"]
+					}
+				}
+			},
+			"rubric": {
+				"mustReadPath": [".skeleton/catalog"],
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "docs validation lane",
+			"prompt": "I changed a markdown file under docs/. What command should I run?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["VALIDATE_CMD=skeleton validate changed"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["VALIDATE_CMD=skeleton validate changed"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "owned skill lane",
+			"prompt": "I edited owned-demo/SKILL.md. What command checks that change?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["SKILL_CMD=skeleton audit skills"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["SKILL_CMD=skeleton audit skills"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "review attestation lane",
+			"prompt": "A review-deps file changed. I already re-read the paper. What command records that review?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["ATTEST_CMD=skeleton audit docs --paths=<paper> --fix=doc-meta --confirm-reviewed"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["ATTEST_CMD=skeleton audit docs"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "mixed change lane",
+			"prompt": "I changed docs/billing-api.md and a TypeScript file in the same commit. What command validates that?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["MIXED_CMD=skeleton validate changed"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["MIXED_CMD=skeleton validate changed"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "orphan policy lane",
+			"prompt": "There is a YAML file under .skeleton/ that no plugin lists. What should happen?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["ORPHAN=fail-closed"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["ORPHAN=fail-closed"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "route first",
+			"prompt": "How do I classify one changed path before I run a check?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["ROUTE_CMD=skeleton route"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["ROUTE_CMD=skeleton route"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "owned code paper",
+			"prompt": "I changed TypeScript under src/. Which paper owns that change?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["IMPACTED=docs/validation.md"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["IMPACTED=docs/validation.md"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "uncovered code",
+			"prompt": "I changed a TypeScript file that no document claims. What does validation report?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["UNCOVERED=uncovered-changed-path"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["UNCOVERED=uncovered-changed-path"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "json lane",
+			"prompt": "I changed a JSON file under data/. What command validates it?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["JSON_CMD=skeleton validate changed"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["JSON_CMD=skeleton validate changed"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "foreign skill lane",
+			"prompt": "I edited a skill imported from GitHub. Do I audit it here?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["FOREIGN=skip"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["FOREIGN=skip"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		},
+		{
+			"name": "missing path",
+			"prompt": "What happens if I validate a docs path that is not on disk?",
+			"compare": {
+				"a": {
+					"label": "intact",
+					"workspace": "tests/fixtures/intact",
+					"rubric": {
+						"must": ["MISSING=missing-path"],
+						"mustNot": ["audit all"]
+					}
+				},
+				"b": {
+					"label": "contested",
+					"workspace": "tests/fixtures/contested",
+					"rubric": {
+						"must": ["audit all"],
+						"mustNot": ["MISSING=missing-path"]
+					}
+				}
+			},
+			"rubric": {
+				"mustNotCallTool": ["AskQuestion"],
+				"mustNotReadPath": ["agent-suites", "Repositories/skeleton"]
+			}
+		}
+	]
+}

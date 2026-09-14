@@ -8,6 +8,8 @@
 
 Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
 
+To learn the lane without an audit, run `skeleton route` or `skeleton route <path>`.
+
 Decision table and routing: [validation](validation.md). Day-one setup: [getting started](getting-started.md).
 
 ## `uncovered-changed-path`

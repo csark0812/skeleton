@@ -16,9 +16,10 @@ describe("removed overlay commands", () => {
 		expect(result.stderr).toContain("customize: removed");
 	});
 
-	it("rejects hook with migration text", () => {
-		const result = runCli(["hook", "customize"]);
+	it("does not treat hook as a command", () => {
+		const result = runCli(["hook"]);
 		expect(result.exitCode).toBe(1);
-		expect(result.stderr).toContain("hook: removed");
+		expect(result.stderr).toContain("Usage: skeleton");
+		expect(result.stderr).not.toContain("hook: removed");
 	});
 });

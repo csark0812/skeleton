@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `init`, and `validate`. `register`, `customize`, and `hook` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `init`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 

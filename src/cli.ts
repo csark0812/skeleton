@@ -8,6 +8,7 @@ import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
 import { runValidateChanged } from "./validate/changed.ts";
+import { runRoute } from "./validate/route.ts";
 
 function usage(): void {
 	console.error(`Usage: skeleton <command>
@@ -19,8 +20,9 @@ Commands:
                          [--confirm-reviewed (doc-meta only; requires --paths)]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
+  route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
-Note: \`register\`, \`customize\`, and \`hook\` were removed.`);
+Note: \`register\` and \`customize\` were removed.`);
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
@@ -123,12 +125,16 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 			return handleBuildPlugin(rest);
 		case "validate":
 			return rest[0] === "changed" ? handleValidateChanged(rest.slice(1)) : null;
+		case "route":
+			if (rest.some((arg) => arg.startsWith("-"))) {
+				throw new Error("route: unknown flag");
+			}
+			return runRoute({ paths: rest });
 		case "register":
 			return handleRegister();
 		case "catalog":
 			return handleCatalog(rest);
 		case "customize":
-		case "hook":
 			return handleRemovedOverlay(command);
 		case "init":
 			return handleInit(rest);

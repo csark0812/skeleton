@@ -11,14 +11,14 @@ description: Agent ops manual for skeleton-enabled repos — init, catalog, audi
 
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
 
-Ops manual for `catalog`, `audit`, `validate`, and `init` in a skeleton-enabled repo.
+Ops manual for `catalog`, `audit`, `validate`, `route`, and `init` in a skeleton-enabled repo.
 
 ## Agent doc routing (token-cheap)
 
-1. Local `audit` / `validate` writes `.skeleton/catalog.md` (skipped when `CI=true`).
-2. Skim the catalog (path + one-line summary).
-3. For a candidate, read only the `source-of-truth` line / first ~20 lines.
-4. Open the full paper only if that line is truly relevant.
+1. Run `skeleton route` for the lane card, or `skeleton route <path>` for one path.
+2. Use that line. Do not run `validate changed` only to learn the lane.
+3. Local `audit` / `validate` writes `.skeleton/catalog.md` (skipped when `CI=true`).
+4. Skim the catalog. Read the SSOT line of a hit. Open the full paper only if that line is relevant.
 
 Human docs: [getting started](https://github.com/csark0812/skeleton/blob/main/docs/developer/getting-started.md) · [config](https://github.com/csark0812/skeleton/blob/main/docs/developer/config.md) · [troubleshooting](https://github.com/csark0812/skeleton/blob/main/docs/developer/troubleshooting.md).
 
@@ -75,6 +75,8 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 
 | Command                                        | Purpose                                                 |
 | ---------------------------------------------- | ------------------------------------------------------- |
+| `skeleton route`                               | Print the lane card. No audit.                          |
+| `skeleton route <path>`                        | Classify a path. Print lane and command. No audit.      |
 | `skeleton audit self`                          | Full docs + config audit (excluded skill trees still need `audit skills`) |
 | `skeleton audit docs`                          | Doc audit (SSOT, near-dupe, links, doc-meta, …)         |
 | `skeleton audit docs --fix`                    | Autofix anchors + legacy SSOT rewrite                   |
@@ -86,7 +88,7 @@ Do not run this command as a mechanical date cleanup. Bare `--fix` changes ancho
 | `skeleton validate changed --staged`           | Pre-commit hook (index bytes + coverage + owning papers) |
 | `skeleton validate changed --base origin/main` | CI / PR                                                 |
 
-`register`, `customize`, and `hook` were removed. Add a source-of-truth marker and run `skeleton catalog`. Edit skills in the owning repo.
+`register` and `customize` were removed. Add a source-of-truth marker and run `skeleton catalog`. Edit skills in the owning repo.
 
 Plugins: [docs/developer/plugins.md](https://github.com/csark0812/skeleton/blob/main/docs/developer/plugins.md)
 

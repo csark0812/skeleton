@@ -8,7 +8,7 @@
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
-Day-one CLI: `init`, then `audit` / `validate` / `catalog`. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts` (`init` / `audit` / `validate` / `catalog` handlers).
+Day-one CLI: `init`, then `audit` / `validate` / `route` / `catalog`. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts`.
 
 ## 1. Install and init
 
@@ -146,6 +146,7 @@ Details: [install](install.md).
 | --------------------------------------------- | ------------------------------------- |
 | Config keys and examples                      | [config](config.md)                   |
 | What to run after a change                    | [validation](validation.md)           |
+| Agent tests                                   | [CLI efficacy](cli-efficacy.md)       |
 | SSOT / catalog / doc-meta                     | [doc system](doc-system.md)           |
 | Product-specific audit rules                  | [plugins](plugins.md)                 |
 | Common failures                               | [troubleshooting](troubleshooting.md) |
