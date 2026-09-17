@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-16 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
 
 <!-- review-deps: paths=src/validate/** -->
 

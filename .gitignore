@@ -19,5 +19,6 @@ src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
 # Reproducible historical workspaces and local comparison reports.
 tests/fixtures/efficacy/history/
 test-results/
+.agent-test/
 tests/fixtures/efficacy/package-artifact.json
 tests/fixtures/efficacy/**/.cursor/
