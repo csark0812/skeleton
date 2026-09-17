@@ -5,6 +5,7 @@ const DEFAULT_AGENTS = ["cursor", "claude-code", "codex"];
 
 export interface SkillsAddOptions {
 	skillsFlags?: string[];
+	source?: string;
 }
 
 function hasFlag(flags: string[], names: string[]): boolean {
@@ -33,10 +34,13 @@ function mergeSkillsDefaults(flags: string[]): string[] {
 	if (!hasFlag(merged, ["-y", "--yes"])) {
 		merged.push("-y");
 	}
+	if (!merged.includes("--copy")) {
+		merged.push("--copy");
+	}
 	return merged;
 }
 
 export function skillsAddArgs(options: SkillsAddOptions = {}): string[] {
 	const userFlags = [...(options.skillsFlags ?? [])];
-	return ["skills", "add", SKILLS_SOURCE, ...mergeSkillsDefaults(userFlags)];
+	return ["skills", "add", options.source ?? SKILLS_SOURCE, ...mergeSkillsDefaults(userFlags)];
 }

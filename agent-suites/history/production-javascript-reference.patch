@@ -1,0 +1,12 @@
+diff --git a/src/audit/core/review-coverage.ts b/src/audit/core/review-coverage.ts
+index 764ebf7..6207a94 100644
+--- a/src/audit/core/review-coverage.ts
++++ b/src/audit/core/review-coverage.ts
+@@ -22,7 +22,6 @@ export const DEFAULT_REVIEW_COVERAGE_EXCLUDE = [
+ 	"node_modules/**",
+ 	".git/**",
+ 	".skeleton/plugins/**",
+-	"**/*.mjs",
+ ];
+ 
+ export function reviewCoveragePatterns(config: SkeletonConfig): {

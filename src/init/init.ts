@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { mergePrecommitConfig } from "./merge-precommit.ts";
@@ -8,6 +8,12 @@ import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
 import { skillsAddArgs } from "./skills-args.ts";
 
 const TEMPLATES_DIR = resolveTemplatesDir();
+export const SKELETON_AGENT_GUIDE = `\n<!-- skeleton: context-guide -->\n## Skeleton context\n\nMake \`npx --no-install skeleton context "<topic>"\` the first repository command. Use \`--path\` only for a known implementation path and \`--staged\` for staged-code questions. Returned document, source, and test excerpts are already read; do not read those files again. Complete every \`action\` line and verify it against the final files. Preserve existing work. If a test is returned, edit and run only that test. Otherwise use one combined command to find and read the focused test. Stop when it passes. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails. Broader discovery or another context command is reserved for \`no-context\`, omitted evidence, or a failing focused test.\n`;
+
+export function withSkeletonAgentGuide(contents: string): string {
+	if (contents.includes("<!-- skeleton: context-guide -->")) return contents;
+	return `${contents.trimEnd()}\n${SKELETON_AGENT_GUIDE}`;
+}
 
 export interface InitOptions {
 	cwd?: string;
@@ -22,6 +28,7 @@ export interface InitResult {
 	scripts: MergeAction;
 	skills: "installed" | "skipped";
 	precommit: MergeAction;
+	agentGuide: "added" | "skipped";
 }
 
 function writeScaffold(cwd: string): "created" | "skipped" {
@@ -59,6 +66,14 @@ function assertPackageResolvable(cwd: string): void {
 	}
 }
 
+function mergeAgentGuide(cwd: string): InitResult["agentGuide"] {
+	const path = join(cwd, "AGENTS.md");
+	const existing = existsSync(path) ? readFileSync(path, "utf8") : "# Agent entry\n";
+	if (existing.includes("<!-- skeleton: context-guide -->")) return "skipped";
+	writeFileSync(path, withSkeletonAgentGuide(existing), "utf8");
+	return "added";
+}
+
 export { skillsAddArgs } from "./skills-args.ts";
 
 function runSkillsAdd(args: string[], cwd: string): number {
@@ -72,7 +87,10 @@ function runSkillsAdd(args: string[], cwd: string): number {
 
 function installSkillsIfRequested(options: InitOptions, cwd: string): InitResult["skills"] {
 	if (!(options.skills && !options.noSkills)) return "skipped";
-	const args = skillsAddArgs({ skillsFlags: options.skillsFlags });
+	const args = skillsAddArgs({
+		skillsFlags: options.skillsFlags,
+		source: resolvePackageRoot(),
+	});
 	const run = options.runSkillsCommand ?? runSkillsAdd;
 	const exitCode = run(args, cwd);
 	if (exitCode !== 0) throw new Error(`skills install failed: npx ${args.join(" ")}`);
@@ -87,6 +105,7 @@ export function runInit(options: InitOptions = {}): InitResult {
 	const scaffold = writeScaffold(cwd);
 	const scripts = mergePackageJsonScripts(cwd);
 	const precommit = mergePrecommitConfig(cwd);
+	const agentGuide = mergeAgentGuide(cwd);
 
 	if (scaffold === "created") {
 		console.log("init: wrote skeleton.toml");
@@ -103,7 +122,8 @@ export function runInit(options: InitOptions = {}): InitResult {
 	} else if (precommit === "updated") {
 		console.log("init: added skeleton validate hook to .pre-commit-config.yaml");
 	}
+	if (agentGuide === "added") console.log("init: added Skeleton context guidance to AGENTS.md");
 
 	const skills = installSkillsIfRequested(options, cwd);
-	return { scaffold, scripts, skills, precommit };
+	return { scaffold, scripts, skills, precommit, agentGuide };
 }

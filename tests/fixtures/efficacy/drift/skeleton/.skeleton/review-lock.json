@@ -1,0 +1,12 @@
+{
+	"version": 2,
+	"documents": {
+		"docs/billing-webhooks.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:142e7cc608021c09058757ee7b35a8e3733fbaffc66a70501ab1977a60b0a1e6",
+			"reviewDependencies": {
+				"src/billing.ts": "sha256:5818bf4bafa703acd66743c1c90a3ba50b67e2fd9bf6d61a186042be957ac183"
+			}
+		}
+	}
+}

@@ -4,6 +4,7 @@ import process from "node:process";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { runCatalogCli } from "./catalog.ts";
+import { evaluateContext, formatContext } from "./context.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
@@ -22,6 +23,7 @@ Commands:
   validate changed [paths…] [--staged] [--base <ref>]
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
+  context <query> | --path <path> [--staged] [--max-chars=N]
 Note: \`register\` and \`customize\` were removed.`);
 }
 
@@ -104,6 +106,33 @@ function handleCatalog(argv: string[]): number {
 	return runCatalogCli({ check: argv.includes("--check"), strict: argv.includes("--strict") });
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: command parsing keeps every supported spelling and rejection visible at the public boundary.
+function handleContext(argv: string[]): number {
+	let path: string | undefined;
+	let staged = false;
+	let maxChars: number | undefined;
+	const query: string[] = [];
+	for (let index = 0; index < argv.length; index += 1) {
+		const arg = argv[index];
+		if (arg === "--path") path = argv[++index];
+		else if (arg?.startsWith("--path=")) path = arg.slice("--path=".length);
+		else if (arg === "--staged") staged = true;
+		else if (arg?.startsWith("--max-chars=")) maxChars = Number(arg.slice("--max-chars=".length));
+		else if (arg?.startsWith("-")) throw new Error(`context: unknown flag ${arg}`);
+		else if (arg) query.push(arg);
+	}
+	if (!path && query.length === 0) throw new Error("context: provide a query or --path <path>");
+	if (path && query.length) throw new Error("context: provide a query or --path <path>, not both");
+	if (maxChars !== undefined && (!Number.isInteger(maxChars) || maxChars <= 0))
+		throw new Error("context: --max-chars must be a positive integer");
+	process.stdout.write(
+		formatContext(
+			evaluateContext({ root: findRepoRoot(), path, query: query.join(" "), staged, maxChars }),
+		),
+	);
+	return 0;
+}
+
 function handleRemovedOverlay(command: string): number {
 	console.error(`${command}: removed — overlay inject is gone. Edit the skill in its owning repo.`);
 	return 1;
@@ -134,6 +163,8 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 			return handleRegister();
 		case "catalog":
 			return handleCatalog(rest);
+		case "context":
+			return handleContext(rest);
 		case "customize":
 			return handleRemovedOverlay(command);
 		case "init":

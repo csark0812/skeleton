@@ -1,0 +1,6 @@
+{
+	"name": "efficacy-adopt-consumer",
+	"private": true,
+	"type": "module",
+	"devDependencies": {}
+}

@@ -13,7 +13,8 @@ export function mergePackageJsonScripts(cwd: string): MergeAction {
 	const fragment = JSON.parse(
 		readFileSync(join(TEMPLATES_DIR, "package.json.scripts.fragment.json"), "utf8"),
 	) as Record<string, string>;
-	const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {
+	const existing = readFileSync(pkgPath, "utf8");
+	const pkg = JSON.parse(existing) as {
 		scripts?: Record<string, string>;
 	};
 	pkg.scripts ??= {};
@@ -27,6 +28,7 @@ export function mergePackageJsonScripts(cwd: string): MergeAction {
 	}
 
 	if (!changed) return "skipped";
-	writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
+	const indentation = /^\n([\t ]+)"/m.exec(existing)?.[1] ?? 2;
+	writeFileSync(pkgPath, `${JSON.stringify(pkg, null, indentation)}\n`, "utf8");
 	return "updated";
 }

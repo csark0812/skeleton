@@ -1,0 +1,22 @@
+[
+	{
+		"name": "deleted-file",
+		"startingCommit": "91cbf2156985489504b539d1652ff21b1a95669d",
+		"referenceFix": "b05c1a795d32eb776ed57cb4e0d9cf72eaae7b24",
+		"files": {
+			"deleted-file-before.tar.gz": "cc28f0f84261ab5b16e94550f9064560456f41d9d01496f7c80d61b656daef73",
+			"deleted-file-tests.tar.gz": "5fbf4f35c15e242f9be50b4a67477b45eb367e18a1fde0fc40b45e10572934db",
+			"deleted-file-reference.patch": "8cc54c0b6bcd08cdd7ae3ed6434ed1c72627bc687ddf4a6adcb3f6689ff87566"
+		}
+	},
+	{
+		"name": "production-javascript",
+		"startingCommit": "4b52389a83bfe8226c146dbb2c42cda37e6be44d",
+		"referenceFix": "a202aad7e0b65ae0198a3bd911432edec432f033",
+		"files": {
+			"production-javascript-before.tar.gz": "908303d8f34d49005178215acddf2d2000659d2334a8180321ecbf15e8d06611",
+			"production-javascript-tests.tar.gz": "f5f5ec21773e22fd455c20f5ebbc075ca77a9346da18e97d9330bd3fd62abc43",
+			"production-javascript-reference.patch": "412bdedf9ccfa9a2b86b2365f385c41fdda966d3544fe870103bd65217231f52"
+		}
+	}
+]

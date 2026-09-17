@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
 
-<!-- review-deps: paths=src/cli.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
@@ -37,7 +37,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-That writes `skeleton.toml`, adds validation scripts, and writes `.pre-commit-config.yaml`.
+That writes `skeleton.toml`, adds validation scripts, writes `.pre-commit-config.yaml`, adds a bounded `skeleton context` guide to `AGENTS.md`, and copies the Skeleton skill bundled with the installed package.
 
 Edit `skeleton.toml` for your repo layout, then verify:
 
@@ -64,6 +64,16 @@ Flag details: [install](docs/developer/install.md).
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
+
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. It is read-only and reports whether recorded review evidence still matches:
+
+```bash
+skeleton context "billing webhook retry"
+skeleton context --path src/billing/delivery.ts
+skeleton context "billing webhook URL" --staged
+```
+
+When a dependency changed since review, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing.
 
 Shared reference files can live in any scanned path. Public repositories can link skills directly to GitHub-hosted references; Skeleton leaves those external links unchanged and does not check their remote reachability.
 
@@ -106,6 +116,7 @@ skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-me
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 skeleton build-plugin [path] [--check]
 skeleton route [path…]
+skeleton context <query> | --path <path> [--staged] [--max-chars=N]
 skeleton validate changed [--staged | --base <ref>] [paths…]
 ```
 
@@ -141,9 +152,16 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 - [Install](docs/developer/install.md)
 - [Doc system](docs/developer/doc-system.md)
 - [Validation](docs/developer/validation.md)
+- [Agent efficacy](docs/developer/efficacy.md)
 - [Audit rules](docs/developer/audit.md)
 - [Plugins](docs/developer/plugins.md)
 - [Authoring conventions](docs/authoring.md)
+
+## Agent efficacy
+
+Four efficiency qualifications ask whether agents complete the same work correctly with at least 15% fewer median tokens when Skeleton is available. A fifth requires any positive median saving while Skeleton preserves existing staged work in an owning document. Four additional comparisons measure adoption, recovery, and simple-task overhead without requiring savings. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. Each paired result uses five repetitions and remains evidence, not a universal reliability claim.
+
+Method: [Agent efficacy](docs/developer/efficacy.md).
 
 ## Development
 
@@ -158,6 +176,6 @@ bun run check
 
 `validate:changed` does not replace code tests. It classifies code separately and also audits every scanned document whose `review-deps` declaration matches a changed file. A coverage-candidate path with no owning paper fails on local and CI runs. Owned skill-body edits run the skills suite. `--staged` reads git index bytes.
 
-For code: `bun test`, `bun run typecheck`, `bun run build`.
+For code: `bun run test`, `bun run typecheck`, `bun run build`.
 
 `skeleton init` writes `.pre-commit-config.yaml`. Install [pre-commit](https://pre-commit.com/) once (`brew install pre-commit` or `pipx install pre-commit`), then `pre-commit install`.

@@ -56,6 +56,8 @@ try {
 		"dist/plugin-types.d.ts",
 		"dist/plugin-types.js",
 		"dist/result-types.d.ts",
+		"skeleton/SKILL.md",
+		"skeleton/references/operations.md",
 		"schemas/config.schema.json",
 		"schemas/policy-file.schema.json",
 		"schemas/result.schema.json",

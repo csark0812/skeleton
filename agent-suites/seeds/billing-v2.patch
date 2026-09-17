@@ -1,0 +1,23 @@
+diff --git a/src/billing.ts b/src/billing.ts
+index 2a8a264..0da2b6a 100644
+--- a/src/billing.ts
++++ b/src/billing.ts
+@@ -1,4 +1,4 @@
+-export const WEBHOOK_URL = "https://api.example.com/v1/billing/webhook";
++export const WEBHOOK_URL = "https://api.example.com/v2/billing/webhook";
+ export const MAX_RETRIES = 0;
+ 
+ export async function deliverBillingWebhook(send: () => Promise<boolean>): Promise<boolean> {
+diff --git a/tests/billing.test.ts b/tests/billing.test.ts
+index 5ed163b..877d5f2 100644
+--- a/tests/billing.test.ts
++++ b/tests/billing.test.ts
+@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
+ import { deliverBillingWebhook, MAX_RETRIES, WEBHOOK_URL } from "../src/billing";
+ 
+ test("uses the live webhook", () => {
+-	expect(WEBHOOK_URL).toBe("https://api.example.com/v1/billing/webhook");
++	expect(WEBHOOK_URL).toBe("https://api.example.com/v2/billing/webhook");
+ });
+ 
+ test("does not retry failed delivery", async () => {

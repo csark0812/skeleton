@@ -1,0 +1,1 @@
+export const RELEASES_RESERVED_INVENTORY = true;

@@ -1,0 +1,1 @@
+export const RETURN_AUTHORIZATION_REQUIRED = true;

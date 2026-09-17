@@ -9,5 +9,11 @@
 		"allowImportingTsExtensions": true,
 		"types": ["bun"]
 	},
-	"include": ["src/**/*.ts"]
+	"include": [
+		"src/**/*.ts",
+		"scripts/**/*.ts",
+		"agent-suites/**/*.ts",
+		"agent-test*.config.ts",
+		"tests/sdk-contracts/**/*.ts"
+	]
 }

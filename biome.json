@@ -13,7 +13,8 @@
 			"!**/*.d.ts",
 			"!**/refs",
 			"!**/templates",
-			"!**/skills-lock.json"
+			"!**/skills-lock.json",
+			"!tests/fixtures/efficacy"
 		]
 	},
 	"formatter": {
@@ -115,7 +116,12 @@
 	},
 	"overrides": [
 		{
-			"includes": ["src/__tests__/**", "src/**/__tests__/**", "tests/**"],
+			"includes": [
+				"src/__tests__/**",
+				"src/**/__tests__/**",
+				"tests/**",
+				"agent-suites/**/*.spec.ts"
+			],
 			"linter": {
 				"rules": {
 					"complexity": {

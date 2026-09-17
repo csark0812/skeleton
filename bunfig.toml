@@ -1,0 +1,3 @@
+[test]
+# Historical agent tasks deliberately contain bugs; only run package tests by default.
+root = "./src"

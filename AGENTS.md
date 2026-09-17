@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -35,6 +35,7 @@ bun run check
 
 | Task | File |
 | ---- | ---- |
+| Agent efficacy tests | [docs/developer/efficacy.md](docs/developer/efficacy.md) |
 | Validation lanes | [docs/developer/validation.md](docs/developer/validation.md) |
 | Failures | [docs/developer/troubleshooting.md](docs/developer/troubleshooting.md) |
 | Day-one setup | [docs/developer/getting-started.md](docs/developer/getting-started.md) |

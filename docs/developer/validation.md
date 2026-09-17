@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-16 -->
 
 <!-- review-deps: paths=src/validate/** -->
 
@@ -60,7 +60,7 @@ Skeleton does not claim to validate application code. It classifies code paths, 
 In this repo:
 
 ```bash
-bun test
+bun run test
 bun run typecheck
 bun run build
 ```

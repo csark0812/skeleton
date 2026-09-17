@@ -7,6 +7,7 @@ import { mergePackageJsonScripts } from "../../init/merge-scripts.ts";
 import { parseInitArgs } from "../../init/parse-args.ts";
 
 let tempDirs: string[] = [];
+const PACKAGE_ROOT = join(import.meta.dir, "../../..");
 
 function makeRepo(extra: Record<string, unknown> = {}): string {
 	const dir = mkdtempSync(join(tmpdir(), "skeleton-init-"));
@@ -62,6 +63,15 @@ describe("skeleton init", () => {
 		expect(hook).toContain("validate changed --staged");
 		expect(hook).not.toContain("bun test");
 		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain('mode = "hash"');
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			'npx --no-install skeleton context "<topic>"',
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Complete every `action` line and verify it against the final files.",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not run Skeleton audits, validation, or review-proof commands",
+		);
 	});
 
 	it("skips an existing skeleton pre-commit hook on re-init", () => {
@@ -102,7 +112,7 @@ describe("skeleton init", () => {
 			},
 		});
 		expect(result.skills).toBe("installed");
-		expect(calls).toEqual([{ args: skillsAddArgs(), cwd }]);
+		expect(calls).toEqual([{ args: skillsAddArgs({ source: PACKAGE_ROOT }), cwd }]);
 	});
 
 	it("installs the package skill for Cursor, Claude Code, and Codex by default", () => {
@@ -117,6 +127,7 @@ describe("skeleton init", () => {
 			"claude-code",
 			"codex",
 			"-y",
+			"--copy",
 		]);
 	});
 
@@ -136,6 +147,7 @@ describe("skeleton init", () => {
 			{
 				args: skillsAddArgs({
 					skillsFlags: ["-g", "-a", "codex", "--copy"],
+					source: PACKAGE_ROOT,
 				}),
 				cwd,
 			},

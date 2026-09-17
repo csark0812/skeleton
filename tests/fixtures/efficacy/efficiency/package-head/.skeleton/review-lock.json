@@ -1,0 +1,47 @@
+{
+	"version": 2,
+	"documents": {
+		"docs/billing/delivery.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:005d8c39e0f18eadf079292f36b30eb09d0938f1b64386ded991fadf2a9205cb",
+			"reviewDependencies": {
+				"src/billing/delivery.ts": "sha256:34824fc36a76fb10d9d518f02498d07433ce342c1beba5c50af40c8e8651a834"
+			}
+		},
+		"docs/billing/idempotency.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:c8d0e9820e2f88a415ea7f5ec49cf9938d78ec7aafd5739d130f61eca222fb2f",
+			"reviewDependencies": {
+				"src/billing/idempotency.ts": "sha256:b7e551dde65f8c0cf7a1c4ec8fab8f737fc9cc5b2cedb89dbb5024e4e3a02bf6"
+			}
+		},
+		"docs/deployment/billing-rollout.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:2e554ffab15aef064d56d2b43ad419469493118bb009582d262785143abec7ae",
+			"reviewDependencies": {
+				"src/deployment/billing-rollout.ts": "sha256:e4fca11b88319831a973f3fd1dfce665d5a8f6a0b8ae8e9006d494689db6b2bf"
+			}
+		},
+		"docs/orders/cancellation.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:2b45ea4e7aea0b96bb809dd552343f7e67f9d852bb83e2b9236cadc85be4a857",
+			"reviewDependencies": {
+				"src/orders/cancellation.ts": "sha256:35c4ad3c2c90fc88ef6bcff35851bb228fe68c0edaf9676ba30ca4389a2136b9"
+			}
+		},
+		"docs/orders/fulfillment.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:7bcc0f6908f102bc2c206cc813ddbc7079e055f0ba555b7cce3a696c356602ba",
+			"reviewDependencies": {
+				"src/orders/fulfillment.ts": "sha256:f6b03897463a28318bc95e4574dba8b46deee5ecfcb62436f2b5cecc9c5e5b94"
+			}
+		},
+		"docs/orders/returns.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:2fffa8916a8d6feeebae7d2ac730e3986fffb3ebbf785acd705e9192774ed10d",
+			"reviewDependencies": {
+				"src/orders/returns.ts": "sha256:eaa9cc56c19094c01e6db9990fc86838f6da635b21324840b9e36c869a4c9d97"
+			}
+		}
+	}
+}

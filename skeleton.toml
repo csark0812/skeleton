@@ -7,11 +7,13 @@ include = [
   "docs/**",
   "README.md",
   "AGENTS.md",
+  "agent-suites/README.md",
   "skeleton/**",
 ]
 exclude = [
   "refs/**",
   "docs/archive/**",
+  "test-results/**",
   "editors/**",
   # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails
   ".agents/**",

@@ -1,0 +1,6 @@
+daysUntilStale = 365
+[scan]
+include = ["docs/**", "README.md", "AGENTS.md"]
+exclude = []
+[reviewProof]
+mode = "hash"

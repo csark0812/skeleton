@@ -15,3 +15,9 @@ src/audit/__tests__/fixtures/plugins/**/*.mjs
 src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
 .skeleton/catalog.md
 !tests/fixtures/**/.skeleton/catalog.md
+
+# Reproducible historical workspaces and local comparison reports.
+tests/fixtures/efficacy/history/
+test-results/
+tests/fixtures/efficacy/package-artifact.json
+tests/fixtures/efficacy/**/.cursor/
