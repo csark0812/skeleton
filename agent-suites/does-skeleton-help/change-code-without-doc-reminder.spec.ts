@@ -8,19 +8,14 @@ import { checkRegression } from "../../scripts/efficacy/regression.ts";
 import { stageBillingChange } from "../../scripts/efficacy/workspace.ts";
 
 const prompt = "Add one retry after a failed billing webhook delivery and verify the change.";
-const test =
-	describe("Skeleton reliability and token efficiency when preserving staged billing work", ({
-		agent,
-	}) => ({
-		baseline: agent({ workspace: "tests/fixtures/efficacy/drift/control" }).setup(
-			stageBillingChange,
-		),
-		withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" }).setup(
-			stageBillingChange,
-		),
-	}));
+const test = describe("Does Skeleton help?", ({ agent }) => ({
+	baseline: agent({ workspace: "tests/fixtures/efficacy/drift/control" }).setup(stageBillingChange),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" }).setup(
+		stageBillingChange,
+	),
+}));
 
-test("keeps the staged endpoint current in code and documentation", async ({
+test("Skeleton reliability and token efficiency when preserving staged billing work", async ({
 	baseline,
 	withSkeleton,
 }, info) => {
@@ -50,13 +45,24 @@ test("keeps the staged endpoint current in code and documentation", async ({
 		return { baseline: baselineOutcome, withSkeleton: skeletonOutcome };
 	});
 
-	const details = JSON.stringify(report, null, 2);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.baseline.executionErrors + report.withSkeleton.executionErrors, details).toBe(0);
-	expect(report.baseline.evaluationErrors + report.withSkeleton.evaluationErrors, details).toBe(0);
-	expect(report.baseline.tokenErrors + report.withSkeleton.tokenErrors, details).toBe(0);
-	expect(report.efficiency.pairs, details).toBeGreaterThanOrEqual(Math.ceil(report.attempts * 0.6));
-	expect(report.efficiency.skeletonMedian!, details).toBeLessThan(
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(
+		report.baseline.executionErrors + report.withSkeleton.executionErrors,
+		"No execution errors",
+	).toBe(0);
+	expect(
+		report.baseline.evaluationErrors + report.withSkeleton.evaluationErrors,
+		"No evaluation errors",
+	).toBe(0);
+	expect(
+		report.baseline.tokenErrors + report.withSkeleton.tokenErrors,
+		"No token measurements are invalid",
+	).toBe(0);
+	expect(
+		report.efficiency.pairs,
+		"Most repetitions form measurable efficiency pairs",
+	).toBeGreaterThanOrEqual(Math.ceil(report.attempts * 0.6));
+	expect(report.efficiency.skeletonMedian!, "Skeleton uses fewer median tokens").toBeLessThan(
 		report.efficiency.baselineMedian!,
 	);
 });

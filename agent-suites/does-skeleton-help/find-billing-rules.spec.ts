@@ -5,10 +5,7 @@ import { assessRun, measureReliability } from "../../scripts/efficacy/measuremen
 
 const prompt =
 	"I'm about to touch billing webhooks. Tell me the important current constraints and where they live.";
-const test = describe("Skeleton reliability and token efficiency when finding billing rules", ({
-	agent,
-	judge,
-}) => ({
+const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/efficiency/control" }),
 	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/efficiency/package-head" }),
 	answer: judge({
@@ -21,7 +18,7 @@ It invents no runtime or deployment facts.`,
 	}),
 }));
 
-test("records reliability and requires correct work with at least fifteen percent fewer median tokens", async ({
+test("Skeleton reliability and token efficiency when finding billing rules", async ({
 	baseline,
 	withSkeleton,
 	answer,
@@ -50,12 +47,17 @@ test("records reliability and requires correct work with at least fifteen percen
 	});
 
 	// Preserve the acceptance bar, after recording every outcome.
-	const details = JSON.stringify(report, null, 2);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.baseline.tokenErrors + report.withSkeleton.tokenErrors, details).toBe(0);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
-	expect(report.efficiency.skeletonMedian!, details).toBeLessThanOrEqual(
-		report.efficiency.baselineMedian! * 0.85,
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(
+		report.baseline.tokenErrors + report.withSkeleton.tokenErrors,
+		"No token measurements are invalid",
+	).toBe(0);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
 	);
+	expect(
+		report.efficiency.skeletonMedian!,
+		"Skeleton uses at least 15% fewer median tokens",
+	).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.85);
 });

@@ -8,6 +8,6 @@ export default defineConfig({
 	timeout: 3_600_000,
 	retries: 0,
 	workers: 1,
+	agent: openai({ model: "gpt-5.6-luna" }),
 	judge: openai({ model: "gpt-5.6-luna" }),
-	projects: [{ name: "openai", agent: openai({ model: "gpt-5.6-luna" }) }],
 });

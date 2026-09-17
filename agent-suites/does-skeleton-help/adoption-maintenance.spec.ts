@@ -12,7 +12,7 @@ import { checkOrderLimits } from "../../scripts/efficacy/order-checks.ts";
 
 const prompt =
 	"Increase the standard order limit from 20 to 30. Preserve special-category and fallback limits. Keep documentation and any existing review metadata current. Verify the change.";
-const test = describe("Skeleton adoption and the first maintenance change", ({ agent, judge }) => ({
+const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/tradeoffs/adoption/control" }),
 	adopter: agent({
 		agent: openai({ model: "gpt-5.6-luna", networkAccess: true }),
@@ -24,7 +24,7 @@ const test = describe("Skeleton adoption and the first maintenance change", ({ a
 	}),
 }));
 
-test("records installation, metadata setup, and maintenance cost separately", async ({
+test("Skeleton adoption and the first maintenance change", async ({
 	baseline,
 	adopter,
 	documentationAndVerification,
@@ -100,9 +100,10 @@ test("records installation, metadata setup, and maintenance cost separately", as
 		});
 		return { baseline: without, withSkeleton: withTool };
 	});
-	const details = JSON.stringify(report);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
+	);
 	// Total treatment tokens include adoption. No amortized savings claim from one change.
 });

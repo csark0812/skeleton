@@ -96,7 +96,7 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All fourteen agent and judge tests, using the default OpenAI project.
+# All fourteen agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
 # Explicit optional matrix for the nine paired tasks: Cursor, Claude, and OpenAI Codex.

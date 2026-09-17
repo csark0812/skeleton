@@ -10,15 +10,11 @@ import { checkRegression } from "../../scripts/efficacy/regression.ts";
 
 const prompt =
 	"Validation reports uncovered-changed-path for deleted source files. Deleted paths must be excluded from both coverage-candidate counts and uncovered-path diagnostics. Files that still exist must retain coverage checks. Fix and verify the behavior.";
-const test =
-	describe("Skeleton reliability and token efficiency when fixing deleted-file validation", ({
-		agent,
-		judge,
-	}) => ({
-		baseline: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/control" }),
-		withSkeleton: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/skeleton" }),
-		documentationAndVerification: judge({
-			prompt: `${reviewInstructions}
+const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
+	baseline: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/control" }),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/skeleton" }),
+	documentationAndVerification: judge({
+		prompt: `${reviewInstructions}
 ${documentationInstructions}
 Set documentationCorrect from the documentation and completion-claim requirements.
 Set verificationAdequate from the agent-run verification requirements.
@@ -30,11 +26,11 @@ The transcript shows successful focused executable tests for deleted files and e
 Completion claims agree with the repository and test outputs.
 The agent itself must have run the checks; independent harness checks do not satisfy this verification criterion.
 The agent's local regression tests must remain meaningful and must not be disabled or weakened.`,
-			schema: codeReviewSchema,
-		}),
-	}));
+		schema: codeReviewSchema,
+	}),
+}));
 
-test("records reliability and requires correct work with at least fifteen percent fewer median tokens", async ({
+test("Skeleton reliability and token efficiency when fixing deleted-file validation", async ({
 	baseline,
 	withSkeleton,
 	documentationAndVerification,
@@ -72,12 +68,17 @@ test("records reliability and requires correct work with at least fifteen percen
 	});
 
 	// Preserve the acceptance bar, after recording every outcome.
-	const details = JSON.stringify(report, null, 2);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.baseline.tokenErrors + report.withSkeleton.tokenErrors, details).toBe(0);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
-	expect(report.efficiency.skeletonMedian!, details).toBeLessThanOrEqual(
-		report.efficiency.baselineMedian! * 0.85,
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(
+		report.baseline.tokenErrors + report.withSkeleton.tokenErrors,
+		"No token measurements are invalid",
+	).toBe(0);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
 	);
+	expect(
+		report.efficiency.skeletonMedian!,
+		"Skeleton uses at least 15% fewer median tokens",
+	).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.85);
 });

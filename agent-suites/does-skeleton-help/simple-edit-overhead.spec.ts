@@ -4,15 +4,12 @@ import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
 
-const test = describe("Skeleton overhead for a one-word edit", ({ agent }) => ({
+const test = describe("Does Skeleton help?", ({ agent }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/tradeoffs/trivial/control" }),
 	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/tradeoffs/trivial/skeleton" }),
 }));
 
-test("fixes the typo without unrelated edits and reports token overhead", async ({
-	baseline,
-	withSkeleton,
-}, info) => {
+test("Skeleton overhead for a one-word edit", async ({ baseline, withSkeleton }, info) => {
 	const prompt = 'Correct "delviery" to "delivery" in README.md. Make no other changes.';
 	const evaluate = async (run: Run) => {
 		const before = readFileSync(join(run.workspace.initial.path, "README.md"), "utf8");
@@ -39,9 +36,10 @@ test("fixes the typo without unrelated edits and reports token overhead", async 
 		]);
 		return { baseline: without, withSkeleton: withTool };
 	});
-	const details = JSON.stringify(report);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
+	);
 	// A negative savingsFraction exposes overhead; it is not a correctness failure.
 });

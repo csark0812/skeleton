@@ -10,17 +10,13 @@ import { checkRegression } from "../../scripts/efficacy/regression.ts";
 
 const prompt =
 	"Production .mjs files are being skipped by documentation coverage checks. Fix that while keeping generated Skeleton plugins excluded, and verify the change.";
-const test =
-	describe("Skeleton reliability and token efficiency when fixing production JavaScript coverage", ({
-		agent,
-		judge,
-	}) => ({
-		baseline: agent({ workspace: "tests/fixtures/efficacy/history/production-javascript/control" }),
-		withSkeleton: agent({
-			workspace: "tests/fixtures/efficacy/history/production-javascript/skeleton",
-		}),
-		documentationAndVerification: judge({
-			prompt: `${reviewInstructions}
+const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
+	baseline: agent({ workspace: "tests/fixtures/efficacy/history/production-javascript/control" }),
+	withSkeleton: agent({
+		workspace: "tests/fixtures/efficacy/history/production-javascript/skeleton",
+	}),
+	documentationAndVerification: judge({
+		prompt: `${reviewInstructions}
 ${documentationInstructions}
 Set documentationCorrect from the documentation and completion-claim requirements.
 Set verificationAdequate from the agent-run verification requirements.
@@ -33,11 +29,11 @@ The transcript shows successful focused executable tests for production .mjs inc
 Completion claims agree with the repository and test outputs.
 The agent itself must have run the checks; independent harness checks do not satisfy this verification criterion.
 The agent's local regression tests must remain meaningful and must not be disabled or weakened.`,
-			schema: codeReviewSchema,
-		}),
-	}));
+		schema: codeReviewSchema,
+	}),
+}));
 
-test("records reliability and requires correct work with at least fifteen percent fewer median tokens", async ({
+test("Skeleton reliability and token efficiency when fixing production JavaScript coverage", async ({
 	baseline,
 	withSkeleton,
 	documentationAndVerification,
@@ -75,12 +71,17 @@ test("records reliability and requires correct work with at least fifteen percen
 	});
 
 	// Preserve the acceptance bar, after recording every outcome.
-	const details = JSON.stringify(report, null, 2);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.baseline.tokenErrors + report.withSkeleton.tokenErrors, details).toBe(0);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
-	expect(report.efficiency.skeletonMedian!, details).toBeLessThanOrEqual(
-		report.efficiency.baselineMedian! * 0.85,
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(
+		report.baseline.tokenErrors + report.withSkeleton.tokenErrors,
+		"No token measurements are invalid",
+	).toBe(0);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
 	);
+	expect(
+		report.efficiency.skeletonMedian!,
+		"Skeleton uses at least 15% fewer median tokens",
+	).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.85);
 });

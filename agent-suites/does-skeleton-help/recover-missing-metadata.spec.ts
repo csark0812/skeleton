@@ -10,7 +10,7 @@ import { checkOrderLimits } from "../../scripts/efficacy/order-checks.ts";
 
 const prompt =
 	"Increase the standard order limit from 20 to 30. Preserve special-category and fallback limits. Keep related documentation accurate and verify the change.";
-const test = describe("Recover when no ownership metadata is available", ({ agent, judge }) => ({
+const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/tradeoffs/missing/control" }),
 	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/tradeoffs/missing/skeleton" }),
 	documentationAndVerification: judge({
@@ -21,7 +21,7 @@ Set documentationCorrect when the final docs describe standard=30, regulated=5, 
 	}),
 }));
 
-test("preserves correctness and reports the cost of recovery", async ({
+test("Recover when no ownership metadata is available", async ({
 	baseline,
 	withSkeleton,
 	documentationAndVerification,
@@ -59,9 +59,10 @@ ${review.output.reason}`,
 		]);
 		return { baseline: without, withSkeleton: withTool };
 	});
-	const details = JSON.stringify(report);
-	expect(report.baseline.correct, details).toBe(report.attempts);
-	expect(report.withSkeleton.correct, details).toBe(report.attempts);
-	expect(report.efficiency.pairs, details).toBe(report.attempts);
+	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
+	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
+		report.attempts,
+	);
 	// Recovery cost is measured; this test does not require a speedup.
 });
