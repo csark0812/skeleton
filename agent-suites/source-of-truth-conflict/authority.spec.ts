@@ -1,14 +1,17 @@
+import type { JsonValue } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { reviewInstructions, reviewSchema, transcript } from "../../scripts/efficacy/judge.ts";
 
-function boundedTranscript(run: Parameters<typeof transcript>[0]) {
-	const trim = (item: unknown): unknown => {
+function boundedTranscript(run: Parameters<typeof transcript>[0]): JsonValue {
+	const trim = (item: JsonValue): JsonValue => {
 		if (typeof item === "string" && item.length > 12_000) {
 			return `${item.slice(0, 6_000)}\n[truncated]\n${item.slice(-6_000)}`;
 		}
 		if (Array.isArray(item)) return item.map(trim);
-		if (item && typeof item === "object") {
-			return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, trim(value)]));
+		if (item && typeof item === "object" && !Array.isArray(item)) {
+			return Object.fromEntries(
+				Object.entries(item).map(([key, value]) => [key, trim(value)]),
+			) as { [key: string]: JsonValue };
 		}
 		return item;
 	};
