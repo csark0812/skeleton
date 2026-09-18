@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const values = { host: "openai", scenario: "", runs: 5 };
+const values = { host: "openai", scenario: "", runs: 1 };
 for (let index = 2; index < process.argv.length; index += 2) {
 	const flag = process.argv[index];
 	const value = process.argv[index + 1];

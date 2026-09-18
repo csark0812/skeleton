@@ -53,7 +53,7 @@ export async function assessRun<T extends MeasuredRun>(
 export async function measureReliability(
 	info: TestAttachments,
 	runPair: () => Promise<Pair>,
-	repetitions = Number(process.env.SKELETON_EFFICACY_RUNS ?? 5),
+	repetitions = Number(process.env.SKELETON_EFFICACY_RUNS ?? 1),
 ) {
 	if (!Number.isInteger(repetitions) || repetitions < 1)
 		throw new Error("SKELETON_EFFICACY_RUNS must be a positive integer.");

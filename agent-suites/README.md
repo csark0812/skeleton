@@ -19,7 +19,7 @@ Each pair uses the same task and domain content on both sides. The Skeleton run 
 
 ```bash
 bun run agent:test:check  # prepare and validate, no live agents
-bun run agent:test       # five paired Codex comparisons per main task
+bun run agent:test       # one paired Codex comparison per main task
 bun run agent:test:matrix # explicit optional host matrix
 ```
 
@@ -31,4 +31,4 @@ Two live judge calibration tests cover stale final text with a misleading comple
 
 The wrapper and direct `agent-test test does-skeleton-help` runs both include the independent checks and repeated gate. Playwright attachments retain package provenance, per-run outcomes, the reliability and efficiency report, and trusted regression output. SDK artifacts retain judge verdicts. Wrapper output is under `test-results/agent-test-matrix/`; default-config output is under `test-results/agent-test/`. Discovery and the custom-adapter contracts use no live providers. The matrix configuration supports the suites on three hosts with OpenAI judging; the wrapper selects the nine paired tasks. Use `bunx agent-test test` for all fourteen tests on the default host; registry installation and local-package adoption run only on OpenAI because v2 rejects the explicit network option on other hosts.
 
-Live commands consume host model usage. Five pairs reduce run-to-run noise but do not establish a universal reliability percentage. See [the method and scoring rules](../docs/developer/efficacy.md).
+Live commands consume host model usage. The default one-pair run is a diagnostic smoke test, not a reliability sample. Use `--runs N` for repeated comparisons. See [the method and scoring rules](../docs/developer/efficacy.md).

@@ -4,7 +4,7 @@
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
 <!-- review-deps: paths=agent-suites/**,scripts/efficacy/**,scripts/run-efficacy.ts,scripts/write-efficacy-fixtures.ts,scripts/pack-efficacy-vendor.ts,package.json,bunfig.toml,agent-test*.config.ts,tests/sdk-contracts/**,src/__tests__/efficacy*.test.ts -->
 
-These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as five comparisons without Skeleton and with the current packaged Skeleton default initialization. Four efficiency qualifications require at least 15% fewer median tokens. The staged-endpoint qualification requires Skeleton to be correct in every run, at least 60% matched correct pairs, and any positive median reduction. The four package-tradeoff tasks require correctness without savings. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.
+These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as one comparison by default without Skeleton and with the current packaged Skeleton default initialization. This is a diagnostic smoke test, not a reliability sample; use `--runs N` for repeated comparisons. Four efficiency qualifications require at least 15% fewer median tokens. The staged-endpoint qualification requires Skeleton to be correct in every run, at least 60% matched correct pairs, and any positive median reduction. The four package-tradeoff tasks require correctness without savings. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.
 
 ## The tasks
 
@@ -67,7 +67,7 @@ Every repetition records each run as correct, incorrect, execution-error, or eva
 
 For each side, the report includes attempted, evaluated, correct, incorrect, execution-error, and evaluation-error counts. `successfulAttemptRate` is correct / attempted. `evaluatedSuccessRate` is correct / (correct + incorrect), or null if no run could be evaluated. Both denominators remain visible. A descriptive 95% Wilson interval accompanies the evaluated success rate. It assumes independent Bernoulli outcomes under the same task and host conditions; it does not establish reliability across repositories or account for judge bias.
 
-Paired counts show both correct, only baseline correct, only Skeleton correct, neither correct, and unassessed pairs. A pair with an execution or evaluation error is unassessed, while the other run's own verdict still contributes to its side's counts. Five pairs are a development sample, not strong reliability evidence. Increase `--runs` for a larger sample without changing the task conditions.
+Paired counts show both correct, only baseline correct, only Skeleton correct, neither correct, and unassessed pairs. A pair with an execution or evaluation error is unassessed, while the other run's own verdict still contributes to its side's counts. One pair is a diagnostic sample, not reliability evidence. Increase `--runs` for a larger sample without changing the task conditions.
 
 ## How effort is measured
 
@@ -87,10 +87,10 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 # Build, regenerate fixtures, discover fourteen tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
-# Five paired live comparisons per task, using Codex.
+# One paired live comparison per task by default, using Codex.
 bun run agent:test
 
-# After preparation, run one task with the five-pair gate.
+# After preparation, run one task with the one-pair diagnostic default.
 bun scripts/run-efficacy.ts --scenario find-billing-rules
 
 # Diagnostic single pair; not a reliability claim.
@@ -128,6 +128,6 @@ These tasks cover small invented repositories and Skeleton's own history. They d
 | Automatic read-path assertions across hosts | Authority judges verify actual document evidence, including context excerpts; direct assertions prohibit edits. |
 | Three installation hosts and same-host judges | Registry installation and local-tarball adoption are OpenAI-only; installation has no judge; semantic judges use OpenAI. |
 
-`bun run agent:test:offline` exercises the real five-pair outdated-docs, recovery, and simple-edit tests with a compiled JavaScript custom adapter and no provider access, plus contracts for explicit judge input, independent staged workspaces, separate judge usage, malformed or missing verdicts, continued collection after real SDK errors, and separate documentation and verification verdicts. `bun test ./src/__tests__/efficacy-suites.test.ts` checks fixture conditions, median arithmetic, and trusted regression checks against broken and fixed code. `bun test ./src/__tests__/efficacy-reliability.test.ts` checks outcome classification, paired accounting, token filtering, missing usage, and uncertainty calculations. These checks are not evidence of live-agent efficacy.
+`bun run agent:test:offline` exercises the real one-pair outdated-docs, recovery, and simple-edit tests with a compiled JavaScript custom adapter and no provider access, plus contracts for explicit judge input, independent staged workspaces, separate judge usage, malformed or missing verdicts, continued collection after real SDK errors, and separate documentation and verification verdicts. `bun test ./src/__tests__/efficacy-suites.test.ts` checks fixture conditions, median arithmetic, and trusted regression checks against broken and fixed code. `bun test ./src/__tests__/efficacy-reliability.test.ts` checks outcome classification, paired accounting, token filtering, missing usage, and uncertainty calculations. These checks are not evidence of live-agent efficacy.
 
 `bun test ./src/__tests__/efficacy-tradeoffs.test.ts` verifies that adoption starts unconfigured, context truncation hides the actual definition, missing metadata yields no-context, authority uses actual initialization, trusted behavior checks reject a superficial fix, final-document evidence survives missing transcript reads, and phase token accounting includes setup. Offline adapters script outcomes and do not demonstrate live recovery or judge accuracy.

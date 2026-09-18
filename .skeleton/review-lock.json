@@ -20,13 +20,13 @@
 		},
 		"agent-suites/README.md": {
 			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:e28e1a111e751d3eb9a3dc803041f0ce19582eace18262a434ca8c9b60eb1c3b",
+			"documentHash": "sha256:367c5513dd8801ffeb5c45ded5f6d9accb74da6c786e512969fb16d94ddf6dc6",
 			"reviewDependencies": {
 				"agent-suites/does-skeleton-help/adoption-maintenance.spec.ts": "sha256:d386fa2dee1fdceebe2b70c9e4543b67d2da73abfc470ac284d13f529f8c9305",
 				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:9975a98b3cb80fe5261e57fbfc509f01ee3e54013e7524a617da73bdffccdc15",
 				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:e7d5d7dd1a60ffd655541cc267a0a7868bb2a33e6e217e5c8f995fbc183b97d3",
-				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:b78b7157b730e0c15701c360e546151525915172b719df9710aa7d040334ab69",
-				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:793380a170ade1990ab56e06025dc35de2d100a781026511bca602c7cade4277",
+				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:c990d126e19be9bd4a8a69075971c0236103b2d1e51ddece7ec86bd5b4da534e",
+				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:2ba45e8d22b25960ddd558c326e948b201f3a7b2340dd30a5a54cf0ba887c796",
 				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:3128f05444195f60dd6ae10a5bd63a76d67c4da013b1c782a7d1bf48644f85f4",
 				"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts": "sha256:2db285cb6f1856d68ff481d43b266455148f89e31c76caa249bf5239890293e3",
 				"agent-suites/does-skeleton-help/recover-truncated-context.spec.ts": "sha256:712001fed17d1a1d0cda338b3c2aea37657ceb0037559f583d110954e5709a63",
@@ -40,7 +40,7 @@
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
 				"scripts/efficacy/history.ts": "sha256:90883ad542a590d8f589b231be4d7301bc08839f289c86561b0dc605c1cd8530",
 				"scripts/efficacy/judge.ts": "sha256:ae7fc8641311cd563c70581c107cac564ed9ebbe900cf6626e7407976bfcec02",
-				"scripts/efficacy/measurements.ts": "sha256:3561f09905d048c7db0ba5ff5242ae6c8ab4a25de6f4f9fbfa7f97e24bcdcc09",
+				"scripts/efficacy/measurements.ts": "sha256:2a53e6bf5bba305c811000e8f2b53b93de43ca3b049dbe869a5d57d9d5a11da8",
 				"scripts/efficacy/median.ts": "sha256:adccca28d518998ce66c664bf6bb63de3e9d406204aab9f55e983ec3cdde2d63",
 				"scripts/efficacy/order-checks.ts": "sha256:aa0c67266d61a423cc7ca303b4c1fba515082575dfe4e7cadacf599bf85f657b",
 				"scripts/efficacy/regression.ts": "sha256:ebc2e33c28e461f85c2b0cb11132ce608635534ff76a9080773742c7d671c7be",
@@ -48,7 +48,7 @@
 				"scripts/efficacy/workspace.ts": "sha256:a268805cea3b407d26705146dfdb12118a7d84239a3c32bed1bfd6f6c4b4fd86",
 				"scripts/efficacy/write-history.ts": "sha256:ec5c0eb1627a6e5d243119b71680087cc76a94d570ba8570b5fc65ec79063147",
 				"scripts/efficacy/write-tradeoffs.ts": "sha256:ba2ac838720619a0d7fbaec4e1b5831951e70c216cf8d1d731aafca42dbf3349",
-				"scripts/run-efficacy.ts": "sha256:2d9d2df7f968f2cae2a6f4b419ec6406639e7528fdd63d2e294d9e784465493c"
+				"scripts/run-efficacy.ts": "sha256:bb5ab811c5248298c028a2680c820df5dd018d08b55f464fa1a8c8ea3eb367a3"
 			}
 		},
 		"docs/authoring.md": {
@@ -126,13 +126,13 @@
 		},
 		"docs/developer/efficacy.md": {
 			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:77691c7449f98a1ad72b414fea625ec1d39a37476164bffa7d6eef31ddf5fd81",
+			"documentHash": "sha256:4b5c45f5e82c4f9393cd44dbdd3255c8e91ab5af506434d9c8b59871afab1ac7",
 			"reviewDependencies": {
 				"agent-suites/does-skeleton-help/adoption-maintenance.spec.ts": "sha256:d386fa2dee1fdceebe2b70c9e4543b67d2da73abfc470ac284d13f529f8c9305",
 				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:9975a98b3cb80fe5261e57fbfc509f01ee3e54013e7524a617da73bdffccdc15",
 				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:e7d5d7dd1a60ffd655541cc267a0a7868bb2a33e6e217e5c8f995fbc183b97d3",
-				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:b78b7157b730e0c15701c360e546151525915172b719df9710aa7d040334ab69",
-				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:793380a170ade1990ab56e06025dc35de2d100a781026511bca602c7cade4277",
+				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:c990d126e19be9bd4a8a69075971c0236103b2d1e51ddece7ec86bd5b4da534e",
+				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:2ba45e8d22b25960ddd558c326e948b201f3a7b2340dd30a5a54cf0ba887c796",
 				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:3128f05444195f60dd6ae10a5bd63a76d67c4da013b1c782a7d1bf48644f85f4",
 				"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts": "sha256:2db285cb6f1856d68ff481d43b266455148f89e31c76caa249bf5239890293e3",
 				"agent-suites/does-skeleton-help/recover-truncated-context.spec.ts": "sha256:712001fed17d1a1d0cda338b3c2aea37657ceb0037559f583d110954e5709a63",
@@ -146,7 +146,7 @@
 				"agent-suites/history/provenance.json": "sha256:01e913af2b57d39a9a9646a72ea21be17257a98714789ae858db942f7a9ba9be",
 				"agent-suites/judge-calibration/documentation.spec.ts": "sha256:70e48bee9721891fbdef23ab5e392696c30c7caf52aa88a85769f5da4d2261c5",
 				"agent-suites/product-smoke/product.spec.ts": "sha256:9a33c65ffb04141ec865d3350602f2172dddf8b70ea742f1547f1c0c789d2c01",
-				"agent-suites/README.md": "sha256:e28e1a111e751d3eb9a3dc803041f0ce19582eace18262a434ca8c9b60eb1c3b",
+				"agent-suites/README.md": "sha256:367c5513dd8801ffeb5c45ded5f6d9accb74da6c786e512969fb16d94ddf6dc6",
 				"agent-suites/seeds/billing-v2.patch": "sha256:0b199eccb6d0f0b9e547dc5c45899813350ec0f3f91b2b1f72abba531960f6a1",
 				"agent-suites/source-of-truth-conflict/authority.spec.ts": "sha256:f62e613a732d644a10d735bf4e08533f9ab6dbc1ed72b0da9465c3d063a0e30f",
 				"agent-test.config.ts": "sha256:0a005831ca62fbcf7c7f84b1247ae33584fa76b035e6b455aea9cda711221efa",
@@ -159,7 +159,7 @@
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
 				"scripts/efficacy/history.ts": "sha256:90883ad542a590d8f589b231be4d7301bc08839f289c86561b0dc605c1cd8530",
 				"scripts/efficacy/judge.ts": "sha256:ae7fc8641311cd563c70581c107cac564ed9ebbe900cf6626e7407976bfcec02",
-				"scripts/efficacy/measurements.ts": "sha256:3561f09905d048c7db0ba5ff5242ae6c8ab4a25de6f4f9fbfa7f97e24bcdcc09",
+				"scripts/efficacy/measurements.ts": "sha256:2a53e6bf5bba305c811000e8f2b53b93de43ca3b049dbe869a5d57d9d5a11da8",
 				"scripts/efficacy/median.ts": "sha256:adccca28d518998ce66c664bf6bb63de3e9d406204aab9f55e983ec3cdde2d63",
 				"scripts/efficacy/order-checks.ts": "sha256:aa0c67266d61a423cc7ca303b4c1fba515082575dfe4e7cadacf599bf85f657b",
 				"scripts/efficacy/regression.ts": "sha256:ebc2e33c28e461f85c2b0cb11132ce608635534ff76a9080773742c7d671c7be",
@@ -168,7 +168,7 @@
 				"scripts/efficacy/write-history.ts": "sha256:ec5c0eb1627a6e5d243119b71680087cc76a94d570ba8570b5fc65ec79063147",
 				"scripts/efficacy/write-tradeoffs.ts": "sha256:ba2ac838720619a0d7fbaec4e1b5831951e70c216cf8d1d731aafca42dbf3349",
 				"scripts/pack-efficacy-vendor.ts": "sha256:77e6c0add768d686e2c9adb67c5a5060ecf134c6c7e772a8cab89bf3e76a2727",
-				"scripts/run-efficacy.ts": "sha256:2d9d2df7f968f2cae2a6f4b419ec6406639e7528fdd63d2e294d9e784465493c",
+				"scripts/run-efficacy.ts": "sha256:bb5ab811c5248298c028a2680c820df5dd018d08b55f464fa1a8c8ea3eb367a3",
 				"scripts/write-efficacy-fixtures.ts": "sha256:6895bd336a757f325c71d4128f35b91dad4bd03f5f082ce4b2b110e354a46d50",
 				"src/__tests__/efficacy-reliability.test.ts": "sha256:331d8766d4da7668854d03b17fc98d6d8a7149c29c3fa9c75ff2e48dfd5688a1",
 				"src/__tests__/efficacy-suites.test.ts": "sha256:c1f59df4752208476e4f1e3f68c9e193e57ef29e2c70b9e5b1bee1ad03e1b9c8",

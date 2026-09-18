@@ -9,7 +9,7 @@ import { assessRun, measureReliability } from "../../scripts/efficacy/measuremen
 import { checkRegression } from "../../scripts/efficacy/regression.ts";
 
 const prompt =
-	"Production .mjs files are being skipped by documentation coverage checks. Fix that while keeping generated Skeleton plugins excluded, and verify the change.";
+	"Production .mjs files are being skipped by documentation coverage checks. Fix that while keeping generated Skeleton plugins excluded. Update docs/developer/config.md to describe both rules, verify the change, and run focused tests for production .mjs inclusion and generated-plugin exclusion.";
 const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/history/production-javascript/control" }),
 	withSkeleton: agent({
