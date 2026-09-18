@@ -1,8 +1,6 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
-
-<!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
 
 The package provides `catalog`, `context`, `audit`, `validate`, `route`, `init`, and `build-plugin` for Skeleton-enabled repositories.
 

@@ -3,13 +3,11 @@ name: skeleton
 description: Use Skeleton to find canonical repository context for questions or source changes, or to perform setup, configuration, auditing, review proof, and skill ownership.
 ---
 
-<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json,skeleton/references/operations.md -->
-
 # Skeleton
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
 
 ## Repository context
 

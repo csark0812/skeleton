@@ -243,25 +243,14 @@
 			}
 		},
 		"skeleton/SKILL.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:9261396e195cea8b4b824b4d12b98d4ad5eff560daab37723d5afae784aa8146",
-			"reviewDependencies": {
-				"package.json": "sha256:343318d57345789172f4e56b06892a2d1384fe87ff20ce63ea00c129cf37be14",
-				"skeleton/references/operations.md": "sha256:ca2f81d4c0617c59a04455d7403d876c79e01c1bc8d209d0e277c1da5b8b833b",
-				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
-				"src/context.ts": "sha256:cbcf804ba2053d105eb697cd6d319d74e915edbbac879997203db21b9a62b402"
-			}
+			"reviewedAt": "2026-09-18",
+			"documentHash": "sha256:fc8ebcd45b0addf059e25f4da0d471eae3c2c44862e3673d414b26d8f946bf94",
+			"reviewDependencies": {}
 		},
 		"skeleton/references/operations.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:ca2f81d4c0617c59a04455d7403d876c79e01c1bc8d209d0e277c1da5b8b833b",
-			"reviewDependencies": {
-				"package.json": "sha256:343318d57345789172f4e56b06892a2d1384fe87ff20ce63ea00c129cf37be14",
-				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
-				"src/context.ts": "sha256:cbcf804ba2053d105eb697cd6d319d74e915edbbac879997203db21b9a62b402",
-				"src/init/init.ts": "sha256:38ab30f008d44a630c96e259babbc8eb325bad1fd62026303ec568e948fc2512",
-				"src/init/skills-args.ts": "sha256:6f58361b2186e50d270e36c16a5c6d40a029503a25cfa04f0503cf34d985dc13"
-			}
+			"reviewedAt": "2026-09-18",
+			"documentHash": "sha256:5b7d5c937f15494fb7e90d4f7b6ad01ccdf93ce6a4b02f1880d7fb8261d12724",
+			"reviewDependencies": {}
 		}
 	}
 }

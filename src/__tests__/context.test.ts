@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { attestDocuments } from "../audit/core/review-proof.ts";
@@ -43,6 +43,27 @@ Billing webhooks retry once after a failed delivery.
 }
 
 describe("context", () => {
+	it("loads a clean copy of the packaged skill in a consumer repository", () => {
+		const root = mkdtempSync(join(tmpdir(), "skel-context-consumer-"));
+		try {
+			mkdirSync(join(root, ".claude/skills"), { recursive: true });
+			cpSync(join(import.meta.dir, "../../skeleton"), join(root, ".claude/skills/skeleton"), {
+				recursive: true,
+			});
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`daysUntilStale = 365\n[scan]\ninclude = [".claude/skills/**"]\nexclude = []\n`,
+			);
+
+			expect(() => evaluateContext({ root, query: "skeleton context" })).not.toThrow();
+			expect(evaluateContext({ root, query: "skeleton context" }).documents).toEqual([
+				expect.objectContaining({ path: ".claude/skills/skeleton/SKILL.md" }),
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it("returns matching canonical documents, their source owners, and review status", () => {
 		const root = makeRepo();
 		try {
