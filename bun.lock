@@ -17,8 +17,8 @@
       "devDependencies": {
         "@biomejs/biome": "2.5.3",
         "@cursor/sdk": "^1.0.27",
-        "@post-print/agent-harness": "2.0.3",
-        "@post-print/agent-test": "2.0.3",
+        "@post-print/agent-harness": "2.0.5",
+        "@post-print/agent-test": "2.0.5",
         "@types/bun": "1.3.8",
         "@types/github-slugger": "2.0.0",
         "typescript": "~7.0.2",
@@ -70,9 +70,9 @@
 
     "@playwright/test": ["@playwright/test@1.63.0", "", { "dependencies": { "playwright": "1.63.0" }, "bin": { "playwright": "cli.js" } }, "sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ=="],
 
-    "@post-print/agent-harness": ["@post-print/agent-harness@2.0.3", "", { "peerDependencies": { "@cursor/sdk": ">=1.0.27" }, "optionalPeers": ["@cursor/sdk"] }, "sha512-Ot321cBR3T2hNst6FDmtUYisDvGcj+vk158MnLB2NT0EmvjN6zruxBbSKUpHO2tjoMXhfCu2iwcdvLgYG0C7rA=="],
+    "@post-print/agent-harness": ["@post-print/agent-harness@2.0.5", "", { "peerDependencies": { "@cursor/sdk": ">=1.0.27" }, "optionalPeers": ["@cursor/sdk"] }, "sha512-iCp4QuwGKhccSBT7xN94+YkFM4SIxkxU0rTEw05weROYcODOfme3/ni6NCEn0SfYzlYZj2k5exmqkgAog+cIvA=="],
 
-    "@post-print/agent-test": ["@post-print/agent-test@2.0.3", "", { "dependencies": { "@playwright/test": "^1.63.0", "@post-print/agent-harness": "2.0.3", "ws": "8.21.3", "zod": "^3.25.76" }, "bin": { "agent-test": "dist/cli.js" } }, "sha512-62rUIK2JkqkwXLUNkPo0vhEcE+FvZ5p5v0WOxb67L1C+6kYVudKOZJWqkE52RMAmZ/2b4J5U2JQqffKdDERZ+g=="],
+    "@post-print/agent-test": ["@post-print/agent-test@2.0.5", "", { "dependencies": { "@playwright/test": "^1.63.0", "@post-print/agent-harness": "2.0.5", "ws": "8.21.3", "zod": "^3.25.76" }, "bin": { "agent-test": "dist/cli.js" } }, "sha512-Ullv5Try0s3/2YvXGW7MW4a7RASd71mzKQo8PxsfHj58+cPgPfepUOkjmkXA4pZV1rqSG8412iyK9lgAqz1Kzg=="],
 
     "@statsig/client-core": ["@statsig/client-core@3.31.0", "", {}, "sha512-SuxQD6TmVszPG7FoMKwTk/uyBuVFk7XnxI3T/E0uyb7PL7GNjONtfsoh+NqBBVUJVse0CUeSFfgJPoZy1ZOslQ=="],
 

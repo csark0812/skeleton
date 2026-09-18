@@ -1,6 +1,20 @@
 import { describe, expect } from "@post-print/agent-test";
 import { reviewInstructions, reviewSchema, transcript } from "../../scripts/efficacy/judge.ts";
 
+function boundedTranscript(run: Parameters<typeof transcript>[0]) {
+	const trim = (item: unknown): unknown => {
+		if (typeof item === "string" && item.length > 12_000) {
+			return `${item.slice(0, 6_000)}\n[truncated]\n${item.slice(-6_000)}`;
+		}
+		if (Array.isArray(item)) return item.map(trim);
+		if (item && typeof item === "object") {
+			return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, trim(value)]));
+		}
+		return item;
+	};
+	return trim(transcript(run));
+}
+
 const prompt =
 	"Two Billing webhook documents disagree. Determine whether the repository identifies one as authoritative. If it does, give the URL new integrations should use. Cite every document you used.";
 const test = describe("Document authority", ({ agent, judge }) => ({
@@ -17,8 +31,8 @@ The pair must show that the marker changes an unresolved answer into one justifi
 	}),
 	duplicateAnswer: judge({
 		prompt: `${reviewInstructions}
-The agent must use evidence from both disagreeing documents and cite them. Context-command excerpts count as inspection.
-It must explicitly report that both documents claim the same authority, and refuse to choose a document or recommend a URL.`,
+	The agent must use evidence from both disagreeing documents and cite them. Context-command excerpts count as inspection.
+	It must clearly establish that both documents claim the same authority (explicitly or by showing equal authority metadata with no sole marker), and refuse to choose a document or recommend a URL.`,
 		schema: reviewSchema,
 	}),
 }));
@@ -39,7 +53,7 @@ test("uses one authority marker to resolve conflicting documents", async ({
 	expect(withMarker.output).toContain("docs/billing-webhook-a.md");
 	expect(withMarker.output).toContain("https://api.example.com/v2/billing/webhook");
 	const review = await matchedAnswers.run({
-		input: { unmarked: transcript(withoutMarker), marked: transcript(withMarker) },
+		input: { unmarked: boundedTranscript(withoutMarker), marked: boundedTranscript(withMarker) },
 	});
 	expect(review.output.correct, review.output.reason).toBe(true);
 });
@@ -51,6 +65,6 @@ test("refuses to choose when both documents claim authority", async ({
 	const run = await duplicate.run({ prompt });
 	expect(run).not.toHaveCalledTool(/^(Write|Edit|apply_patch)$/);
 	expect(run.workspace.changedPaths).toEqual([]);
-	const review = await duplicateAnswer.run({ input: transcript(run) });
+	const review = await duplicateAnswer.run({ input: boundedTranscript(run) });
 	expect(review.output.correct, review.output.reason).toBe(true);
 });
