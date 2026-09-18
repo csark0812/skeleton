@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
 

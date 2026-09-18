@@ -2,18 +2,18 @@
 	"version": 2,
 	"documents": {
 		"AGENTS.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:c5d3bbc98087186766a7f9661ac1b6c8740fe83c80efd434a6fd951182180daf",
+			"reviewedAt": "2026-09-18",
+			"documentHash": "sha256:6e0befb2c087c32fdf66a241c8afbe5337522e6ec06db0d4f473ca012d1b4dac",
 			"reviewDependencies": {
-				"package.json": "sha256:343318d57345789172f4e56b06892a2d1384fe87ff20ce63ea00c129cf37be14",
+				"package.json": "sha256:2ca4bc9584415b04bdb7e9a5c0def70a7abd22b4d79f30d3178cd4cbafd9e48d",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba"
 			}
 		},
 		"README.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:ad1ca60ac2ff19aace9a8f61d11224e4eec303e481c93c3547a1c3a7d9bde82f",
+			"reviewedAt": "2026-09-18",
+			"documentHash": "sha256:9dd4fd3c70f6469f960ceddcce9037d9a1dcf58d6702c8b30cae802234b00bca",
 			"reviewDependencies": {
-				"package.json": "sha256:343318d57345789172f4e56b06892a2d1384fe87ff20ce63ea00c129cf37be14",
+				"package.json": "sha256:2ca4bc9584415b04bdb7e9a5c0def70a7abd22b4d79f30d3178cd4cbafd9e48d",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
 				"src/context.ts": "sha256:cbcf804ba2053d105eb697cd6d319d74e915edbbac879997203db21b9a62b402"
 			}
@@ -153,7 +153,7 @@
 				"agent-test.matrix.config.ts": "sha256:78d57129fcb7e280e8f3cb98635c93d131bd6a777d4b897ba9b16fc9330316b9",
 				"agent-test.offline.config.ts": "sha256:697c9dd1d21a1a40f137d28471a98f43b857ad2de30656d5bf8c51904f1709de",
 				"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
-				"package.json": "sha256:343318d57345789172f4e56b06892a2d1384fe87ff20ce63ea00c129cf37be14",
+				"package.json": "sha256:2ca4bc9584415b04bdb7e9a5c0def70a7abd22b4d79f30d3178cd4cbafd9e48d",
 				"scripts/efficacy/adoption.ts": "sha256:29119a4a878aef74bc1f66239c214cc38bd42415c65d1b579dbcfd1b4a849950",
 				"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
