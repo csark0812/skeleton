@@ -73,7 +73,7 @@
 		"yaml": "2.9.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
+		"@biomejs/biome": "2.5.13",
 		"@cursor/sdk": "^1.0.27",
 		"@post-print/agent-harness": "2.0.5",
 		"@post-print/agent-test": "2.0.5",
