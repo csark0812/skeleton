@@ -9,9 +9,9 @@ function boundedTranscript(run: Parameters<typeof transcript>[0]): JsonValue {
 		}
 		if (Array.isArray(item)) return item.map(trim);
 		if (item && typeof item === "object" && !Array.isArray(item)) {
-			return Object.fromEntries(
-				Object.entries(item).map(([key, value]) => [key, trim(value)]),
-			) as { [key: string]: JsonValue };
+			return Object.fromEntries(Object.entries(item).map(([key, value]) => [key, trim(value)])) as {
+				[key: string]: JsonValue;
+			};
 		}
 		return item;
 	};
