@@ -80,18 +80,64 @@ export default defineAgent({
 						await writeFile(path, (await readFile(path, "utf8")).replace("delviery", "delivery"));
 					} else {
 						const path = join(workspace.path, "src/limits.ts");
+						const doc = join(workspace.path, "docs/orders.md");
+						if (existsSync(join(workspace.path, "skeleton.toml"))) {
+							const cli = join(workspace.path, "node_modules/@csark0812/skeleton/dist/cli.js");
+							const initial = execFileSync("node", [cli, "context", "order limit"], {
+								cwd: workspace.path,
+								encoding: "utf8",
+							});
+							yield {
+								type: "tool",
+								name: "Shell",
+								args: { command: "skeleton context order limit" },
+								result: initial,
+								succeeded: true,
+							};
+							yield {
+								type: "tool",
+								name: "Read",
+								args: { path: "docs/orders.md" },
+								result: await readFile(doc, "utf8"),
+								succeeded: true,
+							};
+						}
 						await writeFile(
 							path,
 							(await readFile(path, "utf8")).replace("standard: 20", "standard: 30"),
 						);
-						const doc = join(workspace.path, "docs/orders.md");
+						const oldDoc = await readFile(doc, "utf8");
+						const updatedDoc = oldDoc.replace(
+							"Standard orders allow 20",
+							"Standard orders allow 30",
+						);
 						await writeFile(
 							doc,
-							(await readFile(doc, "utf8")).replace(
-								"Standard orders allow 20",
-								"Standard orders allow 30",
-							),
+							existsSync(join(workspace.path, "skeleton.toml"))
+								? updatedDoc.replace(
+										"# Order limits\n\n",
+										"# Order limits\n\n<!-- source-of-truth: Order limits -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n",
+									)
+								: updatedDoc,
 						);
+						if (existsSync(join(workspace.path, "skeleton.toml"))) {
+							const retry = execFileSync(
+								"node",
+								[
+									join(workspace.path, "node_modules/@csark0812/skeleton/dist/cli.js"),
+									"context",
+									"order limit",
+								],
+								{ cwd: workspace.path, encoding: "utf8" },
+							);
+							yield {
+								type: "tool",
+								name: "Shell",
+								args: { command: "skeleton context order limit" },
+								result: retry,
+								succeeded: true,
+							};
+						}
 						yield {
 							type: "tool",
 							name: "Read",

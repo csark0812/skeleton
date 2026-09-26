@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
 
@@ -73,7 +73,7 @@ skeleton context --path src/billing/delivery.ts
 skeleton context "billing webhook URL" --staged
 ```
 
-When a dependency changed since review, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing.
+When a dependency changed since review, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing. When context returns `no-context`, its action asks the agent to inspect nearby code, tests, and docs, repair or create canonical ownership for durable behavior, then repeat the same request until the owner is returned. Read-only tasks report the gap without editing.
 
 Shared reference files can live in any scanned path. Public repositories can link skills directly to GitHub-hosted references; Skeleton leaves those external links unchanged and does not check their remote reachability.
 

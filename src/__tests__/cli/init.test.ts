@@ -70,6 +70,15 @@ describe("skeleton init", () => {
 			"Complete every `action` line and verify it against the final files.",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"durable features, policies, workflows, or architectural contracts",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"For read-only tasks, report the gap",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Rerun the exact context request",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			"Do not run Skeleton audits, validation, or review-proof commands",
 		);
 	});

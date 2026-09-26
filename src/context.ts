@@ -243,7 +243,13 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 }
 
 export function formatContext(result: ContextResult): string {
-	if (result.documents.length === 0) return "no-context\tno canonical document matched\n";
+	if (result.documents.length === 0)
+		return (
+			[
+				"no-context\tno canonical document matched",
+				"action\tno-context\tInspect the relevant code, tests, and nearby documentation to find the canonical owner. If an owner exists, repair its source-of-truth summary, content, or review-deps so this request can find it. If no owner exists and the subject is durable behavior (a feature, policy, workflow, or architectural contract), create canonical documentation with a source-of-truth summary and review-deps for its implementation. A --path miss must gain an owning document. For a read-only task, report the gap and proposed document follow-up without editing. Skip one-off debugging details and transient implementation facts. Rerun this exact context request and continue until it returns the owner.",
+			].join("\n") + "\n"
+		);
 	const lines: string[] = [];
 	for (const document of result.documents) {
 		lines.push(`document\t${document.path}\t${document.review}`);

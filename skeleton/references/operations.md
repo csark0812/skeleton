@@ -1,6 +1,8 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+
+<!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
 
 The package provides `catalog`, `context`, `audit`, `validate`, `route`, `init`, and `build-plugin` for Skeleton-enabled repositories.
 
@@ -11,7 +13,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init adds a bounded `skeleton context` guide to `AGENTS.md`. `--skills` copies this skill from the installed package so its guidance matches the CLI version. Edit `skeleton.toml` scan trees for the repository shape. Legacy `.skeleton/config.yaml` loads only when `skeleton.toml` is absent.
+Init adds a bounded `skeleton context` guide to `AGENTS.md`. A `no-context` result includes a recovery action to inspect code, tests, and nearby docs; repair an existing owner or document durable behavior; and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. `--skills` copies this skill from the installed package so its guidance matches the CLI version. Edit `skeleton.toml` scan trees for the repository shape. Legacy `.skeleton/config.yaml` loads only when `skeleton.toml` is absent.
 
 For ordinary source tasks, the guide stops after the focused test passes. It does not ask the agent to run repository audits, validation, or review-proof commands unless the user requested them or the focused test fails.
 

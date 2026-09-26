@@ -1,7 +1,7 @@
 # Agent tests
 
 <!-- source-of-truth: agent comparison tasks and supporting checks -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-18 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
 <!-- review-deps: paths=agent-suites/**/*.ts,agent-suites/seeds/**,scripts/efficacy/**,scripts/run-efficacy.ts -->
 
 | Suite | Question |
@@ -23,7 +23,7 @@ bun run agent:test       # one paired Codex comparison per main task
 bun run agent:test:matrix # explicit optional host matrix
 ```
 
-Four additional paired tests measure: installing and configuring the exact local tarball before a maintenance change; recovering from a truncated source excerpt; recovering from missing ownership metadata; and a one-word edit where context lookup can be overhead. They require correctness but do not require savings. Adoption records setup and maintenance tokens separately and includes both in total treatment cost. These are small synthetic fixtures, not an external held-out benchmark.
+Four additional paired tests measure: installing and configuring the exact local tarball before a maintenance change; recovering from a truncated source excerpt; recovering from missing ownership metadata; and a one-word edit where context lookup can be overhead. The missing-metadata Skeleton treatment must observe the structured no-context action, repair the existing document's ownership metadata, retry the same query, and pass an independent packed-CLI check against its final workspace. These tests require correctness but do not require savings. Adoption records setup and maintenance tokens separately and includes both in total treatment cost. These are small synthetic fixtures, not an external held-out benchmark.
 
 Prepared treatments now run the packed CLI's real initializer. The authority fixtures use that shipped guidance without a custom authority decision algorithm. Existing curated fixtures still exclude curation costs; the adoption test is the separate path that includes them.
 

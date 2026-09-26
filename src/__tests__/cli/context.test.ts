@@ -61,6 +61,24 @@ describe("context CLI", () => {
 	it("makes an unresolved source path explicit", () => {
 		const result = run(makeRoot(), ["--path", "src/missing.ts"]);
 		expect(result.status).toBe(0);
-		expect(result.stdout).toBe("no-context\tno canonical document matched\n");
+		expect(result.stdout).toContain("no-context\tno canonical document matched\n");
+		expect(result.stdout).toContain("action\tno-context\tInspect the relevant code");
+		expect(result.stdout).toContain("A --path miss must gain an owning document.");
+		expect(result.stdout).toContain("Rerun this exact context request");
+	});
+
+	it("offers the same recovery action for an unmatched topic query", () => {
+		const result = run(makeRoot(), ["unrelated topic"]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("no-context\tno canonical document matched\n");
+		expect(result.stdout).toContain("durable behavior");
+		expect(result.stdout).toContain("For a read-only task, report the gap");
+	});
+
+	it("keeps successful context output free of the no-context action", () => {
+		const result = run(makeRoot(), ["billing retry"]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("document\tdocs/billing.md\tunreviewed");
+		expect(result.stdout).not.toContain("action\tno-context");
 	});
 });
