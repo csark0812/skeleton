@@ -1,6 +1,6 @@
 {
 	"name": "@csark0812/skeleton",
-	"version": "5.0.2",
+	"version": "5.0.3",
 	"description": "SSOT audit CLI for agent harness repos",
 	"type": "module",
 	"bin": {
