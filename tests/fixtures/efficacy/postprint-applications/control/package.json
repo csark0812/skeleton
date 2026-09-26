@@ -1,0 +1,11 @@
+{
+	"name": "postprint-shaped-applications-fixture",
+	"private": true,
+	"type": "module",
+	"workspaces": ["apps/*", "tspackages/*"],
+	"scripts": {
+		"test": "bun test",
+			"generate-clients": "bun tspackages/websocket/scripts/generate-types.ts",
+		"validate:changed": "bun scripts/validate-changed.ts"
+	}
+}

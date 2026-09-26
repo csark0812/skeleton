@@ -1,0 +1,15 @@
+daysUntilStale = 365
+
+[scan]
+include = ["docs/**", "README.md", "AGENTS.md"]
+exclude = []
+
+[reviewProof]
+mode = "hash"
+
+[reviewCoverage]
+include = ["apps/**/*.py", "apps/**/*.ts", "apps/**/*.tsx", "tspackages/**/*.ts"]
+exclude = ["**/tests/**", "**/*.test.ts"]
+
+[deny]
+paths = []

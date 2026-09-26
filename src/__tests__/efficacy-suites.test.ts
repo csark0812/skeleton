@@ -73,6 +73,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 	it("adds only the real Skeleton context guide to treatment instructions", () => {
 		for (const [baselineWorkspace, skeletonWorkspace] of [
 			["efficiency/control", "efficiency/package-head"],
+			["postprint-applications/control", "postprint-applications/package-head"],
 			["drift/control", "drift/skeleton"],
 			["history/deleted-file/control", "history/deleted-file/skeleton"],
 			["history/production-javascript/control", "history/production-javascript/skeleton"],
@@ -90,9 +91,23 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(treatmentGuide).toContain('skeleton context "<topic>"');
 			expect(treatmentGuide).toContain("the first repository command");
 			expect(treatmentGuide).toContain("Use `--path` only for a known implementation path");
-			expect(treatmentGuide).toContain("If a test is returned, edit and run only that test");
+			expect(treatmentGuide).toContain("Never combine a topic with `--path`");
+			expect(treatmentGuide).toContain(
+				"If a test is returned, make the edits and run only the returned `test-command`",
+			);
 			expect(treatmentGuide).toContain("Otherwise use one combined command");
 			expect(treatmentGuide).toContain("do not read those files again");
+			expect(treatmentGuide).toContain(
+				"answer immediately when the returned evidence fully answers a read-only request",
+			);
+			expect(treatmentGuide).toContain(
+				"Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result",
+			);
+			expect(treatmentGuide).toContain(
+				"Do not rerun context or search, list, or read returned paths",
+			);
+			expect(treatmentGuide).toContain("Inspect again only when that test fails");
+			expect(treatmentGuide).toContain("without progress narration between the edits and test");
 			expect(treatmentGuide).toContain(
 				"Complete every `action` line and verify it against the final files",
 			);
@@ -126,6 +141,31 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				plain(readFileSync(join(root, "skeleton", task.doc), "utf8")),
 			);
 		}
+	});
+
+	it("keeps the PostPrint-shaped fixture matched except for Skeleton metadata", () => {
+		const root = join(ROOT, "tests/fixtures/efficacy/postprint-applications");
+		const control = join(root, "control");
+		const treatment = join(root, "package-head");
+		const contract = "docs/developer/websocket.md";
+		expect(plain(readFileSync(join(control, contract), "utf8"))).toBe(
+			plain(readFileSync(join(treatment, contract), "utf8")),
+		);
+		for (const path of [
+			"apps/backend/postprint/realtime/schemas.py",
+			"apps/backend/postprint/papers/realtime/publish.py",
+			"apps/client/src/websocket/projectUpdates.ts",
+			"tspackages/websocket/src/realtime/realtime.gen.ts",
+		])
+			expect(readFileSync(join(control, path), "utf8")).toBe(
+				readFileSync(join(treatment, path), "utf8"),
+			);
+		const catalog = readFileSync(join(treatment, ".skeleton/catalog.md"), "utf8");
+		expect(catalog).toContain("Workspace document realtime protocol");
+		const treatmentDocument = readFileSync(join(treatment, contract), "utf8");
+		expect(treatmentDocument).toContain("apps/backend/postprint/realtime/schemas.py");
+		expect(treatmentDocument).toContain("apps/client/src/websocket/projectUpdates.ts");
+		expect(treatmentDocument).toContain("tspackages/websocket/src/realtime/realtime.gen.ts");
 	});
 
 	it("checks historical acceptance tests against broken and fixed implementations", () => {

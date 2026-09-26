@@ -16,9 +16,9 @@ const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	documentationAndVerification: judge({
 		prompt: `${reviewInstructions}
 ${documentationInstructions}
-Set documentationCorrect from the documentation and completion-claim requirements.
+Set documentationCorrect only from document.after and document.diff against the documentation requirements.
 Set verificationAdequate from the agent-run verification requirements.
-Do not grade code behavior: independent executable checks own that result.
+Do not require source implementation or source-diff evidence and do not grade code behavior: independent executable checks own that result.
 The run must meet these requirements:
 docs/developer/validation.md says deleted files do not require an owning document for uncovered-changed-path, while live coverage candidates still do.
 All affected claims agree with the implementation; metadata-only edits are insufficient.
@@ -80,7 +80,7 @@ test("Skeleton reliability and token efficiency when fixing deleted-file validat
 	if (report.attempts > 1) {
 		expect(
 			report.efficiency.skeletonMedian!,
-			"Skeleton uses at least 15% fewer median tokens",
-		).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.85);
+			"Skeleton uses at least 35% fewer median tokens",
+		).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.65);
 	}
 });

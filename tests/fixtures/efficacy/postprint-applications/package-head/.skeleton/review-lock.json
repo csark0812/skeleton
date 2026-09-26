@@ -1,0 +1,18 @@
+{
+	"version": 2,
+	"documents": {
+		"docs/developer/websocket.md": {
+			"reviewedAt": "2026-09-14",
+			"documentHash": "sha256:4f99f699cc86a0732356456b1047fe1e7a6da3b2cb5d24dcd6936ab3e55e1d8e",
+			"reviewDependencies": {
+				"apps/backend/postprint/papers/realtime/publish.py": "sha256:86184864f52bc2960717281acef6324a7d4243c573e44c01c8951451de63cbf0",
+				"apps/backend/postprint/realtime/openapi_ws.json": "sha256:5a4481a10418b198ba421cbd426ee532640617c322a06b8ae218a65582f53acd",
+				"apps/backend/postprint/realtime/schemas.py": "sha256:f85fe566fb15bae770407723ac058b1b83d5c15610f9dbb15d8699edfacc0953",
+				"apps/client/src/websocket/projectUpdates.ts": "sha256:5df5e71f3ddbe881ea7dacccad1af958f56ab806baea1fdcae77e3cf236b4295",
+				"tspackages/websocket/project.json": "sha256:6c65c50039ff04e0c2994d9b7d1f8c3c59de6a4fdf075b968613cafcc8dde3c5",
+				"tspackages/websocket/scripts/generate-types.ts": "sha256:d081d2221b920413bd56628104ef089e2f550e2d016a6face71e710034a4fafd",
+				"tspackages/websocket/src/realtime/realtime.gen.ts": "sha256:3ab0bad1dd2b9c8ec749cc444a91f8ee07d03ba9cad4ec65b8a3d429394ae588"
+			}
+		}
+	}
+}

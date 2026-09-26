@@ -22,7 +22,7 @@ test("agent-test catalog uses logical suites without a repeated default-project 
 
 	expect(output).not.toContain("[openai]");
 	expect(Object.fromEntries(suiteCounts)).toEqual({
-		"Does Skeleton help?": 9,
+		"Does Skeleton help?": 10,
 		"Documentation judge calibration": 2,
 		"Install the published package": 1,
 		"Document authority": 2,

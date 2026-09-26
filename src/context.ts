@@ -12,12 +12,31 @@ import { normalizeRelPath } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
 
 const DEFAULT_MAX_CHARS = 12_000;
+const EXCERPT_MAX_CHARS = 3_600;
+const EXCERPT_WINDOW_CHARS = 1_100;
+const QUERY_STOP_TERMS = new Set([
+	"current",
+	"important",
+	"constraints",
+	"source",
+	"sources",
+	"file",
+	"files",
+	"path",
+	"paths",
+	"code",
+	"docs",
+	"documentation",
+	"test",
+	"tests",
+]);
 
 export type ContextReview = "matches-recorded-review" | "changed-since-review" | "unreviewed";
 
 export interface ContextSource {
 	path: string;
 	excerpt: string;
+	command?: string;
 }
 
 export interface ContextDocument {
@@ -65,9 +84,11 @@ function readLock(root: string, source: FileSource, lockfile: string): ReviewLoc
 }
 
 function queryTerms(query: string | undefined): string[] {
-	return [...new Set((query ?? "").toLowerCase().match(/[a-z0-9_]+/g) ?? [])].filter(
+	const terms = [...new Set((query ?? "").toLowerCase().match(/[a-z0-9_]+/g) ?? [])].filter(
 		(term) => term.length > 1,
 	);
+	const specific = terms.filter((term) => !QUERY_STOP_TERMS.has(term));
+	return specific.length > 0 ? specific : terms;
 }
 
 function score(text: string, terms: string[]): number {
@@ -75,10 +96,56 @@ function score(text: string, terms: string[]): number {
 	return terms.reduce((total, term) => total + (lower.includes(term) ? 1 : 0), 0);
 }
 
+function focusedTestCommand(root: string, path: string, source: FileSource): string | undefined {
+	const packageJson = readRepoText(root, "package.json", source);
+	if (!packageJson) return;
+	try {
+		const parsed: unknown = JSON.parse(packageJson);
+		if (typeof parsed !== "object" || parsed === null) return;
+		const scripts = (parsed as { scripts?: unknown }).scripts;
+		if (typeof scripts !== "object" || scripts === null) return;
+		const test = (scripts as { test?: unknown }).test;
+		return typeof test === "string" && /^bun test(?:\s|$)/.test(test)
+			? `bun test ${path}`
+			: undefined;
+	} catch {
+		// Invalid package metadata cannot supply a trustworthy command.
+	}
+}
+
+function focusedTestRelevance(input: {
+	path: string;
+	content: string;
+	sourcePaths: string[];
+	sourceStems: string[];
+	terms: string[];
+}): number {
+	const lowerPath = input.path.toLowerCase();
+	const matchingName = input.sourceStems.some(
+		(stem) =>
+			stem.length > 0 &&
+			(lowerPath.includes(`/${stem}.test.`) || lowerPath.includes(`/${stem}.spec.`)),
+	);
+	const importsSource = input.sourcePaths.some((path) => input.content.includes(path));
+	return (
+		score(`${input.path}\n${input.content}`, input.terms) +
+		(matchingName ? 1_000 : 0) +
+		(importsSource ? 100 : 0)
+	);
+}
+
 function focusedTests(root: string, sourcePaths: string[], source: FileSource): ContextSource[] {
 	const terms = sourcePaths
 		.flatMap((path) => path.toLowerCase().match(/[a-z0-9_]+/g) ?? [])
 		.filter((term) => term.length > 2 && !["src", "index", "main"].includes(term));
+	const sourceStems = sourcePaths.map(
+		(path) =>
+			path
+				.split("/")
+				.at(-1)
+				?.replace(/\.[^.]+$/, "")
+				.toLowerCase() ?? "",
+	);
 	if (terms.length === 0) return [];
 	return globSync(["**/*.{test,spec}.{ts,tsx,js,jsx,mjs,cjs,py}", "**/test_*.py"], {
 		cwd: root,
@@ -93,11 +160,18 @@ function focusedTests(root: string, sourcePaths: string[], source: FileSource): 
 		.map(normalizeRelPath)
 		.map((path) => ({ path, content: readRepoText(root, path, source) }))
 		.filter((item): item is { path: string; content: string } => item.content !== null)
-		.map((item) => ({ ...item, relevance: score(`${item.path}\n${item.content}`, terms) }))
+		.map((item) => ({
+			...item,
+			relevance: focusedTestRelevance({ ...item, sourcePaths, sourceStems, terms }),
+		}))
 		.filter((item) => item.relevance > 0)
 		.sort((a, b) => b.relevance - a.relevance || a.path.localeCompare(b.path))
 		.slice(0, 1)
-		.map(({ path, content }) => ({ path, excerpt: content }));
+		.map(({ path, content }) => ({
+			path,
+			excerpt: content,
+			command: focusedTestCommand(root, path, source),
+		}));
 }
 
 function boundedExcerpts(entries: ContextSource[], available: number, terms: string[]) {
@@ -107,33 +181,61 @@ function boundedExcerpts(entries: ContextSource[], available: number, terms: str
 		if (chars >= available) break;
 		const value = excerpt(entry.excerpt, available - chars, terms);
 		chars += value.length;
-		items.push({ path: entry.path, excerpt: value });
+		items.push({ path: entry.path, excerpt: value, command: entry.command });
 	}
 	return { items, chars };
 }
 
-function excerpt(content: string, remaining: number, terms: string[]): string {
-	const length = Math.min(remaining, 1_600);
-	if (content.length <= length) return content;
-	let strongestStart = 0;
-	let strongestScore = 0;
+interface ExcerptWindow {
+	start: number;
+	end: number;
+	relevance: number;
+}
+
+function candidateWindows(content: string, windowLength: number, terms: string[]): ExcerptWindow[] {
 	let offset = 0;
+	const candidates: ExcerptWindow[] = [];
 	for (const line of content.split("\n")) {
-		const start = Math.max(0, offset - 400);
-		const lower = content.slice(start, start + length).toLowerCase();
+		const start = Math.max(0, offset - 300);
+		const end = Math.min(content.length, start + windowLength);
+		const lower = content.slice(start, end).toLowerCase();
 		const relevance = terms.reduce(
 			(total, term) => total + (lower.includes(term) ? term.length : 0),
 			0,
 		);
-		if (relevance > strongestScore) {
-			strongestStart = start;
-			strongestScore = relevance;
-		}
+		if (relevance > 0) candidates.push({ start, end, relevance });
 		offset += line.length + 1;
 	}
-	const start = strongestStart;
-	const end = Math.min(content.length, start + Math.max(0, length - 1));
-	return `${start > 0 ? "…\n" : ""}${content.slice(start, end)}${end < content.length ? "…" : ""}`;
+	return candidates.sort((a, b) => b.relevance - a.relevance || a.start - b.start);
+}
+
+function strongestSeparatedWindows(candidates: ExcerptWindow[], limit: number): ExcerptWindow[] {
+	const selected: ExcerptWindow[] = [];
+	for (const candidate of candidates) {
+		if (selected.length >= limit) break;
+		if (selected.every((item) => candidate.end <= item.start || candidate.start >= item.end)) {
+			selected.push(candidate);
+		}
+	}
+	return selected.sort((a, b) => a.start - b.start);
+}
+
+function excerpt(content: string, remaining: number, terms: string[]): string {
+	const length = Math.min(remaining, EXCERPT_MAX_CHARS);
+	if (content.length <= length) return content;
+	const windowCount = Math.max(1, Math.min(3, Math.floor(length / EXCERPT_WINDOW_CHARS)));
+	const windows = strongestSeparatedWindows(
+		candidateWindows(content, EXCERPT_WINDOW_CHARS, terms),
+		windowCount,
+	);
+	if (windows.length === 0) windows.push({ start: 0, end: length - 1, relevance: 0 });
+	return windows
+		.map(({ start, end }, index) => {
+			const prefix = start > 0 || index > 0 ? "…\n" : "";
+			const suffix = end < content.length ? "…" : "";
+			return `${prefix}${content.slice(start, end)}${suffix}`;
+		})
+		.join("\n");
 }
 
 function reviewStatus(input: {
@@ -242,6 +344,31 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 	return { documents, omitted };
 }
 
+function formattedTests(tests: ContextSource[]): string[] {
+	return tests.flatMap((test) => [
+		`test\t${test.path}`,
+		test.excerpt,
+		...(test.command ? [`test-command\t${test.command}`] : []),
+	]);
+}
+
+function formattedDocument(document: ContextDocument): string[] {
+	const lines = [`document\t${document.path}\t${document.review}`];
+	if (document.review === "changed-since-review") {
+		lines.push(
+			`action\t${document.path}\tReturned source excerpts are authoritative current behavior. Preserve every unrelated source value exactly. Before finishing, compare every claim in the final document with those sources, update every stale claim, and never copy a stale document value over a source value.`,
+		);
+		for (const source of document.sources) lines.push(`source\t${source.path}`, source.excerpt);
+		lines.push(...formattedTests(document.tests));
+		lines.push(`stale-document\t${document.path}`, document.excerpt);
+		return lines;
+	}
+	lines.push(document.excerpt);
+	for (const source of document.sources) lines.push(`source\t${source.path}`, source.excerpt);
+	lines.push(...formattedTests(document.tests));
+	return lines;
+}
+
 export function formatContext(result: ContextResult): string {
 	if (result.documents.length === 0)
 		return (
@@ -250,17 +377,7 @@ export function formatContext(result: ContextResult): string {
 				"action\tno-context\tInspect the relevant code, tests, and nearby documentation to find the canonical owner. If an owner exists, repair its source-of-truth summary, content, or review-deps so this request can find it. If no owner exists and the subject is durable behavior (a feature, policy, workflow, or architectural contract), create canonical documentation with a source-of-truth summary and review-deps for its implementation. A --path miss must gain an owning document. For a read-only task, report the gap and proposed document follow-up without editing. Skip one-off debugging details and transient implementation facts. Rerun this exact context request and continue until it returns the owner.",
 			].join("\n") + "\n"
 		);
-	const lines: string[] = [];
-	for (const document of result.documents) {
-		lines.push(`document\t${document.path}\t${document.review}`);
-		if (document.review === "changed-since-review")
-			lines.push(
-				`action\t${document.path}\tBefore finishing, compare every claim in the final document with the returned sources and correct every mismatch.`,
-			);
-		lines.push(document.excerpt);
-		for (const source of document.sources) lines.push(`source\t${source.path}`, source.excerpt);
-		for (const test of document.tests) lines.push(`test\t${test.path}`, test.excerpt);
-	}
+	const lines = result.documents.flatMap(formattedDocument);
 	if (result.omitted.length) lines.push(`omitted\t${result.omitted.join(",")}`);
 	return `${lines.join("\n\n")}\n`;
 }

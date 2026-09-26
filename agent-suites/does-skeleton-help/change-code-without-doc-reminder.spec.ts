@@ -62,7 +62,14 @@ test("Skeleton reliability and token efficiency when preserving staged billing w
 		report.efficiency.pairs,
 		"Most repetitions form measurable efficiency pairs",
 	).toBeGreaterThanOrEqual(Math.ceil(report.attempts * 0.6));
-	expect(report.efficiency.skeletonMedian!, "Skeleton uses fewer median tokens").toBeLessThan(
-		report.efficiency.baselineMedian!,
-	);
+	if (report.attempts > 1) {
+		expect(
+			report.efficiency.skeletonMedian!,
+			"Skeleton uses at least 35% fewer median tokens",
+		).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.65);
+	} else {
+		expect(report.efficiency.skeletonMedian!, "Skeleton uses fewer median tokens").toBeLessThan(
+			report.efficiency.baselineMedian!,
+		);
+	}
 });

@@ -81,6 +81,24 @@ describe("skeleton init", () => {
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			"Do not run Skeleton audits, validation, or review-proof commands",
 		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Never combine a topic with `--path`",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"answer immediately when the returned evidence fully answers a read-only request",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not rerun context or search, list, or read returned paths",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Inspect again only when that test fails",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"without progress narration between the edits and test",
+		);
 	});
 
 	it("skips an existing skeleton pre-commit hook on re-init", () => {

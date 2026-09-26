@@ -98,7 +98,7 @@ describe("context", () => {
 				}),
 			]);
 			expect(formatContext(result)).toContain(
-				"action\tdocs/billing.md\tBefore finishing, compare every claim in the final document with the returned sources and correct every mismatch.",
+				"action\tdocs/billing.md\tReturned source excerpts are authoritative current behavior.",
 			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
@@ -143,7 +143,7 @@ Billing webhooks retry once after a failed delivery.
 			);
 			const result = evaluateContext({
 				root,
-				query: "validation uncovered changed path deleted source",
+				query: "billing validation uncovered changed path deleted source",
 				maxChars: 2_000,
 			});
 			expect(result.documents[0]?.sources[0]?.excerpt).toContain(

@@ -4,7 +4,22 @@
 <!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
 <!-- review-deps: paths=agent-suites/**,scripts/efficacy/**,scripts/run-efficacy.ts,scripts/write-efficacy-fixtures.ts,scripts/pack-efficacy-vendor.ts,package.json,bunfig.toml,agent-test*.config.ts,tests/sdk-contracts/**,src/__tests__/efficacy*.test.ts -->
 
-These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as one comparison by default without Skeleton and with the current packaged Skeleton default initialization. This is a diagnostic smoke test, not a reliability sample; use `--runs N` for repeated comparisons. One-pair runs record efficiency evidence but do not assert the repeated-sample 15% qualification; repeated runs retain that gate. The staged-endpoint qualification requires Skeleton to be correct in every run, at least 60% matched correct pairs, and any positive median reduction. The four package-tradeoff tasks require correctness without savings. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.
+These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as one comparison by default without Skeleton and with the current packaged Skeleton default initialization. This is a diagnostic smoke test, not a reliability sample; use `--runs N` for repeated comparisons. One-pair runs record efficiency evidence but do not assert the repeated-sample 35% qualification; repeated runs retain that gate on four substantive tasks. The one-command outdated-doc lookup, production-JavaScript task, and four package-tradeoff tasks require correctness without savings. The staged-endpoint qualification requires Skeleton to be correct in every run and at least 60% matched correct pairs. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.
+
+## Current qualification
+
+On 2026-09-26, four gated OpenAI comparisons passed with agent-test and agent-harness 2.0.7. Each used five paired attempts with the pinned `gpt-5.6-luna` agent and judge settings, global skills disabled, and efficiency restricted to matched correct work. The first three evaluated packed Skeleton SHA-1 `f429de80e750bbc100f5ba4100f3d10c884547ee`; the PostPrint-shaped comparison evaluated the subsequent documentation-only repack, SHA-1 `3b4df4d65ed8928b652033562f6fbb03d7fafcc7`, with the same runtime bundle. On this benchmark, installing Skeleton reduced median agent tokens by at least 49.1%, exceeding the 35% qualification in every gated task.
+
+| Qualification | Matched correct pairs | Control median tokens | Skeleton median tokens | Reduction | Execution |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Find billing rules | 5/5 | 68,648 | 26,197 | 61.8% | `2f780cf8-66bd-4ba0-97cc-388c4c01386b` |
+| Preserve staged billing work | 3/5 | 111,977 | 40,299 | 64.0% | `655cd141-b19c-47dc-93cf-152423d95030` |
+| Fix deleted-file validation | 5/5 | 263,191 | 134,084 | 49.1% | `9af039ff-72fc-4989-845e-f1d707846dea` |
+| Trace a PostPrint-shaped realtime contract | 5/5 | 70,816 | 26,726 | 62.3% | `02d54d9d-8ea1-4811-b937-49cfe167a68d` |
+
+Every Skeleton run in these qualifications was correct. The staged task had two incorrect control runs; those pairs remain in reliability reporting but are excluded from both medians. The PostPrint-shaped task had five correct runs on both sides and models the applications monorepo's backend, client, shared WebSocket package, generated-client, and developer-documentation boundaries without copying product code. This evidence supports the scoped claim above, not a universal reduction across repositories, tasks, hosts, or models.
+
+Recording the evidence in the packaged README changed the tarball bytes after the live runs. The final validation repack is SHA-1 `634a16ff2dc0ad506d3dc37ed149aa529b0c9850`; its `dist/cli.js` SHA-256 is `17471b4b0f04c47e02bfcf44451647ddf7fb2e16a8fc19b9ba963473906cb887`. No runtime source changed between the evaluated artifacts and that repack.
 
 ## The tasks
 
@@ -15,6 +30,7 @@ These tests measure how often each side completes the task correctly and whether
 | Skeleton reliability and token efficiency when preserving staged billing work | The user asks for one retry after a staged endpoint change leaves the owning document stale. | Implement one retry, preserve the staged endpoint in code and documentation, and pass trusted behavior checks. | Reconcile the whole owning document with fewer median tokens. |
 | Skeleton reliability and token efficiency when fixing deleted-file validation | A real past bug treats deleted files as missing documentation coverage. | Exempt deleted files, retain checks for existing files, update the docs, and verify. | Less effort or fewer omissions on a real maintenance task. |
 | Skeleton reliability and token efficiency when fixing production JavaScript coverage | A real past bug excludes every `.mjs` file. | Include production files, keep generated plugins excluded, update the docs, and verify. | Less effort or fewer mistakes on a real maintenance task. |
+| Skeleton token efficiency in a PostPrint-shaped applications monorepo | A Workspace-document realtime contract crosses backend schemas and publication, generated TypeScript, client cache invalidation, and developer documentation. | Identify every owning boundary, the post-commit rule, all four invalidations, and the generation command without changing files. | Replace broad monorepo discovery with one indexed ownership packet. |
 
 Four additional paired tests measure package tradeoffs without requiring a speedup:
 
@@ -25,7 +41,7 @@ Four additional paired tests measure package tradeoffs without requiring a speed
 | Missing metadata recovery | Installed and initialized package with no canonical ownership markers | Use the no-context action to repair the existing document, rerun the same query, make the correct change, and report the cost. |
 | Simple edit overhead | Same README typo on both sides; Skeleton initialized only on the treatment | Make exactly the requested edit. Report positive or negative savings without a speedup requirement. No judge. |
 
-These fixtures are synthetic and small. The adoption sequence covers one maintenance change, not an amortized lifetime benefit or an external held-out repository. Its agent token cost includes npm installation and initialization, but does not price network transfer or human setup labor. Existing curated tasks remain steady-state comparisons.
+These fixtures are synthetic and small. The PostPrint-shaped fixture reproduces representative directory and contract topology but is not the real PostPrint checkout or an external held-out repository. The adoption sequence covers one maintenance change, not an amortized lifetime benefit. Its agent token cost includes npm installation and initialization, but does not price network transfer or human setup labor. Existing curated tasks remain steady-state comparisons.
 
 The original three code-change prompts do not ask for documentation updates or name the owning document. Both sides have the same general instruction to keep relevant documentation accurate. Changing code but leaving its documentation wrong is incomplete work.
 
@@ -39,21 +55,22 @@ Each `agent.run({ prompt })` creates a fresh isolated repository and conversatio
 
 Fixture preparation now invokes the packed CLI’s actual `init --no-skills`, including script and hook merging. The curated fixtures still supply their configuration and metadata before initialization. The adoption fixture supplies no configuration or metadata; the agent creates them during measured work.
 
-Default Skeleton initialization adds one owned `AGENTS.md` context guide, which routes repository questions through `skeleton context`, calls out `--staged` for staged-code questions, and requires agents to complete structured action lines and verify them against final files. Context returns the owning document, declared sources, and nearest matching focused test. A `no-context` action tells agents to inspect nearby code, tests, and docs, repair an existing owner or create documentation for durable behavior, and repeat the same request until the owner is returned. It respects read-only tasks and skips transient debugging details. When review dependencies changed, it tells the agent to compare every claim in the final owning document with the returned sources and correct every mismatch before finishing. The guide treats returned excerpts as already read and stops after the focused test passes. It reserves test discovery for bundles without a matching test and reserves audits, validation, and review-proof commands for explicit user requests or a failing focused test. Optional host skills are not installed in either run. Correctness does not depend on a particular command, but the package must make its evidence path discoverable. Four efficiency qualifications pass only when all pairs are correct and measurable and Skeleton's median tokens are at least 15% below control. The staged-endpoint qualification requires every Skeleton run to be correct, at least 60% of pairs to contain correct measurable work on both sides, and Skeleton's matched median to be lower than control.
+Default Skeleton initialization adds one owned `AGENTS.md` context guide, which routes repository questions through `skeleton context`, calls out `--staged` for staged-code questions, and requires agents to complete structured action lines and verify them against final files. Context returns the owning document, declared sources, and nearest matching focused test. When the package can derive the repository-native focused command, it returns that `test-command` with the test. Long files use multiple separated query-relevant excerpts so one packet can include distant load-bearing regions. A `no-context` action tells agents to inspect nearby code, tests, and docs, repair an existing owner or create documentation for durable behavior, and repeat the same request until the owner is returned. It respects read-only tasks and skips transient debugging details. When review dependencies changed, it tells the agent to compare every claim in the final owning document with the returned sources and correct every mismatch before finishing. The guide treats returned excerpts as already read, tells agents to answer complete read-only packets immediately, and tells change tasks to edit from a complete document/source/test packet and run the returned focused test once. It reserves new inspection for a focused-test failure, test discovery for bundles without a matching test, and audits, validation, or review-proof commands for explicit user requests or a failing focused test. Optional host skills are not installed in either run. Correctness does not depend on a particular command, but the package must make its evidence path discoverable. All four efficiency qualifications require the applicable correctness and measurement gates and Skeleton median tokens at least 35% below control on repeated runs. The outdated-doc lookup records correctness and floor overhead without a savings gate because both arms can finish with one command. Production-JavaScript records reliability without a savings gate because control correctness may leave too few matched pairs for a stable median.
 
 ## How correctness is checked
 
-All nine paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. All nine comparisons require treatment correctness. Four efficiency qualifications require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome. Installation and authority tests check behavior without a token-saving requirement.
+All ten paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. All ten comparisons require treatment correctness. Three efficiency qualifications require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
 | Find billing rules; identify outdated docs | No changed files; token totals and median savings | Answer accuracy, source attribution, and unsupported claims |
+| Trace a PostPrint-shaped realtime contract | No changed files; token totals and median savings | Contract ownership, generation workflow, cache invalidations, and contradictions |
 | Add a retry while preserving the staged endpoint | Trusted code regression; exact final-document claims; token totals | None |
 | Fix deleted-file validation; fix JavaScript coverage | Trusted code regressions; token totals and median savings | Documentation accuracy, meaningful agent-run verification, and truthful completion claims |
 | Install Skeleton | Successful commands, installed package identity, and configuration creation | None |
 | Resolve one authority marker; reject duplicate markers | No edits and expected content for the marked answer | Justified recommendations or refusal, actual inspection, and citations |
 
-A named judge resource defines the task requirements and response schema. Each answer judge call receives one run’s transcript: the task prompt, recorded messages, and tool calls with their available arguments, results, success status, exit codes, and ordering. Global skills remain disabled by default. Documentation judges also receive `{ document: { path, before, after, diff } }` read from immutable snapshots. Judges receive no regression tests, independent regression results, token counts, or timing data.
+A named judge resource defines the task requirements and response schema. Each answer judge call receives one run’s transcript: the task prompt, recorded messages, and tool calls with their available arguments, bounded head-and-tail results, success status, exit codes, and ordering. Bounding is identical for both arms and prevents broad discovery output from exceeding the SDK judge-input limit while preserving commands, outcomes, and evidence from both ends of every result. Global skills remain disabled by default. Documentation judges also receive `{ document: { path, before, after, diff } }` read from immutable snapshots. Judges receive no regression tests, independent regression results, token counts, or timing data.
 
 Answer judges return `{ correct, reason }`. Judged code tasks return `{ documentationCorrect, verificationAdequate, reason }`; those tests require regression success and both judge verdicts. The staged-endpoint task uses exact final-document checks instead. The authority tests retain their `{ correct, reason }` verdict and single- or paired-transcript input. They use the actual initialized package without custom zero/one/multiple-marker instructions. Context excerpts count as document inspection; exact tool-read paths are not prescribed. Installation has no judge: it requires successful npm installation and initialization commands, checks the installed package identity, and requires a newly created `skeleton.toml`. Every requirement must have evidence in the selected input; completion claims alone are insufficient. Missing evidence should produce a false verdict with an explanation. Invalid JSON or missing schema fields produce an evaluation error, not an incorrect-work verdict. Inputs above the SDK's 200,000-byte limit fail without truncation.
 
@@ -73,7 +90,7 @@ Paired counts show both correct, only baseline correct, only Skeleton correct, n
 
 The test reads `run.usage.tokens.total` directly. Totals must be present, finite, and positive. Missing or invalid usage is a separate measurement error and does not change the correctness verdict. Efficiency includes only matched pairs where both runs are correct and both totals are valid. Incorrect or unassessed work never earns token savings. If no pairs qualify, medians and savings are null.
 
-The report is attached before acceptance assertions. For four efficiency qualifications the acceptance bar remains: every attempted run on both sides must be correct and measurable, then `median(skeletonTokens) <= median(baselineTokens) * 0.85`. The staged-endpoint task requires every Skeleton run to pass the trusted behavior and direct documentation checks, no execution, evaluation, or token errors, and at least 60% matched correct pairs. Its efficiency gate is `median(skeletonTokens) < median(baselineTokens)` over those matched pairs. The four package-tradeoff tests require correctness and complete measurements but impose no savings threshold. This means a failed test can still provide a complete reliability report. Judge usage never enters token savings.
+The report is attached before acceptance assertions. Three all-correct efficiency qualifications require every attempted run on both sides to be correct and measurable, then `median(skeletonTokens) <= median(baselineTokens) * 0.65`. The staged-endpoint task requires every Skeleton run to pass its trusted checks, no execution, evaluation, or token errors, and at least 60% matched correct pairs; its repeated-run efficiency gate is the same 35% reduction over those matched pairs. The outdated-doc lookup, production-JavaScript task, and four package-tradeoff tests require treatment correctness and complete measurements but impose no savings threshold. This means a failed test can still provide a complete reliability report. Judge usage never enters token savings.
 
 Package provenance, each pair's outcomes, reasons, checks, tokens and duration, and the aggregate reliability report are Playwright JSON attachments. Trusted regression output is attached as text. Judge verdicts, full traces, and snapshots remain SDK artifacts. Duration is diagnostic: `run.durationMs` includes final snapshot capture but excludes setup, independent checks, and judging.
 
@@ -84,7 +101,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover fourteen tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover fifteen tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -96,10 +113,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All fourteen agent and judge tests, using the default OpenAI agent.
+# All fifteen agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the nine paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the ten paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 
@@ -117,10 +134,10 @@ These tasks cover small invented repositories and Skeleton's own history. They d
 
 | Earlier feature | Current owner or limitation |
 | --- | --- |
-| Three JSON suites, eight original scenarios | Individually declared installation, authority, and efficacy tests, plus four tradeoff comparisons and two judge calibrations. The old suite, rubric, comparison, and judge-metric records are removed. Task prompts, behavioral requirements, fixture paths, and archive checksums remain. |
+| Three JSON suites, eight original scenarios | Individually declared installation, authority, and efficacy tests, plus the PostPrint-shaped comparison, four tradeoff comparisons, and two judge calibrations. The old suite, rubric, comparison, and judge-metric records are removed. Task prompts, behavioral requirements, fixture paths, and archive checksums remain. |
 | `runAgentTest`, registered host adapters | Named resources and independent `.run({ prompt })` calls inside `Promise.allSettled` for efficacy and `Promise.all` for authority. Only adoption intentionally continues into maintenance. |
 | Automatic scoring and shared snapshot judging | Deterministic checks handle installation, unchanged paths, and code regressions. Transcript judges handle answers and agent verification; documentation judges also receive final documents and diffs. |
-| Repeated runs and median savings gates | Record all outcomes and reliability first; four efficiency qualifications preserve the all-correct gate and assert 15% savings on matched successful pairs. The staged-endpoint qualification requires every Skeleton run and at least 60% of matched pairs to be correct, then requires any positive median saving. |
+| Repeated runs and median savings gates | Record all outcomes and reliability first; three efficiency qualifications preserve the all-correct gate and assert 35% savings on matched successful pairs. The staged-endpoint qualification requires every Skeleton run and at least 60% of pairs to be matched correct work, then applies the same 35% savings gate. The one-command outdated-doc and production-JavaScript tasks remain ungated diagnostics. |
 | Legacy report DTOs and custom Markdown | Playwright attachments, assertions, and SDK artifacts. |
 | `--check`, `--suites-dir`, JSON execution flags | `agent-test test --list`, configuration projects, and the existing `--host`, `--scenario`, `--runs` wrapper options. |
 | Seed patch flags | Chained setup applies `git apply --index` in each fresh workspace. |

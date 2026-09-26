@@ -5,29 +5,30 @@
 			"reviewedAt": "2026-09-26",
 			"documentHash": "sha256:24511191cf1522b1bb57314055394b325c5150755c7abdfce2f1586d82aad77e",
 			"reviewDependencies": {
-				"package.json": "sha256:be1f936b4c4d1b13641c437d1a878b65ffac66cb1af3c6f10b53795c59049734",
+				"package.json": "sha256:7e0388a3c203640303efab85e1290917d2cae3fc78ac4276f01bef77a78e9d48",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba"
 			}
 		},
 		"README.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:fdf4d31e584281bcd577651607260d3ca2f92a34a5785dd53efd00b2a384717f",
+			"documentHash": "sha256:482e1e12a61986901b0b4264c1494d041f412e83d636d799376527a832eec215",
 			"reviewDependencies": {
-				"package.json": "sha256:be1f936b4c4d1b13641c437d1a878b65ffac66cb1af3c6f10b53795c59049734",
+				"package.json": "sha256:7e0388a3c203640303efab85e1290917d2cae3fc78ac4276f01bef77a78e9d48",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
-				"src/context.ts": "sha256:46d59189f9855e44c3bd38d8498c3522b9e8f972b997604c9e9513cb493c2eff"
+				"src/context.ts": "sha256:27262abd5f12bf3183dcc432ee7ce581f3b1b1323061549fa7fed2c9311edb56"
 			}
 		},
 		"agent-suites/README.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:d01e0815401e6c376bbc1ece7b94e02d3386a8ea3bbed85bcc0a46ffbc566cbd",
+			"documentHash": "sha256:9d683b2e5e5f1dd3176c201dd8de89972a181d3ab806a9e79b9ca9a5c2ede355",
 			"reviewDependencies": {
 				"agent-suites/does-skeleton-help/adoption-maintenance.spec.ts": "sha256:d386fa2dee1fdceebe2b70c9e4543b67d2da73abfc470ac284d13f529f8c9305",
-				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:9975a98b3cb80fe5261e57fbfc509f01ee3e54013e7524a617da73bdffccdc15",
-				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:49352fa099b33e8cc7fd993ad62f565e8a678de265d381947908adbc01f016dc",
-				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:bbc0b7b4913e7a64273e081307f5505fef8d172794cdf2574e6f568e8b2b4842",
-				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:f1e2eba505f7f0eebf71a8429ef7a2072f2c1e964183fad2b4cbb56fd8e28e8f",
-				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:5539e9edc363323de23c0ebcb3356b041d4db0aea5d6e7d53b5801aff22988df",
+				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:99b16cf8efb292e115f4b8f536e69c2a7da87e6d8b7a7721a1b1419e0867eac5",
+				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:b41f41df0648d6f8501bdc4009a32a4c15c6dae1c5faff34873de8fa7f2f8a78",
+				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:b98a118dfd2a6e69936a6bce5c85a2d3c2f5d8de64e15dd7a24d0570ad233a43",
+				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:8d9fbb40c140e1a6c0d72589eac5105096f6df04bdef828befde2da0314d2cb7",
+				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:66b4e9722cefab1080fc442ae412e9121d5e637950fdef1f5df833c6e9b52d19",
+				"agent-suites/does-skeleton-help/postprint-applications-realtime-context.spec.ts": "sha256:5a9c86fcaa2f0c11f7bee2fe2e661cb9ee29a590ce004cf7f22e76c61a1113a1",
 				"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts": "sha256:2e31da3f1c6de2459b6802d028635037ce6b4629353d206d2e468d315ba658fd",
 				"agent-suites/does-skeleton-help/recover-truncated-context.spec.ts": "sha256:712001fed17d1a1d0cda338b3c2aea37657ceb0037559f583d110954e5709a63",
 				"agent-suites/does-skeleton-help/simple-edit-overhead.spec.ts": "sha256:8f3ded2b27c2e39dfc0369a312debe577dbf154f1584353690a2c3c6a3578e2c",
@@ -39,7 +40,7 @@
 				"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
 				"scripts/efficacy/history.ts": "sha256:90883ad542a590d8f589b231be4d7301bc08839f289c86561b0dc605c1cd8530",
-				"scripts/efficacy/judge.ts": "sha256:ae7fc8641311cd563c70581c107cac564ed9ebbe900cf6626e7407976bfcec02",
+				"scripts/efficacy/judge.ts": "sha256:850c647be015593f520336a8412e75a7554bc92a2ed350e93c6a8839dedede39",
 				"scripts/efficacy/measurements.ts": "sha256:2a53e6bf5bba305c811000e8f2b53b93de43ca3b049dbe869a5d57d9d5a11da8",
 				"scripts/efficacy/median.ts": "sha256:adccca28d518998ce66c664bf6bb63de3e9d406204aab9f55e983ec3cdde2d63",
 				"scripts/efficacy/order-checks.ts": "sha256:362859cda77eb510aeba8f99ea8c163c01b4dfaacadc03850f267311e0f7d7be",
@@ -126,14 +127,15 @@
 		},
 		"docs/developer/efficacy.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:bc8679be3a459a55b9fb4af3e1671162c7dff70b12b6b869a1dc723352f097d2",
+			"documentHash": "sha256:5242aa81f3dc2e76848c3a58c32efe13a114767c0893360687b4c5a262ae9dad",
 			"reviewDependencies": {
 				"agent-suites/does-skeleton-help/adoption-maintenance.spec.ts": "sha256:d386fa2dee1fdceebe2b70c9e4543b67d2da73abfc470ac284d13f529f8c9305",
-				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:9975a98b3cb80fe5261e57fbfc509f01ee3e54013e7524a617da73bdffccdc15",
-				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:49352fa099b33e8cc7fd993ad62f565e8a678de265d381947908adbc01f016dc",
-				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:bbc0b7b4913e7a64273e081307f5505fef8d172794cdf2574e6f568e8b2b4842",
-				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:f1e2eba505f7f0eebf71a8429ef7a2072f2c1e964183fad2b4cbb56fd8e28e8f",
-				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:5539e9edc363323de23c0ebcb3356b041d4db0aea5d6e7d53b5801aff22988df",
+				"agent-suites/does-skeleton-help/change-code-without-doc-reminder.spec.ts": "sha256:99b16cf8efb292e115f4b8f536e69c2a7da87e6d8b7a7721a1b1419e0867eac5",
+				"agent-suites/does-skeleton-help/find-billing-rules.spec.ts": "sha256:b41f41df0648d6f8501bdc4009a32a4c15c6dae1c5faff34873de8fa7f2f8a78",
+				"agent-suites/does-skeleton-help/fix-deleted-file-validation.spec.ts": "sha256:b98a118dfd2a6e69936a6bce5c85a2d3c2f5d8de64e15dd7a24d0570ad233a43",
+				"agent-suites/does-skeleton-help/fix-production-javascript-coverage.spec.ts": "sha256:8d9fbb40c140e1a6c0d72589eac5105096f6df04bdef828befde2da0314d2cb7",
+				"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts": "sha256:66b4e9722cefab1080fc442ae412e9121d5e637950fdef1f5df833c6e9b52d19",
+				"agent-suites/does-skeleton-help/postprint-applications-realtime-context.spec.ts": "sha256:5a9c86fcaa2f0c11f7bee2fe2e661cb9ee29a590ce004cf7f22e76c61a1113a1",
 				"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts": "sha256:2e31da3f1c6de2459b6802d028635037ce6b4629353d206d2e468d315ba658fd",
 				"agent-suites/does-skeleton-help/recover-truncated-context.spec.ts": "sha256:712001fed17d1a1d0cda338b3c2aea37657ceb0037559f583d110954e5709a63",
 				"agent-suites/does-skeleton-help/simple-edit-overhead.spec.ts": "sha256:8f3ded2b27c2e39dfc0369a312debe577dbf154f1584353690a2c3c6a3578e2c",
@@ -146,19 +148,19 @@
 				"agent-suites/history/provenance.json": "sha256:01e913af2b57d39a9a9646a72ea21be17257a98714789ae858db942f7a9ba9be",
 				"agent-suites/judge-calibration/documentation.spec.ts": "sha256:70e48bee9721891fbdef23ab5e392696c30c7caf52aa88a85769f5da4d2261c5",
 				"agent-suites/product-smoke/product.spec.ts": "sha256:9a33c65ffb04141ec865d3350602f2172dddf8b70ea742f1547f1c0c789d2c01",
-				"agent-suites/README.md": "sha256:d01e0815401e6c376bbc1ece7b94e02d3386a8ea3bbed85bcc0a46ffbc566cbd",
+				"agent-suites/README.md": "sha256:9d683b2e5e5f1dd3176c201dd8de89972a181d3ab806a9e79b9ca9a5c2ede355",
 				"agent-suites/seeds/billing-v2.patch": "sha256:0b199eccb6d0f0b9e547dc5c45899813350ec0f3f91b2b1f72abba531960f6a1",
 				"agent-suites/source-of-truth-conflict/authority.spec.ts": "sha256:41493db41b339fab23eed5813492a8e3d7b07944f7abaa32205d390cdbf21d5b",
 				"agent-test.config.ts": "sha256:0a005831ca62fbcf7c7f84b1247ae33584fa76b035e6b455aea9cda711221efa",
 				"agent-test.matrix.config.ts": "sha256:78d57129fcb7e280e8f3cb98635c93d131bd6a777d4b897ba9b16fc9330316b9",
 				"agent-test.offline.config.ts": "sha256:697c9dd1d21a1a40f137d28471a98f43b857ad2de30656d5bf8c51904f1709de",
 				"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
-				"package.json": "sha256:be1f936b4c4d1b13641c437d1a878b65ffac66cb1af3c6f10b53795c59049734",
+				"package.json": "sha256:7e0388a3c203640303efab85e1290917d2cae3fc78ac4276f01bef77a78e9d48",
 				"scripts/efficacy/adoption.ts": "sha256:29119a4a878aef74bc1f66239c214cc38bd42415c65d1b579dbcfd1b4a849950",
 				"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
 				"scripts/efficacy/history.ts": "sha256:90883ad542a590d8f589b231be4d7301bc08839f289c86561b0dc605c1cd8530",
-				"scripts/efficacy/judge.ts": "sha256:ae7fc8641311cd563c70581c107cac564ed9ebbe900cf6626e7407976bfcec02",
+				"scripts/efficacy/judge.ts": "sha256:850c647be015593f520336a8412e75a7554bc92a2ed350e93c6a8839dedede39",
 				"scripts/efficacy/measurements.ts": "sha256:2a53e6bf5bba305c811000e8f2b53b93de43ca3b049dbe869a5d57d9d5a11da8",
 				"scripts/efficacy/median.ts": "sha256:adccca28d518998ce66c664bf6bb63de3e9d406204aab9f55e983ec3cdde2d63",
 				"scripts/efficacy/order-checks.ts": "sha256:362859cda77eb510aeba8f99ea8c163c01b4dfaacadc03850f267311e0f7d7be",
@@ -167,11 +169,11 @@
 				"scripts/efficacy/workspace.ts": "sha256:a268805cea3b407d26705146dfdb12118a7d84239a3c32bed1bfd6f6c4b4fd86",
 				"scripts/efficacy/write-history.ts": "sha256:ec5c0eb1627a6e5d243119b71680087cc76a94d570ba8570b5fc65ec79063147",
 				"scripts/efficacy/write-tradeoffs.ts": "sha256:ba2ac838720619a0d7fbaec4e1b5831951e70c216cf8d1d731aafca42dbf3349",
-				"scripts/pack-efficacy-vendor.ts": "sha256:77e6c0add768d686e2c9adb67c5a5060ecf134c6c7e772a8cab89bf3e76a2727",
+				"scripts/pack-efficacy-vendor.ts": "sha256:d14e226e243bf4a186f2dd276952fa7341a15b5d0169d01d42daf9a12e849cfc",
 				"scripts/run-efficacy.ts": "sha256:bb5ab811c5248298c028a2680c820df5dd018d08b55f464fa1a8c8ea3eb367a3",
-				"scripts/write-efficacy-fixtures.ts": "sha256:6895bd336a757f325c71d4128f35b91dad4bd03f5f082ce4b2b110e354a46d50",
-				"src/__tests__/efficacy-reliability.test.ts": "sha256:331d8766d4da7668854d03b17fc98d6d8a7149c29c3fa9c75ff2e48dfd5688a1",
-				"src/__tests__/efficacy-suites.test.ts": "sha256:c1f59df4752208476e4f1e3f68c9e193e57ef29e2c70b9e5b1bee1ad03e1b9c8",
+				"scripts/write-efficacy-fixtures.ts": "sha256:f6510a2327054a27292f425804f79c3cb3d04c892277ae69318bd98a11ba414e",
+				"src/__tests__/efficacy-reliability.test.ts": "sha256:7fd245196da5d19ff0f6c0c3ebcf965db4feb607974d3ba0d43ab2a32565f76e",
+				"src/__tests__/efficacy-suites.test.ts": "sha256:2fd69c172068d6ad73b61774a77f19b64642f056b5a7dd205179a434d4ecb220",
 				"src/__tests__/efficacy-tradeoffs.test.ts": "sha256:b19ac8e67f7457883b3878065562daf1f8f33cdcaa2c51e025b32fdd36dbbf16",
 				"tests/sdk-contracts/adapter.mjs": "sha256:84a5f5c53964e513ca65af59a25084ff1d9dd04de3de6e0f058eee7c9e379327",
 				"tests/sdk-contracts/migration.spec.ts": "sha256:c1942d5e21bd0c1d948b75e956615f9fc650a2e85d2f54372f45f02810d2f765"
@@ -179,11 +181,11 @@
 		},
 		"docs/developer/getting-started.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:d205232d488312a8a79973fd05ff6693b16834ad8a6cdb57886493847e743647",
+			"documentHash": "sha256:a945ee94b293236eb9014af4addcef17ff7f7a1e04438a5e50212dff16cfe0e4",
 			"reviewDependencies": {
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
-				"src/context.ts": "sha256:46d59189f9855e44c3bd38d8498c3522b9e8f972b997604c9e9513cb493c2eff",
-				"src/init/init.ts": "sha256:caea793b38b93529ea0c5139c6b507574f4799d3cadcc2c63e4f5b69e06163c1",
+				"src/context.ts": "sha256:27262abd5f12bf3183dcc432ee7ce581f3b1b1323061549fa7fed2c9311edb56",
+				"src/init/init.ts": "sha256:87a2f4555306ba6a87b2a60d71c0370b3ca457b354683f47e6686007fe572ac8",
 				"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
 				"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
 				"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
@@ -193,9 +195,9 @@
 		},
 		"docs/developer/install.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:b663b917257faa7ef9212c4aa9dc49346e9d4b0218a2e96cd3ba8a8a32e58aa8",
+			"documentHash": "sha256:b8218ea04f6c87877bfbfdbddc028e9763c104b328a30d29b09aa817978f0ead",
 			"reviewDependencies": {
-				"src/init/init.ts": "sha256:caea793b38b93529ea0c5139c6b507574f4799d3cadcc2c63e4f5b69e06163c1",
+				"src/init/init.ts": "sha256:87a2f4555306ba6a87b2a60d71c0370b3ca457b354683f47e6686007fe572ac8",
 				"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
 				"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
 				"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
@@ -238,8 +240,8 @@
 			"reviewedAt": "2026-09-26",
 			"documentHash": "sha256:dcc6ea1f319c7a79409e2d37c19340fe68e505c258bce0c46f29e05ec85b5f88",
 			"reviewDependencies": {
-				"docs/developer/getting-started.md": "sha256:d205232d488312a8a79973fd05ff6693b16834ad8a6cdb57886493847e743647",
-				"docs/developer/install.md": "sha256:b663b917257faa7ef9212c4aa9dc49346e9d4b0218a2e96cd3ba8a8a32e58aa8",
+				"docs/developer/getting-started.md": "sha256:a945ee94b293236eb9014af4addcef17ff7f7a1e04438a5e50212dff16cfe0e4",
+				"docs/developer/install.md": "sha256:b8218ea04f6c87877bfbfdbddc028e9763c104b328a30d29b09aa817978f0ead",
 				"docs/developer/validation.md": "sha256:d6e958857738682a9cf84ce96677f8a8301cc6850ec4fd680acbb9acf0dfeb93"
 			}
 		},
@@ -250,12 +252,12 @@
 		},
 		"skeleton/references/operations.md": {
 			"reviewedAt": "2026-09-26",
-			"documentHash": "sha256:d974a6db8434774ee7aa1289f20137de07ec0b8055d1b017543eaced95214585",
+			"documentHash": "sha256:bb4baf075fde1ef31efdcb9f7a7c372a44666b7b1f94105fa9925bf0f2d25010",
 			"reviewDependencies": {
-				"package.json": "sha256:be1f936b4c4d1b13641c437d1a878b65ffac66cb1af3c6f10b53795c59049734",
+				"package.json": "sha256:7e0388a3c203640303efab85e1290917d2cae3fc78ac4276f01bef77a78e9d48",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
-				"src/context.ts": "sha256:46d59189f9855e44c3bd38d8498c3522b9e8f972b997604c9e9513cb493c2eff",
-				"src/init/init.ts": "sha256:caea793b38b93529ea0c5139c6b507574f4799d3cadcc2c63e4f5b69e06163c1",
+				"src/context.ts": "sha256:27262abd5f12bf3183dcc432ee7ce581f3b1b1323061549fa7fed2c9311edb56",
+				"src/init/init.ts": "sha256:87a2f4555306ba6a87b2a60d71c0370b3ca457b354683f47e6686007fe572ac8",
 				"src/init/skills-args.ts": "sha256:6f58361b2186e50d270e36c16a5c6d40a029503a25cfa04f0503cf34d985dc13"
 			}
 		}

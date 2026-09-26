@@ -65,7 +65,7 @@ Flag details: [install](docs/developer/install.md).
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
-For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. It is read-only and reports whether recorded review evidence still matches:
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. It is read-only and reports whether recorded review evidence still matches:
 
 ```bash
 skeleton context "billing webhook retry"
@@ -159,7 +159,7 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 
 ## Agent efficacy
 
-Four efficiency qualifications ask whether agents complete the same work correctly with at least 15% fewer median tokens when Skeleton is available. A fifth requires any positive median saving while Skeleton preserves existing staged work in an owning document. Four additional comparisons measure adoption, recovery, and simple-task overhead without requiring savings. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. Each paired result uses five repetitions and remains evidence, not a universal reliability claim.
+Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Two additional core tasks measure correctness and reliability without a savings gate, and four package-tradeoff comparisons measure adoption, recovery, and simple-task overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
 
 Method: [Agent efficacy](docs/developer/efficacy.md).
 

@@ -18,6 +18,7 @@ const FIXTURES = join(ROOT, "tests/fixtures/efficacy");
 const TREATMENTS = [
 	"drift/skeleton",
 	"efficiency/package-head",
+	"postprint-applications/package-head",
 	"conflict/unmarked",
 	"conflict/single-marker",
 	"conflict/duplicate-markers",

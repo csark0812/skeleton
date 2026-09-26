@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +18,10 @@ function makeRoot(): string {
 	writeFileSync(
 		join(root, "skeleton.toml"),
 		'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
+	);
+	writeFileSync(
+		join(root, "package.json"),
+		'{"private":true,"scripts":{"test":"bun test ./src"}}\n',
 	);
 	writeFileSync(join(root, "src/billing.ts"), "export const RETRIES = 1;\n");
 	writeFileSync(
@@ -50,6 +55,7 @@ describe("context CLI", () => {
 		expect(result.stdout).toContain("document\tdocs/billing.md\tunreviewed");
 		expect(result.stdout).toContain("source\tsrc/billing.ts");
 		expect(result.stdout).toContain("test\ttests/billing.test.ts");
+		expect(result.stdout).toContain("test-command\tbun test tests/billing.test.ts");
 	});
 
 	it("rejects a query and path together", () => {
@@ -80,5 +86,78 @@ describe("context CLI", () => {
 		expect(result.status).toBe(0);
 		expect(result.stdout).toContain("document\tdocs/billing.md\tunreviewed");
 		expect(result.stdout).not.toContain("action\tno-context");
+	});
+
+	it("makes changed source values authoritative over stale document claims", () => {
+		const root = makeRoot();
+		const document =
+			"<!-- source-of-truth: Billing retry policy -->\n\n<!-- review-deps: paths=src/billing.ts -->\n\nBilling retries once.\n";
+		mkdirSync(join(root, ".skeleton"), { recursive: true });
+		writeFileSync(
+			join(root, ".skeleton/review-lock.json"),
+			JSON.stringify({
+				documents: {
+					"docs/billing.md": {
+						documentHash: `sha256:${createHash("sha256").update(document).digest("hex")}`,
+						reviewDependencies: { "src/billing.ts": "sha256:stale" },
+					},
+				},
+			}),
+		);
+		const result = run(root, ["billing retry"]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain(
+			"action\tdocs/billing.md\tReturned source excerpts are authoritative",
+		);
+		expect(result.stdout).toContain("never copy a stale document value over a source value");
+		expect(result.stdout).toContain("stale-document\tdocs/billing.md");
+		expect(result.stdout.indexOf("source\tsrc/billing.ts")).toBeLessThan(
+			result.stdout.indexOf("stale-document\tdocs/billing.md"),
+		);
+	});
+
+	it("returns separated relevant source regions in one context packet", () => {
+		const root = makeRoot();
+		writeFileSync(
+			join(root, "docs/billing.md"),
+			"<!-- source-of-truth: Coverage candidate and uncovered diagnostics -->\n\n<!-- review-deps: paths=src/billing.ts -->\n",
+		);
+		writeFileSync(
+			join(root, "src/billing.ts"),
+			[
+				"export function coverageCandidateCount(paths: string[]) {",
+				"\treturn paths.filter((path) => path.endsWith('.ts')).length;",
+				"}",
+				...Array.from({ length: 240 }, (_, index) => `// unrelated implementation ${index}`),
+				"export function uncoveredChangedPathDiagnostics(paths: string[]) {",
+				"\treturn paths.filter((path) => path.includes('uncovered'));",
+				"}",
+			].join("\n"),
+		);
+		const result = run(root, ["coverage candidate count uncovered changed path diagnostics"]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("coverageCandidateCount");
+		expect(result.stdout).toContain("uncoveredChangedPathDiagnostics");
+	});
+
+	it("prefers the test named for the owned source over a broad integration test", () => {
+		const root = makeRoot();
+		writeFileSync(join(root, "src/review-coverage.ts"), "export const coverage = true;\n");
+		writeFileSync(
+			join(root, "docs/billing.md"),
+			"<!-- source-of-truth: Review coverage policy -->\n\n<!-- review-deps: paths=src/review-coverage.ts -->\n",
+		);
+		writeFileSync(
+			join(root, "tests/validate.test.ts"),
+			"// review coverage review coverage review coverage review coverage\n",
+		);
+		writeFileSync(
+			join(root, "tests/review-coverage.test.ts"),
+			'import { coverage } from "../src/review-coverage";\ntest("coverage", () => expect(coverage).toBe(true));\n',
+		);
+		const result = run(root, ["review coverage"]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toContain("test\ttests/review-coverage.test.ts");
+		expect(result.stdout).not.toContain("test\ttests/validate.test.ts");
 	});
 });
