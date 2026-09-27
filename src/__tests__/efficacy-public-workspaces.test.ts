@@ -73,6 +73,7 @@ describe("public qualification workspace preparation", () => {
 				"node_modules",
 				"__pycache__",
 				".pytest_cache",
+				".swc",
 			])
 				mkdirSync(join(source, excluded));
 			writeFileSync(join(source, "node_modules", "dependency.js"), "export default true;\n");
@@ -91,6 +92,7 @@ describe("public qualification workspace preparation", () => {
 				"target",
 				"__pycache__",
 				".pytest_cache",
+				".swc",
 				"coverage",
 			])
 				expect(existsSync(join(target, excluded))).toBe(false);

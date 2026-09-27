@@ -94,7 +94,15 @@ export function prepareAgentWorkspace(source: string, target: string) {
 			if (["coverage", ".pdm-build"].includes(parts[0])) return false;
 			if (
 				parts.some((part) =>
-					[".git", "target", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache"].includes(part),
+					[
+						".git",
+						"target",
+						".venv",
+						"__pycache__",
+						".pytest_cache",
+						".ruff_cache",
+						".swc",
+					].includes(part),
 				)
 			)
 				return false;
