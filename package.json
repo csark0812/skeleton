@@ -57,6 +57,7 @@
 		"agent:test:check": "bun run agent:test:prepare && agent-test test --list && bun run agent:test:offline",
 		"agent:test": "bun run agent:test:prepare && bun scripts/run-efficacy.ts",
 		"agent:test:matrix": "bun run agent:test:prepare && bun scripts/run-efficacy.ts --host all",
+		"agent:test:qualify:broader-openai": "bun run build && bun scripts/run-broader-qualification.ts",
 		"pack:efficacy-vendor": "bun scripts/pack-efficacy-vendor.ts",
 		"prepack": "bun run check && bun scripts/verify-package.ts",
 		"agent:test:prepare": "bun run build && bun scripts/write-efficacy-fixtures.ts && bun scripts/efficacy/write-history.ts && bun scripts/efficacy/write-tradeoffs.ts && bun scripts/pack-efficacy-vendor.ts",

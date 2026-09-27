@@ -11,7 +11,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Run } from "@post-print/agent-test";
-import { sequenceTokens } from "../../scripts/efficacy/adoption.ts";
+import {
+	type AdoptionSetupEvidence,
+	adoptionSetupPassed,
+	sequenceTokens,
+} from "../../scripts/efficacy/adoption.ts";
 import { documentationEvidence } from "../../scripts/efficacy/documents.ts";
 import { assessRun } from "../../scripts/efficacy/measurements.ts";
 import { checkOrderLimits } from "../../scripts/efficacy/order-checks.ts";
@@ -103,6 +107,21 @@ describe("package tradeoff fixtures and evidence", () => {
 		expect(
 			sequenceTokens([{ usage: { tokens: {} } }, { usage: { tokens: { total: 80 } } }]),
 		).toBeUndefined();
+	});
+
+	it("requires complete installation, initialization, ownership, and context evidence for adoption", () => {
+		const complete: AdoptionSetupEvidence = {
+			installed: true,
+			configured: true,
+			guide: true,
+			reviewProof: true,
+			catalog: true,
+			ownerMetadata: true,
+			contextResolves: true,
+		};
+		expect(adoptionSetupPassed(complete)).toBe(true);
+		for (const key of Object.keys(complete) as (keyof AdoptionSetupEvidence)[])
+			expect(adoptionSetupPassed({ ...complete, [key]: false })).toBe(false);
 	});
 	it("counts deleted required source as incorrect work, not an evaluation error", async () => {
 		const root = mkdtempSync(join(tmpdir(), "missing-source-"));

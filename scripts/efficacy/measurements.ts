@@ -1,13 +1,25 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
+import { AgentInfrastructureError } from "@post-print/agent-harness";
 import type { Run } from "@post-print/agent-test";
 import { median } from "./median.ts";
 
 export type TestAttachments = {
 	attach(name: string, options: { body: string | Buffer; contentType: string }): Promise<void>;
 };
-type MeasuredRun = Pick<Run, "id" | "usage" | "durationMs">;
-export type Assessment = { checks: Record<string, boolean>; reason: string };
+type MeasuredRun = Pick<Run, "id" | "usage" | "durationMs"> &
+	Partial<Pick<Run, "trace" | "toolCalls">>;
+export type RunDiagnostics = {
+	agentTurns?: number;
+	agentToolCalls?: number;
+	judgeRunId?: string;
+	judgeTokens?: number;
+};
+export type Assessment = {
+	checks: Record<string, boolean>;
+	reason: string;
+	diagnostics?: RunDiagnostics;
+};
 export type Outcome = {
 	status: "correct" | "incorrect" | "execution-error" | "evaluation-error";
 	reason: string;
@@ -16,6 +28,12 @@ export type Outcome = {
 	tokens?: number;
 	tokenError?: string;
 	durationMs?: number;
+	diagnostics?: RunDiagnostics;
+	retry?: {
+		kind: "execution" | "evaluation";
+		originalError: string;
+	};
+	evaluationInfrastructureError?: boolean;
 };
 export type Pair = { baseline: Outcome; withSkeleton: Outcome };
 
@@ -31,6 +49,14 @@ export async function assessRun<T extends MeasuredRun>(
 	const measured = {
 		runId: run.id,
 		durationMs: run.durationMs,
+		...(run.trace && run.toolCalls
+			? {
+					diagnostics: {
+						agentTurns: run.trace.messages.length,
+						agentToolCalls: run.toolCalls.length,
+					},
+				}
+			: {}),
 		...(total !== undefined && Number.isFinite(total) && total > 0
 			? { tokens: total }
 			: { tokenError: "Agent usage must report a finite, positive token count." }),
@@ -42,10 +68,18 @@ export async function assessRun<T extends MeasuredRun>(
 		return {
 			...measured,
 			...assessment,
+			...(measured.diagnostics || assessment.diagnostics
+				? { diagnostics: { ...measured.diagnostics, ...assessment.diagnostics } }
+				: {}),
 			status: Object.values(assessment.checks).every(Boolean) ? "correct" : "incorrect",
 		};
 	} catch (error) {
-		return { ...measured, status: "evaluation-error", reason: errorMessage(error) };
+		return {
+			...measured,
+			status: "evaluation-error",
+			reason: errorMessage(error),
+			evaluationInfrastructureError: error instanceof AgentInfrastructureError,
+		};
 	}
 }
 

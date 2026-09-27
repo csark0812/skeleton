@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import {
@@ -16,7 +18,7 @@ const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	documentationAndVerification: judge({
 		prompt: `${reviewInstructions}
 ${documentationInstructions}
-Set documentationCorrect when the final docs describe standard=30, regulated=5, fallback=20 and cite the correct implementation. Set verificationAdequate when the agent ran successful meaningful tests for these cases.`,
+Set documentationCorrect when the final docs describe standard=30, regulated=5, fallback=20 and cite the correct implementation. Set verificationAdequate when the agent ran successful meaningful tests whose final source asserts all three cases. The input includes that final test source.`,
 		schema: codeReviewSchema,
 	}),
 }));
@@ -36,6 +38,7 @@ test("Recover when context omits the order-limit definition", async ({
 			input: {
 				transcript: transcript(run),
 				document: documentationEvidence(run, "docs/orders.md"),
+				testSource: readFileSync(join(run.workspace.final.path, "tests/limits.test.ts"), "utf8"),
 			},
 		});
 		return {

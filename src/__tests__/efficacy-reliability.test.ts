@@ -125,6 +125,34 @@ describe("reliability and efficiency measurements", () => {
 		).toBe(false);
 	});
 
+	it("records agent and judge diagnostics separately from correctness tokens", async () => {
+		const run = {
+			...completed().value,
+			trace: {
+				messages: [{ role: "assistant" as const, content: "done" }],
+				toolCalls: [],
+				shellCommands: [],
+				artifacts: {},
+			},
+			toolCalls: [{ name: "read", arguments: {}, result: "evidence", succeeded: true }],
+		};
+		const outcome = await assessRun({ status: "fulfilled", value: run }, async () => ({
+			checks: { answer: true },
+			reason: "Verified",
+			diagnostics: { judgeRunId: "judge-1", judgeTokens: 25 },
+		}));
+		expect(outcome).toMatchObject({
+			status: "correct",
+			tokens: 100,
+			diagnostics: {
+				agentTurns: 1,
+				agentToolCalls: 1,
+				judgeRunId: "judge-1",
+				judgeTokens: 25,
+			},
+		});
+	});
+
 	it("keeps missing tokens separate from correctness and excludes incomplete measurements", async () => {
 		for (const total of [undefined, NaN, Infinity, 0, -1]) {
 			const execution = completed();

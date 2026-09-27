@@ -2,6 +2,52 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Run } from "@post-print/agent-test";
+import type { QualificationCorpusTask } from "./corpus.ts";
+
+export type AdoptionSetupEvidence = {
+	installed: boolean;
+	configured: boolean;
+	guide: boolean;
+	reviewProof: boolean;
+	catalog: boolean;
+	ownerMetadata: boolean;
+	contextResolves: boolean;
+};
+
+export function adoptionSetupPassed(evidence: AdoptionSetupEvidence) {
+	return Object.values(evidence).every(Boolean);
+}
+
+export function inspectAdoptionSetup(root: string, task: QualificationCorpusTask) {
+	const paperPath = `docs/qualification/${task.id}.md`;
+	const read = (path: string) =>
+		existsSync(join(root, path)) ? readFileSync(join(root, path), "utf8") : "";
+	const paper = read(paperPath);
+	const cli = join(root, "node_modules/@csark0812/skeleton/dist/cli.js");
+	const context = spawnSync("node", [cli, "context", "--path", task.verifier.expectedPaths[0]!], {
+		cwd: root,
+		encoding: "utf8",
+		timeout: 30_000,
+	});
+	const contextOutput = `${context.stdout ?? ""}\n${context.stderr ?? ""}`;
+	const evidence: AdoptionSetupEvidence = {
+		installed: existsSync(join(root, "node_modules/@csark0812/skeleton/package.json")),
+		configured: existsSync(join(root, "skeleton.toml")),
+		guide: read("AGENTS.md").includes("<!-- skeleton: context-guide -->"),
+		reviewProof: existsSync(join(root, ".skeleton/review-lock.json")),
+		catalog: existsSync(join(root, ".skeleton/catalog.md")),
+		ownerMetadata:
+			paper.includes("<!-- source-of-truth:") &&
+			paper.includes("<!-- doc-meta:") &&
+			paper.includes("<!-- review-deps:") &&
+			task.verifier.expectedPaths.every((path) => paper.includes(path)),
+		contextResolves:
+			context.status === 0 &&
+			contextOutput.includes(paperPath) &&
+			contextOutput.includes(task.verifier.expectedPaths[0]!),
+	};
+	return { passed: adoptionSetupPassed(evidence), evidence, error: context.error?.message };
+}
 
 /** Verify actual initializer output and current review proof using the installed CLI. */
 export function adoptionChecks(run: Run) {

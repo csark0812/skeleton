@@ -1,0 +1,508 @@
+{
+	"version": "broader-openai-v1",
+	"status": "sealed",
+	"sealedAt": "2026-09-27T00:00:00.000Z",
+	"cutoff": "2026-09-01T00:00:00Z",
+	"model": "gpt-5.6-luna",
+	"judgeModel": "gpt-5.6-luna",
+	"globalSkills": false,
+	"repetitions": 10,
+	"bootstrap": {
+		"samples": 100000,
+		"seed": 20260901
+	},
+	"tasks": [
+		{
+			"id": "agent-spec-report-ownership",
+			"repository": "post-print/agent-spec",
+			"repositoryUrl": "https://github.com/post-print/agent-spec",
+			"commit": "0fa7744ba594ba7b7c1577ac97d342e9f235b13a",
+			"tree": "df72ae92b1a661b18b296a15dbe69fc78dc0527f",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/post-print/agent-spec/commit/0fa7744ba594ba7b7c1577ac97d342e9f235b13a",
+			"selectedBy": "Latest public commit before the cutoff; the question crosses CLI parsing, report writing, documentation, and tests.",
+			"tier": "core",
+			"kind": "discovery",
+			"prompt": "I need to change where agent-test writes HTML, suite, and comparison reports. Tell me which CLI parsing, report-writing, documentation, and focused test paths own that behavior, including the output-path precedence.",
+			"promptSha256": "sha256:9f71d7f9981688cb500e01515efa2a8fec08b08466056278ba8963bac1fc5dfd",
+			"verifier": {
+				"kind": "judge",
+				"requirements": [
+					"Identify packages/test/src/cli.ts as the CLI and precedence owner.",
+					"Identify packages/test/src/html-report.ts as the HTML report writer.",
+					"Identify packages/test/README.md and the CLI/report focused tests.",
+					"Explain that --out-dir wins for comparison output while --report-out controls report collection and explicit HTML paths."
+				],
+				"expectedPaths": [
+					"packages/test/src/cli.ts",
+					"packages/test/src/html-report.ts",
+					"packages/test/README.md",
+					"packages/test/src/__tests__/cli-parse.test.ts",
+					"packages/test/src/__tests__/html-report.test.ts"
+				]
+			},
+			"verifierSha256": "sha256:9574d560faaa3d96ae2706ceed3a73a86d7ca01f25db4a24752b6918f7d4b52b",
+			"nativeTestCommand": "bun test packages/test/src/__tests__/cli-parse.test.ts packages/test/src/__tests__/html-report.test.ts",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["bun", "node"]
+		},
+		{
+			"id": "agent-spec-report-out",
+			"repository": "post-print/agent-spec",
+			"repositoryUrl": "https://github.com/post-print/agent-spec",
+			"commit": "1bab34282031d283d5d66fcc779606988d30070b",
+			"tree": "7c1a2731ed241966db6db6d2eb131e5ae83d51d9",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/post-print/agent-spec/pull/31",
+			"selectedBy": "Newest eligible first-party historical maintenance PR before the cutoff with code, README, and focused tests.",
+			"tier": "core",
+			"kind": "maintenance",
+			"prompt": "Add a --report-out option to agent-test. A value ending in .html must select that exact HTML file and create parent directories; another path must collect report.html and the other report artifacts in that directory. Preserve --out-dir precedence for comparison output and --no-html-report behavior. Update the README and focused tests, then verify the change.",
+			"promptSha256": "sha256:ae9dd6db96605b451b2cd8a37223a6109906650464df97f76854779e415b7672",
+			"verifier": {
+				"kind": "historical-patch",
+				"referenceCommit": "02a1907eba72258b4807cff2e2005936b13ba1dc",
+				"requirements": [
+					"Focused CLI and HTML report tests pass.",
+					"The exact-file and directory forms of --report-out work.",
+					"--out-dir and --no-html-report retain their documented precedence.",
+					"README documents the public option without copying the hidden implementation."
+				],
+				"expectedPaths": [
+					"packages/test/src/cli.ts",
+					"packages/test/src/html-report.ts",
+					"packages/test/README.md",
+					"packages/test/src/__tests__/cli-parse.test.ts",
+					"packages/test/src/__tests__/html-report.test.ts"
+				],
+				"verificationPaths": [
+					"packages/test/src/__tests__/cli-parse.test.ts",
+					"packages/test/src/__tests__/html-report.test.ts"
+				],
+				"requiredChangedPaths": ["packages/test/README.md"],
+				"contentChecks": [
+					{
+						"path": "packages/test/README.md",
+						"includes": ["--report-out", "--out-dir", "--no-html-report"]
+					}
+				]
+			},
+			"verifierSha256": "sha256:e3f3eb102175f05fe071f7df3a611fbe749155755eef30d688ceaa1c0e087212",
+			"nativeTestCommand": "bun test packages/test/src/__tests__/cli-parse.test.ts packages/test/src/__tests__/html-report.test.ts",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["bun", "node"]
+		},
+		{
+			"id": "expo-metro-ownership",
+			"repository": "expo/expo",
+			"repositoryUrl": "https://github.com/expo/expo",
+			"commit": "7a999f2bf183c36c75668383b7e97cf6445e36ff",
+			"tree": "698dc1c60a250832fca97bcbf7e7eddd8271fc68",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/expo/expo/commit/7a999f2bf183c36c75668383b7e97cf6445e36ff",
+			"selectedBy": "Latest public Expo commit before the cutoff; the question crosses CLI Metro resolution, tests, package metadata, and changelog ownership.",
+			"tier": "core",
+			"kind": "discovery",
+			"prompt": "I need to change how Expo CLI resolves a package importing itself inside a pnpm monorepo. Locate the fallback resolver, the package-discovery logic it relies on, the focused tests, and the package changelog that own this behavior. Explain the important resolution rule without proposing native-device testing.",
+			"promptSha256": "sha256:71a9b0aa74ef9235ec15a81aae0f8e0a1abbe199375b2229f7c2eb804865a806",
+			"verifier": {
+				"kind": "judge",
+				"requirements": [
+					"Identify createExpoFallbackResolver.ts as the fallback resolution owner.",
+					"Identify the enclosing package.json name check used for package self-resolution.",
+					"Identify withMetroMultiPlatform.test.ts and packages/@expo/cli/CHANGELOG.md.",
+					"Do not require Expo credentials, a simulator, a physical device, or native E2E."
+				],
+				"expectedPaths": [
+					"packages/@expo/cli/src/start/server/metro/createExpoFallbackResolver.ts",
+					"packages/@expo/cli/src/start/server/metro/__tests__/withMetroMultiPlatform.test.ts",
+					"packages/@expo/cli/CHANGELOG.md"
+				]
+			},
+			"verifierSha256": "sha256:e3e890eb707f55821f8bca98f2c11d3f5b3b346f48432e630e0e00c58fdbb238",
+			"nativeTestCommand": "corepack yarn@1.22.22 workspace @expo/cli jest --runInBand withMetroMultiPlatform",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["node", "pnpm"]
+		},
+		{
+			"id": "expo-metro-self-resolution",
+			"repository": "expo/expo",
+			"repositoryUrl": "https://github.com/expo/expo",
+			"commit": "af5992e6c045323c2522c4e083b3f583423c2224",
+			"tree": "84299a7adf7068c989dcf40807b70a275c831158",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/expo/expo/pull/44077",
+			"selectedBy": "Newest eligible Expo CLI maintenance PR with a package-local unit test and changelog obligation; native and device tasks are excluded.",
+			"tier": "core",
+			"kind": "maintenance",
+			"prompt": "Fix Expo CLI Metro fallback resolution so a package in the monorepo can resolve an import of its own package name without requiring a node_modules self-link. Add focused package-local unit coverage and the required CLI changelog entry, then run the focused test.",
+			"promptSha256": "sha256:7fa056fa829dddef0722e952533bf41db3a04451c107ef3645e35700ece4c1c5",
+			"verifier": {
+				"kind": "historical-patch",
+				"referenceCommit": "ad21fefcf8e6a85123883993db260185c47601db",
+				"requirements": [
+					"The focused Metro resolver unit test passes without native tooling.",
+					"Self-resolution matches the enclosing package.json name against the module name.",
+					"The resolver supplies the enclosing package root to Metro only for a matching self-reference.",
+					"The CLI changelog records the user-visible fix."
+				],
+				"expectedPaths": [
+					"packages/@expo/cli/src/start/server/metro/createExpoFallbackResolver.ts",
+					"packages/@expo/cli/src/start/server/metro/__tests__/withMetroMultiPlatform.test.ts",
+					"packages/@expo/cli/CHANGELOG.md"
+				],
+				"verificationPaths": [
+					"packages/@expo/cli/src/start/server/metro/__tests__/withMetroMultiPlatform.test.ts"
+				],
+				"requiredChangedPaths": [
+					"packages/@expo/cli/src/start/server/metro/__tests__/withMetroMultiPlatform.test.ts",
+					"packages/@expo/cli/CHANGELOG.md"
+				],
+				"contentChecks": [
+					{
+						"path": "packages/@expo/cli/CHANGELOG.md",
+						"includes": ["self-resolution"]
+					}
+				]
+			},
+			"verifierSha256": "sha256:91091d65df69e58850aba9ea85ab6b5c4216aa2a8a5855fb00b92b1465d321b9",
+			"nativeTestCommand": "corepack yarn@1.22.22 workspace @expo/cli jest --runInBand withMetroMultiPlatform",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["node", "yarn"]
+		},
+		{
+			"id": "hono-jwt-ownership",
+			"repository": "honojs/hono",
+			"repositoryUrl": "https://github.com/honojs/hono",
+			"commit": "e2740d5a1bd0b4254e517e3af8b60789284bc7bd",
+			"tree": "33f18bc5bc926e6fc5d836902de8bea9263ad636",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/honojs/hono/commit/e2740d5a1bd0b4254e517e3af8b60789284bc7bd",
+			"selectedBy": "Latest public Hono commit before the cutoff; the question spans middleware, shared JWT/JWK utilities, tests, and docs.",
+			"tier": "core",
+			"kind": "discovery",
+			"prompt": "I need to change how Hono validates JWT and JWK authentication and exposes authorization failures. Locate the middleware entry points, shared JWT/JWK implementation, focused tests, and documentation that own the behavior. Call out where WWW-Authenticate responses are formed.",
+			"promptSha256": "sha256:9b52d47ab85ee906a08fba44cd421c153df5ce8ad08afdee414778152a2b8bc8",
+			"verifier": {
+				"kind": "judge",
+				"requirements": [
+					"Identify the JWT and JWK middleware entry points.",
+					"Identify shared JWT/JWK utility implementation rather than treating middleware as the only owner.",
+					"Identify focused tests and documentation paths.",
+					"Identify the middleware response path that forms WWW-Authenticate failures."
+				],
+				"expectedPaths": ["src/middleware/jwt", "src/middleware/jwk", "src/utils/jwt", "docs"]
+			},
+			"verifierSha256": "sha256:e20736e8fd5ff3b747ccab50731b2e0141a5fbfc868d2b995476c09f61cc6521",
+			"nativeTestCommand": "bun run vitest run src/middleware/jwt src/middleware/jwk",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["node", "pnpm"]
+		},
+		{
+			"id": "hono-readme-trivial-edit",
+			"repository": "honojs/hono",
+			"repositoryUrl": "https://github.com/honojs/hono",
+			"commit": "e2740d5a1bd0b4254e517e3af8b60789284bc7bd",
+			"tree": "33f18bc5bc926e6fc5d836902de8bea9263ad636",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/honojs/hono/commit/e2740d5a1bd0b4254e517e3af8b60789284bc7bd",
+			"selectedBy": "Preregistered trivial-edit guardrail on the same frozen public Hono tree.",
+			"tier": "trivial",
+			"kind": "guardrail",
+			"prompt": "In README.md, replace the single phrase ‘ultrafast’ with ‘very fast’. Make no other changes.",
+			"promptSha256": "sha256:362fcd9ee538dc3457a8f84fea02104a8690961e2cff14d5f17274d9f2d45eef",
+			"verifier": {
+				"kind": "exact-edit",
+				"requirements": [
+					"README.md contains ‘very fast’ in place of the original single ‘ultrafast’ occurrence.",
+					"No other file or README content changes."
+				],
+				"expectedPaths": ["README.md"]
+			},
+			"verifierSha256": "sha256:9d65eeda3e84bc4ae2221e59687871b201d40e50b3ab57dd8427e8c2d24bc7e0",
+			"nativeTestCommand": "git diff --check",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["node"]
+		},
+		{
+			"id": "fastapi-frontend-dependencies",
+			"repository": "fastapi/fastapi",
+			"repositoryUrl": "https://github.com/fastapi/fastapi",
+			"commit": "1d211b9c1009d577f39fa2b19b10d9a93a72a0ed",
+			"tree": "b90954a448b8ee6fef24938ced6d38eb65a2d789",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/fastapi/fastapi/pull/16105",
+			"selectedBy": "Newest eligible FastAPI behavior fix with focused pytest coverage and an English documentation obligation.",
+			"tier": "core",
+			"kind": "maintenance",
+			"prompt": "Fix app.frontend() so headers and background tasks contributed by dependencies are preserved in frontend fallback responses. Add focused regression coverage, update the English frontend documentation, and run the focused test.",
+			"promptSha256": "sha256:ade7219f33f22c5a1102ca10a418319da9a8246415f33c85067d391caca4d0a0",
+			"verifier": {
+				"kind": "historical-patch",
+				"referenceCommit": "d62354434b2e508fe89024213b220ca8e67dea5e",
+				"requirements": [
+					"Focused frontend tests pass for dependency-provided headers and background tasks.",
+					"Fallback responses preserve dependency response state.",
+					"The English frontend guide describes the supported behavior."
+				],
+				"expectedPaths": [
+					"fastapi/routing.py",
+					"tests/test_frontend.py",
+					"docs/en/docs/tutorial/frontend.md"
+				],
+				"verificationPaths": ["tests/test_frontend.py"],
+				"requiredChangedPaths": ["docs/en/docs/tutorial/frontend.md"],
+				"contentChecks": [
+					{
+						"path": "docs/en/docs/tutorial/frontend.md",
+						"includes": ["response headers", "background tasks"]
+					}
+				]
+			},
+			"verifierSha256": "sha256:d9258e2f1771b74527b3b9e61878ca849b748307ee346144780b6e3a860df85e",
+			"nativeTestCommand": "uv run pytest tests/test_frontend.py -q",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["python", "uv"]
+		},
+		{
+			"id": "fastapi-missing-metadata-recovery",
+			"repository": "fastapi/fastapi",
+			"repositoryUrl": "https://github.com/fastapi/fastapi",
+			"commit": "49033471594ea5d99a80abdf1043231b7791ee49",
+			"tree": "c2a8e5511f6a7174e9b5fb72a513288128011287",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/fastapi/fastapi/commit/49033471594ea5d99a80abdf1043231b7791ee49",
+			"selectedBy": "Preregistered no-context recovery guardrail on the latest public FastAPI tree before the cutoff.",
+			"tier": "recovery",
+			"kind": "guardrail",
+			"prompt": "Use the exact Skeleton context query `dependency response headers background tasks`. It should first report no-context. Repair ownership metadata on the existing English frontend guide, repeat that exact query until it returns the guide, confirm its statement that dependencies may add response headers and background tasks, and run the focused test.",
+			"promptSha256": "sha256:c1163fa86dea4f82ed854b390a851f07b91ec0c1fb01fbce0db0d89184f35bec",
+			"verifier": {
+				"kind": "recovery",
+				"requirements": [
+					"The treatment observes no-context before repairing metadata.",
+					"The existing English frontend guide gains accurate ownership metadata rather than a parallel document.",
+					"Repeating the same context request returns the repaired owner.",
+					"The final guide accurately describes dependency headers and background tasks; this wording is already present in the frozen upstream snapshot."
+				],
+				"expectedPaths": [
+					"docs/en/docs/tutorial/frontend.md",
+					"fastapi/routing.py",
+					"tests/test_frontend.py"
+				],
+				"contentChecks": [
+					{
+						"path": "docs/en/docs/tutorial/frontend.md",
+						"includes": [
+							"<!-- source-of-truth:",
+							"<!-- review-deps:",
+							"Dependencies can also modify response headers and add background tasks, as with normal *path operations*."
+						]
+					}
+				],
+				"recoveryEvidence": {
+					"signal": "no-context",
+					"traceChecks": [
+						{
+							"needle": "action\\tno-context",
+							"minimumOccurrences": 1
+						},
+						{
+							"needle": "dependency response headers background tasks",
+							"minimumOccurrences": 3
+						},
+						{
+							"needle": "docs/en/docs/tutorial/frontend.md",
+							"minimumOccurrences": 2
+						}
+					]
+				}
+			},
+			"verifierSha256": "sha256:82ec0c7be2874a82e2aa6bda1dd2e4dbacd4e9040e2ae111dcadfc2000993427",
+			"nativeTestCommand": "uv run pytest tests/test_frontend.py -q",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["python", "uv"]
+		},
+		{
+			"id": "ruff-generated-rule-ownership",
+			"repository": "astral-sh/ruff",
+			"repositoryUrl": "https://github.com/astral-sh/ruff",
+			"commit": "c345a22edcd18b9d321ca645bc774c2d8d614157",
+			"tree": "894246c0c0a405c52a33dda0d026d4746f536fb3",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/astral-sh/ruff/commit/c345a22edcd18b9d321ca645bc774c2d8d614157",
+			"selectedBy": "Latest public Ruff commit before the cutoff; the question spans rule implementation, registration, fixtures, snapshots, and generated documentation.",
+			"tier": "core",
+			"kind": "discovery",
+			"prompt": "I am adding or changing a Ruff lint rule. Identify the implementation and registration owners, the fixture and snapshot coverage, the generated documentation or schema outputs, and the focused commands that regenerate and verify them. Distinguish generated files from editable sources.",
+			"promptSha256": "sha256:97cf1804fec51eadc762c0857709d67c930860aa7f3c3ef869ed3b0e1ceac4c1",
+			"verifier": {
+				"kind": "judge",
+				"requirements": [
+					"Identify the rule implementation and crates/ruff_linter/src/codes.rs registration seam.",
+					"Identify rule fixtures and snapshot tests.",
+					"Identify generated rule documentation or schema artifacts.",
+					"Name the focused test and cargo dev generate-all workflow while warning against direct generated-file edits."
+				],
+				"expectedPaths": [
+					"crates/ruff_linter/src/rules",
+					"crates/ruff_linter/src/codes.rs",
+					"crates/ruff_linter/resources/test/fixtures",
+					"crates/ruff_dev/src"
+				]
+			},
+			"verifierSha256": "sha256:9aa02e661fba43b7f354e3647016f759087877e5adee4e911f18fe5c69bf824f",
+			"nativeTestCommand": "cargo test -p ruff_linter",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["rust", "cargo"]
+		},
+		{
+			"id": "ruff-truncated-context-recovery",
+			"repository": "astral-sh/ruff",
+			"repositoryUrl": "https://github.com/astral-sh/ruff",
+			"commit": "c345a22edcd18b9d321ca645bc774c2d8d614157",
+			"tree": "894246c0c0a405c52a33dda0d026d4746f536fb3",
+			"license": "MIT",
+			"upstreamUrl": "https://github.com/astral-sh/ruff/commit/c345a22edcd18b9d321ca645bc774c2d8d614157",
+			"selectedBy": "Preregistered truncated-source recovery guardrail on the same frozen public Ruff tree.",
+			"tier": "recovery",
+			"kind": "guardrail",
+			"prompt": "Read the incomplete excerpt at docs/qualification/context-excerpt.md. It summarizes Ruff rule B028 but omits the implementation definition. Clarify the owning source documentation about warnings.warn and stacklevel after reading the actual B028 definition and relevant fixture. Preserve implementation behavior and do not edit generated files, then run the focused B028 test.",
+			"promptSha256": "sha256:10ae0f8d50ee50473a6170735b0a3f76647d945c45f51d30559b4e3bb12d6a2b",
+			"verifier": {
+				"kind": "recovery",
+				"requirements": [
+					"The treatment reads the supplied incomplete excerpt and then the actual B028 rule definition.",
+					"The agent inspects the B028 fixture before editing.",
+					"Only Rust documentation comments change in the B028 source; implementation behavior stays byte-for-byte equivalent.",
+					"No generated artifact is edited; focused B028 tests pass."
+				],
+				"expectedPaths": [
+					"crates/ruff_linter/src/rules/flake8_bugbear/rules/no_explicit_stacklevel.rs",
+					"crates/ruff_linter/resources/test/fixtures/flake8_bugbear/B028.py",
+					"crates/ruff_linter/src/rules/flake8_bugbear/snapshots/ruff_linter__rules__flake8_bugbear__tests__no-explicit-stacklevel_B028.py.snap"
+				],
+				"requiredChangedPaths": [
+					"crates/ruff_linter/src/rules/flake8_bugbear/rules/no_explicit_stacklevel.rs"
+				],
+				"unchangedRustCodePaths": [
+					"crates/ruff_linter/src/rules/flake8_bugbear/rules/no_explicit_stacklevel.rs"
+				],
+				"recoveryEvidence": {
+					"signal": "truncated-read",
+					"traceChecks": [
+						{
+							"needle": "docs/qualification/context-excerpt.md",
+							"minimumOccurrences": 3
+						},
+						{
+							"needle": "crates/ruff_linter/src/rules/flake8_bugbear/rules/no_explicit_stacklevel.rs",
+							"minimumOccurrences": 1
+						},
+						{
+							"needle": "crates/ruff_linter/resources/test/fixtures/flake8_bugbear/B028.py",
+							"minimumOccurrences": 1
+						},
+						{
+							"needle": "NoExplicitStacklevel",
+							"minimumOccurrences": 1
+						}
+					],
+					"fixture": {
+						"path": "docs/qualification/context-excerpt.md",
+						"content": "# Incomplete rule excerpt\n\nThe available summary says Ruff checks `warnings.warn` calls and recommends an explicit `stacklevel`. It does not include the implementation, rule registration, or generated documentation workflow."
+					}
+				}
+			},
+			"verifierSha256": "sha256:8820b07761e2f72705c1357d403f4a197e995064484ed97e3a8abdbada15c919",
+			"nativeTestCommand": "cargo test -p ruff_linter no_explicit_stacklevel",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["rust", "cargo"]
+		},
+		{
+			"id": "biome-no-inferrable-range",
+			"repository": "biomejs/biome",
+			"repositoryUrl": "https://github.com/biomejs/biome",
+			"commit": "ee69e0e8a90e6231a3b208cda4b3e65ad8b2006a",
+			"tree": "fbf3b00898cc68b83e9db489ea0281d7cff943ea",
+			"license": "Apache-2.0 OR MIT",
+			"upstreamUrl": "https://github.com/biomejs/biome/pull/11564",
+			"selectedBy": "Newest eligible Biome behavior fix before the cutoff with executable snapshot coverage and a changeset obligation.",
+			"tier": "core",
+			"kind": "maintenance",
+			"prompt": "Fix Biome’s noInferrableTypes diagnostic so its source range targets only the redundant type annotation rather than the whole declaration. Update the focused snapshot coverage and record the user-visible fix in a changeset.",
+			"promptSha256": "sha256:6d495da12287254a8c74632a303ec8f53d6b4dda8d4718ffc99d6532624b88ec",
+			"verifier": {
+				"kind": "historical-patch",
+				"referenceCommit": "18a0e1f058df3c8434d98d700eef5949695cb8f6",
+				"requirements": [
+					"The noInferrableTypes diagnostic range targets only the redundant type annotation.",
+					"Focused analyzer snapshot coverage records the narrower range.",
+					"Focused biome_js_analyze tests pass.",
+					"A changeset records the user-visible fix."
+				],
+				"expectedPaths": [
+					"crates/biome_js_analyze/src/lint/style/no_inferrable_types.rs",
+					"crates/biome_js_analyze/tests/specs/style/noInferrableTypes/invalid.ts.snap",
+					".changeset"
+				],
+				"verificationPaths": [
+					"crates/biome_js_analyze/tests/specs/style/noInferrableTypes/invalid.ts.snap"
+				],
+				"requiredChangedPaths": [
+					"crates/biome_js_analyze/tests/specs/style/noInferrableTypes/invalid.ts.snap"
+				],
+				"changedFileContentChecks": [
+					{
+						"prefix": ".changeset/",
+						"includes": ["noInferrableTypes"]
+					}
+				]
+			},
+			"verifierSha256": "sha256:1b38ef8ac1365b2e640e471d8857eb29fc9a02e0e8f4b9f34133a2cbc2c7515c",
+			"nativeTestCommand": "cargo test -p biome_js_analyze --test spec_tests",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["rust", "cargo"]
+		},
+		{
+			"id": "biome-adoption-maintenance",
+			"repository": "biomejs/biome",
+			"repositoryUrl": "https://github.com/biomejs/biome",
+			"commit": "3c6412e7f44b9aaac750844f9a5f7ff7c3aa0feb",
+			"tree": "526a774e39ea713445dad206e8ed952486d71407",
+			"license": "Apache-2.0 OR MIT",
+			"upstreamUrl": "https://github.com/biomejs/biome/commit/3c6412e7f44b9aaac750844f9a5f7ff7c3aa0feb",
+			"selectedBy": "Preregistered public-repository adoption and first-maintenance guardrail on the latest Biome tree before the cutoff.",
+			"tier": "adoption",
+			"kind": "guardrail",
+			"prompt": "Correct the stale setup_daemon_subscriber documentation in crates/biome_cli/src/commands/daemon.rs. It currently says events are filtered at the info level, but the function uses its configured LoggingLevel. Make the comment accurately describe the configured log level without changing runtime behavior or unrelated crates, then run the focused daemon forwarding test.",
+			"promptSha256": "sha256:ab8655c3dcf0db3534ef844a076a306e73cfdab9514fba8fc93dfc234585be19",
+			"verifier": {
+				"kind": "adoption",
+				"requirements": [
+					"Installation and initialization use the exact local qualification artifact.",
+					"Ownership metadata describes the existing daemon command, logging, service, and Unix boundaries.",
+					"The maintenance continuation corrects the stale info-level comment to describe the configured LoggingLevel without changing behavior.",
+					"The focused daemon forwarding test passes and setup usage remains separately measurable."
+				],
+				"expectedPaths": [
+					"crates/biome_cli/src/commands/daemon.rs",
+					"crates/biome_cli/src/logging.rs",
+					"crates/biome_cli/src/service",
+					"docs"
+				],
+				"contentChecks": [
+					{
+						"path": "crates/biome_cli/src/commands/daemon.rs",
+						"includes": ["configured", "LoggingLevel"],
+						"excludes": ["filtered at the `info` level"]
+					}
+				]
+			},
+			"verifierSha256": "sha256:5aa69a9627848ff95dfe55893bc6b74a3234ad2b58bc48b760e3af778c12319c",
+			"nativeTestCommand": "cargo test -p biome_cli forwarding_stops_when_the_daemon_disconnects",
+			"warmTestTimeoutMs": 300000,
+			"requirements": ["rust", "cargo"]
+		}
+	]
+}

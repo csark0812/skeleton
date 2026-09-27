@@ -4,6 +4,7 @@ import { defineConfig } from "@post-print/agent-test";
 export default defineConfig({
 	testDir: "./agent-suites",
 	testMatch: "**/*.spec.ts",
+	testIgnore: "**/broader-openai-v1/**",
 	outputDir: "test-results/agent-test-matrix",
 	timeout: 3_600_000,
 	retries: 0,

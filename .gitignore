@@ -20,5 +20,6 @@ src/audit/__tests__/fixtures/plugins/**/*.mjs.stamp
 tests/fixtures/efficacy/history/
 test-results/
 .agent-test/
+.qualification-cache/
 tests/fixtures/efficacy/package-artifact.json
 tests/fixtures/efficacy/**/.cursor/

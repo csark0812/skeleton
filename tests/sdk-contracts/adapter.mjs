@@ -22,10 +22,22 @@ export default defineAgent({
 					}
 					const input = JSON.parse(prompt.slice(prompt.lastIndexOf("\nInput:\n") + 8));
 					if (input.document) {
-						if (Object.keys(input).sort().join(",") !== "document,transcript")
+						const expectedKeys = input.testSource
+							? "document,testSource,transcript"
+							: "document,transcript";
+						if (Object.keys(input).sort().join(",") !== expectedKeys)
 							throw new Error("Unexpected judge evidence");
 						if (Object.keys(input.document).sort().join(",") !== "after,before,diff,path")
 							throw new Error("Missing final-document evidence");
+						if (
+							input.testSource &&
+							![
+								'orderLimit("standard")).toBe(30)',
+								'orderLimit("regulated")).toBe(5)',
+								'orderLimit("unknown")).toBe(20)',
+							].every((assertion) => input.testSource.includes(assertion))
+						)
+							throw new Error("Final test source does not assert all order-limit cases");
 					}
 					for (const transcript of input.transcript
 						? [input.transcript]
@@ -120,6 +132,27 @@ export default defineAgent({
 									)
 								: updatedDoc,
 						);
+						const localTest = join(workspace.path, "tests/limits.test.ts");
+						if (existsSync(localTest)) {
+							await writeFile(
+								localTest,
+								(await readFile(localTest, "utf8")).replace(
+									'orderLimit("standard")).toBe(20)',
+									'orderLimit("standard")).toBe(30)',
+								),
+							);
+							const testOutput = execFileSync("bun", ["test", "tests/limits.test.ts"], {
+								cwd: workspace.path,
+								encoding: "utf8",
+							});
+							yield {
+								type: "tool",
+								name: "Shell",
+								args: { command: "bun test tests/limits.test.ts" },
+								result: testOutput,
+								succeeded: true,
+							};
+						}
 						if (existsSync(join(workspace.path, "skeleton.toml"))) {
 							const retry = execFileSync(
 								"node",
