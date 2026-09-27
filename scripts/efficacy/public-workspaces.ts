@@ -237,8 +237,8 @@ export function preparePublicQualification(
 		writeQualificationPaper(paths.control, task, false);
 		writeQualificationPaper(paths.treatment, task, true);
 		if (options.installDependencies !== false) {
-			installRepositoryDependencies(task, paths.control, packageManagerEnv);
-			installRepositoryDependencies(task, paths.treatment, packageManagerEnv);
+			installRepositoryDependencies(task, paths.control, { root, env: packageManagerEnv });
+			installRepositoryDependencies(task, paths.treatment, { root, env: packageManagerEnv });
 			prepareNativeWorkspace(task.repository, paths.control, packageManagerEnv);
 			prepareNativeWorkspace(task.repository, paths.treatment, packageManagerEnv);
 			const native = verifyNativeTask(task, paths.control, { env: packageManagerEnv });
@@ -429,11 +429,25 @@ function copyDependency(root: string, workspace: string, name: string, copied: S
 		copyDependency(root, workspace, dependency, copied);
 }
 
-function installRepositoryDependencies(
+export function installRepositoryDependencies(
 	task: QualificationCorpusTask,
 	workspace: string,
-	env: Record<string, string>,
+	options: { root: string; env: Record<string, string> },
 ) {
+	const { root, env } = options;
+	const modules = join(workspace, "node_modules");
+	if (existsSync(modules) && lstatSync(modules).isSymbolicLink()) {
+		const prepared = join(
+			root,
+			".qualification-cache",
+			"dependencies",
+			task.id,
+			basename(workspace),
+		);
+		if (realpathSync(modules) !== realpathSync(prepared))
+			throw new Error(`${task.id}: node_modules is not the prepared dependency cache.`);
+		return;
+	}
 	const repository = task.repository;
 	const commands: Record<string, [string, string[]]> = {
 		"post-print/agent-spec": ["bun", ["install", "--no-save"]],

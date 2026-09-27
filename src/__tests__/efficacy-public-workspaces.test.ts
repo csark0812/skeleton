@@ -19,6 +19,7 @@ import {
 	ensurePinnedWorktree,
 	expoInstallCommand,
 	externalizeNodeModules,
+	installRepositoryDependencies,
 	linkSkeletonExecutable,
 	lockfileForRepository,
 	normalizeAgentSpecConfig,
@@ -140,6 +141,24 @@ describe("public qualification workspace preparation", () => {
 			writeFileSync(join(source, "version"), "second");
 			externalizeNodeModules(root, selected, workspace);
 			expect(readFileSync(join(cache, "version"), "utf8")).toBe("second");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("reuses a verified dependency link instead of reinstalling into it", () => {
+		const root = mkdtempSync(join(tmpdir(), "skeleton-dependency-reuse-test-"));
+		try {
+			const selected = task("core");
+			selected.repository = "expo/expo";
+			const workspace = join(root, "workspaces", selected.id, "control");
+			const cache = join(root, ".qualification-cache", "dependencies", selected.id, "control");
+			mkdirSync(cache, { recursive: true });
+			mkdirSync(workspace, { recursive: true });
+			symlinkSync(cache, join(workspace, "node_modules"));
+			expect(() =>
+				installRepositoryDependencies(selected, workspace, { root, env: {} }),
+			).not.toThrow();
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
