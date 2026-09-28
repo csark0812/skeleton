@@ -1,12 +1,13 @@
 # Agent tests
 
 <!-- source-of-truth: agent comparison tasks and supporting checks -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-27 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 <!-- review-deps: paths=agent-suites/**/*.ts,agent-suites/seeds/**,scripts/efficacy/**,scripts/run-efficacy.ts,scripts/run-broader-qualification.ts -->
 
 | Suite | Question |
 | --- | --- |
-| `broader-openai-v1` | Can Skeleton pass the sealed twelve-cell public TypeScript, Python, and Rust qualification without lowering correctness? This one-shot suite is excluded from routine runs. |
+| `broader-openai-v1` | Retired public qualification corpus; the stopped one-shot run is non-passing and must not be resumed for a claim. |
+| `public-regression-pilot` | Explicitly capped live development check on a retired public task; excluded from routine runs and qualification evidence. |
 | `does-skeleton-help` | Four efficiency qualifications and six measurements of correctness, adoption, recovery, and overhead. |
 | `source-of-truth-conflict` | Can an agent apply the authority policy when documents disagree? |
 | `judge-calibration` | Does documentation judging follow final files rather than completion claims? |
@@ -34,4 +35,4 @@ The wrapper and direct `agent-test test does-skeleton-help` runs both include th
 
 Live commands consume host model usage. The default one-pair run is a diagnostic smoke test, not a reliability sample; it records efficiency without asserting the repeated-sample 35% qualification. Use `--runs N` for repeated comparisons. See [the method and scoring rules](../docs/developer/efficacy.md).
 
-The broader public qualification is separate from these development tasks. Its frozen manifest and runner require ten paired attempts in every cell, check prepared-arm equivalence outside the intervention allowlist, and emit the aggregate gate decisions only after all cells finish. Public change tasks use hidden executable regressions and direct final-file obligations; public read-only tasks use a blinded transcript judge. Offline contract tests check the measurement machinery, not efficacy. Do not use routine suite output as evidence for the broader claim.
+The broader public qualification is separate from these development tasks. Its v1 one-shot run was stopped after core gates had already failed; v1 is a regression corpus, not a claim candidate. A new held-out version is required for qualification. The explicit public-regression v2 pilot used the retired Expo task with the current packed CLI, separate from the preserved first pilot result. It ran one live pair with no retries and a 90-second per-agent limit. Both arms were correct and Skeleton used fewer tokens, but a single development pair cannot qualify the broader claim. The result file prevents rerunning the same pilot. On macOS, the suite checks that a local sandbox can start before either agent call. It records an inconclusive result and skips both judges if either agent lacks a successful local shell call; otherwise it records judge verdicts and tokens separately. Public change tasks need behavioral executable regressions and direct final-file obligations; public read-only tasks use a blinded transcript judge. Deterministic contract tests check measurement machinery, not efficacy. Do not use routine or pilot suite output as evidence for the broader claim.

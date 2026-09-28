@@ -33,6 +33,8 @@ const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const corpus = parseQualificationCorpus(
 	JSON.parse(readFileSync(new URL("./qualification-corpus.json", import.meta.url), "utf8")),
 );
+if (corpus.version === "broader-openai-v1")
+	throw new Error("broader-openai-v1 is retired; do not run its sealed tasks again.");
 if (process.env.SKELETON_EFFICACY_RUNS !== String(corpus.repetitions))
 	throw new Error(`Qualification requires SKELETON_EFFICACY_RUNS=${corpus.repetitions}.`);
 

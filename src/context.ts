@@ -88,12 +88,24 @@ function queryTerms(query: string | undefined): string[] {
 		(term) => term.length > 1,
 	);
 	const specific = terms.filter((term) => !QUERY_STOP_TERMS.has(term));
-	return specific.length > 0 ? specific : terms;
+	const selected = specific.length > 0 ? specific : terms;
+	// Natural requests say "importing itself" where source commonly says "self-resolution".
+	return [
+		...new Set(
+			selected.flatMap((term) => (term === "itself" ? [term, "self-resolution"] : [term])),
+		),
+	];
 }
 
 function score(text: string, terms: string[]): number {
 	const lower = text.toLowerCase();
 	return terms.reduce((total, term) => total + (lower.includes(term) ? 1 : 0), 0);
+}
+
+function sourcePriority(path: string): number {
+	if (/\/(?:__tests__|tests)\/|\.(?:test|spec)\./.test(path)) return 1;
+	if (/\.(?:md|mdx|rst|txt)$/.test(path)) return 2;
+	return 0;
 }
 
 function focusedTestCommand(root: string, path: string, source: FileSource): string | undefined {
@@ -134,7 +146,22 @@ function focusedTestRelevance(input: {
 	);
 }
 
+function declaredFocusedTests(root: string, sourcePaths: string[], source: FileSource) {
+	return sourcePaths
+		.filter((path) =>
+			/\.(?:test|spec)\.(?:ts|tsx|js|jsx|mjs|cjs|py)$|(?:^|\/)test_[^/]+\.py$/.test(path),
+		)
+		.flatMap((path) => {
+			const content = readRepoText(root, path, source);
+			return content === null
+				? []
+				: [{ path, excerpt: content, command: focusedTestCommand(root, path, source) }];
+		});
+}
+
 function focusedTests(root: string, sourcePaths: string[], source: FileSource): ContextSource[] {
+	const declared = declaredFocusedTests(root, sourcePaths, source);
+	if (declared.length) return declared.slice(0, 1);
 	const terms = sourcePaths
 		.flatMap((path) => path.toLowerCase().match(/[a-z0-9_]+/g) ?? [])
 		.filter((term) => term.length > 2 && !["src", "index", "main"].includes(term));
@@ -199,8 +226,12 @@ function candidateWindows(content: string, windowLength: number, terms: string[]
 		const start = Math.max(0, offset - 300);
 		const end = Math.min(content.length, start + windowLength);
 		const lower = content.slice(start, end).toLowerCase();
+		const lowerLine = line.toLowerCase();
 		const relevance = terms.reduce(
-			(total, term) => total + (lower.includes(term) ? term.length : 0),
+			(total, term) =>
+				total +
+				(lower.includes(term) ? term.length : 0) +
+				(term.includes("-") && lowerLine.includes(term) ? term.length : 0),
 			0,
 		);
 		if (relevance > 0) candidates.push({ start, end, relevance });
@@ -307,10 +338,14 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 				omitted.push(entry.path);
 				return [];
 			}
-			const sourceEntries = dependencies.map((path) => ({
-				path,
-				content: readRepoText(options.root, path, source),
-			}));
+			const sourceEntries = dependencies
+				.map((path) => ({ path, content: readRepoText(options.root, path, source) }))
+				.sort(
+					(a, b) =>
+						sourcePriority(a.path) - sourcePriority(b.path) ||
+						score(b.path, terms) - score(a.path, terms) ||
+						a.path.localeCompare(b.path),
+				);
 			const excerptTerms = target ? target.split(/[/.]/).filter(Boolean) : terms;
 			const documentExcerpt = excerpt(content, maxChars - used, excerptTerms);
 			used += documentExcerpt.length;

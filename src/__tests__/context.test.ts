@@ -153,4 +153,48 @@ Billing webhooks retry once after a failed delivery.
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
+
+	it("keeps a late self-resolution check ahead of long changelog and test excerpts", () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(
+				join(root, "src/billing/delivery.ts"),
+				`// fallback resolver handles package imports in a monorepo
+${"// unrelated implementation note\n".repeat(180)}
+// Self-resolution
+const pkg = context.getPackageForModule(originModulePath);
+const pkgName = pkg?.packageJson.name;
+if (pkgName === moduleName) resolveFrom(pkg.rootPath);
+`,
+			);
+			writeFileSync(join(root, "tests/billing.test.ts"), "// fallback resolver test\n".repeat(350));
+			writeFileSync(
+				join(root, "tests/other.test.ts"),
+				"// package fallback resolver test monorepo\n".repeat(350),
+			);
+			writeFileSync(join(root, "docs/changelog.md"), "fallback resolver package\n".repeat(350));
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				`# Package fallback resolver
+
+<!-- source-of-truth: package self-resolution fallback -->
+<!-- review-deps: paths=docs/changelog.md,tests/billing.test.ts,src/billing/delivery.ts -->
+
+The fallback resolver handles a package importing itself in a monorepo.
+`,
+			);
+			const result = evaluateContext({
+				root,
+				query: "package importing itself monorepo fallback resolver tests changelog",
+			});
+			expect(result.documents[0]?.sources[0]?.path).toBe("src/billing/delivery.ts");
+			expect(result.documents[0]?.sources[0]?.excerpt).toContain("packageJson.name");
+			expect(result.documents[0]?.sources.map((source) => source.path)).toContain(
+				"docs/changelog.md",
+			);
+			expect(result.documents[0]?.tests[0]?.path).toBe("tests/billing.test.ts");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 });

@@ -93,21 +93,17 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(treatmentGuide).toContain("Use `--path` only for a known implementation path");
 			expect(treatmentGuide).toContain("Never combine a topic with `--path`");
 			expect(treatmentGuide).toContain(
-				"If a test is returned, make the edits and run only the returned `test-command`",
+				"A returned owner is not proof that the packet covers the whole request",
 			);
-			expect(treatmentGuide).toContain("Otherwise use one combined command");
-			expect(treatmentGuide).toContain("do not read those files again");
-			expect(treatmentGuide).toContain(
-				"answer immediately when the returned evidence fully answers a read-only request",
-			);
+			expect(treatmentGuide).toContain("when a required fact is absent, follow the named sources");
+			expect(treatmentGuide).toContain("do not read those files again merely to reconfirm them");
+			expect(treatmentGuide).toContain("answer when the evidence fully answers the request");
 			expect(treatmentGuide).toContain(
 				"Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result",
 			);
 			expect(treatmentGuide).toContain(
-				"Do not rerun context or search, list, or read returned paths",
+				"Stop only when requested behavior and documentation obligations are covered",
 			);
-			expect(treatmentGuide).toContain("Inspect again only when that test fails");
-			expect(treatmentGuide).toContain("without progress narration between the edits and test");
 			expect(treatmentGuide).toContain(
 				"Complete every `action` line and verify it against the final files",
 			);

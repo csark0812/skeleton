@@ -18,10 +18,14 @@ for (const arg of args) if (!allowed.has(arg)) throw new Error(`Unknown option: 
 if (args.has("--skip-dependency-install") && !args.has("--prepare-only"))
 	throw new Error("--skip-dependency-install is allowed only with --prepare-only.");
 
-const dirty = command("git", ["status", "--porcelain"], ROOT).trim();
-if (dirty) throw new Error("Qualification requires a clean release-candidate worktree.");
 const corpusBytes = readFileSync(CORPUS_PATH);
 const corpus = parseQualificationCorpus(JSON.parse(corpusBytes.toString("utf8")));
+if (corpus.version === "broader-openai-v1")
+	throw new Error(
+		"broader-openai-v1 is retired after its stopped one-shot run; create a new held-out version.",
+	);
+const dirty = command("git", ["status", "--porcelain"], ROOT).trim();
+if (dirty) throw new Error("Qualification requires a clean release-candidate worktree.");
 const head = command("git", ["rev-parse", "HEAD"], ROOT).trim();
 const intervention = interventionDigest(ROOT);
 const lock = {

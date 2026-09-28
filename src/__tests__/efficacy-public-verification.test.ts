@@ -8,6 +8,7 @@ import {
 	verifyHistoricalTask,
 	verifyKnownUpstreamFix,
 	verifyNativeTask,
+	verifyReportOutBehavior,
 } from "../../scripts/efficacy/public-verification.ts";
 
 const roots: string[] = [];
@@ -132,5 +133,44 @@ describe("public historical verifier", () => {
 		const result = verifyKnownUpstreamFix(task(reference, base), final, root);
 		expect(result.passed).toBe(true);
 		expect(result.output).toContain("1 pass");
+	});
+});
+
+function reportOutFixture(working: boolean) {
+	const root = mkdtempSync(join(tmpdir(), "skeleton-report-out-fixture-"));
+	roots.push(root);
+	mkdirSync(join(root, "packages/test/src"), { recursive: true });
+	mkdirSync(join(root, "packages/test/fixtures"), { recursive: true });
+	writeFileSync(
+		join(root, "packages/test/src/cli.ts"),
+		`import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+const args = process.argv.slice(2);
+const option = (name: string) => args[args.indexOf(name) + 1];
+const put = (path: string) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, "ok"); };
+const requested = ${working ? "option('--report-out')" : "undefined"};
+if (args[0] === "compare") {
+  put(join(option("--out-dir") || requested || "compare-out", "compare-report.json"));
+} else if (!args.includes("--no-html-report")) {
+  if (requested?.toLowerCase().endsWith(".html")) put(requested);
+  else if (requested) { put(join(requested, "report.html")); put(join(requested, "smoke.suite-report.json")); }
+  else put(join("default", "report.html"));
+}
+`,
+	);
+	return root;
+}
+
+describe("public report-out behavioral verifier", () => {
+	it("accepts the CLI behavior without an implementation helper export", () => {
+		const root = reportOutFixture(true);
+		expect(verifyReportOutBehavior(root, root).passed).toBe(true);
+	});
+
+	it("rejects a CLI that ignores --report-out", () => {
+		const root = reportOutFixture(false);
+		const result = verifyReportOutBehavior(root, root);
+		expect(result.passed).toBe(false);
+		expect(result.error).toContain("Exact .html path");
 	});
 });

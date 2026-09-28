@@ -85,19 +85,19 @@ describe("skeleton init", () => {
 			"Never combine a topic with `--path`",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"answer immediately when the returned evidence fully answers a read-only request",
+			"answer when the evidence fully answers the request",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			"Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"Do not rerun context or search, list, or read returned paths",
+			"A returned owner is not proof that the packet covers the whole request",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"Inspect again only when that test fails",
+			"follow the named sources into their imports, adjacent package metadata, or focused tests",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"without progress narration between the edits and test",
+			"Stop only when requested behavior and documentation obligations are covered",
 		);
 	});
 

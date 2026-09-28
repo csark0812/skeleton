@@ -140,7 +140,7 @@ export function assertPairedAgentWorkspaces(
 		if (interventionPath(path, task)) continue;
 		const left = control.get(path);
 		const right = treatment.get(path);
-		if (!(left && right) || !readFileSync(left).equals(readFileSync(right)))
+		if (!(left && right && readFileSync(left).equals(readFileSync(right))))
 			throw new Error(
 				`${task.id}: agent-visible baseline/treatment difference outside allowlist: ${path}`,
 			);

@@ -1,6 +1,6 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-27 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
 
@@ -15,7 +15,7 @@ npx skeleton init --skills
 
 Init adds a bounded `skeleton context` guide to `AGENTS.md`. A `no-context` result includes a recovery action to inspect code, tests, and nearby docs; repair an existing owner or document durable behavior; and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. `--skills` copies this skill from the installed package so its guidance matches the CLI version. Edit `skeleton.toml` scan trees for the repository shape. Legacy `.skeleton/config.yaml` loads only when `skeleton.toml` is absent.
 
-For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner, and the guide stops after that command passes. It does not ask the agent to run repository audits, validation, or review-proof commands unless the user requested them or the focused test fails.
+For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner. Its bounded packet puts implementation sources before long tests and changelogs, centers excerpts on query-relevant technical phrases, and prefers an explicitly declared focused test over a guessed neighbor. The agent must still check every requested fact and obligation against that packet; a returned owner does not establish that omitted package metadata, imports, or adjacent tests have been verified. When a required fact is missing, inspect only the relevant nearby evidence. Stop after the requested behavior and documentation are covered and the focused test passes. The guide does not ask for repository audits, validation, or review-proof commands unless requested or the focused test fails.
 
 ## Documentation workflow
 

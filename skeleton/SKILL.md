@@ -7,11 +7,11 @@ description: Use Skeleton to find canonical repository context for questions or 
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 
 ## Repository context
 
-Make `npx --no-install skeleton context "<topic>"` the first repository command. Use `--path` only for a known implementation path and `--staged` for staged-code questions. Returned document, source, and test excerpts are already read; do not read those files again. Complete every `action` line and verify it against the final files. Preserve existing work. If a test is returned, edit and run only that test. Otherwise use one combined command to find and read the focused test. Stop when it passes. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails. Broader discovery or another context command is reserved for `no-context`, omitted evidence, or a failing focused test.
+Make `npx --no-install skeleton context "<topic>"` the first repository command. Use `--path` only for a known implementation path and `--staged` for staged-code questions. Returned document, source, and test excerpts are already read; do not read those files again. Complete every `action` line and verify it against the final files. Preserve existing work. Check each requested fact or change against the packet before answering or editing. A returned owner is a starting point, not proof that the packet covers every requested facet: if a required fact is absent, follow the named source paths into their imports or adjacent package metadata and focused tests until it is verified; say when it remains unverified. Do not infer absent facts from a source-of-truth title. If a test is returned, edit and run that focused test; otherwise find the focused test. Stop only when the requested behavior and documentation obligations are covered and the test passes. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails. Broader discovery or another context command is justified by `no-context`, omitted evidence, a failing focused test, or a required fact missing from the packet.
 
 ## Source implementation work
 

@@ -47,6 +47,92 @@ export function verifyNativeTask(
 	}
 }
 
+/** Exercise the public report-out CLI contract without importing upstream implementation helpers. */
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: Four public CLI cases share one isolated workspace and artifact lifecycle.
+export function verifyReportOutBehavior(
+	finalWorkspace: string,
+	dependencyWorkspace: string,
+): PublicVerification {
+	const root = mkdtempSync(join(tmpdir(), "skeleton-report-out-verification-"));
+	const workspace = join(root, "workspace");
+	const output: string[] = [];
+	try {
+		cpSync(finalWorkspace, workspace, { recursive: true, dereference: true });
+		linkDependencyRoot(dependencyWorkspace, workspace, "node_modules");
+		const exactFile = join(root, "exact", "custom.html");
+		const directory = join(root, "collection");
+		const disabled = join(root, "disabled");
+		const comparison = join(root, "comparison");
+		const override = join(root, "override");
+		output.push(runReportOutCli(workspace, ["--report-out", exactFile]));
+		requireArtifact(exactFile, "Exact .html path did not produce the requested HTML report.");
+		forbidArtifact(
+			join(root, "exact", "smoke.suite-report.json"),
+			"Exact file collected suite JSON.",
+		);
+		output.push(runReportOutCli(workspace, ["--report-out", directory]));
+		const suiteReport = join(directory, "smoke.suite-report.json");
+		requireArtifact(join(directory, "report.html"), "Directory form omitted HTML report.");
+		requireArtifact(suiteReport, "Directory form omitted suite JSON report.");
+		output.push(runReportOutCli(workspace, ["--report-out", disabled, "--no-html-report"]));
+		forbidArtifact(join(disabled, "report.html"), "--no-html-report was overridden.");
+		output.push(
+			runReportOutCli(workspace, [
+				"compare",
+				"--a",
+				suiteReport,
+				"--b",
+				suiteReport,
+				"--report-out",
+				comparison,
+				"--out-dir",
+				override,
+			]),
+		);
+		requireArtifact(
+			join(override, "compare-report.json"),
+			"--out-dir did not select comparison output.",
+		);
+		forbidArtifact(comparison, "--report-out overrode --out-dir for comparison output.");
+		return { passed: true, output: output.join("\n") };
+	} catch (error) {
+		return {
+			passed: false,
+			output: output.join("\n"),
+			error: error instanceof Error ? error.message : String(error),
+		};
+	} finally {
+		rmSync(root, { recursive: true, force: true });
+	}
+}
+
+function runReportOutCli(workspace: string, args: string[]): string {
+	const mode =
+		args[0] === "compare"
+			? args
+			: ["--suites-dir", "packages/test/fixtures", "--suite", "smoke", ...args];
+	const result = spawnSync("bun", ["packages/test/src/cli.ts", ...mode], {
+		cwd: workspace,
+		encoding: "utf8",
+		timeout: 60_000,
+		env: { ...process.env, CI: "1" },
+	});
+	if (result.error || result.status !== 0)
+		throw new Error(
+			result.error?.message ??
+				`Report-out replay exited ${result.status}: ${result.stderr ?? result.stdout}`,
+		);
+	return `${result.stdout ?? ""}${result.stderr ?? ""}`;
+}
+
+function requireArtifact(path: string, error: string) {
+	if (!existsSync(path)) throw new Error(error);
+}
+
+function forbidArtifact(path: string, error: string) {
+	if (existsSync(path)) throw new Error(error);
+}
+
 /** Run upstream regression files from the hidden reference commit against final agent code. */
 // biome-ignore lint/complexity/useMaxParams: Repository, base, and hidden-regression paths remain explicit verifier inputs.
 export function verifyHistoricalTask(

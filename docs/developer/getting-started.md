@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 
 <!-- review-deps: paths=src/init/**,src/cli.ts,src/context.ts -->
 
@@ -17,7 +17,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide also tells agents to complete structured context actions, preserve existing work, and run the returned test command once without rereading returned files. It does not route ordinary source tasks through audits, validation, or review-proof commands unless the user requested them or the focused test fails. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version. Hash review proof is on by default.
+Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. The bounded packet prioritizes implementation sources and explicitly declared tests before long changelog excerpts. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide tells agents to complete structured context actions, preserve existing work, and check that the packet covers every requested fact. If package metadata, imports, or adjacent tests needed for the request are absent, inspect that nearby evidence before answering. Change tasks run the focused test after covering behavior and documentation obligations; ordinary work does not route through audits or review proof unless requested or the focused test fails. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version. Hash review proof is on by default.
 
 ## 2. Set the scan perimeter
 

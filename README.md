@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-27 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
 
@@ -65,7 +65,7 @@ Flag details: [install](docs/developer/install.md).
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
-For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. It is read-only and reports whether recorded review evidence still matches:
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. It prioritizes implementation sources and explicitly declared tests before long changelog excerpts. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. It is read-only and reports whether recorded review evidence still matches:
 
 ```bash
 skeleton context "billing webhook retry"
@@ -161,7 +161,7 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 
 Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Two additional core tasks measure correctness and reliability without a savings gate, and four package-tradeoff comparisons measure adoption, recovery, and simple-task overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
 
-A separate `broader-openai-v1` qualification is sealed across twelve tasks from six public TypeScript, Python, and Rust repositories. It has not been run and supports no additional claim yet. The one-shot command is `bun run agent:test:qualify:broader-openai`; see the method before using it because it launches 240 primary agent runs and cannot be dry-run against the held-out corpus.
+A separate `broader-openai-v1` qualification began across twelve tasks from six public TypeScript, Python, and Rust repositories, but was stopped after core gates failed. It supports no broader claim and is retired to regression coverage. Do not rerun its one-shot command; a new held-out corpus is required. The first one-pair Expo development pilot lost local tool access; a second, capped pilot produced one matched-correct pair with fewer Skeleton tokens. Neither pilot establishes the broader claim. See the method for the bounded evidence and limitations.
 
 Method: [Agent efficacy](docs/developer/efficacy.md).
 

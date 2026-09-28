@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: installing skeleton in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
 
 <!-- review-deps: paths=src/init/** -->
 
@@ -17,7 +17,7 @@ npx skeleton init --skills
 
 `--skills` runs the skills CLI against the `skeleton/` skill bundled in the installed package. Sensible defaults select only Skeleton, copy it into the consumer, install it for Cursor, Claude Code, and Codex, and skip confirmation (`--skill skeleton`, `--copy`, `-a cursor claude-code codex`, `-y`). This keeps agent guidance aligned with the exact installed package instead of fetching a potentially different revision. Pass any [skills add flags](https://github.com/vercel-labs/skills) after `--skills` — e.g. `-g` / `--global`, `--all`, `-a codex`, or `--list`.
 
-Init writes `skeleton.toml` / `.skeleton/`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts, appends an idempotent `skeleton context` guide to `AGENTS.md`, and installs the bundled skill when `--skills` is present. Context returns the owning document, declared source, and nearest matching focused test; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action to inspect nearby code, tests, and docs, repair an existing owner or document durable behavior, and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. The guide requires agents to use returned excerpts directly, preserve existing work, and run the returned test command once. It reserves audits, validation, and review-proof commands for explicit user requests or a failing focused test.
+Init writes `skeleton.toml` / `.skeleton/`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts, appends an idempotent `skeleton context` guide to `AGENTS.md`, and installs the bundled skill when `--skills` is present. Context returns the owning document, declared source, and nearest matching focused test; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action to inspect nearby code, tests, and docs, repair an existing owner or document durable behavior, and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. The guide requires agents to use returned excerpts directly, check every requested fact against the bounded packet, inspect missing nearby evidence, preserve existing work, and run the focused test after requested behavior and documentation are covered. It reserves audits, validation, and review-proof commands for explicit user requests or a failing focused test.
 
 ## Config
 
