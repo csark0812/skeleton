@@ -7,13 +7,13 @@ const offline = customAgent({
 	options: {},
 });
 export default defineConfig({
-	testDir: ".",
+	testDir: "./agent-suites",
 	testMatch: [
-		"tests/sdk-contracts/*.spec.ts",
-		"agent-suites/does-skeleton-help/outdated-billing-docs.spec.ts",
-		"agent-suites/does-skeleton-help/recover-truncated-context.spec.ts",
-		"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts",
-		"agent-suites/does-skeleton-help/simple-edit-overhead.spec.ts",
+		"sdk-contracts/*.spec.ts",
+		"does-skeleton-help/outdated-billing-docs.spec.ts",
+		"does-skeleton-help/recover-truncated-context.spec.ts",
+		"does-skeleton-help/recover-missing-metadata.spec.ts",
+		"does-skeleton-help/simple-edit-overhead.spec.ts",
 	],
 	outputDir: "test-results/sdk-contracts",
 	timeout: 30_000,

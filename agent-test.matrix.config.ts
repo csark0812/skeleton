@@ -4,7 +4,7 @@ import { defineConfig } from "@post-print/agent-test";
 export default defineConfig({
 	testDir: "./agent-suites",
 	testMatch: "**/*.spec.ts",
-	testIgnore: "**/broader-openai-v1/**",
+	testIgnore: ["**/broader-openai-v1/**", "**/public-regression-pilot/**", "**/sdk-contracts/**"],
 	outputDir: "test-results/agent-test-matrix",
 	timeout: 3_600_000,
 	retries: 0,
@@ -15,12 +15,24 @@ export default defineConfig({
 		{
 			name: "claude",
 			agent: claude(),
-			testIgnore: ["**/product-smoke/**", "**/adoption-maintenance.spec.ts"],
+			testIgnore: [
+				"**/broader-openai-v1/**",
+				"**/public-regression-pilot/**",
+				"**/sdk-contracts/**",
+				"**/product-smoke/**",
+				"**/adoption-maintenance.spec.ts",
+			],
 		},
 		{
 			name: "cursor",
 			agent: cursor(),
-			testIgnore: ["**/product-smoke/**", "**/adoption-maintenance.spec.ts"],
+			testIgnore: [
+				"**/broader-openai-v1/**",
+				"**/public-regression-pilot/**",
+				"**/sdk-contracts/**",
+				"**/product-smoke/**",
+				"**/adoption-maintenance.spec.ts",
+			],
 		},
 	],
 });

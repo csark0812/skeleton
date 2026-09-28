@@ -1,30 +1,30 @@
 {
-  "schemaVersion": 1,
-  "status": "development-candidate-frozen",
-  "qualificationEligible": false,
-  "source": {
-    "repository": "https://github.com/csark0812/skeleton",
-    "commit": "800ba1d1edeba8380c6a6e1fcb05d06eec443a8a",
-    "tree": "22197f1bd54860f2d06d037bdce6b5befdf59d80"
-  },
-  "package": {
-    "identity": "@csark0812/skeleton@5.0.4",
-    "filename": "csark0812-skeleton-5.0.4.tgz",
-    "sha256": "325cca71864bce05bd0bef3b71fa804030d68d72fbe757211f6f298b22bfd692",
-    "npmSha1": "15acee6861816729549a7f7aa784f9883e4d36eb",
-    "cliSha256": "8cda250646da2eeeebd9163b4babfc07759348e143f8a60e46cfb3e91445f288"
-  },
-  "intervention": {
-    "algorithm": "sha256",
-    "digest": "882dab37d3c7747ba2312c08b6a3a3923a1617e12b55ecf5ac6babfc0a85e819",
-    "files": 53,
-    "roots": ["dist", "templates", "schemas", "skeleton"]
-  },
-  "verification": {
-    "bunRunCheck": "passed: 346 tests, lint, typecheck, build, and self audit",
-    "bunRunVerifyPackage": "passed: packed consumer typecheck, exports, and CLI help",
-    "agentTestCheck": "incomplete: offline agent-test runner exhausted the default Node heap; routine test listing completed",
-    "liveQualification": "not run; broader-openai-v1 is retired and no v2 holdout is frozen"
-  },
-  "scope": "This pins a development package candidate, not a new efficacy qualification or publishable broad claim. The package tarball is retained only in the ignored local qualification cache."
+	"schemaVersion": 1,
+	"status": "development-candidate-frozen",
+	"qualificationEligible": false,
+	"source": {
+		"repository": "https://github.com/csark0812/skeleton",
+		"commit": "800ba1d1edeba8380c6a6e1fcb05d06eec443a8a",
+		"tree": "22197f1bd54860f2d06d037bdce6b5befdf59d80"
+	},
+	"package": {
+		"identity": "@csark0812/skeleton@5.0.4",
+		"filename": "csark0812-skeleton-5.0.4.tgz",
+		"sha256": "325cca71864bce05bd0bef3b71fa804030d68d72fbe757211f6f298b22bfd692",
+		"npmSha1": "15acee6861816729549a7f7aa784f9883e4d36eb",
+		"cliSha256": "8cda250646da2eeeebd9163b4babfc07759348e143f8a60e46cfb3e91445f288"
+	},
+	"intervention": {
+		"algorithm": "sha256",
+		"digest": "882dab37d3c7747ba2312c08b6a3a3923a1617e12b55ecf5ac6babfc0a85e819",
+		"files": 53,
+		"roots": ["dist", "templates", "schemas", "skeleton"]
+	},
+	"verification": {
+		"bunRunCheck": "passed: 346 tests, lint, typecheck, build, and self audit",
+		"bunRunVerifyPackage": "passed: packed consumer typecheck, exports, and CLI help",
+		"agentTestCheck": "incomplete: offline agent-test runner exhausted the default Node heap; routine test listing completed",
+		"liveQualification": "not run; broader-openai-v1 is retired and no v2 holdout is frozen"
+	},
+	"scope": "This pins a development package candidate, not a new efficacy qualification or publishable broad claim. The package tarball is retained only in the ignored local qualification cache."
 }

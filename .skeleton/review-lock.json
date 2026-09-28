@@ -20,7 +20,7 @@
 		},
 		"agent-suites/README.md": {
 			"reviewedAt": "2026-09-28",
-			"documentHash": "sha256:26bebd46bd3ef7c150fc1a7f3736221cbcbc806f539bbab2efd6493bb98f7180",
+			"documentHash": "sha256:52a5c3e337b158f90e049d95f1854df82c13544708ac592eb295709d55018fe1",
 			"reviewDependencies": {
 				"agent-suites/broader-openai-v1/judge-calibration.spec.ts": "sha256:79b7ee3d937db33024b15817bff5e14fa72509ad63e100b742f6fc7c39dcdd18",
 				"agent-suites/broader-openai-v1/qualification.spec.ts": "sha256:de33e1ea0e39c2c2203b144c076e699a774fe513cd63f2276479f79938ed7437",
@@ -37,6 +37,7 @@
 				"agent-suites/judge-calibration/documentation.spec.ts": "sha256:70e48bee9721891fbdef23ab5e392696c30c7caf52aa88a85769f5da4d2261c5",
 				"agent-suites/product-smoke/product.spec.ts": "sha256:9a33c65ffb04141ec865d3350602f2172dddf8b70ea742f1547f1c0c789d2c01",
 				"agent-suites/public-regression-pilot/expo-context.spec.ts": "sha256:6fa857e808132be13f424a8232ff076f3480f4433e9daf3e02617ec02d6d9609",
+				"agent-suites/sdk-contracts/migration.spec.ts": "sha256:9a7c455a264a4b5944a485c357eaaab84d897d48d47cbf2c7a15d4c0e5181e5a",
 				"agent-suites/seeds/billing-v2.patch": "sha256:0b199eccb6d0f0b9e547dc5c45899813350ec0f3f91b2b1f72abba531960f6a1",
 				"agent-suites/source-of-truth-conflict/authority.spec.ts": "sha256:41493db41b339fab23eed5813492a8e3d7b07944f7abaa32205d390cdbf21d5b",
 				"scripts/efficacy/adoption.ts": "sha256:2eeea5ca295042bcf58c8724b130accdcfb6bae17aaace41c4327a5da35febb4",
@@ -141,7 +142,7 @@
 		},
 		"docs/developer/efficacy.md": {
 			"reviewedAt": "2026-09-28",
-			"documentHash": "sha256:9c99926c5875261caa6061c77208ee5db1a2eeb25f75d021c417108194f8d20b",
+			"documentHash": "sha256:b19fb2b1a3d85912b6a39fcdf253c40cad5f2143bafce3ca6ab5147e3bc79962",
 			"reviewDependencies": {
 				"agent-suites/broader-openai-v1/judge-calibration.spec.ts": "sha256:79b7ee3d937db33024b15817bff5e14fa72509ad63e100b742f6fc7c39dcdd18",
 				"agent-suites/broader-openai-v1/qualification-corpus.json": "sha256:66f31e0163c187a71b2c93dad675c20bf5239b67d43efb6b94e5e7a11c3ed60e",
@@ -166,13 +167,14 @@
 				"agent-suites/judge-calibration/documentation.spec.ts": "sha256:70e48bee9721891fbdef23ab5e392696c30c7caf52aa88a85769f5da4d2261c5",
 				"agent-suites/product-smoke/product.spec.ts": "sha256:9a33c65ffb04141ec865d3350602f2172dddf8b70ea742f1547f1c0c789d2c01",
 				"agent-suites/public-regression-pilot/expo-context.spec.ts": "sha256:6fa857e808132be13f424a8232ff076f3480f4433e9daf3e02617ec02d6d9609",
-				"agent-suites/README.md": "sha256:26bebd46bd3ef7c150fc1a7f3736221cbcbc806f539bbab2efd6493bb98f7180",
+				"agent-suites/README.md": "sha256:52a5c3e337b158f90e049d95f1854df82c13544708ac592eb295709d55018fe1",
+				"agent-suites/sdk-contracts/migration.spec.ts": "sha256:9a7c455a264a4b5944a485c357eaaab84d897d48d47cbf2c7a15d4c0e5181e5a",
 				"agent-suites/seeds/billing-v2.patch": "sha256:0b199eccb6d0f0b9e547dc5c45899813350ec0f3f91b2b1f72abba531960f6a1",
 				"agent-suites/source-of-truth-conflict/authority.spec.ts": "sha256:41493db41b339fab23eed5813492a8e3d7b07944f7abaa32205d390cdbf21d5b",
 				"agent-test.broader.config.ts": "sha256:b39776fac709615cfe4fbd210dd037bedb9090eedf5c901f3feab47a591ee4df",
-				"agent-test.config.ts": "sha256:7dd54a9a12f21241ed3ec0a92e2de52fbdc4c441081d3419d1ffb4055cec4c5f",
-				"agent-test.matrix.config.ts": "sha256:899d795311f3bb75aa4129384595af60f700d2577253d6325f03d618583de4d8",
-				"agent-test.offline.config.ts": "sha256:697c9dd1d21a1a40f137d28471a98f43b857ad2de30656d5bf8c51904f1709de",
+				"agent-test.config.ts": "sha256:04aaab41e4a49c5f75a137a80d18079151b526642d3dc936b96606b225d2cff6",
+				"agent-test.matrix.config.ts": "sha256:b04658d57fd4654ac63e2fab1aec144a307cbe0a8f1464ff8d0cd2b64584cc2c",
+				"agent-test.offline.config.ts": "sha256:1141aaad16205b5f1d229e2a1f55339fbcaeb26ed98d734ca7733ccf801517d9",
 				"agent-test.pilot.config.ts": "sha256:703505a10421d07eab4eb18beca6e5bab845998614620026ed2e84fb6ccb35b0",
 				"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
 				"package.json": "sha256:d4d55f46026d42063a9f6c66c77bdcfe1533e00dcbc73412a9f4ae18dcd7054f",
@@ -214,8 +216,7 @@
 				"src/__tests__/efficacy-run-lock.test.ts": "sha256:279847b805b519105e8c08bc3b0302a9041a27496c7b2e7a253d9c7ae30f85f5",
 				"src/__tests__/efficacy-suites.test.ts": "sha256:4626d81d93669c01f37955e3177df1ac2edd6b5d0eb3cd57d5db8a97e426e288",
 				"src/__tests__/efficacy-tradeoffs.test.ts": "sha256:f90c316bf478186ae793d8b4095ef4e6cbf5013122e3822614512db70857cd5f",
-				"tests/sdk-contracts/adapter.mjs": "sha256:e9c1780f7fde15eaf8bfd217a6172e159fbdca09f8687f0a3d9e98d6105fd6f2",
-				"tests/sdk-contracts/migration.spec.ts": "sha256:c1942d5e21bd0c1d948b75e956615f9fc650a2e85d2f54372f45f02810d2f765"
+				"tests/sdk-contracts/adapter.mjs": "sha256:e9c1780f7fde15eaf8bfd217a6172e159fbdca09f8687f0a3d9e98d6105fd6f2"
 			}
 		},
 		"docs/developer/getting-started.md": {

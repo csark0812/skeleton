@@ -15,7 +15,7 @@ import { checkRegression } from "../../scripts/efficacy/regression.ts";
 import { stageBillingChange } from "../../scripts/efficacy/workspace.ts";
 
 const taskPrompt = "Report the staged billing endpoint.";
-const adapter = fileURLToPath(new URL("./adapter.mjs", import.meta.url));
+const adapter = fileURLToPath(new URL("../../tests/sdk-contracts/adapter.mjs", import.meta.url));
 const prompt = `${reviewInstructions}\nThe transcript must show the staged v2 billing endpoint.`;
 const test = describe("Offline v2 migration contracts", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/drift/control" }).setup(stageBillingChange),
