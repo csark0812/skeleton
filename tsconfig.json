@@ -15,5 +15,6 @@
 		"agent-suites/**/*.ts",
 		"agent-test*.config.ts",
 		"tests/sdk-contracts/**/*.ts"
-	]
+	],
+	"exclude": ["agent-suites/broader-openai-v2/verifiers/**/*.ts"]
 }

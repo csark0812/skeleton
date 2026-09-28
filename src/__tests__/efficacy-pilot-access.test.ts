@@ -15,6 +15,9 @@ describe("public regression pilot access gate", () => {
 		).toThrow("refusing live pilot");
 		expect(() => assertPilotSandboxReady("darwin", () => ({ status: 0 }))).not.toThrow();
 		expect(() => assertPilotSandboxReady("linux", () => ({ status: 71 }))).not.toThrow();
+		expect(() =>
+			assertPilotSandboxReady("darwin", () => ({ status: 71 }), "qualification"),
+		).toThrow("refusing live qualification");
 	});
 
 	it("does not spend on judges when either agent lacks a successful local shell call", () => {

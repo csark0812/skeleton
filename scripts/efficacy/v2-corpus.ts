@@ -1,0 +1,498 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import {
+	type QualificationCorpusTask,
+	type QualificationVerifier,
+	sealQualificationCorpus,
+} from "./corpus.ts";
+
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
+const old = JSON.parse(
+	readFileSync(`${ROOT}/agent-suites/broader-openai-v1/qualification-corpus.json`, "utf8"),
+) as { tasks: QualificationCorpusTask[] };
+const repositoryDefaults = new Map(
+	old.tasks.map((task) => [
+		task.repository,
+		{ license: task.license, requirements: task.requirements },
+	]),
+);
+
+type TaskInput = Omit<
+	QualificationCorpusTask,
+	"repositoryUrl" | "license" | "requirements" | "promptSha256" | "verifierSha256"
+> & { requirements?: string[] };
+
+function task(input: TaskInput): QualificationCorpusTask {
+	const defaults = repositoryDefaults.get(input.repository);
+	if (!defaults) throw new Error(`Unknown public repository: ${input.repository}`);
+	return {
+		...input,
+		repositoryUrl: `https://github.com/${input.repository}`,
+		license: defaults.license,
+		requirements: input.requirements ?? defaults.requirements,
+		promptSha256: "",
+		verifierSha256: "",
+	};
+}
+
+function judge(requirements: string[], expectedPaths: string[]): QualificationVerifier {
+	return { kind: "judge", requirements, expectedPaths };
+}
+
+const tasks: QualificationCorpusTask[] = [
+	task({
+		id: "agent-spec-suite-rubric-ownership",
+		repository: "post-print/agent-spec",
+		commit: "65ce25c12adf290ad8c70c5ca2b2f166d5c7953e",
+		tree: "0affa1c4469c5ba89f653fd27edfecd45834603a",
+		upstreamUrl: "https://github.com/post-print/agent-spec/pull/27",
+		selectedBy:
+			"Public historical suite-rubric request; frozen parent with package-local preflight and isolation tests passing.",
+		tier: "core",
+		kind: "discovery",
+		prompt:
+			"I want to support suite rubrics stored in a separate file without weakening live preflight or isolation. Where are suite-file loading, rubric validation, CLI --suites-dir parsing, live preflight, and isolated child execution owned? Identify the focused tests and docs that should be updated. Do not change files.",
+		verifier: judge(
+			[
+				"Identify suite-file loading in packages/test/src/load-suite.ts and rubric validation in packages/test/src/validate-suite.ts.",
+				"Identify CLI --suites-dir parsing in packages/test/src/cli.ts and live preflight in packages/test/src/preflight.ts.",
+				"Identify isolated child execution in packages/test/src/live-isolation.ts.",
+				"Name focused preflight/isolation tests and the test and harness README owners, with their roles.",
+			],
+			[
+				"packages/test/src/load-suite.ts",
+				"packages/test/src/validate-suite.ts",
+				"packages/test/src/cli.ts",
+				"packages/test/src/preflight.ts",
+				"packages/test/src/live-isolation.ts",
+				"packages/test/README.md",
+				"packages/harness/README.md",
+			],
+		),
+		nativeTestCommand:
+			"bun node_modules/vitest/vitest.mjs run packages/test/src/__tests__/preflight.test.ts packages/test/src/__tests__/live-isolation.test.ts",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "agent-spec-explicit-claude-auth",
+		repository: "post-print/agent-spec",
+		commit: "02a1907eba72258b4807cff2e2005936b13ba1dc",
+		tree: "2d3e120a0f79a8107918c8cd66bc90b455abf671",
+		upstreamUrl: "https://github.com/post-print/agent-spec/pull/30",
+		selectedBy:
+			"Public explicit-auth fix; independent black-box regression is red on the parent and green on the merged fix.",
+		tier: "core",
+		kind: "maintenance",
+		prompt:
+			"Make the Claude harness require an explicit CLAUDE_AUTH_MODE instead of inferring it from a present key. Subscription mode must not forward a stale API key or use the bare invocation; API-key mode must retain its explicit key behavior. Update the harness guidance and environment example, and run the focused Claude tests.",
+		verifier: {
+			kind: "historical-patch",
+			requirements: [
+				"Explicit mode is required even when ANTHROPIC_API_KEY exists.",
+				"Subscription mode omits the stale API key and uses the non-bare invocation.",
+				"API-key mode retains the key and bare invocation.",
+				"Harness guidance and the environment example describe the supported modes.",
+			],
+			expectedPaths: [
+				"packages/harness/src/claude-run.ts",
+				"packages/harness/README.md",
+				".env.example",
+			],
+			referenceCommit: "2cbc97e3caaead5c082bf55ebc965e8a66d12ee6",
+			verificationPaths: [],
+			verificationFixture: {
+				sourcePath: "agent-suites/broader-openai-v2/verifiers/claude-auth-mode.test.ts",
+				destinationPath: "packages/harness/src/__tests__/claude-auth-mode.test.ts",
+				sha256: "sha256:1d2f419bc17e8c80f981445d10b9ca38c52f1437a2354cbe974ff3d4bb0e8dd7",
+			},
+			verificationCommand:
+				"bun node_modules/vitest/vitest.mjs run packages/harness/src/__tests__/claude-auth-mode.test.ts",
+			contentChecks: [
+				{
+					path: "packages/harness/README.md",
+					includes: ["CLAUDE_AUTH_MODE", "subscription", "api-key"],
+				},
+				{ path: ".env.example", includes: ["CLAUDE_AUTH_MODE"] },
+			],
+		},
+		nativeTestCommand:
+			"bun node_modules/vitest/vitest.mjs run packages/harness/src/__tests__/claude-run.test.ts",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "expo-cli-node-env-ownership",
+		repository: "expo/expo",
+		commit: "af2f21622a9e36462f05f587a57a7bfae2fb5926",
+		tree: "e2849e07ec2b7eb1fca8f6ca6366c47ef07b0170",
+		upstreamUrl: "https://github.com/expo/expo/pull/48741",
+		selectedBy:
+			"Public CLI environment-loading change across the Expo monorepo; package-local Jest passes.",
+		tier: "core",
+		kind: "discovery",
+		prompt:
+			"I need Expo CLI to establish the intended NODE_ENV before environment files are loaded across config, export, and start flows. Identify the shared CLI entry points, the env loader and @expo/env boundary, the representative callers, focused package-local tests, and the changelog owner. Do not change files or require native-device testing.",
+		verifier: judge(
+			[
+				"Identify the shared CLI entry and node-env utility ownership.",
+				"Explain the boundary between packages/@expo/cli/src/utils/env.ts and packages/@expo/env/src/index.ts.",
+				"Name representative config, export, and start callers and the package-local test owner.",
+				"Identify packages/@expo/cli/CHANGELOG.md as the changelog owner.",
+			],
+			[
+				"packages/@expo/cli/src/index.ts",
+				"packages/@expo/cli/src/utils/nodeEnv.ts",
+				"packages/@expo/cli/src/utils/env.ts",
+				"packages/@expo/env/src/index.ts",
+				"packages/@expo/cli/src/config/index.ts",
+				"packages/@expo/cli/src/export/index.ts",
+				"packages/@expo/cli/CHANGELOG.md",
+			],
+		),
+		nativeTestCommand: "corepack pnpm@10.33.0 --filter @expo/cli test --runInBand env-test",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "expo-doctor-dom-webview",
+		repository: "expo/expo",
+		commit: "64b45446833d69a8e426141d4bf9962f66ac31bf",
+		tree: "97f41b5749b334b91aa6a73b1d8dc4468c0e5a39",
+		upstreamUrl: "https://github.com/expo/expo/pull/49345",
+		selectedBy:
+			"Public expo-doctor dependency check fix; focused hidden regression is red on parent and green on merged fix.",
+		tier: "core",
+		kind: "maintenance",
+		prompt:
+			"Fix expo-doctor so its dependency override check reports a stale @expo/dom-webview version rather than overlooking it. Add focused test coverage and a package changelog entry. Keep the work inside expo-doctor; no simulator, device, credentials, or native SDK are needed.",
+		verifier: {
+			kind: "historical-patch",
+			requirements: [
+				"Stale @expo/dom-webview is reported by the dependency override check.",
+				"The focused regression passes.",
+				"The expo-doctor changelog records the behavior change.",
+			],
+			expectedPaths: [
+				"packages/expo-doctor/src/checks/DependencyVersionOverrideCheck.ts",
+				"packages/expo-doctor/src/checks/__tests__/DependencyVersionOverrideCheck.test.ts",
+				"packages/expo-doctor/CHANGELOG.md",
+			],
+			referenceCommit: "ba140241fdcd1f4fcaf09026939d3fcb81ad9f36",
+			verificationPaths: [
+				"packages/expo-doctor/src/checks/__tests__/DependencyVersionOverrideCheck.test.ts",
+			],
+			verificationCommand:
+				"corepack pnpm@10.33.0 --filter expo-doctor test --runInBand DependencyVersionOverrideCheck",
+			contentChecks: [
+				{ path: "packages/expo-doctor/CHANGELOG.md", includes: ["@expo/dom-webview"] },
+			],
+		},
+		nativeTestCommand:
+			"corepack pnpm@10.33.0 --filter expo-doctor test --runInBand DependencyVersionOverrideCheck",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "hono-wildcard-router-ownership",
+		repository: "honojs/hono",
+		commit: "48e360fcaa107c7706fcf8adccb93505876791dc",
+		tree: "266834c5214ca5ffd471d012a4fc9dd60e9a825f",
+		upstreamUrl: "https://github.com/honojs/hono/pull/5266",
+		selectedBy:
+			"Public wildcard middleware fix across route registration, node, matcher, and cross-router tests.",
+		tier: "core",
+		kind: "discovery",
+		prompt:
+			"I need to change how wildcard middleware is associated with concrete routes in Hono's RegExpRouter. Identify the route-registration, wildcard-pattern, and matcher ownership paths, plus the focused cross-router tests that should protect method-wide middleware propagation. Explain the current registration rule without changing files.",
+		verifier: judge(
+			[
+				"Identify RegExpRouter route registration and its current wildcard association rule.",
+				"Identify wildcard pattern/node ownership and matcher ownership.",
+				"Identify the shared router cases and linear-router tests that protect method-wide propagation.",
+			],
+			[
+				"src/router/reg-exp-router/router.ts",
+				"src/router/reg-exp-router/node.ts",
+				"src/router/reg-exp-router/matcher.ts",
+				"src/router/common.case.test.ts",
+				"src/router/linear-router/router.test.ts",
+			],
+		),
+		nativeTestCommand:
+			"node node_modules/vitest/vitest.mjs run src/router/reg-exp-router/router.test.ts src/router/common.case.test.ts src/router/linear-router/router.test.ts --coverage.enabled=false",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "fastapi-stream-status",
+		repository: "fastapi/fastapi",
+		commit: "6215d8a6f3fed4eef63fe9d1ae600c12f62bd881",
+		tree: "ceff1976cedec09e5de92e24850facdf2ad8d881",
+		upstreamUrl: "https://github.com/fastapi/fastapi/pull/15937",
+		selectedBy:
+			"Public streaming status-code fix; independent upstream regression is red on parent and green on merged fix.",
+		tier: "core",
+		kind: "maintenance",
+		prompt:
+			"Fix FastAPI's streaming path operations so a declared 201 or 202 status code is preserved for SSE, JSON Lines, and raw streaming responses, including dependency-provided status codes. Update the English Stream Data guide to explain the status-code behavior and run focused streaming tests.",
+		verifier: {
+			kind: "historical-patch",
+			requirements: [
+				"Streaming SSE, JSON Lines, and raw responses preserve declared and dependency-provided status codes.",
+				"The hidden streaming-status regression passes.",
+				"The English Stream Data guide describes status-code behavior.",
+			],
+			expectedPaths: [
+				"fastapi/routing.py",
+				"tests/test_sse.py",
+				"docs/en/docs/advanced/stream-data.md",
+			],
+			referenceCommit: "e92a0dc3ce5ecbebb8655dbe5465cb61d48f9fc0",
+			verificationPaths: ["tests/test_stream_status_code.py"],
+			verificationCommand: "uv run pytest tests/test_stream_status_code.py -q",
+			contentChecks: [
+				{
+					path: "docs/en/docs/advanced/stream-data.md",
+					includes: ["status_code", "StreamingResponse"],
+				},
+			],
+		},
+		nativeTestCommand: "uv run pytest tests/test_sse.py -q",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "ruff-generated-artifact-ownership",
+		repository: "astral-sh/ruff",
+		commit: "6b388d27dc590f9e51e8d1dc89523d5a18efc5be",
+		tree: "f15643aea380ba4be492b56f23e990c84e9da7e6",
+		upstreamUrl: "https://github.com/astral-sh/ruff/pull/28002",
+		selectedBy:
+			"Public generated-artifact diagnostics change; generator test passes on frozen base.",
+		tier: "core",
+		kind: "discovery",
+		prompt:
+			"I need to improve the diagnostics when Ruff's generated docs or schemas are stale in check mode. Trace the generate-all dispatcher, the shared mode contract, representative CLI help and JSON schema generators, the generated output they check, and the focused native tests. Do not change files.",
+		verifier: judge(
+			[
+				"Identify crates/ruff_dev/src/generate_all.rs as the dispatcher and explain Mode::Check versus Mode::Write.",
+				"Identify CLI-help and JSON-schema generator ownership and the generated outputs they check.",
+				"Name the relevant generator tests and generated configuration/schema paths.",
+			],
+			[
+				"crates/ruff_dev/src/generate_all.rs",
+				"crates/ruff_dev/src/generate_cli_help.rs",
+				"crates/ruff_dev/src/generate_json_schema.rs",
+				"crates/ruff_dev/src/generate_ty_schema.rs",
+				"crates/ruff_dev/src/generate_docs.rs",
+				"docs/configuration.md",
+				"ruff.schema.json",
+			],
+		),
+		nativeTestCommand: "cargo test -p ruff_dev test_generate_json_schema --locked",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "biome-init-git-flag",
+		repository: "biomejs/biome",
+		commit: "ab05554518c2e2afef6294c191ef62f907cbc36e",
+		tree: "f6eeae70bce6927588f20e9217577046e6be35e5",
+		upstreamUrl: "https://github.com/biomejs/biome/pull/11479",
+		selectedBy:
+			"Public init --git feature; focused upstream CLI regression is red on parent and green on merged fix.",
+		tier: "core",
+		kind: "maintenance",
+		prompt:
+			"Add an explicit --git option to Biome's init command so users can enable Git integration when no repository or ignore file is detected. Preserve the current automatic detection, cover the new CLI behavior, and add a changeset documenting the option.",
+		verifier: {
+			kind: "historical-patch",
+			requirements: [
+				"init --git enables Git integration without detected repository metadata.",
+				"Existing automatic VCS detection remains intact.",
+				"The hidden CLI regression passes.",
+				"A changeset documents --git.",
+			],
+			expectedPaths: [
+				"crates/biome_cli/src/commands/init.rs",
+				"crates/biome_cli/src/commands/mod.rs",
+				"crates/biome_cli/tests/commands/init.rs",
+				".changeset",
+			],
+			referenceCommit: "5c60ba83b6bb2442eb3d6157b328719d0c39a5c2",
+			verificationPaths: [
+				"crates/biome_cli/tests/commands/init.rs",
+				"crates/biome_cli/tests/snapshots/main_commands_init/enables_vcs_with_git_flag.snap",
+			],
+			verificationCommand: "cargo test -p biome_cli --test main enables_vcs_with_git_flag --locked",
+			changedFileContentChecks: [{ prefix: ".changeset/", includes: ["--git"] }],
+		},
+		nativeTestCommand:
+			"cargo test -p biome_cli --test main enables_vcs_inside_git_repository --locked",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "hono-contributing-trivial-grammar",
+		repository: "honojs/hono",
+		commit: "48e360fcaa107c7706fcf8adccb93505876791dc",
+		tree: "266834c5214ca5ffd471d012a4fc9dd60e9a825f",
+		upstreamUrl: "https://github.com/honojs/hono/commit/48e360fcaa107c7706fcf8adccb93505876791dc",
+		selectedBy:
+			"Frozen public Hono snapshot with a single real grammar correction; no fixture source modification.",
+		tier: "trivial",
+		kind: "guardrail",
+		prompt:
+			"In docs/CONTRIBUTING.md, replace the single phrase 'This project is started by Yusuke Wada' with 'This project was started by Yusuke Wada'. Make no other changes.",
+		verifier: {
+			kind: "exact-edit",
+			requirements: ["Only the requested phrase in docs/CONTRIBUTING.md changes."],
+			expectedPaths: ["docs/CONTRIBUTING.md"],
+			exactEdit: {
+				path: "docs/CONTRIBUTING.md",
+				from: "This project is started by Yusuke Wada",
+				to: "This project was started by Yusuke Wada",
+			},
+		},
+		nativeTestCommand: "git diff --check",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "fastapi-stream-doc-metadata-recovery",
+		repository: "fastapi/fastapi",
+		commit: "6215d8a6f3fed4eef63fe9d1ae600c12f62bd881",
+		tree: "ceff1976cedec09e5de92e24850facdf2ad8d881",
+		upstreamUrl:
+			"https://github.com/fastapi/fastapi/commit/6215d8a6f3fed4eef63fe9d1ae600c12f62bd881",
+		selectedBy:
+			"Same frozen public FastAPI snapshot with ownership metadata absent from the existing English Stream Data guide.",
+		tier: "recovery",
+		kind: "guardrail",
+		prompt:
+			"Make the existing English Stream Data guide the discoverable owner for FastAPI's binary StreamingResponse behavior. If Skeleton is available, first run its context command with the exact query `stream pure binary StreamingResponse threadpool`, then repeat that query after repairing ownership. Otherwise, inspect the repository directly. Add accurate ownership and review-dependency metadata to the existing guide, preserve its explanation of yielded chunks and sync threadpool execution, and run the focused stream-data test. Do not create a parallel guide.",
+		verifier: {
+			kind: "recovery",
+			requirements: [
+				"The treatment encounters no-context, repairs the existing English Stream Data guide, and retries the same context query.",
+				"The guide's ownership and review-dependency metadata correctly name its implementation and focused test.",
+				"The guide still accurately explains yielded chunks and sync threadpool execution.",
+			],
+			expectedPaths: [
+				"docs/en/docs/advanced/stream-data.md",
+				"fastapi/routing.py",
+				"tests/test_tutorial/test_stream_data/test_tutorial001.py",
+			],
+			requiredChangedPaths: ["docs/en/docs/advanced/stream-data.md"],
+			contentChecks: [
+				{
+					path: "docs/en/docs/advanced/stream-data.md",
+					includes: [
+						"<!-- source-of-truth:",
+						"<!-- review-deps:",
+						"StreamingResponse",
+						"threadpool worker",
+					],
+				},
+			],
+			recoveryEvidence: {
+				signal: "no-context",
+				traceChecks: [
+					{ needle: "action\\tno-context", minimumOccurrences: 1 },
+					{ needle: "stream pure binary StreamingResponse threadpool", minimumOccurrences: 2 },
+					{ needle: "docs/en/docs/advanced/stream-data.md", minimumOccurrences: 2 },
+				],
+			},
+		},
+		nativeTestCommand: "uv run pytest tests/test_tutorial/test_stream_data/test_tutorial001.py -q",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "ruff-generator-truncated-context-recovery",
+		repository: "astral-sh/ruff",
+		commit: "6b388d27dc590f9e51e8d1dc89523d5a18efc5be",
+		tree: "f15643aea380ba4be492b56f23e990c84e9da7e6",
+		upstreamUrl:
+			"https://github.com/astral-sh/ruff/commit/6b388d27dc590f9e51e8d1dc89523d5a18efc5be",
+		selectedBy:
+			"Same frozen public Ruff generator snapshot with a shared incomplete excerpt supplied to both arms.",
+		tier: "recovery",
+		kind: "guardrail",
+		prompt:
+			"The supplied generator excerpt is incomplete. Inspect the actual generate-all dispatcher and JSON-schema generator, then clarify the in-code documentation for check mode and dry-run mode so it accurately describes which mode verifies generated output without writing and which prints to stdout. Preserve implementation behavior and generated files, and run the focused generator test.",
+		verifier: {
+			kind: "recovery",
+			requirements: [
+				"The treatment reads the incomplete excerpt, then the actual dispatcher and schema generator.",
+				"The Mode documentation accurately distinguishes checking without writes from dry-run output.",
+				"Implementation behavior and generated files are unchanged; the generator test passes.",
+			],
+			expectedPaths: [
+				"crates/ruff_dev/src/generate_all.rs",
+				"crates/ruff_dev/src/generate_json_schema.rs",
+				"ruff.schema.json",
+			],
+			requiredChangedPaths: ["crates/ruff_dev/src/generate_all.rs"],
+			unchangedRustCodePaths: ["crates/ruff_dev/src/generate_all.rs"],
+			recoveryEvidence: {
+				signal: "truncated-read",
+				traceChecks: [
+					{ needle: "docs/qualification/context-excerpt.md", minimumOccurrences: 1 },
+					{ needle: "crates/ruff_dev/src/generate_all.rs", minimumOccurrences: 1 },
+					{ needle: "crates/ruff_dev/src/generate_json_schema.rs", minimumOccurrences: 1 },
+				],
+				fixture: {
+					path: "docs/qualification/context-excerpt.md",
+					content:
+						"# Incomplete generator excerpt\n\nThe available summary says `cargo dev generate-all` can check generated files. It omits the Mode definition, schema generator, and the precise difference between check and dry-run.\n",
+				},
+			},
+		},
+		nativeTestCommand: "cargo test -p ruff_dev test_generate_json_schema --locked",
+		warmTestTimeoutMs: 300_000,
+	}),
+	task({
+		id: "biome-init-vcs-adoption",
+		repository: "biomejs/biome",
+		commit: "ab05554518c2e2afef6294c191ef62f907cbc36e",
+		tree: "f6eeae70bce6927588f20e9217577046e6be35e5",
+		upstreamUrl: "https://github.com/biomejs/biome/commit/ab05554518c2e2afef6294c191ef62f907cbc36e",
+		selectedBy:
+			"Same frozen public Biome snapshot with unconfigured Skeleton adoption followed by a focused documentation maintenance task.",
+		tier: "adoption",
+		kind: "guardrail",
+		prompt:
+			"Document how the existing init command detects a Git repository in ancestor directories, including a .git file as well as a directory, without changing runtime behavior. Keep the new explanation beside is_inside_git_repository and run the focused init test.",
+		verifier: {
+			kind: "adoption",
+			requirements: [
+				"The treatment installs and initializes the exact local Skeleton artifact, then completes the maintenance task.",
+				"The comment beside is_inside_git_repository accurately describes ancestor traversal and .git file/directory detection.",
+				"Runtime behavior remains unchanged and the focused init test passes.",
+			],
+			expectedPaths: [
+				"crates/biome_cli/src/commands/init.rs",
+				"crates/biome_cli/tests/commands/init.rs",
+				"crates/biome_cli/src/commands/mod.rs",
+			],
+			requiredChangedPaths: ["crates/biome_cli/src/commands/init.rs"],
+			unchangedRustCodePaths: ["crates/biome_cli/src/commands/init.rs"],
+			contentChecks: [
+				{
+					path: "crates/biome_cli/src/commands/init.rs",
+					includes: [".git", "ancestor", "file", "directory"],
+				},
+			],
+		},
+		nativeTestCommand:
+			"cargo test -p biome_cli --test main enables_vcs_inside_git_repository --locked",
+		warmTestTimeoutMs: 300_000,
+	}),
+];
+
+export function buildV2Corpus(sealedAt: string) {
+	return sealQualificationCorpus({
+		version: "broader-openai-v2",
+		status: "sealed",
+		sealedAt,
+		cutoff: "2026-09-01T00:00:00Z",
+		model: "gpt-5.6-luna",
+		judgeModel: "gpt-5.6-luna",
+		globalSkills: false,
+		repetitions: 10,
+		bootstrap: { samples: 100_000, seed: 20_260_928 },
+		tasks,
+	});
+}

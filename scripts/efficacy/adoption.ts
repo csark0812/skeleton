@@ -14,16 +14,22 @@ export type AdoptionSetupEvidence = {
 	contextResolves: boolean;
 };
 
+export const ADOPTION_INSTALL_DIR = ".skeleton/qualification-install";
+
+export function adoptionInstalledCli(root: string, installDir = "") {
+	return join(root, installDir, "node_modules/@csark0812/skeleton/dist/cli.js");
+}
+
 export function adoptionSetupPassed(evidence: AdoptionSetupEvidence) {
 	return Object.values(evidence).every(Boolean);
 }
 
-export function inspectAdoptionSetup(root: string, task: QualificationCorpusTask) {
+export function inspectAdoptionSetup(root: string, task: QualificationCorpusTask, installDir = "") {
 	const paperPath = `docs/qualification/${task.id}.md`;
 	const read = (path: string) =>
 		existsSync(join(root, path)) ? readFileSync(join(root, path), "utf8") : "";
 	const paper = read(paperPath);
-	const cli = join(root, "node_modules/@csark0812/skeleton/dist/cli.js");
+	const cli = adoptionInstalledCli(root, installDir);
 	const context = spawnSync("node", [cli, "context", "--path", task.verifier.expectedPaths[0]!], {
 		cwd: root,
 		encoding: "utf8",
@@ -31,7 +37,7 @@ export function inspectAdoptionSetup(root: string, task: QualificationCorpusTask
 	});
 	const contextOutput = `${context.stdout ?? ""}\n${context.stderr ?? ""}`;
 	const evidence: AdoptionSetupEvidence = {
-		installed: existsSync(join(root, "node_modules/@csark0812/skeleton/package.json")),
+		installed: existsSync(join(root, installDir, "node_modules/@csark0812/skeleton/package.json")),
 		configured: existsSync(join(root, "skeleton.toml")),
 		guide: read("AGENTS.md").includes("<!-- skeleton: context-guide -->"),
 		reviewProof: existsSync(join(root, ".skeleton/review-lock.json")),

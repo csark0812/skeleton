@@ -42,7 +42,7 @@ export type QualificationCellSummary = {
 };
 
 export type QualificationReport = {
-	version: "broader-openai-v1";
+	version: "broader-openai-v1" | "broader-openai-v2";
 	passed: boolean;
 	cells: QualificationCellSummary[];
 	core: {
@@ -56,7 +56,11 @@ export type QualificationReport = {
 	bootstrap: { samples: number; seed: number };
 };
 
-type EvaluationOptions = { bootstrapSamples?: number; seed?: number };
+type EvaluationOptions = {
+	bootstrapSamples?: number;
+	seed?: number;
+	version?: QualificationReport["version"];
+};
 
 const EXPECTED_ATTEMPTS = 10;
 const EPSILON = 1e-12;
@@ -283,7 +287,7 @@ export function evaluateQualification(
 	}
 
 	return {
-		version: "broader-openai-v1",
+		version: options.version ?? "broader-openai-v1",
 		passed: gates.every((entry) => entry.passed),
 		cells: summaries,
 		core: {

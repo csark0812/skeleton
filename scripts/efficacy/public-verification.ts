@@ -1,10 +1,11 @@
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
 	cpSync,
 	existsSync,
-	lstatSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	realpathSync,
 	rmSync,
 	symlinkSync,
@@ -13,7 +14,10 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import type { QualificationCorpusTask } from "./corpus.ts";
+
+const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 export type PublicVerification = { passed: boolean; output: string; error?: string };
 type VerificationOptions = {
@@ -22,12 +26,39 @@ type VerificationOptions = {
 	dependencyWorkspace?: string;
 };
 
+/** Check one requested replacement against immutable before/after files. */
+export function verifyExactEdit(
+	task: QualificationCorpusTask,
+	workspace: { initial: string; final: string; changedPaths: string[] },
+): PublicVerification {
+	const edit = task.verifier.exactEdit;
+	if (task.verifier.kind !== "exact-edit" || !edit)
+		return { passed: false, output: "", error: `${task.id}: exact-edit contract is missing.` };
+	const beforePath = join(workspace.initial, edit.path);
+	const afterPath = join(workspace.final, edit.path);
+	if (!(existsSync(beforePath) && existsSync(afterPath)))
+		return { passed: false, output: "Requested file is missing." };
+	const before = readFileSync(beforePath, "utf8");
+	const after = readFileSync(afterPath, "utf8");
+	const oneOccurrence = before.split(edit.from).length === 2;
+	const oneChangedPath =
+		workspace.changedPaths.length === 1 && workspace.changedPaths[0] === edit.path;
+	const passed = oneOccurrence && oneChangedPath && after === before.replace(edit.from, edit.to);
+	return {
+		passed,
+		output: passed
+			? "The sole changed file contains exactly the requested replacement."
+			: "The edit changed another path, lacks a unique source phrase, or differs beyond the replacement.",
+	};
+}
+
 export function verifyNativeTask(
 	task: QualificationCorpusTask,
 	finalWorkspace: string,
 	options: VerificationOptions = {},
 ): PublicVerification {
-	if (!options.dependencyWorkspace) return runNativeCommand(task, finalWorkspace, options.env);
+	if (!options.dependencyWorkspace)
+		return runNativeCommand(task, finalWorkspace, { env: options.env });
 	const root = mkdtempSync(join(tmpdir(), "skeleton-public-native-"));
 	const workspace = join(root, "workspace");
 	try {
@@ -35,7 +66,7 @@ export function verifyNativeTask(
 		for (const dependencyRoot of dependencyRootsFor(task))
 			linkDependencyRoot(options.dependencyWorkspace, workspace, dependencyRoot);
 		prepareVerificationRuntime(task, workspace, options.env);
-		return runNativeCommand(task, workspace, options.env);
+		return runNativeCommand(task, workspace, { env: options.env });
 	} catch (error) {
 		return {
 			passed: false,
@@ -144,26 +175,25 @@ export function verifyHistoricalTask(
 	if (task.verifier.kind !== "historical-patch")
 		return { passed: false, output: "", error: `${task.id} is not a historical-patch task.` };
 	const reference = task.verifier.referenceCommit!;
-	const verificationPaths = task.verifier.verificationPaths!;
+	const verificationPaths = task.verifier.verificationPaths ?? [];
 	const root = mkdtempSync(join(tmpdir(), "skeleton-public-verification-"));
 	const workspace = join(root, "workspace");
 	try {
-		if (existsSync(join(finalWorkspace, ".git"))) {
-			execFileSync("git", ["clone", "-q", "--no-hardlinks", finalWorkspace, workspace]);
-			applyFinalChanges(finalWorkspace, workspace, root);
-		} else {
-			cpSync(finalWorkspace, workspace, { recursive: true, dereference: true });
-		}
+		copyFinalWorkspace(finalWorkspace, workspace, root);
 		for (const path of verificationPaths) {
 			const contents = execFileSync("git", ["-C", repositoryCache, "show", `${reference}:${path}`]);
 			const target = join(workspace, path);
 			mkdirSync(dirname(target), { recursive: true });
 			writeFileSync(target, contents);
 		}
+		writeLocalVerifierFixture(task, workspace);
 		for (const dependencyRoot of dependencyRootsFor(task))
 			linkDependencyRoot(options.dependencyWorkspace ?? finalWorkspace, workspace, dependencyRoot);
 		prepareVerificationRuntime(task, workspace, options.env);
-		return runNativeCommand(task, workspace, options.env);
+		return runNativeCommand(task, workspace, {
+			env: options.env,
+			command: task.verifier.verificationCommand,
+		});
 	} catch (error) {
 		return {
 			passed: false,
@@ -175,17 +205,38 @@ export function verifyHistoricalTask(
 	}
 }
 
+function copyFinalWorkspace(finalWorkspace: string, workspace: string, root: string) {
+	if (!existsSync(join(finalWorkspace, ".git"))) {
+		cpSync(finalWorkspace, workspace, { recursive: true, dereference: true });
+		return;
+	}
+	execFileSync("git", ["clone", "-q", "--no-hardlinks", finalWorkspace, workspace]);
+	applyFinalChanges(finalWorkspace, workspace, root);
+}
+
+function writeLocalVerifierFixture(task: QualificationCorpusTask, workspace: string) {
+	const fixture = task.verifier.verificationFixture;
+	if (!fixture) return;
+	const contents = readFileSync(join(ROOT, fixture.sourcePath));
+	const digest = createHash("sha256").update(contents).digest("hex");
+	if (`sha256:${digest}` !== fixture.sha256)
+		throw new Error(`${task.id}: local verifier hash changed after sealing.`);
+	const target = join(workspace, fixture.destinationPath);
+	mkdirSync(dirname(target), { recursive: true });
+	writeFileSync(target, contents);
+}
+
 function runNativeCommand(
 	task: QualificationCorpusTask,
 	workspace: string,
-	env: Record<string, string> = {},
+	options: { env?: Record<string, string>; command?: string } = {},
 ): PublicVerification {
-	const result = spawnSync(task.nativeTestCommand, {
+	const result = spawnSync(options.command ?? task.nativeTestCommand, {
 		cwd: workspace,
 		shell: true,
 		encoding: "utf8",
 		timeout: task.warmTestTimeoutMs,
-		env: { ...process.env, CI: "1", ...env },
+		env: { ...process.env, CI: "1", ...options.env },
 	});
 	const output = [result.stdout, result.stderr].filter(Boolean).join("\n");
 	return result.error
@@ -194,6 +245,8 @@ function runNativeCommand(
 }
 
 function dependencyRootsFor(task: QualificationCorpusTask) {
+	if (task.repository === "expo/expo")
+		return ["node_modules", "packages/@expo/cli/node_modules", "packages/expo-doctor/node_modules"];
 	return task.repository === "fastapi/fastapi"
 		? ["node_modules", "target"]
 		: ["node_modules", ".venv", "target"];
@@ -205,7 +258,7 @@ function prepareVerificationRuntime(
 	env: Record<string, string> = {},
 ) {
 	if (task.repository !== "fastapi/fastapi") return;
-	execFileSync("uv", ["sync", "--frozen"], {
+	execFileSync("uv", ["sync", "--frozen", "--offline"], {
 		cwd: workspace,
 		encoding: "utf8",
 		stdio: ["ignore", "pipe", "inherit"],
@@ -240,7 +293,10 @@ export function verifyKnownUpstreamFix(
 		execFileSync("git", ["-C", workspace, "apply", "--binary", patchPath]);
 		for (const dependencyRoot of dependencyRootsFor(task))
 			linkDependencyRoot(baseWorkspace, workspace, dependencyRoot);
-		return verifyHistoricalTask(task, workspace, repositoryCache, options);
+		return verifyHistoricalTask(task, workspace, repositoryCache, {
+			...options,
+			dependencyWorkspace: baseWorkspace,
+		});
 	} catch (error) {
 		return {
 			passed: false,
@@ -267,6 +323,8 @@ function applyFinalChanges(finalWorkspace: string, workspace: string, tempRoot: 
 		.split("\0")
 		.filter(Boolean);
 	for (const path of untracked) {
+		if (path.split("/").some((part) => ["node_modules", ".venv", "target"].includes(part)))
+			continue;
 		const source = join(finalWorkspace, path);
 		const target = join(workspace, path);
 		mkdirSync(dirname(target), { recursive: true });
@@ -279,6 +337,6 @@ function linkDependencyRoot(sourceRoot: string, targetRoot: string, relative: st
 	const target = join(targetRoot, relative);
 	if (!existsSync(source) || existsSync(target)) return;
 	mkdirSync(dirname(target), { recursive: true });
-	const resolved = lstatSync(source).isSymbolicLink() ? realpathSync(source) : source;
+	const resolved = realpathSync(source);
 	symlinkSync(resolved, target, "junction");
 }

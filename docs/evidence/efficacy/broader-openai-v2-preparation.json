@@ -1,0 +1,71 @@
+{
+	"version": "broader-openai-v2",
+	"status": "sealed-model-free-preflight-passed",
+	"qualificationRuns": 0,
+	"corpus": "agent-suites/broader-openai-v2/qualification-corpus.json",
+	"corpusSha256": "sha256:eed02a5f4a42d93c627b8be6c1932f9d53a37fce199f67cc4e3f882a19e38bf5",
+	"intervention": {
+		"algorithm": "sha256",
+		"digest": "882dab37d3c7747ba2312c08b6a3a3923a1617e12b55ecf5ac6babfc0a85e819",
+		"files": 53
+	},
+	"packagedArtifact": {
+		"id": "@csark0812/skeleton@5.0.4",
+		"sha1": "d3b4978728543b23f5fba43d2c7e1accdf4b2a82"
+	},
+	"publicRepositories": [
+		"https://github.com/post-print/agent-spec",
+		"https://github.com/expo/expo",
+		"https://github.com/honojs/hono",
+		"https://github.com/fastapi/fastapi",
+		"https://github.com/astral-sh/ruff",
+		"https://github.com/biomejs/biome"
+	],
+	"cells": [
+		{ "id": "agent-spec-suite-rubric-ownership", "nativeBase": true },
+		{
+			"id": "agent-spec-explicit-claude-auth",
+			"nativeBase": true,
+			"independentVerifierRedOnBase": true,
+			"independentVerifierGreenOnUpstreamFix": true
+		},
+		{ "id": "expo-cli-node-env-ownership", "nativeBase": true },
+		{
+			"id": "expo-doctor-dom-webview",
+			"nativeBase": true,
+			"independentVerifierRedOnBase": true,
+			"independentVerifierGreenOnUpstreamFix": true
+		},
+		{ "id": "hono-wildcard-router-ownership", "nativeBase": true },
+		{
+			"id": "fastapi-stream-status",
+			"nativeBase": true,
+			"independentVerifierRedOnBase": true,
+			"independentVerifierGreenOnUpstreamFix": true
+		},
+		{ "id": "ruff-generated-artifact-ownership", "nativeBase": true },
+		{
+			"id": "biome-init-git-flag",
+			"nativeBase": true,
+			"independentVerifierRedOnBase": true,
+			"independentVerifierGreenOnUpstreamFix": true
+		},
+		{ "id": "hono-contributing-trivial-grammar", "nativeBase": true },
+		{
+			"id": "fastapi-stream-doc-metadata-recovery",
+			"nativeBase": true,
+			"initialSkeletonContext": "no-context"
+		},
+		{ "id": "ruff-generator-truncated-context-recovery", "nativeBase": true },
+		{ "id": "biome-init-vcs-adoption", "nativeBase": true }
+	],
+	"pairedWorkspaceEquivalenceOutsideAllowlist": true,
+	"adoptionOfflineInstallProof": "The exact local tarball installed with npm in an isolated prefix using only the prepared cache; 82 packages resolved offline without altering Biome's workspace dependencies.",
+	"focusedAgentWorkspaceSmoke": {
+		"agentSpec": "18 passed",
+		"expoCli": "5 passed",
+		"hono": "186 passed, 13 skipped"
+	},
+	"scope": "Preparation only. No qualification agent or judge was run; no efficacy or correctness-rate claim follows from this record.",
+	"liveHostConstraint": "The current managed task sandbox reports sandbox-exec: sandbox_apply: Operation not permitted. The live runner refuses agent spend until the macOS sandbox probe succeeds in the execution environment."
+}

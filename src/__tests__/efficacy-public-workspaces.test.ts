@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { ADOPTION_INSTALL_DIR, adoptionInstalledCli } from "../../scripts/efficacy/adoption.ts";
 import type { QualificationCorpusTask } from "../../scripts/efficacy/corpus.ts";
 import {
 	assertPairedAgentWorkspaces,
@@ -127,7 +128,14 @@ describe("public qualification workspace preparation", () => {
 			const selected = task("core");
 			const workspace = join(root, "workspaces", selected.id, "control");
 			const source = join(workspace, "node_modules");
-			const cache = join(root, ".qualification-cache", "dependencies", selected.id, "control");
+			const cache = join(
+				root,
+				".qualification-cache",
+				"dependencies",
+				selected.id,
+				"control",
+				"node_modules",
+			);
 			mkdirSync(source, { recursive: true });
 			writeFileSync(join(source, "version"), "first");
 			externalizeNodeModules(root, selected, workspace);
@@ -152,13 +160,41 @@ describe("public qualification workspace preparation", () => {
 			const selected = task("core");
 			selected.repository = "expo/expo";
 			const workspace = join(root, "workspaces", selected.id, "control");
-			const cache = join(root, ".qualification-cache", "dependencies", selected.id, "control");
+			const cache = join(
+				root,
+				".qualification-cache",
+				"dependencies",
+				selected.id,
+				"control",
+				"node_modules",
+			);
 			mkdirSync(cache, { recursive: true });
 			mkdirSync(workspace, { recursive: true });
 			symlinkSync(cache, join(workspace, "node_modules"));
 			expect(() =>
 				installRepositoryDependencies(selected, workspace, { root, env: {} }),
 			).not.toThrow();
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps package resolution valid after moving generated dependencies", () => {
+		const root = mkdtempSync(join(tmpdir(), "skeleton-dependency-resolution-test-"));
+		try {
+			const selected = task("core");
+			const workspace = join(root, "workspaces", selected.id, "control");
+			const modules = join(workspace, "node_modules");
+			mkdirSync(join(modules, "pkg-a"), { recursive: true });
+			mkdirSync(join(modules, "pkg-b"), { recursive: true });
+			writeFileSync(join(modules, "pkg-a/package.json"), '{"type":"module"}\n');
+			writeFileSync(join(modules, "pkg-a/index.mjs"), 'import "pkg-b"; console.log("resolved");\n');
+			writeFileSync(join(modules, "pkg-b/package.json"), '{"main":"index.mjs"}\n');
+			writeFileSync(join(modules, "pkg-b/index.mjs"), "export const value = true;\n");
+			externalizeNodeModules(root, selected, workspace);
+			expect(execFileSync("node", [join(modules, "pkg-a/index.mjs")], { encoding: "utf8" })).toBe(
+				"resolved\n",
+			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -199,7 +235,11 @@ describe("public qualification workspace preparation", () => {
 
 	it("keeps missing-metadata recovery deliberately unowned", () => {
 		const selected = task("recovery");
-		selected.id = "fastapi-missing-metadata-recovery";
+		selected.id = "fastapi-stream-doc-metadata-recovery";
+		selected.verifier.recoveryEvidence = {
+			signal: "no-context",
+			traceChecks: [],
+		};
 		expect(workspacePlan(selected).treatment).toBe("missing-metadata");
 		expect(qualificationPaper(selected, true)).not.toContain("source-of-truth");
 	});
@@ -220,6 +260,16 @@ describe("public qualification workspace preparation", () => {
 			installSkeleton: false,
 			includeVendorArtifact: true,
 		});
+	});
+
+	it("installs the adoption artifact in an isolated prefix without altering Biome's workspace dependencies", () => {
+		const root = "/public/biome";
+		expect(adoptionInstalledCli(root)).toBe(
+			"/public/biome/node_modules/@csark0812/skeleton/dist/cli.js",
+		);
+		expect(adoptionInstalledCli(root, ADOPTION_INSTALL_DIR)).toBe(
+			"/public/biome/.skeleton/qualification-install/node_modules/@csark0812/skeleton/dist/cli.js",
+		);
 	});
 
 	it("selects Expo's pinned package manager from the frozen snapshot lockfile", () => {

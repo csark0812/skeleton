@@ -5,6 +5,7 @@ import {
 	existsSync,
 	lstatSync,
 	mkdirSync,
+	mkdtempSync,
 	readdirSync,
 	readFileSync,
 	readlinkSync,
@@ -30,7 +31,7 @@ export function workspacePlan(task: QualificationCorpusTask) {
 	const treatment: TreatmentMode =
 		task.tier === "adoption"
 			? "adoption"
-			: task.id.includes("missing-metadata")
+			: task.verifier.recoveryEvidence?.signal === "no-context"
 				? "missing-metadata"
 				: "prepared";
 	return {
@@ -65,11 +66,16 @@ export function publicAgentWorkspacePaths(root: string, task: QualificationCorpu
 }
 
 /** Keep native build products out of the SDK's sealed copies and snapshots. */
-export function qualificationRuntimeEnv(root: string, task: QualificationCorpusTask) {
+export function qualificationRuntimeEnv(
+	root: string,
+	task: QualificationCorpusTask,
+	version: QualificationCorpus["version"] = "broader-openai-v1",
+) {
 	const checkoutId = createHash("sha256").update(root).digest("hex").slice(0, 12);
-	const nativeRoot = join(tmpdir(), "skeleton-broader-openai-v1", checkoutId, task.id);
+	const nativeRoot = join(tmpdir(), `skeleton-${version}`, checkoutId, task.id);
 	return {
 		BUN_INSTALL_CACHE_DIR: join(root, ".qualification-cache", "bun"),
+		npm_config_cache: join(root, ".qualification-cache", "npm"),
 		COREPACK_ENABLE_PROJECT_SPEC: "0",
 		COREPACK_HOME: join(root, ".qualification-cache", "corepack"),
 		YARN_CACHE_FOLDER: join(root, ".qualification-cache", "yarn"),
@@ -181,7 +187,14 @@ export function externalizeNodeModules(
 	workspace: string,
 ) {
 	const source = join(workspace, "node_modules");
-	const target = join(root, ".qualification-cache", "dependencies", task.id, basename(workspace));
+	const target = join(
+		root,
+		".qualification-cache",
+		"dependencies",
+		task.id,
+		basename(workspace),
+		"node_modules",
+	);
 	if (!existsSync(source)) {
 		if (!existsSync(target)) return;
 		symlinkSync(target, source, "junction");
@@ -210,6 +223,8 @@ export function preparePublicQualification(
 	options: { installDependencies?: boolean } = {},
 ) {
 	const artifact = packArtifact(root);
+	if (corpus.tasks.some((task) => task.tier === "adoption"))
+		primeAdoptionNpmCache(root, artifact.tarball);
 	const prepared: Array<{
 		id: string;
 		control: string;
@@ -227,7 +242,7 @@ export function preparePublicQualification(
 		const repositoryCache = ensureRepository(root, task);
 		const paths = publicWorkspacePaths(root, task);
 		const agentPaths = publicAgentWorkspacePaths(root, task);
-		const packageManagerEnv = qualificationRuntimeEnv(root, task);
+		const packageManagerEnv = qualificationRuntimeEnv(root, task, corpus.version);
 		for (const path of Object.values(paths)) {
 			ensurePinnedWorktree(repositoryCache, path, task.commit);
 			const tree = exec("git", ["-C", path, "rev-parse", "HEAD^{tree}"], root).trim();
@@ -292,6 +307,26 @@ export function preparePublicQualification(
 		prepared.push({ id: task.id, ...paths, agentPaths, repositoryCache });
 	}
 	return { artifact: artifact.metadata, prepared, verifierPreflight };
+}
+
+/** Resolve the pinned tarball during preparation; measured adoption installs offline. */
+function primeAdoptionNpmCache(root: string, tarball: string) {
+	const cache = join(root, ".qualification-cache", "npm");
+	const prime = join(root, ".qualification-cache", "adoption-npm-prime");
+	exec("npm", ["install", "--prefix", prime, "--ignore-scripts", "--no-save", tarball], root, {
+		npm_config_cache: cache,
+	});
+	const offline = mkdtempSync(join(root, ".qualification-cache", "adoption-offline-proof-"));
+	try {
+		exec(
+			"npm",
+			["install", "--prefix", offline, "--offline", "--ignore-scripts", "--no-save", tarball],
+			root,
+			{ npm_config_cache: cache },
+		);
+	} finally {
+		rmSync(offline, { recursive: true, force: true });
+	}
 }
 
 export function ensurePinnedWorktree(repositoryCache: string, path: string, commit: string) {
@@ -443,6 +478,7 @@ export function installRepositoryDependencies(
 			"dependencies",
 			task.id,
 			basename(workspace),
+			"node_modules",
 		);
 		if (realpathSync(modules) !== realpathSync(prepared))
 			throw new Error(`${task.id}: node_modules is not the prepared dependency cache.`);

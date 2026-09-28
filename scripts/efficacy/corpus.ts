@@ -8,6 +8,9 @@ export type QualificationVerifier = {
 	requirements: string[];
 	expectedPaths: string[];
 	verificationPaths?: string[];
+	verificationCommand?: string;
+	verificationFixture?: { sourcePath: string; destinationPath: string; sha256: string };
+	exactEdit?: { path: string; from: string; to: string };
 	referenceCommit?: string;
 	contentChecks?: Array<{ path: string; includes: string[]; excludes?: string[] }>;
 	changedFileContentChecks?: Array<{ prefix: string; includes: string[] }>;
@@ -41,7 +44,7 @@ export type QualificationCorpusTask = {
 };
 
 export type QualificationCorpus = {
-	version: "broader-openai-v1";
+	version: "broader-openai-v1" | "broader-openai-v2";
 	status: "sealed";
 	sealedAt: string;
 	cutoff: "2026-09-01T00:00:00Z";
@@ -67,7 +70,8 @@ const FORBIDDEN_EVIDENCE = [
 export function parseQualificationCorpus(value: unknown): QualificationCorpus {
 	if (!isRecord(value)) throw new Error("Qualification corpus must be an object.");
 	const corpus = value as QualificationCorpus;
-	if (corpus.version !== "broader-openai-v1") throw new Error("Unsupported corpus version.");
+	if (corpus.version !== "broader-openai-v1" && corpus.version !== "broader-openai-v2")
+		throw new Error("Unsupported corpus version.");
 	if (corpus.status !== "sealed") throw new Error("Qualification corpus must be sealed.");
 	if (!Number.isFinite(Date.parse(corpus.sealedAt)))
 		throw new Error("sealedAt must be an ISO date.");
@@ -112,6 +116,7 @@ export function parseQualificationCorpus(value: unknown): QualificationCorpus {
 		if (!SHA256.test(task.promptSha256) || task.promptSha256 !== sha256(task.prompt))
 			throw new Error(`${task.id}: promptSha256 does not match the prompt.`);
 		validateVerifier(task.id, task.verifier);
+		if (corpus.version === "broader-openai-v2") validateV2Verifier(task);
 		if (
 			!SHA256.test(task.verifierSha256) ||
 			task.verifierSha256 !== sha256(canonicalJson(task.verifier))
@@ -153,6 +158,13 @@ export function parseQualificationCorpus(value: unknown): QualificationCorpus {
 	return corpus;
 }
 
+function validateV2Verifier(task: QualificationCorpusTask) {
+	if (task.verifier.kind === "exact-edit" && !task.verifier.exactEdit)
+		throw new Error(`${task.id}: v2 exact-edit requires a task-defined replacement.`);
+	if (task.verifier.kind === "historical-patch" && !task.verifier.verificationCommand)
+		throw new Error(`${task.id}: v2 historical-patch requires a verificationCommand.`);
+}
+
 export function sealQualificationCorpus(value: unknown): QualificationCorpus {
 	if (!(isRecord(value) && Array.isArray(value.tasks)))
 		throw new Error("Qualification corpus must contain tasks before sealing.");
@@ -188,9 +200,17 @@ function validateVerifier(id: string, verifier: QualificationVerifier) {
 		throw new Error(`${id}: historical verifier requires an immutable referenceCommit.`);
 	if (
 		verifier.kind === "historical-patch" &&
-		(!Array.isArray(verifier.verificationPaths) || verifier.verificationPaths.length === 0)
+		(!Array.isArray(verifier.verificationPaths) || verifier.verificationPaths.length === 0) &&
+		!verifier.verificationFixture
 	)
-		throw new Error(`${id}: historical verifier requires independent verificationPaths.`);
+		throw new Error(`${id}: historical verifier requires an independent regression.`);
+	if (verifier.verificationFixture) validateVerificationFixture(id, verifier.verificationFixture);
+	if (verifier.exactEdit) validateExactEdit(id, verifier.exactEdit);
+	if (
+		verifier.verificationCommand !== undefined &&
+		(typeof verifier.verificationCommand !== "string" || !verifier.verificationCommand.trim())
+	)
+		throw new Error(`${id}: verificationCommand must be nonempty.`);
 	for (const check of verifier.contentChecks ?? []) {
 		if (!(check.path && Array.isArray(check.includes)) || check.includes.length === 0)
 			throw new Error(`${id}: deterministic content checks require a path and included text.`);
@@ -204,17 +224,36 @@ function validateVerifier(id: string, verifier: QualificationVerifier) {
 		throw new Error(`${id}: requiredChangedPaths must be an array.`);
 	if (verifier.unchangedRustCodePaths && !Array.isArray(verifier.unchangedRustCodePaths))
 		throw new Error(`${id}: unchangedRustCodePaths must be an array.`);
-	if (verifier.kind === "recovery") {
-		const evidence = verifier.recoveryEvidence;
-		if (!evidence?.traceChecks.length)
-			throw new Error(`${id}: recovery verifier requires transcript evidence.`);
-		if (evidence.traceChecks.some((check) => !check.needle || check.minimumOccurrences < 1))
-			throw new Error(`${id}: recovery transcript checks require a needle and positive count.`);
-		if (evidence.signal === "truncated-read" && !evidence.fixture)
-			throw new Error(`${id}: truncated recovery requires a frozen excerpt fixture.`);
-		if (evidence.fixture && !(evidence.fixture.path && evidence.fixture.content.trim()))
-			throw new Error(`${id}: recovery fixture path and content are required.`);
-	}
+	if (verifier.kind === "recovery") validateRecoveryEvidence(id, verifier.recoveryEvidence);
+}
+
+function validateExactEdit(id: string, edit: NonNullable<QualificationVerifier["exactEdit"]>) {
+	if (!(safeRelativePath(edit.path) && edit.from && edit.to && edit.from !== edit.to))
+		throw new Error(`${id}: invalid exact-edit contract.`);
+}
+
+function validateRecoveryEvidence(id: string, evidence: QualificationVerifier["recoveryEvidence"]) {
+	if (!evidence?.traceChecks.length)
+		throw new Error(`${id}: recovery verifier requires transcript evidence.`);
+	if (evidence.traceChecks.some((check) => !check.needle || check.minimumOccurrences < 1))
+		throw new Error(`${id}: recovery transcript checks require a needle and positive count.`);
+	if (evidence.signal === "truncated-read" && !evidence.fixture)
+		throw new Error(`${id}: truncated recovery requires a frozen excerpt fixture.`);
+	if (evidence.fixture && !(evidence.fixture.path && evidence.fixture.content.trim()))
+		throw new Error(`${id}: recovery fixture path and content are required.`);
+}
+
+function validateVerificationFixture(
+	id: string,
+	fixture: NonNullable<QualificationVerifier["verificationFixture"]>,
+) {
+	const allowedSource = fixture.sourcePath?.startsWith("agent-suites/broader-openai-v2/verifiers/");
+	if (!(allowedSource && safeRelativePath(fixture.destinationPath) && SHA256.test(fixture.sha256)))
+		throw new Error(`${id}: invalid local verification fixture.`);
+}
+
+function safeRelativePath(path: string) {
+	return path && !path.startsWith("/") && !path.split("/").includes("..") && !path.includes("\\");
 }
 
 function canonicalJson(value: unknown): string {

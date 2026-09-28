@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
+import process from "node:process";
 import type { QualificationCorpusTask } from "../../scripts/efficacy/corpus.ts";
 import {
+	verifyExactEdit,
 	verifyHistoricalTask,
 	verifyKnownUpstreamFix,
 	verifyNativeTask,
@@ -14,6 +16,49 @@ import {
 const roots: string[] = [];
 afterEach(() => {
 	for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+
+describe("public exact-edit verifier", () => {
+	it("accepts only one precise replacement in one file", () => {
+		const root = mkdtempSync(join(tmpdir(), "skeleton-exact-edit-"));
+		roots.push(root);
+		const initial = join(root, "initial");
+		const final = join(root, "final");
+		mkdirSync(join(initial, "docs"), { recursive: true });
+		mkdirSync(join(final, "docs"), { recursive: true });
+		writeFileSync(
+			join(initial, "docs/CONTRIBUTING.md"),
+			"This project is started by Yusuke Wada.\n",
+		);
+		writeFileSync(
+			join(final, "docs/CONTRIBUTING.md"),
+			"This project was started by Yusuke Wada.\n",
+		);
+		const exactTask = task("1".repeat(40));
+		exactTask.verifier = {
+			kind: "exact-edit",
+			requirements: ["Correct the grammar."],
+			expectedPaths: ["docs/CONTRIBUTING.md"],
+			exactEdit: {
+				path: "docs/CONTRIBUTING.md",
+				from: "This project is started by Yusuke Wada",
+				to: "This project was started by Yusuke Wada",
+			},
+		};
+		const workspace = { initial, final, changedPaths: ["docs/CONTRIBUTING.md"] };
+		expect(verifyExactEdit(exactTask, workspace).passed).toBe(true);
+		expect(
+			verifyExactEdit(exactTask, {
+				...workspace,
+				changedPaths: ["docs/CONTRIBUTING.md", "README.md"],
+			}).passed,
+		).toBe(false);
+		writeFileSync(
+			join(final, "docs/CONTRIBUTING.md"),
+			"This project was started by Yusuke Wada!\n",
+		);
+		expect(verifyExactEdit(exactTask, workspace).passed).toBe(false);
+	});
 });
 
 function command(cwd: string, executable: string, args: string[]) {
@@ -108,6 +153,26 @@ describe("public historical verifier", () => {
 		expect(result.output).toContain("1 pass");
 	});
 
+	it("links Expo package-local dependencies into an isolated verifier", () => {
+		const { final, reference } = fixture();
+		const dependencies = mkdtempSync(join(tmpdir(), "skeleton-expo-dependencies-"));
+		roots.push(dependencies);
+		mkdirSync(join(dependencies, "packages/expo-doctor/node_modules/.bin"), {
+			recursive: true,
+		});
+		writeFileSync(join(dependencies, "packages/expo-doctor/node_modules/.bin/jest"), "ready");
+		const expoTask = {
+			...task(reference),
+			repository: "expo/expo",
+			nativeTestCommand: "test -f packages/expo-doctor/node_modules/.bin/jest",
+		};
+		expect(
+			verifyNativeTask(expoTask, final, {
+				dependencyWorkspace: relative(process.cwd(), dependencies),
+			}).passed,
+		).toBe(true);
+	});
+
 	it("fails broken final code against the hidden upstream regression", () => {
 		const { root, final, reference } = fixture();
 		const result = verifyHistoricalTask(task(reference), final, root);
@@ -133,6 +198,35 @@ describe("public historical verifier", () => {
 		const result = verifyKnownUpstreamFix(task(reference, base), final, root);
 		expect(result.passed).toBe(true);
 		expect(result.output).toContain("1 pass");
+	});
+
+	it("keeps the base smoke command separate from the injected regression", () => {
+		const { root, final, reference } = fixture();
+		const base = command(final, "git", ["rev-parse", "HEAD"]).trim();
+		const splitTask = {
+			...task(reference, base),
+			nativeTestCommand: "bun --version",
+			verifier: {
+				...task(reference, base).verifier,
+				verificationCommand: "bun test value.test.ts",
+			},
+		};
+		expect(verifyNativeTask(splitTask, final).passed).toBe(true);
+		expect(verifyHistoricalTask(splitTask, final, root).passed).toBe(false);
+		expect(verifyKnownUpstreamFix(splitTask, final, root).passed).toBe(true);
+	});
+
+	it("refuses a local regression whose frozen bytes have changed", () => {
+		const { root, final, reference } = fixture();
+		const pinned = task(reference);
+		pinned.verifier.verificationFixture = {
+			sourcePath: "agent-suites/broader-openai-v2/verifiers/claude-auth-mode.test.ts",
+			destinationPath: "hidden.test.ts",
+			sha256: `sha256:${"0".repeat(64)}`,
+		};
+		const result = verifyHistoricalTask(pinned, final, root);
+		expect(result.passed).toBe(false);
+		expect(result.error).toContain("local verifier hash changed");
 	});
 });
 

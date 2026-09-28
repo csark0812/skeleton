@@ -9,12 +9,15 @@ export function assertPilotSandboxReady(
 		spawnSync("sandbox-exec", ["-p", "(version 1)(allow default)", "/usr/bin/true"], {
 			encoding: "utf8",
 		}),
+	usage = "pilot",
 ): void {
 	if (platform !== "darwin") return;
 	const result = runProbe();
 	if (result.status === 0) return;
 	const detail = result.error?.message ?? result.stderr?.trim() ?? `exit ${result.status}`;
-	throw new Error(`Codex cannot create a local macOS sandbox here; refusing live pilot: ${detail}`);
+	throw new Error(
+		`Codex cannot create a local macOS sandbox here; refusing live ${usage}: ${detail}`,
+	);
 }
 
 export type PilotAccessEvidence = {

@@ -163,6 +163,8 @@ Four efficiency qualifications ask whether agents complete the same work correct
 
 A separate `broader-openai-v1` qualification began across twelve tasks from six public TypeScript, Python, and Rust repositories, but was stopped after core gates failed. It supports no broader claim and is retired to regression coverage. Do not rerun its one-shot command; a new held-out corpus is required. The first one-pair Expo development pilot lost local tool access; a second, capped pilot produced one matched-correct pair with fewer Skeleton tokens. Neither pilot establishes the broader claim. See the method for the bounded evidence and limitations.
 
+The replacement `broader-openai-v2` public corpus is being prepared as a separate one-shot qualification. It has no live result and supports no broader claim yet. Its no-model preflight and frozen manifest are preparation evidence only.
+
 Method: [Agent efficacy](docs/developer/efficacy.md).
 
 ## Development

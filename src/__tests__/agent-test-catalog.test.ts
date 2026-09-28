@@ -4,11 +4,12 @@ import { join } from "node:path";
 import process from "node:process";
 
 const ROOT = join(import.meta.dir, "../..");
+const PLAYWRIGHT_CLI = "node_modules/@playwright/test/cli.js";
 
 test("agent-test catalog uses logical suites without a repeated default-project label", () => {
 	const output = execFileSync(
 		process.execPath,
-		["node_modules/@post-print/agent-test/dist/cli.js", "test", "--list"],
+		[PLAYWRIGHT_CLI, "test", "--config=agent-test.config.ts", "--list"],
 		{ cwd: ROOT, encoding: "utf8" },
 	);
 	const suiteCounts = new Map<string, number>();
@@ -21,6 +22,7 @@ test("agent-test catalog uses logical suites without a repeated default-project 
 	}
 
 	expect(output).not.toContain("[openai]");
+	expect(output).not.toContain("Public polyglot OpenAI qualification");
 	expect(Object.fromEntries(suiteCounts)).toEqual({
 		"Does Skeleton help?": 10,
 		"Documentation judge calibration": 2,
@@ -32,12 +34,7 @@ test("agent-test catalog uses logical suites without a repeated default-project 
 test("offline contracts discover only the bounded suite directory", () => {
 	const output = execFileSync(
 		process.execPath,
-		[
-			"node_modules/@post-print/agent-test/dist/cli.js",
-			"test",
-			"--config=agent-test.offline.config.ts",
-			"--list",
-		],
+		[PLAYWRIGHT_CLI, "test", "--config=agent-test.offline.config.ts", "--list"],
 		{ cwd: ROOT, encoding: "utf8", timeout: 10_000 },
 	);
 	expect(output).toContain("Total: 9 tests in 1 file");
@@ -47,15 +44,11 @@ test("offline contracts discover only the bounded suite directory", () => {
 test("the optional host matrix excludes retired and explicit-only suites", () => {
 	const output = execFileSync(
 		process.execPath,
-		[
-			"node_modules/@post-print/agent-test/dist/cli.js",
-			"test",
-			"--config=agent-test.matrix.config.ts",
-			"--list",
-		],
+		[PLAYWRIGHT_CLI, "test", "--config=agent-test.matrix.config.ts", "--list"],
 		{ cwd: ROOT, encoding: "utf8", timeout: 10_000 },
 	);
 	expect(output).toContain("Total: 41 tests in 1 file");
 	expect(output).not.toContain("Public regression pilot");
+	expect(output).not.toContain("Public polyglot OpenAI qualification");
 	expect(output).not.toContain("Offline v2 migration contracts");
 });
