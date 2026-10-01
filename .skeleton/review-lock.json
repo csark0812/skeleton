@@ -2,18 +2,18 @@
 	"version": 2,
 	"documents": {
 		"AGENTS.md": {
-			"reviewedAt": "2026-09-28",
-			"documentHash": "sha256:0270182cd3575a46483c9ebd7674bf6ff1c7e4c1faf1231d65ee52e33246752c",
+			"reviewedAt": "2026-10-01",
+			"documentHash": "sha256:f18c82db44aee485a442f190e74ff4805a9d2b250c27be92e2099da9f685971a",
 			"reviewDependencies": {
-				"package.json": "sha256:fa50ef4d2deeb7c7e0b1cfd1ca3e9442a09e0f1332d25632d1fc0135e9d8ad5f",
+				"package.json": "sha256:6bc5fcc9e0783e70bedf2bfa0dcf26fef586df0858956778bd0d32383c9decf8",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba"
 			}
 		},
 		"README.md": {
-			"reviewedAt": "2026-09-28",
-			"documentHash": "sha256:de9ed3b0bd8b72e5d6fe2a83428dcc52eee5fb3012ebb34b14cdb2f0981c6398",
+			"reviewedAt": "2026-10-01",
+			"documentHash": "sha256:24fa153c0128bfc250f19eacf6dbd00f4dcb1c1bccc5043610f67e09d19c568b",
 			"reviewDependencies": {
-				"package.json": "sha256:fa50ef4d2deeb7c7e0b1cfd1ca3e9442a09e0f1332d25632d1fc0135e9d8ad5f",
+				"package.json": "sha256:6bc5fcc9e0783e70bedf2bfa0dcf26fef586df0858956778bd0d32383c9decf8",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
 				"src/context.ts": "sha256:5134ee6d19f2645e3615b210e522ca82c00f1d7605073c296786850ed6029190"
 			}
@@ -149,7 +149,7 @@
 		},
 		"docs/developer/efficacy.md": {
 			"reviewedAt": "2026-10-01",
-			"documentHash": "sha256:6b1ff03f776f53ad881efd4cdfd525a026d4f520ad8d628f64a03de866b51ebc",
+			"documentHash": "sha256:4f8fe8d4f549c8ad5e8348d93fbcfd729da5d690c90763bf2fd8c52345af9ac8",
 			"reviewDependencies": {
 				"agent-suites/broader-openai-v1/judge-calibration.spec.ts": "sha256:79b7ee3d937db33024b15817bff5e14fa72509ad63e100b742f6fc7c39dcdd18",
 				"agent-suites/broader-openai-v1/qualification-corpus.json": "sha256:66f31e0163c187a71b2c93dad675c20bf5239b67d43efb6b94e5e7a11c3ed60e",
@@ -189,7 +189,7 @@
 				"agent-test.offline.config.ts": "sha256:1141aaad16205b5f1d229e2a1f55339fbcaeb26ed98d734ca7733ccf801517d9",
 				"agent-test.pilot.config.ts": "sha256:703505a10421d07eab4eb18beca6e5bab845998614620026ed2e84fb6ccb35b0",
 				"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
-				"package.json": "sha256:fa50ef4d2deeb7c7e0b1cfd1ca3e9442a09e0f1332d25632d1fc0135e9d8ad5f",
+				"package.json": "sha256:6bc5fcc9e0783e70bedf2bfa0dcf26fef586df0858956778bd0d32383c9decf8",
 				"scripts/efficacy/adoption.ts": "sha256:cdce95fb2a94d99070457b1fccd07de547029b3d47ce9be864a09d3c97d8083f",
 				"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 				"scripts/efficacy/corpus.ts": "sha256:4bedcfb316b486ebaa0deb13e48462e900a79c1dac65aa660f9dd6d7a2e36fba",
@@ -308,10 +308,10 @@
 			"reviewDependencies": {}
 		},
 		"skeleton/references/operations.md": {
-			"reviewedAt": "2026-09-28",
-			"documentHash": "sha256:e5cf42c7010804014ed1d501442c7df86ffd0a4554d4fdac12afd4530de0dcf1",
+			"reviewedAt": "2026-10-01",
+			"documentHash": "sha256:522604bf6d128b823a74e5f5853c912e18b26a300fd104577d8bfa8a1601bab7",
 			"reviewDependencies": {
-				"package.json": "sha256:fa50ef4d2deeb7c7e0b1cfd1ca3e9442a09e0f1332d25632d1fc0135e9d8ad5f",
+				"package.json": "sha256:6bc5fcc9e0783e70bedf2bfa0dcf26fef586df0858956778bd0d32383c9decf8",
 				"src/cli.ts": "sha256:6b056bbcd2061072eebc32ddaf71a22aaed900e58056fcfb50ac18fa09091fba",
 				"src/context.ts": "sha256:5134ee6d19f2645e3615b210e522ca82c00f1d7605073c296786850ed6029190",
 				"src/init/init.ts": "sha256:dc74583c342a541a1318adb3c2b39675851435ef2a0b88bcac26f4171d6e9d13",

@@ -77,8 +77,8 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",
 		"@cursor/sdk": "^1.0.27",
-		"@post-print/agent-harness": "2.0.7",
-		"@post-print/agent-test": "2.0.7",
+		"@post-print/agent-harness": "2.0.10",
+		"@post-print/agent-test": "2.0.10",
 		"@types/bun": "1.3.8",
 		"@types/github-slugger": "2.0.0",
 		"typescript": "~7.0.2"
