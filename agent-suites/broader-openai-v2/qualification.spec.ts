@@ -28,10 +28,13 @@ import {
 	publicWorkspacePaths,
 	qualificationRuntimeEnv,
 } from "../../scripts/efficacy/public-workspaces.ts";
+import { assertQualificationStorage } from "../../scripts/efficacy/qualification-storage.ts";
 import {
 	assessWithEvaluationRetry,
 	runWithInfrastructureRetry,
 } from "../../scripts/efficacy/retries.ts";
+
+assertQualificationStorage();
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const corpus = parseQualificationCorpus(

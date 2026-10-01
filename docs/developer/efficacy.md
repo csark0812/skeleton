@@ -1,7 +1,7 @@
 # Does Skeleton help?
 
 <!-- source-of-truth: comparing agent work with and without Skeleton -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-28 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-01 -->
 <!-- review-deps: paths=agent-suites/**,scripts/efficacy/**,scripts/run-efficacy.ts,scripts/run-broader-qualification.ts,scripts/run-broader-v2-qualification.ts,scripts/write-efficacy-fixtures.ts,scripts/pack-efficacy-vendor.ts,package.json,bunfig.toml,agent-test*.config.ts,tests/sdk-contracts/**,src/__tests__/efficacy*.test.ts -->
 
 These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as one comparison by default without Skeleton and with the current packaged Skeleton default initialization. This is a diagnostic smoke test, not a reliability sample; use `--runs N` for repeated comparisons. One-pair runs record efficiency evidence but do not assert the repeated-sample 35% qualification; repeated runs retain that gate on four substantive tasks. The one-command outdated-doc lookup, production-JavaScript task, and four package-tradeoff tasks require correctness without savings. The staged-endpoint qualification requires Skeleton to be correct in every run and at least 60% matched correct pairs. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.
@@ -23,7 +23,7 @@ Recording the evidence in the packaged README changed the tarball bytes after th
 
 ## Public polyglot qualification
 
-The `broader-openai-v2` replacement corpus uses new public tasks and a separate one-shot runner. Its twelve cells cover the same six public repositories and the preregistered eight-core/four-guardrail structure, but no v2 agent or judge result exists yet. A green no-model preparation pass establishes source pins, focused base tests, historical red/green verifiers, and arm equivalence; it is not an efficacy result. Biome's adoption cell installs the exact local tarball in an isolated npm prefix, with the dependency cache primed and an offline install proven during preparation. This avoids Biome's root `workspace:` incompatibility without requiring registry access during measured runs. The runner requires a clean release-candidate checkout, checks the frozen intervention and corpus identity, and probes local macOS sandbox startup before reserving live results. `bun run agent:test:qualify:broader-openai-v2 --prepare-only` does not call agents. The command without `--prepare-only` is the one-shot live spend and must not be used as a dry run. If it fails or is inconclusive, report that result rather than rerunning v2 for a claim.
+The `broader-openai-v2` replacement corpus uses new public tasks and a separate one-shot runner. Its twelve cells cover the same six public repositories and the preregistered eight-core/four-guardrail structure, but no v2 agent or judge result exists yet. A green no-model preparation pass establishes source pins, focused base tests, historical red/green verifiers, and arm equivalence; it is not an efficacy result. Biome's adoption cell installs the exact local tarball in an isolated npm prefix, with the dependency cache primed and an offline install proven during preparation. This avoids Biome's root `workspace:` incompatibility without requiring registry access during measured runs. The runner requires a clean release-candidate checkout, checks the frozen intervention and corpus identity, reserves live results before preparation, and probes local macOS sandbox startup before model calls. `bun run agent:test:qualify:broader-openai-v2 --prepare-only` does not call agents. The command without `--prepare-only` is the one-shot live spend and must not be used as a dry run. If it fails or is inconclusive, report that result rather than rerunning v2 for a claim.
 
 `broader-openai-v1` is a sealed, one-shot qualification over twelve tasks from six public repositories: `post-print/agent-spec`, `expo/expo`, `honojs/hono`, `fastapi/fastapi`, `astral-sh/ruff`, and `biomejs/biome`. It contains eight core discovery or maintenance cells plus missing-metadata recovery, truncated-context recovery, trivial-edit overhead, and adoption guardrails. The manifest pins public commits, canonical trees, prompts, independent verifiers, focused commands, and ten paired attempts per cell. It contains no private PostPrint source or evidence.
 
@@ -38,6 +38,37 @@ Historical public change tasks originally used hidden upstream regression tests 
 Do not rerun or prepare retired v1 for a claim. A replacement held-out version is required.
 
 The interrupted v1 run did not produce that complete summary. Its partial results remain diagnostic and must not update the README with the headline. Any package change after observing qualification results retires the corpus to regression coverage and requires a replacement corpus version.
+
+### Qualification storage ownership
+
+Both qualification launchers start a separate supervisor before synchronous preparation. Each run journals its UUID, checkout, supervisor and worker PID/start identity, status, owned paths, measured bytes, peak bytes, expiry, and policy. The worker waits for its registration before producing artifacts. The machine journal is under the canonical system temporary directory at `skeleton-qualification-storage-v1/<run-id>/owner.json`; a durable copy is kept at `.qualification-cache/storage-evidence/<run-id>/owner.json` in the checkout. Preparation metadata and frozen-input locks are also durable and run-scoped in that evidence directory, so concurrent preparation cannot overwrite another run’s metadata.
+
+```mermaid
+flowchart LR
+  Supervisor[Storage supervisor] --> Worker[Qualification worker]
+  Supervisor --> Journal[Ownership and status journal]
+  Worker --> Disposable[Run caches, native output, temporary verification]
+  Worker --> Sources[Owned checkout-relative agent sources]
+  Worker --> Durable[Results, transcripts, attachments, qualification evidence]
+  Supervisor --> Cleanup[Stop worker group and clean owned disposable roots]
+```
+
+Preparation repositories, dependencies, package-manager caches, native builds, and verifier/harness temporary directories live in that run's temporary `payload`. Agent source views live at `.qualification-cache/storage-workspaces/<run-id>` because the SDK requires checkout-relative sources. Both roots are counted and removed on success, failure, budget exhaustion, or SIGINT/SIGTERM, after the worker process group stops. An expired run whose supervisor and worker group are dead is recovered at the next launcher startup. Live owners and unknown process identities remain protected. Symlinked deletion roots and unrecognized manifests are rejected or preserved. Old unmanaged v1/v2 roots, source checkouts, and shared caches are not swept.
+
+Caches are reused only within a run and expire with it. Preparation-only runs also clean their bulky output, so a subsequent full run prepares again. This deliberately avoids cross-run cache invalidation and writable-cache sharing between experiments. Native task IDs and corpus versions separate build roots within the run; both arms receive the same policy and fresh paired source views.
+
+| Setting | Default | Meaning |
+| --- | ---: | --- |
+| `SKELETON_STORAGE_WARN_GIB` | 10 | Warn once for run storage |
+| `SKELETON_STORAGE_RUN_GIB` | 25 | Stop the worker for excessive run storage |
+| `SKELETON_STORAGE_TOTAL_GIB` | 50 | Stop for excessive disposable storage across registered runs |
+| `SKELETON_STORAGE_MIN_FREE_GIB` | 100 | Require this much free space on the storage volume |
+| `SKELETON_STORAGE_RECOVERY_HOURS` | 24 | Minimum expiry before recovering an interrupted run |
+| `SKELETON_STORAGE_POLL_MS` | 2000 | Budget sampling interval; minimum 100 ms |
+
+These are configurable incident-policy starting limits, not measured requirements of the live matrix. Run checks also count the checkout's `.agent-test` storage, which remains owned by agent-test; the supervisor does not delete it. Other checkouts' SDK history and unmanaged storage are reflected in free space, not in the managed disposable total. Budget checks run before preparation, periodically in the supervisor while synchronous builds execute, and at worker exit. They are sampled guards rather than filesystem quotas: a write can overshoot between checks. Both storage locations must be on the same filesystem, so the free-space floor protects both roots.
+
+Results under `.qualification-cache/results-v2`, final qualification JSON under `docs/evidence/efficacy`, SDK records, and Playwright attachments remain outside generic cleanup. A budget stop or interruption can leave partial results; a completed cell/aggregate is not fabricated. Recovery updates the machine journal; the checkout's durable copy records its last supervisor observation. Failed-run source evidence and bounded snapshot retention are owned by agent-test. No paid matrix is needed to validate this lifecycle: `bun test src/__tests__/efficacy-qualification-storage.test.ts` covers repeated preparation, failure, final and periodic budget checks, cancellation, forced-kill recovery, live-owner protection, PID reuse, unsafe roots, evidence preservation, and actual harness source materialization.
 
 ### Capped development pilot after v1
 

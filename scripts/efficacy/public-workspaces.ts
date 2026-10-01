@@ -24,6 +24,12 @@ import {
 	verifyKnownUpstreamFix,
 	verifyNativeTask,
 } from "./public-verification.ts";
+import {
+	assertQualificationStorage,
+	qualificationCacheRoot,
+	STORAGE_ENV,
+	WORKSPACES_ENV,
+} from "./qualification-storage.ts";
 
 export type TreatmentMode = "prepared" | "missing-metadata" | "adoption";
 
@@ -56,12 +62,14 @@ function reviewDependencyPattern(path: string) {
 }
 
 export function publicWorkspacePaths(root: string, task: QualificationCorpusTask) {
-	const taskRoot = join(root, ".qualification-cache", "workspaces", task.id);
+	const taskRoot = join(qualificationCacheRoot(root), "workspaces", task.id);
 	return { control: join(taskRoot, "control"), treatment: join(taskRoot, "skeleton") };
 }
 
 export function publicAgentWorkspacePaths(root: string, task: QualificationCorpusTask) {
-	const taskRoot = join(root, ".qualification-cache", "agent-workspaces", task.id);
+	const taskRoot = process.env[WORKSPACES_ENV]
+		? join(process.env[WORKSPACES_ENV]!, task.id)
+		: join(qualificationCacheRoot(root), "agent-workspaces", task.id);
 	return { control: join(taskRoot, "control"), treatment: join(taskRoot, "skeleton") };
 }
 
@@ -72,17 +80,22 @@ export function qualificationRuntimeEnv(
 	version: QualificationCorpus["version"] = "broader-openai-v1",
 ) {
 	const checkoutId = createHash("sha256").update(root).digest("hex").slice(0, 12);
-	const nativeRoot = join(tmpdir(), `skeleton-${version}`, checkoutId, task.id);
+	const nativeRoot = process.env[STORAGE_ENV]
+		? join(qualificationCacheRoot(root), "native", version, task.id)
+		: join(tmpdir(), `skeleton-${version}`, checkoutId, task.id);
 	return {
-		BUN_INSTALL_CACHE_DIR: join(root, ".qualification-cache", "bun"),
-		npm_config_cache: join(root, ".qualification-cache", "npm"),
+		BUN_INSTALL_CACHE_DIR: join(qualificationCacheRoot(root), "bun"),
+		npm_config_cache: join(qualificationCacheRoot(root), "npm"),
 		COREPACK_ENABLE_PROJECT_SPEC: "0",
-		COREPACK_HOME: join(root, ".qualification-cache", "corepack"),
-		YARN_CACHE_FOLDER: join(root, ".qualification-cache", "yarn"),
-		UV_CACHE_DIR: join(root, ".qualification-cache", "uv"),
+		npm_config_store_dir: join(qualificationCacheRoot(root), "pnpm"),
+		XDG_CACHE_HOME: join(qualificationCacheRoot(root), "xdg-cache"),
+		XDG_DATA_HOME: join(qualificationCacheRoot(root), "xdg-data"),
+		COREPACK_HOME: join(qualificationCacheRoot(root), "corepack"),
+		YARN_CACHE_FOLDER: join(qualificationCacheRoot(root), "yarn"),
+		UV_CACHE_DIR: join(qualificationCacheRoot(root), "uv"),
 		UV_PROJECT_ENVIRONMENT: join(nativeRoot, "venv"),
-		CARGO_HOME: join(root, ".qualification-cache", "cargo"),
-		RUSTUP_HOME: join(root, ".qualification-cache", "rustup"),
+		CARGO_HOME: join(qualificationCacheRoot(root), "cargo"),
+		RUSTUP_HOME: join(qualificationCacheRoot(root), "rustup"),
 		CARGO_TARGET_DIR: join(nativeRoot, "target"),
 	};
 }
@@ -188,8 +201,7 @@ export function externalizeNodeModules(
 ) {
 	const source = join(workspace, "node_modules");
 	const target = join(
-		root,
-		".qualification-cache",
+		qualificationCacheRoot(root),
 		"dependencies",
 		task.id,
 		basename(workspace),
@@ -213,7 +225,7 @@ export function externalizeNodeModules(
 }
 
 export function publicRepositoryCache(root: string, task: QualificationCorpusTask) {
-	return join(root, ".qualification-cache", "repositories", task.repository.replace("/", "--"));
+	return join(qualificationCacheRoot(root), "repositories", task.repository.replace("/", "--"));
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity lint/complexity/noExcessiveLinesPerFunction: Preparation intentionally keeps each sealed task's symmetric workspace lifecycle and verifier preflight together.
@@ -222,6 +234,7 @@ export function preparePublicQualification(
 	corpus: QualificationCorpus,
 	options: { installDependencies?: boolean } = {},
 ) {
+	assertQualificationStorage();
 	const artifact = packArtifact(root);
 	if (corpus.tasks.some((task) => task.tier === "adoption"))
 		primeAdoptionNpmCache(root, artifact.tarball);
@@ -311,12 +324,12 @@ export function preparePublicQualification(
 
 /** Resolve the pinned tarball during preparation; measured adoption installs offline. */
 function primeAdoptionNpmCache(root: string, tarball: string) {
-	const cache = join(root, ".qualification-cache", "npm");
-	const prime = join(root, ".qualification-cache", "adoption-npm-prime");
+	const cache = join(qualificationCacheRoot(root), "npm");
+	const prime = join(qualificationCacheRoot(root), "adoption-npm-prime");
 	exec("npm", ["install", "--prefix", prime, "--ignore-scripts", "--no-save", tarball], root, {
 		npm_config_cache: cache,
 	});
-	const offline = mkdtempSync(join(root, ".qualification-cache", "adoption-offline-proof-"));
+	const offline = mkdtempSync(join(qualificationCacheRoot(root), "adoption-offline-proof-"));
 	try {
 		exec(
 			"npm",
@@ -421,12 +434,12 @@ function writeQualificationPaper(root: string, task: QualificationCorpusTask, tr
 }
 
 function packArtifact(root: string) {
-	const destination = join(root, ".qualification-cache", "artifact");
+	const destination = join(qualificationCacheRoot(root), "artifact");
 	rmSync(destination, { recursive: true, force: true });
 	mkdirSync(destination, { recursive: true });
 	const packed = JSON.parse(
 		exec("npm", ["pack", "--ignore-scripts", "--json", "--pack-destination", destination], root, {
-			npm_config_cache: join(root, ".qualification-cache", "npm"),
+			npm_config_cache: join(qualificationCacheRoot(root), "npm"),
 		}),
 	)[0];
 	return { tarball: join(destination, packed.filename), metadata: packed };
@@ -473,8 +486,7 @@ export function installRepositoryDependencies(
 	const modules = join(workspace, "node_modules");
 	if (existsSync(modules) && lstatSync(modules).isSymbolicLink()) {
 		const prepared = join(
-			root,
-			".qualification-cache",
+			qualificationCacheRoot(root),
 			"dependencies",
 			task.id,
 			basename(workspace),

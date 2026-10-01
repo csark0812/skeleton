@@ -9,7 +9,15 @@ import { interventionDigest } from "./efficacy/intervention.ts";
 import { assertPilotSandboxReady } from "./efficacy/pilot-access.ts";
 import { preparePublicQualification } from "./efficacy/public-workspaces.ts";
 import { evaluateQualification, type QualificationCell } from "./efficacy/qualification.ts";
+import {
+	EVIDENCE_ENV,
+	STORAGE_ENV,
+	superviseQualification,
+} from "./efficacy/qualification-storage.ts";
 import { reserveQualificationRun } from "./efficacy/run-lock.ts";
+
+if (!process.env[STORAGE_ENV])
+	process.exit(await superviseQualification(fileURLToPath(import.meta.url), process.argv.slice(2)));
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CORPUS_PATH = join(ROOT, "agent-suites/broader-openai-v2/qualification-corpus.json");
@@ -36,7 +44,11 @@ const lock = {
 	judgeModel: corpus.judgeModel,
 	repetitions: corpus.repetitions,
 };
-const lockRoot = join(ROOT, ".qualification-cache");
+const resultRoot = join(ROOT, ".qualification-cache", "results-v2");
+const evidencePath = join(ROOT, "docs/evidence/efficacy/broader-openai-v2.json");
+if (!args.has("--prepare-only")) reserveQualificationRun(resultRoot, evidencePath);
+
+const lockRoot = process.env[EVIDENCE_ENV]!;
 mkdirSync(lockRoot, { recursive: true });
 writeFileSync(join(lockRoot, "qualification-lock-v2.json"), `${JSON.stringify(lock, null, 2)}\n`);
 
@@ -54,9 +66,6 @@ if (args.has("--prepare-only")) {
 	process.exit(0);
 }
 
-const resultRoot = join(lockRoot, "results-v2");
-const evidencePath = join(ROOT, "docs/evidence/efficacy/broader-openai-v2.json");
-reserveQualificationRun(resultRoot, evidencePath);
 assertFrozenInputs();
 const agentTest = fileURLToPath(new URL("../node_modules/.bin/agent-test", import.meta.url));
 const calibration = spawnSync(
