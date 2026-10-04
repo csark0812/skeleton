@@ -7,11 +7,13 @@ description: Use Skeleton to find canonical repository context for questions or 
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
 
 ## Repository context
 
-Make `npx --no-install skeleton context "<topic>"` the first repository command. Use `--path` only for a known implementation path and `--staged` for staged-code questions. Returned document, source, and test excerpts are already read; do not read those files again. Complete every `action` line and verify it against the final files. Preserve existing work. If a test is returned, edit and run only that test. Otherwise use one combined command to find and read the focused test. Stop when it passes. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails. Broader discovery or another context command is reserved for `no-context`, omitted evidence, or a failing focused test.
+Make `npx --no-install skeleton context "<topic>"` the first repository command. Use `--path` only for a known implementation path and `--staged` for staged-code questions. Returned document, source, and test excerpts are already read; do not read those files again unless an action requires a complete review. Complete every `action` line and verify it against the final files. Preserve existing work. If a test is returned, edit and run only that test. Otherwise use one combined command to find and read the focused test. Stop when it passes. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails. Broader discovery or another context command is reserved for `no-context`, review gaps, omitted evidence, or a failing focused test.
+
+A packet with review actions or omitted evidence is incomplete. Resolve the relevant gap before relying on active implementation claims. Preserve historical alternatives and future aspirations as qualified intent. A matching hash proves recorded bytes, not semantic agreement; source changes need declared `review-deps` and source-triggered validation in the consumer.
 
 ## Source implementation work
 

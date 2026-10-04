@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -49,6 +49,39 @@ afterEach(() => {
 });
 
 describe("context CLI", () => {
+	it("drains a large Node context packet through a pipe before exiting", () => {
+		const root = makeRoot();
+		for (let index = 0; index < 90; index++) {
+			writeFileSync(
+				join(root, `docs/policy-${String(index).padStart(3, "0")}.md`),
+				`<!-- source-of-truth: Billing policy ${index} -->\n${"Billing policy evidence.\n".repeat(60)}`,
+			);
+		}
+		mkdirSync(join(root, "dist"));
+		cpSync(join(import.meta.dir, "../../../templates"), join(root, "templates"), {
+			recursive: true,
+		});
+		cpSync(join(import.meta.dir, "../../../schemas"), join(root, "schemas"), { recursive: true });
+		const bundledCli = join(root, "dist/cli.mjs");
+		const build = spawnSync("bun", ["build", CLI, "--target=node", `--outfile=${bundledCli}`], {
+			cwd: root,
+			encoding: "utf8",
+		});
+		expect(build.status).toBe(0);
+		const result = spawnSync(
+			"node",
+			[bundledCli, "context", "billing policy", "--max-chars=200000"],
+			{ cwd: root, encoding: "utf8", maxBuffer: 1_000_000 },
+		);
+		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
+		expect(result.stdout.length).toBeGreaterThan(65_536);
+		expect(result.stdout).toContain("document\tdocs/policy-089.md\tunreviewed");
+		const reference = run(root, ["billing policy", "--max-chars=200000"]);
+		expect(reference.status).toBe(0);
+		expect(result.stdout).toBe(reference.stdout);
+	});
+
 	it("prints an owning document and source for a source path", () => {
 		const result = run(makeRoot(), ["--path", "src/billing.ts"]);
 		expect(result.status).toBe(0);

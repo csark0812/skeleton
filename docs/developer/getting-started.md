@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
 
 <!-- review-deps: paths=src/init/**,src/cli.ts,src/context.ts -->
 
@@ -119,6 +119,12 @@ npx skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewe
 
 Changing the date alone is not a review. Re-read-cadence warnings remain advisory unless `--strict`. Failures →
 [troubleshooting](troubleshooting.md).
+
+Context emits review actions for missing proof (`unreviewed`), dependency changes (`changed-since-review`), and a review date behind a document edit or the configured cadence (`review-required`). Missing proof requires comparing active implementation claims with source; historical alternatives and future aspirations remain qualified intent. A matching hash proves recorded bytes, not semantic agreement.
+
+Each matching paper receives a share of the excerpt budget so one broad owner cannot consume it all. `omitted` and `omitted-source` list excluded papers and declared sources, with an action to narrow the query, increase `--max-chars`, or report the remaining evidence limit. Review status compares the full declared dependency set, including files removed from a glob, even when excerpts are omitted. Complete the relevant review and omission actions before treating the packet as sufficient evidence.
+
+Consumer prevention also requires `review-deps` for active implementation claims and running `validate changed` on source changes. Use a scoped `[reviewCoverage]` policy to reject unowned paths where ownership is required. A doc-only hook or `include = []` leaves those source changes outside the ownership gate. Skeleton does not infer semantic conflicts from prose.
 
 ## 6. Install the git hook
 
