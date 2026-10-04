@@ -82,7 +82,7 @@
 		"typescript": "~7.0.2"
 	},
 	"overrides": {
-		"fast-uri": "3.1.6",
-		"undici": "6.28.0"
+		"fast-uri": "3.1.8",
+		"undici": "6.28.1"
 	}
 }

@@ -276,10 +276,17 @@ Validation of this follow-up: `bun run check` passed 299 deterministic tests,
 typecheck, build, and self-audit (four existing advisory summary warnings).
 `bun run agent:test:check` discovered 15 tests and passed nine offline SDK
 contracts; no new live-agent qualification is claimed. Package verification and
-changed-file validation passed. The candidate bundle and unpacked npm artifact
+changed-file validation passed. The initial prevention candidate at `18c1801` and its unpacked npm artifact
 share SHA-256 `112660b94358c993e0762707c5787ede8cdd635558d0ebf9881b24e657ec6442`.
 The candidate replay passed 40 CLI receipts including pinned PostPrint snapshots;
 the packed candidate passed 21 minimal receipts. An independent installed 5.0.4
 recheck passed the original 21-receipt missing-action baseline. These receipts
 remain in the ignored evidence directory under `prevention/`,
 `packed-prevention/`, and `installed-baseline-recheck/`.
+
+Release CI exposed two baseline infrastructure failures. The test workflow ran
+bare `bun test` without generating ignored efficacy fixtures; it now runs
+`bun run test`, which uses the existing preparation pipeline. The dependency
+audit also found advisories in the existing overrides. The release updates
+`fast-uri` to 3.1.8 and `undici` to 6.28.1; the resulting local audit reports
+no vulnerabilities. These repairs retain the existing test and security gates.
