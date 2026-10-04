@@ -180,19 +180,22 @@ async function main(): Promise<void> {
 
 	if (!command || command === "--help" || command === "-h") {
 		usage();
-		process.exit(command ? 0 : 1);
+		process.exitCode = command ? 0 : 1;
+		return;
 	}
 
 	try {
 		const exitCode = await dispatchCommand(argv);
 		if (exitCode === null) {
 			usage();
-			process.exit(1);
+			process.exitCode = 1;
+			return;
 		}
-		process.exit(exitCode);
+		// Let stdout/stderr drain: expanded context packets can exceed a pipe buffer.
+		process.exitCode = exitCode;
 	} catch (error) {
 		console.error(String(error));
-		process.exit(1);
+		process.exitCode = 1;
 	}
 }
 
