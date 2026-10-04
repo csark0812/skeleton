@@ -182,7 +182,7 @@ explicit skipped-code warning, not a product review result. The warning is an
 honest boundary, not a successful validation.
 
 Local raw evidence is retained under
-[`test-results/incidents/postprint-product-guidance-2026-10-04/`](../../test-results/incidents/postprint-product-guidance-2026-10-04):
+`test-results/incidents/postprint-product-guidance-2026-10-04/`:
 the `installed-5.0.4/summary.json` and `current-source/summary.json` hold run
 receipts; `historical-invocations.json` holds a focused session extraction;
 `stale-product-registration.json` and `stale-query-ranking.json` hold registration

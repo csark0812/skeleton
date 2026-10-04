@@ -218,7 +218,7 @@
 		},
 		"docs/developer/postprint-guidance-incident.md": {
 			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:9335f5cdeb3a5a337c863d0eb7f4cab7766912bdf7e133967cf75e23d1ce7357",
+			"documentHash": "sha256:e72793a513772bd9f0c35528d965a4963f4640fd91d722c8af401916c4a095c6",
 			"reviewDependencies": {
 				"scripts/reproduce-postprint-guidance-incident.py": "sha256:bbbf6966e41690486c0e39a1748742689fc88a6d7f04e2bfb97b8e156011fc3b",
 				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
