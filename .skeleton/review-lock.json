@@ -60,8 +60,8 @@
 			}
 		},
 		"docs/developer/audit.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:b995793f4829c8cc8dd4b5343765fc00b2ad1a8b079faf1932ed33b03bf43309",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:a0b3cd63bc9b35dac7ea27f09e419707fab65d5a5ad4e0726d437bec56ca35a5",
 			"reviewDependencies": {
 				"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
 				"src/audit/config/types.ts": "sha256:259ed258475e2e2eba40b3d329b7a633916a63bf84fa1d1f29e4158da77a78ba",
@@ -75,7 +75,7 @@
 				"src/audit/core/report.ts": "sha256:e6afa845a67ae3c48c3db3776c7ad599c55d665810f689fd6c021feaa4773ec3",
 				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
 				"src/audit/core/review-deps.ts": "sha256:ebf37de0fe8a88a6ea3e75dec94d5e975e3ed55be3c55fff1130a41b297655ed",
-				"src/audit/core/review-proof.ts": "sha256:cebc6edb3eb784335367df29125a9b5e6c2844836123655521a2b7afca47fe7b",
+				"src/audit/core/review-proof.ts": "sha256:f4add8e11b1cb30e6a7e2cd41cb183dff55f7b94d44d9dc259831c073f4f2614",
 				"src/audit/core/shared.ts": "sha256:5d8ec137c0b2eb1bbe6041b09dba6c23fd825f946f241fb4616b790765825b11",
 				"src/audit/core/skill-provenance.ts": "sha256:050bd06fc57c166bd699e1f19bfdf874bf03d74a671becc016cadd2a78054100",
 				"src/audit/core/skill-roots.ts": "sha256:83db181b071daf03749854c2976e5ce777120c799dd23151012181d8d799ebc0",
@@ -217,32 +217,32 @@
 			}
 		},
 		"docs/developer/postprint-guidance-incident.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:e72793a513772bd9f0c35528d965a4963f4640fd91d722c8af401916c4a095c6",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:078909eb6b59eb9d34cd3772c9c7fd1d4db99f2e82e22d7314cef0113ea4bf12",
 			"reviewDependencies": {
 				"scripts/reproduce-postprint-guidance-incident.py": "sha256:bbbf6966e41690486c0e39a1748742689fc88a6d7f04e2bfb97b8e156011fc3b",
 				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
 				"src/audit/rules/index.ts": "sha256:bae2d28301d2a623724ac8adb1f14a47609a51570d1cce9a59c54b923d41b20f",
 				"src/context.ts": "sha256:4adb6b83693312bac5273415bb015d85128627d57ae211a92f391a9c01a7d16f",
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9"
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2"
 			}
 		},
 		"docs/developer/troubleshooting.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:7064cd80cc980e5e3572883836f2969e03c16e97e10c00e119be8084023acbb7",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:7bd9956531019d85c41276bd4a5708698c1997bc2df9db31f2d7d0d0ff95ae0d",
 			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:01ee82a04363f23ad4d22b44d8773e7637fc08aecdfc54eb16d3feb8b177ead7",
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9",
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/route.ts": "sha256:06f680a63cca3937b42f04a26129afad563e16e61fe7e7edf0fce56a7406fb58",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
 		},
 		"docs/developer/validation.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:d6e958857738682a9cf84ce96677f8a8301cc6850ec4fd680acbb9acf0dfeb93",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:dfcc6f2fe2b3b4f1e0ac10140febf4a28e876b513428d7c3a55cff518940e86d",
 			"reviewDependencies": {
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9",
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/route.ts": "sha256:06f680a63cca3937b42f04a26129afad563e16e61fe7e7edf0fce56a7406fb58",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"

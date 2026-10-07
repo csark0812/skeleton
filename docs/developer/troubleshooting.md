@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-07 -->
 
 <!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
 
