@@ -1,7 +1,7 @@
 # Does Skeleton help?
 
 <!-- source-of-truth: comparing agent work with and without Skeleton -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-07 -->
 <!-- review-deps: paths=.github/workflows/test.yml,agent-suites/**,scripts/efficacy/**,scripts/run-efficacy.ts,scripts/write-efficacy-fixtures.ts,scripts/pack-efficacy-vendor.ts,package.json,bunfig.toml,agent-test*.config.ts,tests/sdk-contracts/**,src/__tests__/efficacy*.test.ts -->
 
 These tests measure how often each side completes the task correctly and whether Skeleton reduces median agent tokens for matched successful work. Each paired task runs as one comparison by default without Skeleton and with the current packaged Skeleton default initialization. This is a diagnostic smoke test, not a reliability sample; use `--runs N` for repeated comparisons. One-pair runs record efficiency evidence but do not assert the repeated-sample 35% qualification; repeated runs retain that gate on four substantive tasks. The one-command outdated-doc lookup, production-JavaScript task, and four package-tradeoff tasks require correctness without savings. The staged-endpoint qualification requires Skeleton to be correct in every run and at least 60% matched correct pairs. Turns, tool calls, and time remain diagnostic tradeoffs. One repeated result is evidence, not proof of a consistent improvement.

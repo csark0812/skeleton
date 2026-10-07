@@ -2,18 +2,18 @@
 	"version": 2,
 	"documents": {
 		"AGENTS.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:34f68de512905c3bdd6013912601212f25ea1e6597f5baddef064ddd8def3bf2",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:56ebe346991aca981a0633e4a0c174e331dc085071c7264e68617dd6b105f2d9",
 			"reviewDependencies": {
-				"package.json": "sha256:adb799ab070e92c8cc12b35ce52508ea4b9783e75c0268d6a2b36d4e90c4c64f",
+				"package.json": "sha256:3b926e6e17f2f15ede79ba7bcfbfd1175b5f68d50d6b8993d8ec2ea358f389c8",
 				"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8"
 			}
 		},
 		"README.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:5ec0f9d88d6405a4c8f4b3931a761e23122a2379e647d178e2046e43b075a46b",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:d4bc37fca3a0a4555581cf371e39f96b2e96ccfe4548f4ec5d0729a4dd196cec",
 			"reviewDependencies": {
-				"package.json": "sha256:adb799ab070e92c8cc12b35ce52508ea4b9783e75c0268d6a2b36d4e90c4c64f",
+				"package.json": "sha256:3b926e6e17f2f15ede79ba7bcfbfd1175b5f68d50d6b8993d8ec2ea358f389c8",
 				"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8",
 				"src/context.ts": "sha256:4adb6b83693312bac5273415bb015d85128627d57ae211a92f391a9c01a7d16f"
 			}
@@ -60,8 +60,8 @@
 			}
 		},
 		"docs/developer/audit.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:b995793f4829c8cc8dd4b5343765fc00b2ad1a8b079faf1932ed33b03bf43309",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:a0b3cd63bc9b35dac7ea27f09e419707fab65d5a5ad4e0726d437bec56ca35a5",
 			"reviewDependencies": {
 				"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
 				"src/audit/config/types.ts": "sha256:259ed258475e2e2eba40b3d329b7a633916a63bf84fa1d1f29e4158da77a78ba",
@@ -75,7 +75,7 @@
 				"src/audit/core/report.ts": "sha256:e6afa845a67ae3c48c3db3776c7ad599c55d665810f689fd6c021feaa4773ec3",
 				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
 				"src/audit/core/review-deps.ts": "sha256:ebf37de0fe8a88a6ea3e75dec94d5e975e3ed55be3c55fff1130a41b297655ed",
-				"src/audit/core/review-proof.ts": "sha256:cebc6edb3eb784335367df29125a9b5e6c2844836123655521a2b7afca47fe7b",
+				"src/audit/core/review-proof.ts": "sha256:f4add8e11b1cb30e6a7e2cd41cb183dff55f7b94d44d9dc259831c073f4f2614",
 				"src/audit/core/shared.ts": "sha256:5d8ec137c0b2eb1bbe6041b09dba6c23fd825f946f241fb4616b790765825b11",
 				"src/audit/core/skill-provenance.ts": "sha256:050bd06fc57c166bd699e1f19bfdf874bf03d74a671becc016cadd2a78054100",
 				"src/audit/core/skill-roots.ts": "sha256:83db181b071daf03749854c2976e5ce777120c799dd23151012181d8d799ebc0",
@@ -126,8 +126,8 @@
 			}
 		},
 		"docs/developer/efficacy.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:1d4450b296704bb356b5b58c44689bb6f9af1bed50b54733efd3dd84ff49591d",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:e313736e7712f9e33b159ecc5bbbcb7caf8073d224b6e5979275df21507e0801",
 			"reviewDependencies": {
 				".github/workflows/test.yml": "sha256:3a19d21e8430fc64870ed532b63fd3d58f26cae1397b431c342d8bbe096087bf",
 				"agent-suites/does-skeleton-help/adoption-maintenance.spec.ts": "sha256:d386fa2dee1fdceebe2b70c9e4543b67d2da73abfc470ac284d13f529f8c9305",
@@ -156,7 +156,7 @@
 				"agent-test.matrix.config.ts": "sha256:78d57129fcb7e280e8f3cb98635c93d131bd6a777d4b897ba9b16fc9330316b9",
 				"agent-test.offline.config.ts": "sha256:697c9dd1d21a1a40f137d28471a98f43b857ad2de30656d5bf8c51904f1709de",
 				"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
-				"package.json": "sha256:adb799ab070e92c8cc12b35ce52508ea4b9783e75c0268d6a2b36d4e90c4c64f",
+				"package.json": "sha256:3b926e6e17f2f15ede79ba7bcfbfd1175b5f68d50d6b8993d8ec2ea358f389c8",
 				"scripts/efficacy/adoption.ts": "sha256:29119a4a878aef74bc1f66239c214cc38bd42415c65d1b579dbcfd1b4a849950",
 				"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 				"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
@@ -217,44 +217,44 @@
 			}
 		},
 		"docs/developer/postprint-guidance-incident.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:e72793a513772bd9f0c35528d965a4963f4640fd91d722c8af401916c4a095c6",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:078909eb6b59eb9d34cd3772c9c7fd1d4db99f2e82e22d7314cef0113ea4bf12",
 			"reviewDependencies": {
 				"scripts/reproduce-postprint-guidance-incident.py": "sha256:bbbf6966e41690486c0e39a1748742689fc88a6d7f04e2bfb97b8e156011fc3b",
 				"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
 				"src/audit/rules/index.ts": "sha256:bae2d28301d2a623724ac8adb1f14a47609a51570d1cce9a59c54b923d41b20f",
 				"src/context.ts": "sha256:4adb6b83693312bac5273415bb015d85128627d57ae211a92f391a9c01a7d16f",
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9"
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2"
 			}
 		},
 		"docs/developer/troubleshooting.md": {
-			"reviewedAt": "2026-09-13",
-			"documentHash": "sha256:7064cd80cc980e5e3572883836f2969e03c16e97e10c00e119be8084023acbb7",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:7bd9956531019d85c41276bd4a5708698c1997bc2df9db31f2d7d0d0ff95ae0d",
 			"reviewDependencies": {
 				"src/audit/run.ts": "sha256:01ee82a04363f23ad4d22b44d8773e7637fc08aecdfc54eb16d3feb8b177ead7",
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9",
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/route.ts": "sha256:06f680a63cca3937b42f04a26129afad563e16e61fe7e7edf0fce56a7406fb58",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
 		},
 		"docs/developer/validation.md": {
-			"reviewedAt": "2026-09-17",
-			"documentHash": "sha256:d6e958857738682a9cf84ce96677f8a8301cc6850ec4fd680acbb9acf0dfeb93",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:dfcc6f2fe2b3b4f1e0ac10140febf4a28e876b513428d7c3a55cff518940e86d",
 			"reviewDependencies": {
-				"src/validate/changed.ts": "sha256:24b21970c172caf07f63a2230c6a42e64a252726a4101ad7c4022e48379086b9",
+				"src/validate/changed.ts": "sha256:8334cd1783b6b9dc22cd95ad9ef3bf657f23b3e5776918d3f6ff7bb4dc008db2",
 				"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
 				"src/validate/route.ts": "sha256:06f680a63cca3937b42f04a26129afad563e16e61fe7e7edf0fce56a7406fb58",
 				"src/validate/staged.ts": "sha256:50e512692be282c68f9568195c733e69d3b7c29eb9f1bec5f4bc12445e20aeb8"
 			}
 		},
 		"docs/tiers.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:44595187e2a1db9d766c028c637b06809c7c95eb5d759ad70e4de1228d910332",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:c463820d52a492c0153251faefa3e447f069c6a8dc8d75a30fcc1ccdd154c130",
 			"reviewDependencies": {
 				"docs/developer/getting-started.md": "sha256:3fbbab620125012031d37aa32341e98ecb706fe85ec875e92b4cba3c0f0c88b3",
 				"docs/developer/install.md": "sha256:7293e75e11ef91399bd62e416b6fc72ef693d144b010aec6efac2bbb347d0786",
-				"docs/developer/validation.md": "sha256:d6e958857738682a9cf84ce96677f8a8301cc6850ec4fd680acbb9acf0dfeb93"
+				"docs/developer/validation.md": "sha256:dfcc6f2fe2b3b4f1e0ac10140febf4a28e876b513428d7c3a55cff518940e86d"
 			}
 		},
 		"skeleton/SKILL.md": {
@@ -263,10 +263,10 @@
 			"reviewDependencies": {}
 		},
 		"skeleton/references/operations.md": {
-			"reviewedAt": "2026-10-04",
-			"documentHash": "sha256:fafd62c1973ab233dffc17ede18460756287dc0b0973cb6c82137c51c3c75335",
+			"reviewedAt": "2026-10-07",
+			"documentHash": "sha256:e23456735ad4ca72235f213686db07edc6604bb9d3e99c10ce98208dd4feb0c2",
 			"reviewDependencies": {
-				"package.json": "sha256:adb799ab070e92c8cc12b35ce52508ea4b9783e75c0268d6a2b36d4e90c4c64f",
+				"package.json": "sha256:3b926e6e17f2f15ede79ba7bcfbfd1175b5f68d50d6b8993d8ec2ea358f389c8",
 				"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8",
 				"src/context.ts": "sha256:4adb6b83693312bac5273415bb015d85128627d57ae211a92f391a9c01a7d16f",
 				"src/init/init.ts": "sha256:27430b6ce33d497f2eb0a9f2f04173a37d34ecc644d57d6b50e5ddb3deb03867",

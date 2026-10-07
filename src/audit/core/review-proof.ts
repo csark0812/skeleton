@@ -41,11 +41,8 @@ export interface AttestDocumentsResult {
 	modifiedFiles: string[];
 }
 
-export function formatLocalReviewDate(date: Date): string {
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
+export function formatUtcReviewDate(date: Date): string {
+	return date.toISOString().slice(0, 10);
 }
 
 function hash(content: string): string {
@@ -188,7 +185,7 @@ function commitWrites(root: string, writes: Map<string, string>): void {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ordered fail-closed stages keep attestation writes auditable
 export function attestDocuments(options: AttestDocumentsOptions): AttestDocumentsResult {
 	if (options.paths.length === 0) throw new Error("Review attestation requires explicit paths");
-	const reviewedAt = options.reviewedAt ?? formatLocalReviewDate(new Date());
+	const reviewedAt = options.reviewedAt ?? formatUtcReviewDate(new Date());
 	validateReviewedAt(reviewedAt);
 	const ctx = createContext({ root: options.root, paths: options.paths });
 	const selected = [...new Set(ctx.docMetaPaths)].sort();

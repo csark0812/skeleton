@@ -14,7 +14,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { formatLocalReviewDate } from "../audit/core/review-proof.ts";
+import { formatUtcReviewDate } from "../audit/core/review-proof.ts";
 import { docMetaLastReviewed, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import {
 	buildSkillIndex,
@@ -455,7 +455,7 @@ function dateModeImpactDiagnostics(input: {
 }): Issue[] {
 	if (input.config.reviewProof) return [];
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
-	const today = formatLocalReviewDate(new Date());
+	const today = formatUtcReviewDate(new Date());
 	return input.impactedDocuments.flatMap((impacted) =>
 		dateModeIssuesForDocument({
 			impacted,
