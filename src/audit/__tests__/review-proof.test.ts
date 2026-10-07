@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { attestDocuments, formatLocalReviewDate } from "../core/review-proof.ts";
+import { attestDocuments, formatUtcReviewDate } from "../core/review-proof.ts";
 import { evaluateAudit, parseAuditArgs } from "../run.ts";
 
 function makeRepo(): string {
@@ -50,8 +50,9 @@ function auditOptions(root: string) {
 }
 
 describe("hash-backed review proof", () => {
-	it("uses the operator's local calendar date", () => {
-		expect(formatLocalReviewDate(new Date(2026, 7, 19, 23, 30))).toBe("2026-08-19");
+	it("uses the UTC calendar date", () => {
+		expect(formatUtcReviewDate(new Date("2026-08-20T00:30:00.000Z"))).toBe("2026-08-20");
+		expect(formatUtcReviewDate(new Date("2026-08-19T23:30:00.000Z"))).toBe("2026-08-19");
 	});
 
 	it("binds the reviewed document and dependency bytes", async () => {
