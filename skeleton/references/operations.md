@@ -1,6 +1,6 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-07 -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
 

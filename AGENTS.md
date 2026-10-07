@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-07 -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
