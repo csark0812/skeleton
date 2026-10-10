@@ -28,7 +28,7 @@ import { evaluateAudit, printAuditResult } from "../audit/run.ts";
 import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
-import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
+import { type ChangedGitPath, gitDiffChangedFiles, gitLatestCommitTime } from "./git-diff.ts";
 import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
@@ -452,6 +452,7 @@ function dateModeImpactDiagnostics(input: {
 	relPaths: string[];
 	root: string;
 	fileSource: FileSource;
+	base: string | undefined;
 }): Issue[] {
 	if (input.config.reviewProof) return [];
 	const changed = new Set(input.relPaths.map(normalizeRelPath));
@@ -460,17 +461,42 @@ function dateModeImpactDiagnostics(input: {
 		dateModeIssuesForDocument({
 			impacted,
 			changed,
-			today,
+			reviewFloor: dateModeReviewFloor({ impacted, today, root: input.root, base: input.base }),
+			exact: !input.base,
 			root: input.root,
 			fileSource: input.fileSource,
 		}),
 	);
 }
 
+/**
+ * Earliest acceptable `last-reviewed` for one impacted document.
+ * `--base`: UTC committer date of the latest non-merge commit in `base..HEAD` that touched
+ * a changed dependency, so the result depends only on the commit range. Otherwise: UTC today.
+ */
+function dateModeReviewFloor(input: {
+	impacted: ImpactedDocument;
+	today: string;
+	root: string;
+	base: string | undefined;
+}): string {
+	if (!input.base) return input.today;
+	const targets = [
+		...new Set(
+			input.impacted.reasons
+				.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
+				.map((reason) => reason.target ?? ""),
+		),
+	];
+	const latest = gitLatestCommitTime({ root: input.root, base: input.base, paths: targets });
+	return latest ? formatUtcReviewDate(latest) : input.today;
+}
+
 function dateModeIssuesForDocument(input: {
 	impacted: ImpactedDocument;
 	changed: Set<string>;
-	today: string;
+	reviewFloor: string;
+	exact: boolean;
 	root: string;
 	fileSource: FileSource;
 }): Issue[] {
@@ -480,7 +506,11 @@ function dateModeIssuesForDocument(input: {
 			.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
 			.map((reason) => rereadValidationIssue(input.impacted.path, reason.target ?? ""));
 	}
-	if (input.changed.has(input.impacted.path) && docMetaLastReviewed(content) === input.today) {
+	const reviewed = docMetaLastReviewed(content);
+	const current =
+		reviewed !== null &&
+		(input.exact ? reviewed === input.reviewFloor : reviewed >= input.reviewFloor);
+	if (input.changed.has(input.impacted.path) && current) {
 		return [];
 	}
 	const issues: Issue[] = [];
@@ -800,7 +830,14 @@ export async function evaluateValidateChanged(
 		fileSource,
 	});
 	evaluated.diagnostics.push(
-		...dateModeImpactDiagnostics({ config, impactedDocuments, relPaths, root, fileSource }),
+		...dateModeImpactDiagnostics({
+			config,
+			impactedDocuments,
+			relPaths,
+			root,
+			fileSource,
+			base: options.base,
+		}),
 	);
 	return resultFor({
 		options,
