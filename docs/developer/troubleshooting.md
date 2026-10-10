@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-07 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
 
 <!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
 
@@ -19,6 +19,12 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 **Fix:** Add a `review-deps` path or glob on the owning paper. Then re-read that paper and attest it.
 
 The same error fires on local, `--staged`, and `--base` runs. A mixed docs commit does not hide it.
+
+## `impacted-document-review-required`
+
+**Cause:** Date mode (no `[reviewProof]`). A `review-deps` dependency changed, and the linked paper did not co-change with a current `last-reviewed` date. Under `--base`, current means on or after the UTC committer date of the latest non-merge commit in `base..HEAD` that touched that dependency. Local and `--staged` runs require today's UTC date.
+
+**Fix:** Re-read the paper against the changed dependency, then attest it with `--fix=doc-meta --confirm-reviewed` and include it in the change. Re-running CI on a later day does not change a `--base` result.
 
 ## `stage-required`
 

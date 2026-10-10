@@ -57,3 +57,32 @@ function addChangedPath(input: {
 		deleted: status.startsWith("D") || (status.startsWith("R") && raw === first),
 	});
 }
+
+export interface GitLatestCommitOptions {
+	base: string;
+	paths: string[];
+	root?: string;
+}
+
+/**
+ * Latest committer time among non-merge commits in `base..HEAD` that touch `paths`.
+ * Returns null when no such commit exists.
+ */
+export function gitLatestCommitTime(options: GitLatestCommitOptions): Date | null {
+	if (options.paths.length === 0) return null;
+	const root = options.root ?? findRepoRoot();
+	const pathspecs = options.paths.map((path) => `:(top,literal)${path}`);
+	const proc = spawnSync(
+		"git",
+		["log", "--no-merges", "--format=%ct", `${options.base}..HEAD`, "--", ...pathspecs],
+		{ cwd: root, encoding: "utf8" },
+	);
+	if (proc.status !== 0) {
+		throw new Error(proc.stderr?.trim() || "git log failed");
+	}
+	const seconds = proc.stdout
+		.split("\n")
+		.map((line) => Number.parseInt(line, 10))
+		.filter((value) => Number.isFinite(value));
+	return seconds.length > 0 ? new Date(Math.max(...seconds) * 1000) : null;
+}

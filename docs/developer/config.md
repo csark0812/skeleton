@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
 
 <!-- review-deps: paths=src/audit/config/** -->
 
@@ -71,7 +71,7 @@ mode = "hash"
 
 Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile. Init enables this section by default.
 
-Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with a current explicit review date.
+Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with an explicit review date. Under `--base`, that date must be on or after the UTC date of the latest non-merge commit in the range that touched the dependency; local runs require today's UTC date.
 
 ## `reviewCoverage`
 

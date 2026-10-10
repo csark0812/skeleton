@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -43,12 +43,13 @@ The runThing export provides the example behavior.
 	);
 }
 
-function runGit(root: string, args: string[]): void {
+function runGit(root: string, args: string[], env: Record<string, string> = {}): void {
 	const result = spawnSync("git", args, {
 		cwd: root,
 		encoding: "utf8",
 		env: {
 			...process.env,
+			...env,
 			GIT_AUTHOR_NAME: "Test",
 			GIT_AUTHOR_EMAIL: "test@example.com",
 			GIT_COMMITTER_NAME: "Test",
@@ -61,6 +62,7 @@ function runGit(root: string, args: string[]): void {
 }
 
 afterEach(() => {
+	setSystemTime();
 	for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
 	tempDirs = [];
 });
@@ -219,5 +221,59 @@ mode = "hash"
 				.flatMap((audit) => audit.diagnostics)
 				.some((item) => item.code === "review-dependency-changed"),
 		).toBe(true);
+	});
+
+	describe("date mode with --base", () => {
+		function commitAt(root: string, args: string[], iso: string): void {
+			runGit(root, args, { GIT_AUTHOR_DATE: iso, GIT_COMMITTER_DATE: iso });
+		}
+
+		function setupRange(lastReviewed: string): string {
+			const root = makeRoot();
+			writeToml(root);
+			writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
+			runGit(root, ["init", "-b", "main"]);
+			runGit(root, ["add", "-A"]);
+			commitAt(root, ["commit", "-m", "init"], "2026-10-01T12:00:00Z");
+			runGit(root, ["checkout", "-b", "feature"]);
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			const doc = join(root, "docs/example.md");
+			const text = readFileSync(doc, "utf8");
+			writeFileSync(doc, text.replace("last-reviewed=2026-08-01", `last-reviewed=${lastReviewed}`));
+			runGit(root, ["add", "-A"]);
+			commitAt(root, ["commit", "-m", "change source and review doc"], "2026-10-09T23:30:00Z");
+			return root;
+		}
+
+		async function reviewRequired(root: string, now: string): Promise<boolean> {
+			setSystemTime(new Date(now));
+			const result = await evaluateValidateChanged({ root, base: "main" });
+			return result.diagnostics.some((item) => item.code === "impacted-document-review-required");
+		}
+
+		it("gives the same result for the same range before and after UTC midnight", async () => {
+			const root = setupRange("2026-10-09");
+			expect(await reviewRequired(root, "2026-10-09T23:45:00Z")).toBe(false);
+			expect(await reviewRequired(root, "2026-10-10T00:41:00Z")).toBe(false);
+		});
+
+		it("requires a review date on or after the latest dependency commit", async () => {
+			const root = setupRange("2026-10-08");
+			expect(await reviewRequired(root, "2026-10-09T23:45:00Z")).toBe(true);
+			expect(await reviewRequired(root, "2026-10-10T00:41:00Z")).toBe(true);
+		});
+
+		it("ignores later merge commits that do not change the dependency", async () => {
+			const root = setupRange("2026-10-09");
+			runGit(root, ["checkout", "main"]);
+			writeFileSync(join(root, "README.md"), "# Readme\n");
+			runGit(root, ["add", "-A"]);
+			commitAt(root, ["commit", "-m", "main moves"], "2026-10-10T00:20:00Z");
+			runGit(root, ["checkout", "feature"]);
+			commitAt(root, ["merge", "--no-ff", "-m", "merge main", "main"], "2026-10-10T00:41:00Z");
+			expect(await reviewRequired(root, "2026-10-10T00:45:00Z")).toBe(false);
+		});
 	});
 });
