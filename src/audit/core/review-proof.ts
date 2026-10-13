@@ -171,9 +171,22 @@ function loadLock(
 	return parseLock(content);
 }
 
-function hashDependencies(root: string, targets: string[]): Record<string, string> {
+/**
+ * Hash each dependency as it will exist after this attestation commits.
+ * A dependency that this run also attests is read from its pending write, not from disk.
+ */
+function hashDependencies(
+	root: string,
+	targets: string[],
+	pendingWrites: Map<string, string>,
+): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const target of targets) {
+		const pending = pendingWrites.get(target);
+		if (pending !== undefined) {
+			out[target] = hash(pending);
+			continue;
+		}
 		const abs = resolveWritePath(root, target);
 		if (!existsSync(abs)) throw new Error(`Cannot attest missing review dependency: ${target}`);
 		out[target] = reviewDependencyDigest(target, readFileSync(abs, "utf8"));
@@ -226,6 +239,31 @@ function commitWrites(root: string, writes: Map<string, string>): void {
 	}
 }
 
+/**
+ * Build lock entries only after every document write in this attestation is known.
+ * A selected document that depends on another selected document then records the
+ * dependency bytes this run writes, in any path order and across chains or cycles.
+ */
+function attestedEntries(
+	root: string,
+	reviewedAt: string,
+	documentWrites: Map<string, string>,
+): Record<string, ReviewProofEntry> {
+	const entries: Record<string, ReviewProofEntry> = {};
+	for (const [relPath, updated] of documentWrites) {
+		entries[relPath] = {
+			reviewedAt,
+			documentHash: hash(updated),
+			reviewDependencies: hashDependencies(
+				root,
+				resolveReviewDependencies(root, reviewDependencyPatterns(updated)).targets,
+				documentWrites,
+			),
+		};
+	}
+	return entries;
+}
+
 /** Record explicit review evidence for exactly the selected documents. */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ordered fail-closed stages keep attestation writes auditable
 export function attestDocuments(options: AttestDocumentsOptions): AttestDocumentsResult {
@@ -255,19 +293,10 @@ export function attestDocuments(options: AttestDocumentsOptions): AttestDocument
 		if (!DOC_META_RE.test(original)) {
 			throw new Error(`Cannot attest ${relPath}: missing doc-meta comment`);
 		}
-		const updated = replaceDocMetaLastReviewed(original, reviewedAt) ?? original;
-		writes.set(relPath, updated);
-		if (lock) {
-			lock.documents[relPath] = {
-				reviewedAt,
-				documentHash: hash(updated),
-				reviewDependencies: hashDependencies(
-					ctx.root,
-					resolveReviewDependencies(ctx.root, reviewDependencyPatterns(updated)).targets,
-				),
-			};
-		}
+		writes.set(relPath, replaceDocMetaLastReviewed(original, reviewedAt) ?? original);
 	}
+
+	if (lock) Object.assign(lock.documents, attestedEntries(ctx.root, reviewedAt, writes));
 
 	if (lock && proofPath) {
 		writes.set(proofPath, `${JSON.stringify(sortedLock(lock), null, "\t")}\n`);
