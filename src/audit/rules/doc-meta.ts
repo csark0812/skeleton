@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import { lastGitCommitDate } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { DOC_META_RE, docMetaLastReviewed } from "../core/shared.ts";
+import { DOC_META_RE, docMetaLastReviewed, parseReviewStamp } from "../core/shared.ts";
 import { slugFromPath } from "../core/skill-roots.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
@@ -22,9 +22,9 @@ function checkStaleReview(input: StaleReviewInput): Issue | null {
 	const { relPath, content, today, staleDays } = input;
 	const reviewedStr = docMetaLastReviewed(content);
 	if (!reviewedStr) return null;
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime())) return null;
-	const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
+	const reviewed = parseReviewStamp(reviewedStr);
+	if (!reviewed) return null;
+	const ageDays = (today.getTime() - reviewed.instant.getTime()) / 86_400_000;
 	if (ageDays <= staleDays) return null;
 	return issue("doc-meta", relPath, {
 		message: `doc-meta last-reviewed ${reviewedStr} exceeds re-read cadence (>${staleDays} days) — re-affirm the paper or bump after review`,
@@ -47,17 +47,17 @@ function checkGitFreshness(input: GitFreshnessInput): Issue | null {
 	const { relPath, content, root, lockedSkillSlugs } = input;
 	const reviewedStr = docMetaLastReviewed(content);
 	if (!reviewedStr) return null;
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime())) return null;
+	const reviewed = parseReviewStamp(reviewedStr);
+	if (!reviewed) return null;
 
 	const slug = slugFromPath(relPath, root);
 	if (slug !== null && lockedSkillSlugs.has(slug)) return null;
 
 	const gitDate = lastGitCommitDate(relPath, root);
 	if (!gitDate) return null;
-	const committed = new Date(`${gitDate}T00:00:00Z`);
-	if (Number.isNaN(committed.getTime())) return null;
-	if (committed.getTime() <= reviewed.getTime()) return null;
+	const committed = parseReviewStamp(gitDate);
+	if (!committed) return null;
+	if (committed.day <= reviewed.day) return null;
 
 	return issue("doc-meta", relPath, {
 		code: "review-behind-git-edit",

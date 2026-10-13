@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
 
@@ -22,9 +22,9 @@ The same error fires on local, `--staged`, and `--base` runs. A mixed docs commi
 
 ## `impacted-document-review-required`
 
-**Cause:** Date mode (no `[reviewProof]`). A `review-deps` dependency changed, and the linked paper did not co-change with a current `last-reviewed` date. Under `--base`, current means on or after the UTC committer date of the latest non-merge commit in `base..HEAD` that touched that dependency. Local and `--staged` runs require today's UTC date.
+**Cause:** Date mode (no `[reviewProof]`). A `review-deps` dependency changed, and the linked paper did not co-change with a current `last-reviewed` stamp. The gate compares the UTC day of the stamp. Under `--base`, current means on or after the UTC committer date of the latest non-merge commit in `base..HEAD` that touched that dependency. Local and `--staged` runs require today's UTC date.
 
-**Fix:** Re-read the paper against the changed dependency, then attest it with `--fix=doc-meta --confirm-reviewed` and include it in the change. Re-running CI on a later day does not change a `--base` result.
+**Fix:** Re-read the paper against the changed dependency, then attest it with `--fix=doc-meta --confirm-reviewed` and include it in the change. Attestation writes a UTC timestamp with seconds, so a same-day re-review still changes the paper; do not add filler edits. Re-running CI on a later day does not change a `--base` result. On a merge conflict in the `last-reviewed` line, keep the later stamp.
 
 ## `stage-required`
 

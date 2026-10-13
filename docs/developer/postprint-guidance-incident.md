@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: PostPrint product guidance incident findings, reproduction, and Skeleton detection boundaries -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=scripts/reproduce-postprint-guidance-incident.py,src/context.ts,src/validate/changed.ts,src/audit/rules/index.ts,src/audit/core/review-coverage.ts -->
 

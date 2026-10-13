@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Skeleton framework authoring conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/catalog.ts -->
 
@@ -18,4 +18,4 @@ Index docs and SSOT-bearing files require a doc-meta comment:
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 ```
 
-After editing a paper, re-read the entire document and bump `last-reviewed` only when the content is still correct. Do not change the date alone: git is the last-edit signal, and there is no separate authored edit date. Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).
+After editing a paper, re-read the entire document and bump `last-reviewed` only when the content is still correct. Do not change the date alone: git is the last-edit signal, and there is no separate authored edit date. Attestation writes a UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`); legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in the stamp line, keep the later stamp. Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).

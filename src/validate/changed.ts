@@ -15,7 +15,12 @@ import {
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
 import { formatUtcReviewDate } from "../audit/core/review-proof.ts";
-import { docMetaLastReviewed, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
+import {
+	docMetaLastReviewed,
+	matchesGlobScope,
+	normalizeRelPath,
+	parseReviewStamp,
+} from "../audit/core/shared.ts";
 import {
 	buildSkillIndex,
 	isForeignSkillPath,
@@ -470,7 +475,7 @@ function dateModeImpactDiagnostics(input: {
 }
 
 /**
- * Earliest acceptable `last-reviewed` for one impacted document.
+ * Earliest acceptable `last-reviewed` UTC day for one impacted document.
  * `--base`: UTC committer date of the latest non-merge commit in `base..HEAD` that touched
  * a changed dependency, so the result depends only on the commit range. Otherwise: UTC today.
  */
@@ -506,10 +511,11 @@ function dateModeIssuesForDocument(input: {
 			.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
 			.map((reason) => rereadValidationIssue(input.impacted.path, reason.target ?? ""));
 	}
-	const reviewed = docMetaLastReviewed(content);
+	const reviewedStr = docMetaLastReviewed(content);
+	const reviewed = reviewedStr ? parseReviewStamp(reviewedStr) : null;
 	const current =
 		reviewed !== null &&
-		(input.exact ? reviewed === input.reviewFloor : reviewed >= input.reviewFloor);
+		(input.exact ? reviewed.day === input.reviewFloor : reviewed.day >= input.reviewFloor);
 	if (input.changed.has(input.impacted.path) && current) {
 		return [];
 	}

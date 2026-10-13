@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts -->
 
@@ -71,7 +71,9 @@ Index docs and SSOT-bearing files require:
 <!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
 ```
 
-`last-reviewed` is the **only** authored freshness date — a human claim that someone stood behind this text as of that day. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
+`last-reviewed` is the **only** authored freshness stamp — a human claim that someone stood behind this text as of that moment. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
+
+Attestation writes a UTC timestamp with seconds: `last-reviewed=2026-08-16T14:05:09Z`. Skeleton also accepts the legacy date form `last-reviewed=2026-08-16` everywhere. Review gates compare only the UTC day of either form; cadence age uses the exact instant (midnight UTC for a legacy date). The seconds make each attestation change the document bytes, so a same-day re-review still enters the changed set. On a merge conflict in the stamp line, keep the later stamp.
 
 Audit treats review invalidation and calendar cadence differently:
 
@@ -88,7 +90,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
 ```
 
-The command requires explicit paths. It sets `last-reviewed` to today only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and dependency hashes. Bare `--fix` never touches review dates.
+The command requires explicit paths. It sets `last-reviewed` to the current UTC timestamp only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and dependency hashes. Bare `--fix` never touches review dates.
 
 ## Example canonical doc
 

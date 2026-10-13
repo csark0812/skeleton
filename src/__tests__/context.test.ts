@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -7,7 +7,7 @@ import process from "node:process";
 import { attestDocuments } from "../audit/core/review-proof.ts";
 import { evaluateContext, formatContext } from "../context.ts";
 
-function makeRepo(): string {
+function makeRepo(reviewedAt = "2026-09-16"): string {
 	const root = mkdtempSync(join(tmpdir(), "skel-context-"));
 	mkdirSync(join(root, "docs"), { recursive: true });
 	mkdirSync(join(root, "src/billing"), { recursive: true });
@@ -40,9 +40,13 @@ mode = "hash"
 Billing webhooks retry once after a failed delivery.
 `,
 	);
-	attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt: "2026-09-16" });
+	attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt });
 	return root;
 }
+
+afterEach(() => {
+	setSystemTime();
+});
 
 describe("context", () => {
 	it("requires source comparison for unreviewed claims while preserving historical intent", () => {
@@ -58,8 +62,11 @@ describe("context", () => {
 		}
 	});
 
-	it("surfaces own-edit freshness without requiring hash mode", () => {
-		const root = makeRepo();
+	it.each([
+		"2026-09-16",
+		"2026-09-16T23:59:59Z",
+	])("surfaces own-edit freshness for a %s stamp without requiring hash mode", (reviewedAt) => {
+		const root = makeRepo(reviewedAt);
 		try {
 			writeFileSync(
 				join(root, "skeleton.toml"),
@@ -93,8 +100,27 @@ describe("context", () => {
 			}
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.review).toBe("review-required");
-			expect(formatContext(result)).toContain("content changed after last-reviewed 2026-09-16");
+			expect(formatContext(result)).toContain(
+				`content changed after last-reviewed ${reviewedAt} (git: 2026-09-17)`,
+			);
 			expect(formatContext(result)).toContain("Do not update the date alone");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("measures re-read cadence from the timestamp instant", () => {
+		const root = makeRepo("2026-09-16T12:00:00Z");
+		try {
+			setSystemTime(new Date("2027-09-16T11:00:00Z"));
+			expect(evaluateContext({ root, query: "billing retry" }).documents[0]?.review).toBe(
+				"matches-recorded-review",
+			);
+			setSystemTime(new Date("2027-09-16T13:00:00Z"));
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.reviewReasons).toEqual([
+				"last-reviewed 2026-09-16T12:00:00Z exceeds re-read cadence (>365 days)",
+			]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
