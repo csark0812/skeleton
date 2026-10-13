@@ -9,6 +9,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
+import { matchesRecordedDependency } from "./audit/core/review-proof.ts";
 import { docMetaLastReviewed, normalizeRelPath, parseReviewStamp } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
 
@@ -260,7 +261,7 @@ interface ReviewInput {
 function dateReviewReasons(input: ReviewInput): string[] {
 	const reviewed = docMetaLastReviewed(input.content);
 	const stamp = reviewed ? parseReviewStamp(reviewed) : null;
-	if (!reviewed || !stamp) return [];
+	if (!(reviewed && stamp)) return [];
 	const reasons: string[] = [];
 	const gitDate = lastGitCommitDate(input.document, input.root);
 	if (gitDate && gitDate > stamp.day) {
@@ -285,7 +286,11 @@ function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "rev
 	const sameSourceBytes = input.sources.every(
 		(source) =>
 			source.content !== null &&
-			entry?.reviewDependencies?.[source.path] === digest(source.content),
+			matchesRecordedDependency({
+				target: source.path,
+				content: source.content,
+				recorded: entry?.reviewDependencies?.[source.path],
+			}),
 	);
 	if (hasDocumentProof && !(sameTargets && sameSourceBytes)) {
 		return { review: "changed-since-review" };

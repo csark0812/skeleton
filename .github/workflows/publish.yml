@@ -90,8 +90,8 @@ jobs:
           git tag "v$NEW_VERSION"
 
       - name: Publish verified npm package
-        # The release bump changes package.json after the verified check. Do not rerun
-        # prepack here: review proof correctly treats that version change as new drift.
+        # check and verify-package already ran above. The bump changes only the release
+        # version, which review proof ignores, so prepack would repeat the same gates.
         run: npm publish --ignore-scripts --access public --provenance
 
       - name: Push release commit and tag
