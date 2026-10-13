@@ -102,7 +102,7 @@ jobs:
           npx -y skills add csark0812/skeleton --list | tee /tmp/skills-list.txt
           grep -q "skeleton" /tmp/skills-list.txt
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.NEW_VERSION }}
           name: v${{ steps.version.outputs.NEW_VERSION }}
