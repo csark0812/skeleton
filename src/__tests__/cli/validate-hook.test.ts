@@ -223,6 +223,54 @@ mode = "hash"
 		).toBe(true);
 	});
 
+	describe("date mode without --base", () => {
+		function setupDoc(lastReviewed: string): string {
+			const root = makeRoot();
+			writeToml(root);
+			writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
+			const doc = join(root, "docs/example.md");
+			const text = readFileSync(doc, "utf8");
+			writeFileSync(doc, text.replace("last-reviewed=2026-08-01", `last-reviewed=${lastReviewed}`));
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
+			return root;
+		}
+
+		async function reviewRequired(root: string, paths?: string[]): Promise<boolean> {
+			const result = await evaluateValidateChanged({ root, paths });
+			return result.diagnostics.some((item) => item.code === "impacted-document-review-required");
+		}
+
+		it.each([
+			"2026-10-09",
+			"2026-10-09T07:00:00Z",
+		])("passes a same-day re-review of a %s stamp because attestation changes its bytes", async (stamp) => {
+			setSystemTime(new Date("2026-10-09T08:00:00Z"));
+			const root = setupDoc(stamp);
+			runGit(root, ["init"]);
+			runGit(root, ["add", "-A"]);
+			runGit(root, ["commit", "-m", "init"]);
+
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			expect(await reviewRequired(root)).toBe(true);
+
+			const doc = join(root, "docs/example.md");
+			const before = readFileSync(doc, "utf8");
+			attestDocuments({ root, paths: ["docs/example.md"] });
+			const after = readFileSync(doc, "utf8");
+			expect(after).not.toBe(before);
+			expect(after).toContain("last-reviewed=2026-10-09T08:00:00Z");
+			expect(await reviewRequired(root)).toBe(false);
+		});
+
+		it("keeps legacy date-only stamps on today's UTC day", async () => {
+			setSystemTime(new Date("2026-10-09T23:45:00Z"));
+			const paths = ["docs/example.md", "src/example.ts"];
+			expect(await reviewRequired(setupDoc("2026-10-09"), paths)).toBe(false);
+			expect(await reviewRequired(setupDoc("2026-10-08"), paths)).toBe(true);
+		});
+	});
+
 	describe("date mode with --base", () => {
 		function commitAt(root: string, args: string[], iso: string): void {
 			runGit(root, args, { GIT_AUTHOR_DATE: iso, GIT_COMMITTER_DATE: iso });
@@ -263,6 +311,15 @@ mode = "hash"
 			const root = setupRange("2026-10-08");
 			expect(await reviewRequired(root, "2026-10-09T23:45:00Z")).toBe(true);
 			expect(await reviewRequired(root, "2026-10-10T00:41:00Z")).toBe(true);
+		});
+
+		it("compares a timestamp review stamp by its UTC day", async () => {
+			expect(await reviewRequired(setupRange("2026-10-09T00:05:00Z"), "2026-10-10T00:41:00Z")).toBe(
+				false,
+			);
+			expect(await reviewRequired(setupRange("2026-10-08T23:59:59Z"), "2026-10-10T00:41:00Z")).toBe(
+				true,
+			);
 		});
 
 		it("ignores later merge commits that do not change the dependency", async () => {

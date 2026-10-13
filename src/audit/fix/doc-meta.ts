@@ -3,15 +3,20 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import type { FixEdit } from "../core/fix.ts";
 import { lastGitCommitDate } from "../core/git-meta.ts";
-import { DOC_META_RE, docMetaLastReviewed, replaceDocMetaLastReviewed } from "../core/shared.ts";
+import {
+	DOC_META_RE,
+	docMetaLastReviewed,
+	parseReviewStamp,
+	replaceDocMetaLastReviewed,
+} from "../core/shared.ts";
 
 export function bumpDocMetaLastReviewed(content: string, gitDate: string): string | null {
 	const reviewedStr = docMetaLastReviewed(content);
 	if (!reviewedStr) return null;
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	const committed = new Date(`${gitDate}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime()) || Number.isNaN(committed.getTime())) return null;
-	if (committed.getTime() <= reviewed.getTime()) return null;
+	const reviewed = parseReviewStamp(reviewedStr);
+	const committed = parseReviewStamp(gitDate);
+	if (!reviewed || !committed) return null;
+	if (committed.day <= reviewed.day) return null;
 	return replaceDocMetaLastReviewed(content, gitDate);
 }
 
@@ -24,8 +29,7 @@ function docMetaFixForPath(ctx: AuditContext, relPath: string): FixEdit | null {
 	const reviewedStr = docMetaLastReviewed(content);
 	if (!reviewedStr) return null;
 
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime())) return null;
+	if (!parseReviewStamp(reviewedStr)) return null;
 
 	const gitDate = lastGitCommitDate(relPath, ctx.root);
 	if (!gitDate) return null;

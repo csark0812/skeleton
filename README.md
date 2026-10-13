@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
 
@@ -57,7 +57,7 @@ Flag details: [install](docs/developer/install.md).
 - **Skill index** — disk matches taxonomy READMEs in detected skill roots
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
-- **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files
+- **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files (attestation writes a UTC timestamp `YYYY-MM-DDTHH:MM:SSZ`; legacy `YYYY-MM-DD` dates stay valid)
 - **Review proof** — optional hashes bind a human review to exact document and `review-deps` bytes
 - **Dependency routing** — changed repository files automatically pull matching documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins

@@ -1,6 +1,6 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
 
@@ -31,6 +31,8 @@ After a complete human re-read, record review evidence for explicit paths only:
 ```bash
 npx --no-install skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 ```
+
+Attestation writes a UTC `last-reviewed` timestamp (`YYYY-MM-DDTHH:MM:SSZ`), so a same-day re-review still changes the file. Legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in that line, keep the later stamp.
 
 Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 

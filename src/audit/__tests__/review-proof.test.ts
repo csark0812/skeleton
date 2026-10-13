@@ -1,8 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { attestDocuments, formatUtcReviewDate } from "../core/review-proof.ts";
+import { formatUtcReviewStamp, parseReviewStamp } from "../core/shared.ts";
 import { evaluateAudit, parseAuditArgs } from "../run.ts";
 
 function makeRepo(): string {
@@ -49,10 +50,85 @@ function auditOptions(root: string) {
 	};
 }
 
+afterEach(() => {
+	setSystemTime();
+});
+
+describe("review stamps", () => {
+	it("formats a UTC timestamp with seconds", () => {
+		expect(formatUtcReviewStamp(new Date("2026-08-19T23:30:05.678Z"))).toBe("2026-08-19T23:30:05Z");
+	});
+
+	it("parses legacy dates and UTC timestamps to a UTC day", () => {
+		expect(parseReviewStamp("2026-08-19")).toEqual({
+			day: "2026-08-19",
+			instant: new Date("2026-08-19T00:00:00Z"),
+			kind: "date",
+		});
+		expect(parseReviewStamp("2026-08-19T23:30:05Z")).toEqual({
+			day: "2026-08-19",
+			instant: new Date("2026-08-19T23:30:05Z"),
+			kind: "timestamp",
+		});
+	});
+
+	it("rejects invalid stamps", () => {
+		for (const value of [
+			"2026-13-40",
+			"2026-02-30",
+			"2026-08-19T24:00:00Z",
+			"2026-08-19T12:60:00Z",
+			"2026-08-19T12:00:60Z",
+			"2026-08-19T12:00:00",
+			"2026-08-19T12:00Z",
+			"2026-08-19T12:00:00.000Z",
+			"2026-08-19 12:00:00Z",
+			"",
+		]) {
+			expect(parseReviewStamp(value)).toBeNull();
+		}
+	});
+});
+
 describe("hash-backed review proof", () => {
 	it("uses the UTC calendar date", () => {
 		expect(formatUtcReviewDate(new Date("2026-08-20T00:30:00.000Z"))).toBe("2026-08-20");
 		expect(formatUtcReviewDate(new Date("2026-08-19T23:30:00.000Z"))).toBe("2026-08-19");
+	});
+
+	it("writes a UTC timestamp so a same-day re-review changes the document bytes", async () => {
+		const root = makeRepo();
+		try {
+			const doc = join(root, "docs/example.md");
+			setSystemTime(new Date("2026-08-19T10:00:00.400Z"));
+			const first = attestDocuments({ root, paths: ["docs/example.md"] });
+			expect(first.reviewedAt).toBe("2026-08-19T10:00:00Z");
+			const firstBytes = readFileSync(doc, "utf8");
+			expect(firstBytes).toContain("last-reviewed=2026-08-19T10:00:00Z -->");
+			expect((await evaluateAudit(auditOptions(root))).exitCode).toBe(0);
+
+			setSystemTime(new Date("2026-08-19T10:00:01.400Z"));
+			attestDocuments({ root, paths: ["docs/example.md"] });
+			const secondBytes = readFileSync(doc, "utf8");
+			expect(secondBytes).not.toBe(firstBytes);
+			expect(secondBytes).toContain("last-reviewed=2026-08-19T10:00:01Z -->");
+			const lock = JSON.parse(readFileSync(join(root, ".skeleton/review-lock.json"), "utf8"));
+			expect(lock.documents["docs/example.md"].reviewedAt).toBe("2026-08-19T10:00:01Z");
+			expect((await evaluateAudit(auditOptions(root))).exitCode).toBe(0);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects an invalid explicit review stamp", () => {
+		const root = makeRepo();
+		try {
+			expect(() =>
+				attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-13-40" }),
+			).toThrow(/Invalid review date/);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 
 	it("binds the reviewed document and dependency bytes", async () => {

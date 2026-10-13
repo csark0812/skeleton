@@ -9,7 +9,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
-import { docMetaLastReviewed, normalizeRelPath } from "./audit/core/shared.ts";
+import { docMetaLastReviewed, normalizeRelPath, parseReviewStamp } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
 
 const DEFAULT_MAX_CHARS = 12_000;
@@ -259,13 +259,14 @@ interface ReviewInput {
 
 function dateReviewReasons(input: ReviewInput): string[] {
 	const reviewed = docMetaLastReviewed(input.content);
-	if (!reviewed) return [];
+	const stamp = reviewed ? parseReviewStamp(reviewed) : null;
+	if (!reviewed || !stamp) return [];
 	const reasons: string[] = [];
 	const gitDate = lastGitCommitDate(input.document, input.root);
-	if (gitDate && gitDate > reviewed) {
+	if (gitDate && gitDate > stamp.day) {
 		reasons.push(`content changed after last-reviewed ${reviewed} (git: ${gitDate})`);
 	}
-	const ageDays = (Date.now() - new Date(`${reviewed}T00:00:00Z`).getTime()) / 86_400_000;
+	const ageDays = (Date.now() - stamp.instant.getTime()) / 86_400_000;
 	if (ageDays > input.staleDays) {
 		reasons.push(`last-reviewed ${reviewed} exceeds re-read cadence (>${input.staleDays} days)`);
 	}

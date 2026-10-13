@@ -10,7 +10,9 @@ import { resolveReviewDependencies, reviewDependencyPatterns } from "./review-de
 import {
 	DOC_META_RE,
 	docMetaLastReviewed,
+	formatUtcReviewStamp,
 	normalizeRelPath,
+	parseReviewStamp,
 	replaceDocMetaLastReviewed,
 } from "./shared.ts";
 
@@ -41,6 +43,7 @@ export interface AttestDocumentsResult {
 	modifiedFiles: string[];
 }
 
+/** UTC day (`YYYY-MM-DD`) used for day-level review gate comparisons. */
 export function formatUtcReviewDate(date: Date): string {
 	return date.toISOString().slice(0, 10);
 }
@@ -57,10 +60,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isCalendarDate(value: unknown): value is string {
-	if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-	const parsed = new Date(`${value}T00:00:00.000Z`);
-	return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
+function isReviewStamp(value: unknown): value is string {
+	return typeof value === "string" && parseReviewStamp(value) !== null;
 }
 
 function isSafeRepoPath(value: string): boolean {
@@ -83,7 +84,7 @@ function isHash(value: unknown): value is string {
 
 function parseEntry(value: unknown): ReviewProofEntry | null {
 	if (!isRecord(value)) return null;
-	if (!isCalendarDate(value.reviewedAt)) return null;
+	if (!isReviewStamp(value.reviewedAt)) return null;
 	if (!isHash(value.documentHash)) return null;
 	if (!isRecord(value.reviewDependencies)) return null;
 	const reviewDependencies: Record<string, string> = {};
@@ -153,8 +154,8 @@ function sortedLock(lock: ReviewProofLock): ReviewProofLock {
 }
 
 function validateReviewedAt(reviewedAt: string): void {
-	if (!isCalendarDate(reviewedAt)) {
-		throw new Error(`Invalid review date: ${reviewedAt}. Use YYYY-MM-DD.`);
+	if (!isReviewStamp(reviewedAt)) {
+		throw new Error(`Invalid review date: ${reviewedAt}. Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ.`);
 	}
 }
 
@@ -185,7 +186,7 @@ function commitWrites(root: string, writes: Map<string, string>): void {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: ordered fail-closed stages keep attestation writes auditable
 export function attestDocuments(options: AttestDocumentsOptions): AttestDocumentsResult {
 	if (options.paths.length === 0) throw new Error("Review attestation requires explicit paths");
-	const reviewedAt = options.reviewedAt ?? formatUtcReviewDate(new Date());
+	const reviewedAt = options.reviewedAt ?? formatUtcReviewStamp(new Date());
 	validateReviewedAt(reviewedAt);
 	const ctx = createContext({ root: options.root, paths: options.paths });
 	const selected = [...new Set(ctx.docMetaPaths)].sort();

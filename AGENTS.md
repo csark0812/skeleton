@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-10 -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -19,6 +19,8 @@ After a full re-read, attest only that path:
 ```bash
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
+
+Attestation writes a UTC `last-reviewed` timestamp (`YYYY-MM-DDTHH:MM:SSZ`), so a same-day re-review still changes the file. Legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in that line, keep the later stamp.
 
 ## First hour
 
