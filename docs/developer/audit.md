@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:49:20Z -->
 
 <!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
 
@@ -29,7 +29,7 @@ skeleton audit docs --fix --dry-run
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, writes the current UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) to `last-reviewed`, and writes hash evidence when `[reviewProof] mode = "hash"` is configured.
+`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, writes the current UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) to `last-reviewed`, and writes hash evidence when `[reviewProof] mode = "hash"` is configured. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 

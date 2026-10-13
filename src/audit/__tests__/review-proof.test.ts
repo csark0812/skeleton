@@ -50,6 +50,26 @@ function auditOptions(root: string) {
 	};
 }
 
+function writeDoc(root: string, relPath: string, deps: string): void {
+	writeFileSync(
+		join(root, relPath),
+		`# ${relPath}
+
+<!-- source-of-truth: ${relPath} behavior -->
+
+<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+
+<!-- review-deps: paths=${deps} -->
+
+Body of ${relPath}.
+`,
+	);
+}
+
+function batchAuditOptions(root: string, paths: string[]) {
+	return { ...auditOptions(root), paths };
+}
+
 afterEach(() => {
 	setSystemTime();
 });
@@ -160,6 +180,49 @@ describe("hash-backed review proof", () => {
 			expect(docDrift.diagnostics.some((item) => item.code === "review-document-changed")).toBe(
 				true,
 			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	for (const order of [
+		["docs/a.md", "docs/b.md", "docs/c.md"],
+		["docs/c.md", "docs/b.md", "docs/a.md"],
+	]) {
+		it(`binds dependencies on documents attested in the same run (${order.join(",")})`, async () => {
+			const root = makeRepo();
+			try {
+				writeDoc(root, "docs/a.md", "docs/b.md");
+				writeDoc(root, "docs/b.md", "docs/c.md");
+				writeDoc(root, "docs/c.md", "src/example.ts");
+				attestDocuments({ root, paths: order, reviewedAt: "2026-08-20T09:00:00Z" });
+
+				const lock = JSON.parse(readFileSync(join(root, ".skeleton/review-lock.json"), "utf8"));
+				const result = await evaluateAudit(batchAuditOptions(root, order));
+				expect(result.diagnostics).toEqual([]);
+				expect(result.exitCode).toBe(0);
+				expect(lock.documents["docs/a.md"].reviewDependencies["docs/b.md"]).toBe(
+					lock.documents["docs/b.md"].documentHash,
+				);
+				expect(lock.documents["docs/b.md"].reviewDependencies["docs/c.md"]).toBe(
+					lock.documents["docs/c.md"].documentHash,
+				);
+			} finally {
+				rmSync(root, { recursive: true, force: true });
+			}
+		});
+	}
+
+	it("binds mutually dependent documents attested in the same run", async () => {
+		const root = makeRepo();
+		try {
+			writeDoc(root, "docs/a.md", "docs/b.md");
+			writeDoc(root, "docs/b.md", "docs/a.md");
+			const paths = ["docs/b.md", "docs/a.md"];
+			attestDocuments({ root, paths, reviewedAt: "2026-08-20T09:00:00Z" });
+			const result = await evaluateAudit(batchAuditOptions(root, paths));
+			expect(result.diagnostics).toEqual([]);
+			expect(result.exitCode).toBe(0);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
