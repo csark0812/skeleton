@@ -217,6 +217,34 @@ describe("context", () => {
 		}
 	});
 
+	it("keeps review evidence when only the package.json release version changes", () => {
+		const root = makeRepo();
+		try {
+			const manifest = (version: string) =>
+				`${JSON.stringify({ name: "billing", version, scripts: { test: "bun test" } }, null, "\t")}\n`;
+			writeFileSync(join(root, "package.json"), manifest("1.0.0"));
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				`# Billing delivery
+
+<!-- source-of-truth: Billing webhook retry policy -->
+
+<!-- doc-meta: owner=billing | last-reviewed=2026-09-16 -->
+
+<!-- review-deps: paths=src/billing/delivery.ts,package.json -->
+
+Billing webhooks retry once after a failed delivery.
+`,
+			);
+			attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt: "2026-09-16" });
+			writeFileSync(join(root, "package.json"), manifest("1.0.1"));
+			const result = evaluateContext({ root, query: "billing webhook retry" });
+			expect(result.documents[0]?.review).toBe("matches-recorded-review");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it("reports changed source dependencies instead of presenting stale review evidence", () => {
 		const root = makeRepo();
 		try {

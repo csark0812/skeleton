@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, posix } from "node:path";
 import type { AuditContext } from "./context.ts";
 import { createContext } from "./context.ts";
 import { resolveWritePath } from "./fix.ts";
@@ -50,6 +50,50 @@ export function formatUtcReviewDate(date: Date): string {
 
 function hash(content: string): string {
 	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
+}
+
+function isPackageManifest(target: string): boolean {
+	return posix.basename(normalizeRelPath(target)) === "package.json";
+}
+
+/**
+ * Review evidence for an npm manifest without its release version.
+ * Release tooling rewrites the top-level `version` field, which no reviewed claim can depend on.
+ * Returns null when the manifest is not a JSON object, so the caller binds the raw bytes.
+ */
+function manifestWithoutReleaseVersion(content: string): string | null {
+	try {
+		const parsed: unknown = JSON.parse(content);
+		if (!isRecord(parsed)) return null;
+		const reviewed = { ...parsed };
+		delete reviewed.version;
+		return JSON.stringify(reviewed);
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Digest that binds a review to one dependency.
+ * A `package.json` is compared as parsed JSON without its top-level `version`;
+ * every other dependency is compared byte for byte.
+ */
+export function reviewDependencyDigest(target: string, content: string): string {
+	if (!isPackageManifest(target)) return hash(content);
+	const manifest = manifestWithoutReleaseVersion(content);
+	return manifest === null ? hash(content) : hash(manifest);
+}
+
+/** True when the current dependency still matches its recorded review digest. */
+export function matchesRecordedDependency(input: {
+	target: string;
+	content: string;
+	recorded: string | undefined;
+}): boolean {
+	const { target, content, recorded } = input;
+	if (recorded === undefined) return false;
+	// A digest recorded before the manifest rule binds raw bytes; unchanged bytes still match it.
+	return recorded === reviewDependencyDigest(target, content) || recorded === hash(content);
 }
 
 function emptyLock(): ReviewProofLock {
@@ -145,7 +189,7 @@ function hashDependencies(
 		}
 		const abs = resolveWritePath(root, target);
 		if (!existsSync(abs)) throw new Error(`Cannot attest missing review dependency: ${target}`);
-		out[target] = hash(readFileSync(abs, "utf8"));
+		out[target] = reviewDependencyDigest(target, readFileSync(abs, "utf8"));
 	}
 	return out;
 }
@@ -373,7 +417,9 @@ function dependencyHashIssues(input: {
 					link: target,
 				}),
 			);
-		} else if (entry.reviewDependencies[target] !== hash(content)) {
+		} else if (
+			!matchesRecordedDependency({ target, content, recorded: entry.reviewDependencies[target] })
+		) {
 			issues.push(changedDependencyIssue(relPath, target));
 		}
 	}

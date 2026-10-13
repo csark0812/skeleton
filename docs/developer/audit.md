@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:49:20Z -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T19:02:48Z -->
 
 <!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
 
@@ -16,7 +16,7 @@ skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
-`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
+`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. A `package.json` dependency ignores its top-level release `version` ([config](config.md#reviewproof)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
 CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 

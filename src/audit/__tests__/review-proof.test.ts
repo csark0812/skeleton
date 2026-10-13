@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -68,6 +69,40 @@ Body of ${relPath}.
 
 function batchAuditOptions(root: string, paths: string[]) {
 	return { ...auditOptions(root), paths };
+}
+
+function makeManifestRepo(dependency: string): string {
+	const root = makeRepo();
+	const manifest = {
+		name: "example",
+		version: "1.0.0",
+		scripts: { check: "bun test" },
+		engines: { node: ">=22" },
+	};
+	mkdirSync(join(root, dependency, ".."), { recursive: true });
+	writeFileSync(join(root, dependency), `${JSON.stringify(manifest, null, "\t")}\n`);
+	writeFileSync(
+		join(root, "docs/example.md"),
+		readFileSync(join(root, "docs/example.md"), "utf8").replace(
+			"paths=src/example.ts",
+			`paths=src/example.ts,${dependency}`,
+		),
+	);
+	attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-19" });
+	return root;
+}
+
+function editJson(path: string, edit: (value: Record<string, unknown>) => void): void {
+	const value = JSON.parse(readFileSync(path, "utf8"));
+	edit(value);
+	writeFileSync(path, `${JSON.stringify(value, null, "\t")}\n`);
+}
+
+async function changedDependencies(root: string): Promise<string[]> {
+	const result = await evaluateAudit(auditOptions(root));
+	return result.diagnostics
+		.filter((item) => item.code === "review-dependency-changed")
+		.map((item) => item.link ?? "");
 }
 
 afterEach(() => {
@@ -223,6 +258,53 @@ describe("hash-backed review proof", () => {
 			const result = await evaluateAudit(batchAuditOptions(root, paths));
 			expect(result.diagnostics).toEqual([]);
 			expect(result.exitCode).toBe(0);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps package.json review evidence across a release version bump", async () => {
+		for (const dependency of ["package.json", "packages/app/package.json"]) {
+			const root = makeManifestRepo(dependency);
+			try {
+				const manifest = join(root, dependency);
+				editJson(manifest, (value) => {
+					value.version = "1.0.1";
+				});
+				expect(await changedDependencies(root)).toEqual([]);
+
+				editJson(manifest, (value) => {
+					value.scripts = { check: "bun test && bun run lint" };
+				});
+				expect(await changedDependencies(root)).toEqual([dependency]);
+			} finally {
+				rmSync(root, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("binds every other dependency byte for byte, including a version field", async () => {
+		const root = makeManifestRepo("config/release.json");
+		try {
+			editJson(join(root, "config/release.json"), (value) => {
+				value.version = "1.0.1";
+			});
+			expect(await changedDependencies(root)).toEqual(["config/release.json"]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("accepts a raw-byte package.json digest recorded before the manifest rule", async () => {
+		const root = makeManifestRepo("package.json");
+		try {
+			const lockPath = join(root, ".skeleton/review-lock.json");
+			const lock = JSON.parse(readFileSync(lockPath, "utf8"));
+			const rawBytes = readFileSync(join(root, "package.json"), "utf8");
+			lock.documents["docs/example.md"].reviewDependencies["package.json"] =
+				`sha256:${createHash("sha256").update(rawBytes, "utf8").digest("hex")}`;
+			writeFileSync(lockPath, `${JSON.stringify(lock, null, "\t")}\n`);
+			expect(await changedDependencies(root)).toEqual([]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

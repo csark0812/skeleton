@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:10Z -->
 
 <!-- review-deps: paths=src/audit/config/** -->
 
@@ -31,7 +31,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `plugins`                 | Plugin entry paths relative to `.skeleton/` (each needs a built sibling `.mjs`) — [plugins](plugins.md) |
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
-| `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes (see below)                   |
+| `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes; `package.json` ignores its release `version` (see below) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -69,7 +69,9 @@ mode = "hash"
 # lockfile = ".skeleton/review-lock.json"
 ```
 
-Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile. Init enables this section by default.
+Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile.
+
+One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte. Digests recorded before this rule still match while the manifest bytes stay unchanged. The first change after an upgrade needs one re-attestation. Init enables this section by default.
 
 Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with an explicit review stamp. The gate compares the UTC day of the stamp. Under `--base`, that day must be on or after the UTC date of the latest non-merge commit in the range that touched the dependency; local runs require today's UTC date.
 
