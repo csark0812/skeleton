@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:10Z -->
 
 <!-- review-deps: paths=src/validate/** -->
 
@@ -52,7 +52,7 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 Skeleton does not claim to validate application code. It classifies code paths, prints the repo-native gates, and builds an exact reverse dependency map from `review-deps` declarations to scanned documents.
 
-- Hash mode: changed dependency bytes make the linked document's `review-proof` entry invalid until explicit re-review and attestation.
+- Hash mode: changed dependency bytes make the linked document's `review-proof` entry invalid until explicit re-review and attestation. A `package.json` change to only its top-level `version` keeps the entry valid ([config](config.md#reviewproof)). Date mode compares changed paths, so it still requires re-review for that change.
 - Date mode: a linked document must be included in the changed set with an explicit `last-reviewed` stamp. The gate compares the UTC day of the stamp; timestamps and legacy dates both work. Attestation writes a timestamp with seconds, so a same-day re-review still changes the document. With `--base`, that day must be on or after the UTC committer date of the latest non-merge commit in `base..HEAD` that touched a changed dependency of the document, so the same range gives the same result on any day. `--staged` and working-tree runs require today's UTC date.
 - No linked document: a live coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this. Deleted files do not fail that gate.
 - `--staged`: read document, lockfile, and dependency bytes from the git index. If an impacted paper or the hash lockfile differs from HEAD and is not staged, fail `stage-required`.
