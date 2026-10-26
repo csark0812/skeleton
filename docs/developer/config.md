@@ -31,6 +31,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `plugins`                 | Plugin entry paths relative to `.skeleton/` (each needs a built sibling `.mjs`) — [plugins](plugins.md) |
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
+| `review`                  | Human-review globs and an optional reviewer command for `review prepare` ([code review](review.md)) |
 | `reviewProof`             | Where per-document hash proof lives (always on); `package.json` ignores its release `version` (see below) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
@@ -74,6 +75,16 @@ Explicit attestation writes one proof file per document, `<dir>/<document path>.
 `mode = "hash"` is still accepted. `lockfile` names a version 2 shared lock (default `.skeleton/review-lock.json`). While that file exists, `review-proof` reports only `review-proof-legacy-lock` and runs no per-document checks. Run `skeleton audit docs --fix=review-proof` once: it moves every entry that still verifies into proof files, removes legacy `last-reviewed` dates, and deletes the lock. It never attests anything new. Documents whose entries no longer verify need a normal review.
 
 One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte.
+
+## `review`
+
+```toml
+[review]
+humanPaths = [".github/workflows/**", "src/auth/**"]
+command = "./scripts/review-agent.sh"
+```
+
+Both keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. See [code review](review.md).
 
 ## `reviewCoverage`
 

@@ -1,8 +1,8 @@
 {
 	"version": 3,
-	"documentHash": "sha256:6cba68e599895bec4da91b5297744e2407ba31200a53af98a8e12a58844ee29b",
+	"documentHash": "sha256:d821f81deb4b678ec6cdd19211c406fc64d26723444bd982e1e8f862a7e0d015",
 	"reviewDependencies": {
 		"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
-		"src/audit/config/types.ts": "sha256:259935ac14a2d69c9130d7a869fb2d0b6925c94c4689f595ac66eeec27409e23"
+		"src/audit/config/types.ts": "sha256:dac2402bb75aa2404fc375bb1dd8f356ca398abc30c2f9c443215d8d1177fadd"
 	}
 }

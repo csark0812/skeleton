@@ -1,9 +1,9 @@
 {
 	"version": 3,
-	"documentHash": "sha256:9c40b2d2f8fb4fa5ddf34eed9709fe8c101fc7eebd1bbad7487d898fe8f8dd9d",
+	"documentHash": "sha256:831a40f7a1e3e468966c8d1063aa965c4ad1e999405141177741c3db17fa7fae",
 	"reviewDependencies": {
 		"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
-		"src/audit/config/types.ts": "sha256:259935ac14a2d69c9130d7a869fb2d0b6925c94c4689f595ac66eeec27409e23",
+		"src/audit/config/types.ts": "sha256:dac2402bb75aa2404fc375bb1dd8f356ca398abc30c2f9c443215d8d1177fadd",
 		"src/audit/core/collect.ts": "sha256:3419d6a4df81fb32936e732283ae8e31eb27f0ba027256a6fa781376641ed3fe",
 		"src/audit/core/context.ts": "sha256:c63e7a3eb7709a862e56c58044ed080446d19a1c2660a86bc1106e5723f90fc4",
 		"src/audit/core/draft.ts": "sha256:68d5d980d34a439100960ce3b199f9f28c585ebdac7aae57a5da1f3f23002abb",
@@ -42,7 +42,7 @@
 		"src/audit/rules/ssot-summary.ts": "sha256:853abc308ba1fbc2003069c66c41f5dcef7fb94f833a0ec50e715bd46d9031e5",
 		"src/audit/rules/ssot.ts": "sha256:006ea9f05da7c3887fa7cddb82b54f931552689c78f4dd123614115984952007",
 		"src/audit/run.ts": "sha256:fd4234588c018a3d4a2bc4dea7f9de4e909bafe0b934cd04deb527d543f226f8",
-		"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8",
+		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c",
 		"src/result-types.ts": "sha256:76960dc50e452c6c710e2fe6f3733993f394df425f86b76beff7844f1aeb534e"
 	}
 }

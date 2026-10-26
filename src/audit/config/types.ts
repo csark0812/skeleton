@@ -41,6 +41,14 @@ export interface ReviewProofConfig {
 	lockfile?: string;
 }
 
+/** Harness-neutral review settings for `skeleton review prepare`. */
+export interface ReviewConfig {
+	/** Globs for high-consequence paths; a change there needs a person, not an agent. */
+	humanPaths?: string[];
+	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
+	command?: string;
+}
+
 /** Tunables for near-duplicate and SSOT-summary docs lint. */
 export interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
@@ -64,6 +72,7 @@ export interface SkeletonConfig {
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;
 	reviewProof?: ReviewProofConfig;
+	review?: ReviewConfig;
 	reviewCoverage?: ReviewCoverageConfig;
 	docsLint?: DocsLintConfig;
 	/**

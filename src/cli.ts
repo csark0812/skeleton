@@ -8,6 +8,7 @@ import { evaluateContext, formatContext } from "./context.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
+import { parseReviewPrepareArgs, runReviewPrepare } from "./review/cli.ts";
 import { runValidateChanged } from "./validate/changed.ts";
 import { runRoute } from "./validate/route.ts";
 
@@ -17,10 +18,12 @@ function usage(): void {
 Commands:
   init [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
-                         [--fix[=doc-meta|anchors|ssot]] [--dry-run]
+                         [--fix[=doc-meta|review-proof|anchors|ssot]] [--dry-run]
                          [--confirm-reviewed (doc-meta only; requires --paths)]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
+  review prepare [--staged | --base <ref>] [--json] [--run]
+                                print a fresh-context review bundle; --run pipes it to [review] command
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   context <query> | --path <path> [--staged] [--max-chars=N]
@@ -154,6 +157,8 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 			return handleBuildPlugin(rest);
 		case "validate":
 			return rest[0] === "changed" ? handleValidateChanged(rest.slice(1)) : null;
+		case "review":
+			return rest[0] === "prepare" ? runReviewPrepare(parseReviewPrepareArgs(rest.slice(1))) : null;
 		case "route":
 			if (rest.some((arg) => arg.startsWith("-"))) {
 				throw new Error("route: unknown flag");

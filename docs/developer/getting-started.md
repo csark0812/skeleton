@@ -8,7 +8,7 @@
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
-Day-one CLI: `init`, then `audit` / `validate` / `route` / `catalog`. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts`.
+Day-one CLI: `init`, then `audit` / `validate` / `route` / `catalog`; `review prepare` before a pull request. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts`.
 
 ## 1. Install and init
 
@@ -17,7 +17,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide also tells agents to complete structured context actions, preserve existing work, and run the returned test command once without rereading returned files. It does not route ordinary source tasks through audits, validation, or review-proof commands unless the user requested them or the focused test fails. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version. Review proof is always on.
+Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide also tells agents to complete structured context actions, preserve existing work, and run the returned test command once without rereading returned files. It does not route ordinary source tasks through audits, validation, or review-proof commands unless the user requested them or the focused test fails. Before a pull request it tells agents to run `skeleton review prepare --base <base branch>` and stop on any human-review path. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version. Review proof is always on.
 
 ## 2. Set the scan perimeter
 

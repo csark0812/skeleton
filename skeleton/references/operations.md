@@ -2,9 +2,9 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,src/review/**,package.json -->
 
-The package provides `catalog`, `context`, `audit`, `validate`, `route`, `init`, and `build-plugin` for Skeleton-enabled repositories.
+The package provides `catalog`, `context`, `audit`, `validate`, `route`, `review`, `init`, and `build-plugin` for Skeleton-enabled repositories.
 
 ## Setup
 
@@ -15,7 +15,7 @@ npx skeleton init --skills
 
 Init adds a bounded `skeleton context` guide to `AGENTS.md`. A `no-context` result includes a recovery action to inspect code, tests, and nearby docs; repair an existing owner or document durable behavior; and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. `--skills` copies this skill from the installed package so its guidance matches the CLI version. Edit `skeleton.toml` scan trees for the repository shape. Legacy `.skeleton/config.yaml` loads only when `skeleton.toml` is absent.
 
-For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner, and the guide stops after that command passes. It does not ask the agent to run repository audits, validation, or review-proof commands unless the user requested them or the focused test fails.
+For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner, and the guide stops after that command passes. It does not ask the agent to run repository audits, validation, or review-proof commands unless the user requested them or the focused test fails. Before a pull request it tells agents to run `skeleton review prepare --base <base branch>` and stop on any human-review path.
 
 ## Documentation workflow
 
@@ -49,6 +49,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 | `context <query> \| --path <path> [--staged] [--max-chars=N]` | Read-only canonical-document, source-owner, and focused-test evidence. |
 | `build-plugin [--check]` | Build or verify plugin `.mjs` siblings. |
 | `validate changed [--staged] [--base <ref>]` | Validate changed paths and their owning papers. |
+| `review prepare [--staged \| --base <ref>] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.
 
@@ -59,6 +60,18 @@ Each matching paper receives a share of the excerpt budget so one broad owner ca
 Consumer prevention also requires `review-deps` for active implementation claims and running `validate changed` on source changes. Use a scoped `[reviewCoverage]` policy to reject unowned paths where ownership is required. A doc-only hook or `include = []` leaves those source changes outside the ownership gate. Skeleton does not infer semantic conflicts from prose.
 
 `audit --json` emits the schema in `schemas/result.schema.json`. `validate changed` remains plain text.
+
+## Review before a PR
+
+`review prepare` stdout is the whole reviewer prompt: contract, human-review paths, documents to re-read, matching `REVIEW.md` guides, `AGENTS.md`, and the diff. Configure it in `skeleton.toml`:
+
+```toml
+[review]
+humanPaths = [".github/workflows/**", "src/auth/**"]   # an agent review does not count here
+command = "./scripts/review-agent.sh"                  # optional; reads the bundle on stdin
+```
+
+A finding line is `<severity>\t<file>:<line>\t<bug class>\t<what breaks>`, with severity `important`, `nit`, or `pre-existing`. Only `important` blocks the author. Enforce human approval for `humanPaths` with CODEOWNERS and branch protection.
 
 ## Skill ownership
 

@@ -1,10 +1,10 @@
 {
 	"version": 3,
-	"documentHash": "sha256:74aaab4afdf7aa931d3a45760f66293fbab94a8bbdb8ae7c520cb42e331ea471",
+	"documentHash": "sha256:26d596f52ade8ca5fb5747d3ff13301e75ca3160476bca996aaa6960d323ae20",
 	"reviewDependencies": {
-		"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8",
+		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c",
 		"src/context.ts": "sha256:5db85865be45520ebf3bb3b3373a2c5f177a62c0bfc35ae255c5b319c36a3c6e",
-		"src/init/init.ts": "sha256:27430b6ce33d497f2eb0a9f2f04173a37d34ecc644d57d6b50e5ddb3deb03867",
+		"src/init/init.ts": "sha256:99c9a58836202f5e1954696db54f90cbbe5a66765695f8cd64b54cf17108f106",
 		"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
 		"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
 		"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",

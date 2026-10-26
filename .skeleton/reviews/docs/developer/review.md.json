@@ -1,0 +1,13 @@
+{
+	"version": 3,
+	"documentHash": "sha256:5c0573c80023f2fdd26c90ac015db4e3af6b49a36efec94b5ade5b00aedd1c58",
+	"reviewDependencies": {
+		"schemas/config.schema.json": "sha256:5525c6ab602e30c6e3ce463a4a6a52f183d3dd6fe31e08ae51f7e290269d493c",
+		"src/audit/config/types.ts": "sha256:dac2402bb75aa2404fc375bb1dd8f356ca398abc30c2f9c443215d8d1177fadd",
+		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c",
+		"src/review/__tests__/prepare.test.ts": "sha256:51d2d1b1c49a3e5c4c5de0fe4e0e96a16f8cccea8b8c4cb1e2803bb99deac38e",
+		"src/review/cli.ts": "sha256:75a066300b4b4f307b4a11008f65f8adaf5afee926aaa5f22fa1594e1b65b73c",
+		"src/review/prepare.ts": "sha256:dd32167bfc2b5489c5b3707c2473b0d67bef29c42d732016d418badf84330429",
+		"src/validate/route.ts": "sha256:104af356e88c426f29701769435a5b9cba597e637bd4b926d1cdfd729f6ca784"
+	}
+}

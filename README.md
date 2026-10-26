@@ -10,9 +10,9 @@ Agent repos get messy fast. Skills get copied around, docs disagree, links go st
 
 Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a local link breaks, the audit fails before merge.
 
-Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `context`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
+Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `context`, `review`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
 
-Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, or manage memory. It checks whether the repo around those systems still holds together.
+Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, manage memory, run a reviewer model, post or resolve PR comments, or replace CODEOWNERS, branch protection, merge queues, or rollout tooling. It checks whether the repo around those systems still holds together.
 
 ## Why this matters
 
@@ -125,7 +125,10 @@ skeleton build-plugin [path] [--check]
 skeleton route [path…]
 skeleton context <query> | --path <path> [--staged] [--max-chars=N]
 skeleton validate changed [--staged | --base <ref>] [paths…]
+skeleton review prepare [--staged | --base <ref>] [--json] [--run]
 ```
+
+**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read, matching `REVIEW.md` guides, `AGENTS.md`, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
 
 **Validate changed** routes git diffs to the right audit:
 

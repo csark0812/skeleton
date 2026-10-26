@@ -127,6 +127,23 @@
 				}
 			}
 		},
+		"review": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Harness-neutral review settings for `skeleton review prepare`",
+			"properties": {
+				"humanPaths": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Globs for high-consequence paths; a change there needs a person, not an agent"
+				},
+				"command": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Shell command that receives the review bundle on stdin (`review prepare --run`)"
+				}
+			}
+		},
 		"reviewProof": {
 			"type": "object",
 			"additionalProperties": false,

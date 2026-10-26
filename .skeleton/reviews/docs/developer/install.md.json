@@ -1,8 +1,8 @@
 {
 	"version": 3,
-	"documentHash": "sha256:9aec0a2a8db1706272667a61db200ca2cc356b1b5aea47c3a5ee956d51646093",
+	"documentHash": "sha256:8478362965404af6a3f9228d86ab6e1a9e8460319bb8b042575dd0d480d3acc3",
 	"reviewDependencies": {
-		"src/init/init.ts": "sha256:27430b6ce33d497f2eb0a9f2f04173a37d34ecc644d57d6b50e5ddb3deb03867",
+		"src/init/init.ts": "sha256:99c9a58836202f5e1954696db54f90cbbe5a66765695f8cd64b54cf17108f106",
 		"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
 		"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
 		"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",

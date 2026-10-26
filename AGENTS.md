@@ -42,5 +42,6 @@ bun run check
 | Failures | [docs/developer/troubleshooting.md](docs/developer/troubleshooting.md) |
 | Day-one setup | [docs/developer/getting-started.md](docs/developer/getting-started.md) |
 | Audit rules | [docs/developer/audit.md](docs/developer/audit.md) |
+| Code review bundle | [docs/developer/review.md](docs/developer/review.md) |
 
 Pre-commit runs `bun src/cli.ts validate changed --staged`.

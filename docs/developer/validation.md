@@ -6,7 +6,7 @@
 
 <!-- review-deps: paths=src/validate/** -->
 
-Run `skeleton route` for the lane card. Run `skeleton route <path>` to classify one path. Those commands do not audit.
+Run `skeleton route` for the lane card; it also prints a `review` lane (`skeleton review prepare --base <base>`). Run `skeleton route <path>` to classify one path. Those commands do not audit.
 
 Prove the change with `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Review-deps papers are discovered from any changed path. A live coverage candidate with no owning paper fails `uncovered-changed-path`. Deleted files do not.
 
