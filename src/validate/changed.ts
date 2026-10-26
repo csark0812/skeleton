@@ -228,6 +228,33 @@ interface ResolvedPaths {
 	deleted: Set<string>;
 }
 
+/**
+ * Scanned Markdown documents that mention a removed path's file name, so the links rule
+ * re-checks them. Matching the name is deliberately broad: a false match only adds an audit.
+ */
+function addMissingDocs(docs: string[], extra: string[]): void {
+	for (const path of extra) if (!docs.includes(path)) docs.push(path);
+}
+
+function documentsMentioning(input: {
+	root: string;
+	config: ReturnType<typeof loadConfig>;
+	paths: string[];
+	source: FileSource;
+}): string[] {
+	const removed = input.paths.filter((path) => /\.mdx?$/i.test(path));
+	if (removed.length === 0) return [];
+	const names = removed.map((path) => basename(path));
+	const removedSet = new Set(removed);
+	return collectScanFiles(input.config, input.root)
+		.map((abs) => relPathFromAbs(abs, input.root))
+		.filter((path) => /\.mdx?$/i.test(path) && !removedSet.has(path))
+		.filter((path) => {
+			const content = readRepoText(input.root, path, input.source);
+			return content !== null && names.some((name) => content.includes(name));
+		});
+}
+
 function resolvePaths(options: ValidateChangedOptions): ResolvedPaths {
 	if (options.paths && options.paths.length > 0) {
 		return { paths: options.paths.map((p) => normalizeRelPath(p)), deleted: new Set() };
@@ -707,6 +734,11 @@ export async function evaluateValidateChanged(
 			classification.buckets.docs.push(impacted.path);
 		}
 	}
+	// A deleted or renamed document can break a link in a document the diff never touched.
+	addMissingDocs(
+		classification.buckets.docs,
+		documentsMentioning({ root, config, paths: [...resolvedPaths.deleted], source: fileSource }),
+	);
 	classification.buckets.docs.sort();
 
 	const ownerPatterns = collectReviewDependencyPatterns({
@@ -753,6 +785,12 @@ export async function evaluateValidateChanged(
 	});
 }
 
+function hasReviewProofErrors(result: ValidateChangedResult): boolean {
+	return result.audits.some((audit) =>
+		audit.diagnostics.some((item) => item.rule === "review-proof" && item.severity === "error"),
+	);
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
 export function printValidateChangedResult(result: ValidateChangedResult): number {
 	if (result.input.paths.length === 0) {
@@ -780,13 +818,21 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 		const path = diagnostic.file === "." ? "" : `${diagnostic.file}: `;
 		console.error(`validate changed: ${path}${diagnostic.message}`);
 	}
+	if (result.input.staged && hasReviewProofErrors(result)) {
+		// pre-commit stashes unstaged changes, so an attested but unstaged lock looks unattested.
+		console.log(
+			"If you already attested, stage the review lock too: git add .skeleton/review-lock.toml",
+		);
+	}
 	if (result.ok) {
 		const notes: string[] = [];
 		if (result.classification.code.length > 0) {
 			notes.push(`${result.classification.code.length} code path(s) routed to native gates`);
 		}
 		if (result.classification.skipped.length > 0) {
-			notes.push(`${result.classification.skipped.length} path(s) skipped`);
+			const skipped = result.classification.skipped;
+			const shown = skipped.slice(0, 5).join(", ");
+			notes.push(`${skipped.length} path(s) skipped: ${shown}${skipped.length > 5 ? ", …" : ""}`);
 		}
 		if (result.classification.foreignSkills.length > 0) {
 			notes.push(`${result.classification.foreignSkills.length} foreign skill(s) ignored`);

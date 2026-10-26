@@ -4,13 +4,13 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json#scripts,package.json#bin,package.json#engines,package.json#packageManager,package.json#name -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
 Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a local link breaks, the audit fails before merge.
 
-Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `context`, `review`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
+Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `attest`, `validate`, `route`, `context`, `review`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
 
 Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, manage memory, run a reviewer model, post or resolve PR comments, or replace CODEOWNERS, branch protection, merge queues, or rollout tooling. It checks whether the repo around those systems still holds together.
 
@@ -37,7 +37,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-That writes `skeleton.toml`, adds validation scripts, writes `.pre-commit-config.yaml`, adds a bounded `skeleton context` guide to `AGENTS.md`, and copies the Skeleton skill bundled with the installed package.
+That writes `skeleton.toml`, adds validation scripts, writes `.pre-commit-config.yaml`, adds a bounded `skeleton context` guide to `AGENTS.md`, adds `.skeleton/catalog.md` to `.gitignore`, and copies the Skeleton skill bundled with the installed package.
 
 Edit `skeleton.toml` for your repo layout, then verify:
 
@@ -119,8 +119,8 @@ Edit synced skills in the owning toolbox repo. Consumer copies stay read-only.
 skeleton init [--skills]
 skeleton catalog [--check] [--strict]
 skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-meta|review-proof|anchors|ssot]] [--dry-run]
-skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --fix=review-proof   # migrate Skeleton 5–7 proof, resolve conflicts, move renamed entries; never attests
+skeleton attest docs/a.md [--reason "<what you checked>"]   # record a full re-read
+skeleton attest --repair   # migrate Skeleton 5–7 proof, resolve conflicts, move renamed entries; never attests
 skeleton build-plugin [path] [--check]
 skeleton route [path…]
 skeleton context <query> | --path <path> [--staged] [--max-chars=N]
@@ -128,7 +128,7 @@ skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton review prepare [--staged | --base <ref>] [--json] [--run]
 ```
 
-**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read, matching `REVIEW.md` guides, `AGENTS.md`, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
+**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read, documents attested in this change (unchanged text first, with the `--reason` note), matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
 
 **Validate changed** routes git diffs to the right audit:
 

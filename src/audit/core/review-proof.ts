@@ -254,12 +254,12 @@ function entriesToExtend(
 	if (loaded.status === "missing") return new Map();
 	if (loaded.status === "legacy") {
 		throw new Error(
-			`Legacy review proof found (${loaded.files[0]}); run \`skeleton audit docs --fix=review-proof\` first`,
+			`Legacy review proof found (${loaded.files[0]}); run \`skeleton attest --repair\` first`,
 		);
 	}
 	if (loaded.status === "conflicted") {
 		throw new Error(
-			`Review proof ${proofPath} has a merge conflict; run \`skeleton audit docs --fix=review-proof\` first`,
+			`Review proof ${proofPath} has a merge conflict; run \`skeleton attest --repair\` first`,
 		);
 	}
 	throw new Error(`Review proof ${proofPath} is malformed at line ${loaded.line}`);
@@ -269,12 +269,41 @@ export interface AttestDocumentsOptions {
 	root: string;
 	paths: string[];
 	dryRun?: boolean;
+	/**
+	 * What the reviewer checked. Required to re-attest a document whose text did not change
+	 * since its last review, so a dependency change is not answered with a bare stamp.
+	 */
+	reason?: string;
 }
 
 export interface AttestDocumentsResult {
 	documents: string[];
 	proofFile: string;
 	modifiedFiles: string[];
+}
+
+/** A re-attest that leaves the text unchanged must say what was checked against the changed code. */
+function assertReasonForUnchangedText(
+	previous: Map<string, ReviewProofEntry>,
+	next: Map<string, ReviewProofEntry>,
+	reason: string | undefined,
+): void {
+	if (reason !== undefined) return;
+	const unchanged = [...next.values()]
+		.filter((entry) => {
+			const before = previous.get(entry.document);
+			return (
+				before !== undefined &&
+				before.documentHash === entry.documentHash &&
+				before.dependenciesHash !== entry.dependenciesHash
+			);
+		})
+		.map((entry) => entry.document);
+	if (unchanged.length === 0) return;
+	throw new Error(
+		`Text unchanged since the last review of ${unchanged.join(", ")}; its dependencies changed. ` +
+			'After checking the claims against them, say what you checked: --reason "…".',
+	);
 }
 
 /** Record explicit review evidence for exactly the selected documents. Other entries stay byte-identical. */
@@ -291,14 +320,22 @@ export function attestDocuments(options: AttestDocumentsOptions): AttestDocument
 		proofPath,
 	);
 	const documents = documentsWithoutLegacyDates(ctx.root, selected);
+	const reason = options.reason?.trim() || undefined;
 	// Entries are built after every document write is known, so a selected document that
 	// depends on another selected document binds the bytes this run writes.
+	const built = new Map<string, ReviewProofEntry>();
 	for (const [document, content] of documents) {
-		entries.set(
+		const entry = entryFor({
+			root: ctx.root,
 			document,
-			entryFor({ root: ctx.root, document, content, source: "worktree", pending: documents }),
-		);
+			content,
+			source: "worktree",
+			pending: documents,
+		});
+		built.set(document, reason === undefined ? entry : { ...entry, note: reason });
 	}
+	assertReasonForUnchangedText(entries, built, reason);
+	for (const [document, entry] of built) entries.set(document, entry);
 	const writes = changedDocumentWrites(ctx.root, documents);
 	writes.set(proofPath, formatReviewProofFile(entries.values()));
 	if (!options.dryRun) commitWrites(ctx.root, writes);
@@ -484,7 +521,7 @@ function currentEntries(input: {
 }
 
 /**
- * `--fix=review-proof`: migrate Skeleton 5, 6, and 7 proof, resolve a merge conflict, move entries
+ * `skeleton attest --repair` (also `--fix=review-proof`): migrate Skeleton 5, 6, and 7 proof, resolve a merge conflict, move entries
  * of renamed documents, and drop entries of deleted ones. Only proof that still verifies
  * against current bytes survives; this never attests anything new.
  */
@@ -531,9 +568,10 @@ export function repairReviewProof(options: {
 	};
 }
 
-const REPAIR = "Run `skeleton audit docs --fix=review-proof`.";
-const REREAD =
-	"Re-read the entire document against its current dependencies, then attest it again.";
+const REPAIR = "Run `skeleton attest --repair`.";
+function rereadRemediation(document: string): string {
+	return `Re-read the entire document against its current dependencies, then run \`skeleton attest ${document}\` (add --reason "…" if the text did not need to change).`;
+}
 
 function documentIssues(input: {
 	ctx: AuditContext;
@@ -550,7 +588,7 @@ function documentIssues(input: {
 			issue("review-proof", document, {
 				code: "review-document-changed",
 				message: "document changed after the recorded review",
-				remediation: REREAD,
+				remediation: rereadRemediation(document),
 			}),
 		];
 	}
@@ -574,7 +612,7 @@ function documentIssues(input: {
 			issue("review-proof", document, {
 				code: "review-dependency-changed",
 				message: "review dependencies changed after the recorded review",
-				remediation: REREAD,
+				remediation: rereadRemediation(document),
 			}),
 		];
 	}
@@ -583,7 +621,7 @@ function documentIssues(input: {
 			code: "review-dependency-changed",
 			message: `review dependency changed after the recorded review: ${target}`,
 			link: target,
-			remediation: REREAD,
+			remediation: rereadRemediation(document),
 		}),
 	);
 }
@@ -653,8 +691,7 @@ export function runReviewProofRule(ctx: AuditContext): Issue[] {
 				issue("review-proof", document, {
 					code: "review-proof-missing",
 					message: "document has no recorded review proof",
-					remediation:
-						"Review the complete document, then run the explicit review attestation command.",
+					remediation: `Review the complete document, then run \`skeleton attest ${document}\`.`,
 				}),
 			);
 			continue;

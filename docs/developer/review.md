@@ -22,10 +22,11 @@ The bundle has these sections, in order:
 
 1. **Reviewer contract.** The output format and rules. Each finding is one line: `<severity>\t<file>:<line>\t<bug class>\t<what breaks and why>`. The severities are `important` (must be fixed before merge), `nit` (optional), and `pre-existing` (not introduced by this diff; never blocks the author). The reviewer cites exact lines, names the bug class so the author can fix every instance, reports style only when a review guide asks for it, and does not re-report resolved findings. It ends with a count line, or `no issues`.
 2. **Human review required.** Shown only when a changed path, including a deleted one, matches `[review] humanPaths`. An agent review does not count for them. The same list is printed on stderr.
-3. **Documents the author must re-read and attest.** Impacted documents (other than `REVIEW.md` guides) whose review proof fails, with the changed paths that pulled them in. Deleted paths are not considered. A legacy, conflicted, or malformed proof file stops `review prepare` with an error; run `skeleton audit docs --fix=review-proof` first.
-4. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, plus every `REVIEW.md` that declares no `review-deps`.
-5. **AGENTS.md** from the repository root.
-6. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
+3. **Documents the author must re-read and attest.** Impacted documents (other than `REVIEW.md` guides) whose review proof fails, with the changed paths that pulled them in. Deleted paths are not considered. A legacy, conflicted, or malformed proof file stops `review prepare` with an error; run `skeleton attest --repair` first.
+4. **Documents attested in this change.** Every document whose review lock entry the change adds or rewrites, with whether its text changed, which of its dependencies changed, and the `--reason` note. Documents with unchanged text come first: that is where a stamp can stand in for a reread.
+5. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, plus every `REVIEW.md` that declares no `review-deps`.
+6. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
+7. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
 
 `--json` prints the same data as one object (`ReviewBundle` in `src/review/prepare.ts`). `--run` cannot be combined with `--json`.
 

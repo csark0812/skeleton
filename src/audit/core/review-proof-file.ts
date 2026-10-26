@@ -11,13 +11,13 @@ import { normalizeRelPath } from "./shared.ts";
  * documents would collide without it. With one unchanged line between entries those in-place
  * re-attests merge cleanly. Two pull requests that re-attest the same document still conflict,
  * as they should, and so can an inserted or removed entry next to a re-attested one;
- * `--fix=review-proof` resolves both.
+ * `skeleton attest --repair` resolves both.
  */
 
 export const REVIEW_LOCK_VERSION = 4;
 
 export const REVIEW_LOCK_HEADER = [
-	"# Skeleton review lock. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.",
+	"# Skeleton review lock. Written by `skeleton attest`.",
 	"# One entry per document. Do not edit by hand; keep the blank line between entries.",
 	`version = ${REVIEW_LOCK_VERSION}`,
 ];
@@ -28,6 +28,8 @@ export interface ReviewProofEntry {
 	documentHash: string;
 	/** Null when the document declares no review dependencies. */
 	dependenciesHash: string | null;
+	/** What the reviewer checked; required when a re-attest finds the text unchanged. */
+	note?: string;
 }
 
 export type ParsedReviewProofFile =
@@ -38,7 +40,7 @@ export type ParsedReviewProofFile =
 
 const DIGEST_RE = /^sha256:[a-f0-9]{16}$/;
 const ENTRY_RE =
-	/^("(?:[^"\\]|\\.)*") = \{ doc = "(sha256:[a-f0-9]{16})"(?:, deps = "(sha256:[a-f0-9]{16})")? \}$/;
+	/^("(?:[^"\\]|\\.)*") = \{ doc = "(sha256:[a-f0-9]{16})"(?:, deps = "(sha256:[a-f0-9]{16})")?(?:, note = ("(?:[^"\\]|\\.)*"))? \}$/;
 const VERSION_RE = /^version = (\d+)$/;
 const CONFLICT_MARKER_RE = /^(<{7}|={7}|>{7}|\|{7})(\s|$)/;
 
@@ -49,6 +51,17 @@ function tomlKey(document: string): string {
 	}
 	if (document === "version") throw new Error("Cannot record a document at the path `version`");
 	return JSON.stringify(document).replace(/\u007f/g, "\\u007F");
+}
+
+/** A one-line TOML basic string. */
+function tomlString(text: string): string {
+	const oneLine = text.replace(/[\r\n]+/g, " ").trim();
+	// TOML forbids lone surrogates, which JSON would write as escapes.
+	const wellFormed = oneLine.replace(
+		/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g,
+		"\uFFFD",
+	);
+	return JSON.stringify(wellFormed).replace(/\u007f/g, "\\u007F");
 }
 
 /** Decode a key the fast path wrote; anything else falls through to the TOML parser. */
@@ -66,7 +79,14 @@ function parseEntryLine(line: string): ReviewProofEntry | null {
 	const match = ENTRY_RE.exec(line);
 	const document = match?.[1] ? decodeKey(match[1]) : null;
 	if (!(document && match?.[2])) return null;
-	return { document, documentHash: match[2], dependenciesHash: match[3] ?? null };
+	const note = match[4] === undefined ? undefined : decodeKey(match[4]);
+	if (note === null) return null;
+	return {
+		document,
+		documentHash: match[2],
+		dependenciesHash: match[3] ?? null,
+		...(note === undefined ? {} : { note }),
+	};
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -91,8 +111,14 @@ function parseAsToml(content: string): Map<string, ReviewProofEntry> | null {
 		}
 		const deps = value.deps;
 		if (deps !== undefined && !(typeof deps === "string" && DIGEST_RE.test(deps))) return null;
+		if (value.note !== undefined && typeof value.note !== "string") return null;
 		const path = normalizeRelPath(document);
-		entries.set(path, { document: path, documentHash: value.doc, dependenciesHash: deps ?? null });
+		entries.set(path, {
+			document: path,
+			documentHash: value.doc,
+			dependenciesHash: deps ?? null,
+			...(typeof value.note === "string" ? { note: value.note } : {}),
+		});
 	}
 	return entries;
 }
@@ -143,7 +169,8 @@ function entryKey(document: string): string {
 
 export function formatReviewProofEntry(entry: ReviewProofEntry): string {
 	const deps = entry.dependenciesHash === null ? "" : `, deps = "${entry.dependenciesHash}"`;
-	return `${entryKey(entry.document)} = { doc = "${entry.documentHash}"${deps} }`;
+	const note = entry.note === undefined ? "" : `, note = ${tomlString(entry.note)}`;
+	return `${entryKey(entry.document)} = { doc = "${entry.documentHash}"${deps}${note} }`;
 }
 
 /** Canonical lock: header, entries sorted by path, one blank line between entries. */

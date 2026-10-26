@@ -215,7 +215,7 @@ Since Skeleton 6, hash proof is always on: per document in 6, as one line per
 document in `.skeleton/review-proof` in 7, and as one TOML entry per document in
 `.skeleton/review-lock.toml` since 8. Upgrading therefore requires recorded proof for
 every doc-meta paper in the audit corpus, not one product-owner attestation. Plan that
-review debt explicitly: `--fix=review-proof` carries over Skeleton 5/6 proofs that still
+review debt explicitly: `skeleton attest --repair` (or `--fix=review-proof`) carries over Skeleton 5/6 proofs that still
 verify (for PostPrint's 5.0.4 lock, its version 2 entries) and Skeleton 7 entries
 unchanged, and every other paper needs a normal review.
 

@@ -29,6 +29,19 @@ export interface InitResult {
 	skills: "installed" | "skipped";
 	precommit: MergeAction;
 	agentGuide: "added" | "skipped";
+	gitignore: "added" | "skipped";
+}
+
+const CATALOG_IGNORE = ".skeleton/catalog.md";
+
+/** The catalog is regenerated on every local audit, so committing it only adds diff churn. */
+function ignoreCatalog(cwd: string): "added" | "skipped" {
+	const path = join(cwd, ".gitignore");
+	const current = existsSync(path) ? readFileSync(path, "utf8") : "";
+	if (current.split(/\r?\n/).some((line) => line.trim() === CATALOG_IGNORE)) return "skipped";
+	const separator = current === "" || current.endsWith("\n") ? "" : "\n";
+	writeFileSync(path, `${current}${separator}${CATALOG_IGNORE}\n`);
+	return "added";
 }
 
 function writeScaffold(cwd: string): "created" | "skipped" {
@@ -106,6 +119,7 @@ export function runInit(options: InitOptions = {}): InitResult {
 	const scripts = mergePackageJsonScripts(cwd);
 	const precommit = mergePrecommitConfig(cwd);
 	const agentGuide = mergeAgentGuide(cwd);
+	const gitignore = ignoreCatalog(cwd);
 
 	if (scaffold === "created") {
 		console.log("init: wrote skeleton.toml");
@@ -123,7 +137,8 @@ export function runInit(options: InitOptions = {}): InitResult {
 		console.log("init: added skeleton validate hook to .pre-commit-config.yaml");
 	}
 	if (agentGuide === "added") console.log("init: added Skeleton context guidance to AGENTS.md");
+	if (gitignore === "added") console.log(`init: added ${CATALOG_IGNORE} to .gitignore`);
 
 	const skills = installSkillsIfRequested(options, cwd);
-	return { scaffold, scripts, skills, precommit, agentGuide };
+	return { scaffold, scripts, skills, precommit, agentGuide, gitignore };
 }

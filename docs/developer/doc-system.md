@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts,src/audit/core/review-deps.ts,src/audit/core/review-digest.ts,src/audit/core/review-proof.ts,src/audit/core/review-proof-file.ts -->
+<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts,src/audit/rules/review-deps.ts,src/audit/core/review-deps.ts,src/audit/core/review-digest.ts,src/audit/core/review-proof.ts,src/audit/core/review-proof-file.ts -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
@@ -65,6 +65,8 @@ Each comma-separated path is repo-relative. Exact paths must exist; globs may te
 
 A dependency may name one key path in one `.json` file, for example `package.json#scripts` or `config/app.json#server.port`. Only the selected values are compared, as key-sorted JSON, and a missing key counts as evidence. Selectors are not allowed on globs. Any change to the file still pulls the document into `validate changed`. Markdown dependencies are compared without their doc-meta comment.
 
+Keep dependencies narrow. The `review-deps` rule warns `review-dependency-broad` when a document depends on a whole `package.json` (every dependency bump would ask for a re-read; name the keys it describes instead) and `review-dependency-cycle` when documents depend on each other (editing one asks for a re-read of the other; link them instead).
+
 ## Doc meta
 
 Index docs and SSOT-bearing files require:
@@ -73,7 +75,7 @@ Index docs and SSOT-bearing files require:
 <!-- doc-meta: owner=eng -->
 ```
 
-The comment names an owner only. Review evidence lives outside the document, as the document's line in `.skeleton/review-lock.toml`. Do **not** add review or edit dates: git dates that line, and its hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `--fix=review-proof` or by the next attestation.
+The comment names an owner only. Review evidence lives outside the document, as the document's line in `.skeleton/review-lock.toml`. Do **not** add review or edit dates: git dates that line, and its hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `skeleton attest --repair` or by the next attestation.
 
 Audit treats review invalidation and calendar cadence differently:
 
@@ -87,10 +89,10 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 ### Explicit review attestation
 
 ```bash
-skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
+skeleton attest docs/api.md
 ```
 
-The command requires explicit paths and runs only after the operator confirms a complete review. It writes the document's line in `.skeleton/review-lock.toml` with deterministic document and dependency hashes, leaves other entries unchanged, and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
+The command names the documents you re-read in full; it is the explicit claim that you did. It writes the document's line in `.skeleton/review-lock.toml` with deterministic document and dependency hashes, leaves other entries unchanged, and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
 
 ## Example canonical doc
 

@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
+<!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts,src/attest/** -->
 
 When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
 
@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. A `package.json` dependency ignores its top-level release `version` ([config](config.md#reviewproof)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `attest`, `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -26,11 +26,11 @@ Autofix (docs only):
 skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
-skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --fix=review-proof    # migrate Skeleton 5–7 proof, resolve a conflict, move renamed entries, remove orphans; never attests
+skeleton attest docs/a.md
+skeleton attest --repair    # migrate Skeleton 5–7 proof, resolve a conflict, move renamed entries, remove orphans; never attests
 ```
 
-`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes the document's line in `<reviewProof.file>` (default `.skeleton/review-lock.toml`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
+`skeleton attest <doc…>` records a full re-read. It is the same as the older `audit docs --paths=<doc> --fix=doc-meta --confirm-reviewed`, which still works and takes `--reason=<text>`. Attestation writes the document's line in `<reviewProof.file>` (default `.skeleton/review-lock.toml`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. When a document's text is unchanged since its last review but its dependencies changed, attestation requires `--reason "<what you checked>"` and stores it as the entry's `note`, so a dependency change is not answered with a bare stamp. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 

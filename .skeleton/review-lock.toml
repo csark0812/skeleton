@@ -1,39 +1,39 @@
-# Skeleton review lock. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# Skeleton review lock. Written by `skeleton attest`.
 # One entry per document. Do not edit by hand; keep the blank line between entries.
 version = 4
 
-"AGENTS.md" = { doc = "sha256:531c2b7e8210130c", deps = "sha256:06684cdd76aa8b22" }
+"AGENTS.md" = { doc = "sha256:834ce0b35b1b5c8f", deps = "sha256:e78a7cb2f268728c" }
 
-"README.md" = { doc = "sha256:6c12f1fddc9f7657", deps = "sha256:60b5637cfa45bcba" }
+"README.md" = { doc = "sha256:d4f066ac868e4edc", deps = "sha256:e6d59c91ead6ee3a" }
 
 "agent-suites/README.md" = { doc = "sha256:53438437d6a5a2fc", deps = "sha256:b20db5822678f201" }
 
 "docs/authoring.md" = { doc = "sha256:554fb5b8f1fda925", deps = "sha256:4d8e91f6fe045bc3" }
 
-"docs/developer/audit.md" = { doc = "sha256:62853c9bae6182e3", deps = "sha256:a6e72e1ddba16336" }
+"docs/developer/audit.md" = { doc = "sha256:9d8146749524a594", deps = "sha256:5b9ed62d67a5697c" }
 
-"docs/developer/config.md" = { doc = "sha256:739028fe33518e8f", deps = "sha256:bf51a93a56af585e" }
+"docs/developer/config.md" = { doc = "sha256:e161e58b74e8c453", deps = "sha256:bf51a93a56af585e" }
 
-"docs/developer/doc-system.md" = { doc = "sha256:67ef04afa73fdb4c", deps = "sha256:ec1514da2a538506" }
+"docs/developer/doc-system.md" = { doc = "sha256:5eda218a8be3e82f", deps = "sha256:6c89b94eb7adb6a8" }
 
-"docs/developer/efficacy.md" = { doc = "sha256:6cbbf6503b16afb3", deps = "sha256:7d0976409a0f693f" }
+"docs/developer/efficacy.md" = { doc = "sha256:d89aa27503f36f8f", deps = "sha256:ef6cf97c3c9038f3" }
 
-"docs/developer/getting-started.md" = { doc = "sha256:042515b9a0ec5ef8", deps = "sha256:e1617b727cb3700f" }
+"docs/developer/getting-started.md" = { doc = "sha256:3d58a7ad628923b3", deps = "sha256:b62f0cc3a5badc44" }
 
-"docs/developer/install.md" = { doc = "sha256:8478362965404af6", deps = "sha256:92e16456aa3fb515" }
+"docs/developer/install.md" = { doc = "sha256:822287118d57f3b4", deps = "sha256:09b14df9f1198d58" }
 
-"docs/developer/plugins.md" = { doc = "sha256:cec5695fd7b9b8fe", deps = "sha256:3853058df90db094" }
+"docs/developer/plugins.md" = { doc = "sha256:a09dfc912eac7a92", deps = "sha256:3853058df90db094" }
 
-"docs/developer/postprint-guidance-incident.md" = { doc = "sha256:96422b57e981675e", deps = "sha256:0b4131c59c10d3ed" }
+"docs/developer/postprint-guidance-incident.md" = { doc = "sha256:d0bb3a76027b2cb2", deps = "sha256:0be6a5f6b7b57178" }
 
-"docs/developer/review.md" = { doc = "sha256:14d3ed0bc81552f3", deps = "sha256:f2b647d6e3fcefa9" }
+"docs/developer/review.md" = { doc = "sha256:81b919d634e66c57", deps = "sha256:ef182450d32039a1" }
 
-"docs/developer/troubleshooting.md" = { doc = "sha256:de4e6866716113d0", deps = "sha256:a1d644d3732fa384" }
+"docs/developer/troubleshooting.md" = { doc = "sha256:a991323a6eed37fb", deps = "sha256:0b6048b2db48a1b8" }
 
-"docs/developer/validation.md" = { doc = "sha256:6e24c3bf86f40e24", deps = "sha256:9753b544388af08c" }
+"docs/developer/validation.md" = { doc = "sha256:05132e28578df321", deps = "sha256:6ac9f2321a9e0c4d" }
 
-"docs/tiers.md" = { doc = "sha256:845cd35c6dcae810", deps = "sha256:3b47757fa48599bb" }
+"docs/tiers.md" = { doc = "sha256:845cd35c6dcae810", deps = "sha256:6728a1036f175f94", note = "tier table and links still match getting-started, install and validation after their attest/init/rename-check updates" }
 
-"skeleton/SKILL.md" = { doc = "sha256:4bc90a9733e211f6" }
+"skeleton/SKILL.md" = { doc = "sha256:8246274b8639849e" }
 
-"skeleton/references/operations.md" = { doc = "sha256:112ca44e650fc944", deps = "sha256:f54aff6c169466d3" }
+"skeleton/references/operations.md" = { doc = "sha256:bbef94468c37bd4d", deps = "sha256:469c6d1184c96b9c" }

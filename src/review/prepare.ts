@@ -9,7 +9,8 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { runReviewProofRule } from "../audit/core/review-proof.ts";
+import { reviewProofFile, runReviewProofRule } from "../audit/core/review-proof.ts";
+import { parseReviewProofFile, type ReviewProofEntry } from "../audit/core/review-proof-file.ts";
 import { matchesGlobScope } from "../audit/core/shared.ts";
 import { evaluateRouteClassification } from "../validate/changed.ts";
 import { gitDiffChangedFiles } from "../validate/git-diff.ts";
@@ -33,6 +34,15 @@ export interface DocumentToReread {
 	changed: string[];
 }
 
+/** A review recorded in this change. One whose text did not change is the likeliest rubber stamp. */
+export interface AttestedDocument {
+	path: string;
+	textChanged: boolean;
+	note: string | null;
+	/** Changed paths among the document's declared review dependencies. */
+	changedDependencies: string[];
+}
+
 /**
  * Everything a fresh-context reviewer needs, as plain data.
  * Skeleton prepares it; any agent harness, CI step, or person runs the review.
@@ -42,6 +52,8 @@ export interface ReviewBundle {
 	changedPaths: string[];
 	humanReviewRequired: string[];
 	documentsToReread: DocumentToReread[];
+	/** Documents whose review lock entry this change adds or rewrites. */
+	attestedDocuments: AttestedDocument[];
 	reviewGuides: ReviewGuide[];
 	agentGuide: string | null;
 	diff: string;
@@ -165,6 +177,85 @@ function documentsToReread(input: {
 		}));
 }
 
+function lockEntries(content: string | null): Map<string, ReviewProofEntry> {
+	if (content === null) return new Map();
+	const parsed = parseReviewProofFile(content);
+	return parsed.status === "valid" ? parsed.entries : new Map();
+}
+
+function showAt(root: string, ref: string, relPath: string): string | null {
+	const proc = spawnSync("git", ["show", `${ref}:./${relPath}`], { cwd: root, encoding: "utf8" });
+	return proc.status === 0 ? proc.stdout : null;
+}
+
+/**
+ * The review lock before and after the change under review: a branch range compares the
+ * merge base with HEAD; the index and the working tree compare with HEAD.
+ */
+function lockSides(
+	scope: ReviewScope,
+	lockPath: string,
+): { before: string | null; after: string | null } {
+	if (scope.base) {
+		const mergeBase = git(scope.root, ["merge-base", scope.base, "HEAD"]).trim();
+		return {
+			before: showAt(scope.root, mergeBase, lockPath),
+			after: showAt(scope.root, "HEAD", lockPath),
+		};
+	}
+	return {
+		before: showAt(scope.root, "HEAD", lockPath),
+		after: readRepoText(scope.root, lockPath, scope.staged ? "index" : "worktree"),
+	};
+}
+
+function attestedDocuments(input: {
+	scope: ReviewScope;
+	config: SkeletonConfig;
+	changedPaths: string[];
+	source: FileSource;
+}): AttestedDocument[] {
+	const lockPath = reviewProofFile(input.config);
+	const sides = lockSides(input.scope, lockPath);
+	const before = lockEntries(sides.before);
+	const out: AttestedDocument[] = [];
+	for (const [path, entry] of lockEntries(sides.after)) {
+		const previous = before.get(path);
+		const same =
+			previous?.documentHash === entry.documentHash &&
+			previous.dependenciesHash === entry.dependenciesHash &&
+			previous.note === entry.note;
+		if (same) continue;
+		const content = readRepoText(input.scope.root, path, input.source) ?? "";
+		const patterns = reviewDependencyPatterns(content);
+		out.push({
+			path,
+			textChanged: previous === undefined || previous.documentHash !== entry.documentHash,
+			note: entry.note ?? null,
+			changedDependencies: input.changedPaths.filter((changed) =>
+				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, changed)),
+			),
+		});
+	}
+	// Unchanged text first: those are where a stamp can stand in for a reread.
+	return out.sort(
+		(a, b) => Number(a.textChanged) - Number(b.textChanged) || a.path.localeCompare(b.path),
+	);
+}
+
+/** AGENTS.md without the agent-facing context guide, which tells a reviewer nothing. */
+function withoutContextGuide(agents: string | null): string | null {
+	if (agents === null) return null;
+	const start = agents.indexOf("<!-- skeleton: context-guide -->");
+	if (start === -1) return agents;
+	const heading = agents.indexOf("## ", start);
+	const headingEnd = heading === -1 ? -1 : agents.indexOf("\n", heading);
+	// The guide runs until the next heading of the same or higher level, or the end of the file.
+	const rest = headingEnd === -1 ? "" : agents.slice(headingEnd);
+	const next = rest.search(/\n#{1,2} /);
+	return `${agents.slice(0, start).trimEnd()}\n${next === -1 ? "" : rest.slice(next)}`;
+}
+
 /** Collect the diff and the repository rules a reviewer needs, without judging anything. */
 export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 	const config = loadConfig(scope.root);
@@ -185,14 +276,30 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 		changedPaths,
 		humanReviewRequired: humanReviewPaths(config, allPaths),
 		documentsToReread: documentsToReread({ root: scope.root, source, impacted: impactedDocuments }),
+		attestedDocuments: attestedDocuments({ scope, config, changedPaths, source }),
 		reviewGuides: reviewGuides({ root: scope.root, config, changedPaths, source }),
-		agentGuide: readRepoText(scope.root, "AGENTS.md", source),
+		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
 		diff: gitDiffText(scope, untracked),
 	};
 }
 
 function section(title: string, body: string): string {
 	return `## ${title}\n\n${body.trimEnd()}\n`;
+}
+
+function attestedSection(documents: AttestedDocument[]): string | null {
+	if (documents.length === 0) return null;
+	const lines = documents.map((doc) => {
+		const what = doc.textChanged ? "text changed" : "text unchanged";
+		const deps =
+			doc.changedDependencies.length > 0 ? `; changed: ${doc.changedDependencies.join(", ")}` : "";
+		const note = doc.note ? `; checked: ${doc.note}` : "";
+		return `- ${doc.path} (${what}${deps}${note})`;
+	});
+	return section(
+		"Documents attested in this change",
+		`Each line is a recorded reread. For every document whose text did not change, check that its claims still hold against the listed changes; report a stale claim as important.\n\n${lines.join("\n")}`,
+	);
 }
 
 /** Render the bundle as one self-contained prompt for a reviewer with fresh context. */
@@ -221,6 +328,8 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 			),
 		);
 	}
+	const attested = attestedSection(bundle.attestedDocuments);
+	if (attested) parts.push(attested);
 	for (const guide of bundle.reviewGuides)
 		parts.push(section(`Review guide: ${guide.path}`, guide.content));
 	if (bundle.agentGuide !== null) parts.push(section("AGENTS.md", bundle.agentGuide));
