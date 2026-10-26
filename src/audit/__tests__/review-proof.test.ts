@@ -5,11 +5,12 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { parse as parseToml } from "smol-toml";
 import { attestDocuments, repairReviewProof } from "../core/review-proof.ts";
 import { formatReviewProofFile, parseReviewProofFile } from "../core/review-proof-file.ts";
 import { evaluateAudit, parseAuditArgs } from "../run.ts";
 
-const PROOF = ".skeleton/review-proof";
+const PROOF = ".skeleton/review-lock.toml";
 
 function makeRepo(): string {
 	const root = mkdtempSync(join(tmpdir(), "skeleton-review-proof-"));
@@ -82,7 +83,7 @@ function proofText(root: string): string {
 function entryLine(root: string, document: string): string {
 	return proofText(root)
 		.split("\n")
-		.find((line) => line.startsWith(`${document} doc=`)) as string;
+		.find((line) => line.startsWith(`${JSON.stringify(document)} = `)) as string;
 }
 
 async function codes(root: string, paths?: string[]): Promise<Array<[string, string]>> {
@@ -107,40 +108,71 @@ function sha256(content: string): string {
 	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
 }
 
-describe("review proof file format", () => {
-	it("writes a header, sorted entries, and one blank line between entries", () => {
+describe("review lock format", () => {
+	const A = `sha256:${"a".repeat(16)}`;
+	const B = `sha256:${"b".repeat(16)}`;
+	const C = `sha256:${"c".repeat(16)}`;
+
+	it("writes a header, a version, sorted entries, and one blank line between entries", () => {
 		const text = formatReviewProofFile([
-			{ document: "b.md", documentHash: `sha256:${"b".repeat(16)}`, dependenciesHash: null },
-			{
-				document: "a.md",
-				documentHash: `sha256:${"a".repeat(16)}`,
-				dependenciesHash: `sha256:${"c".repeat(16)}`,
-			},
+			{ document: "b.md", documentHash: B, dependenciesHash: null },
+			{ document: "a.md", documentHash: A, dependenciesHash: C },
 		]);
-		const lines = text.split("\n");
-		expect(lines[0]?.startsWith("# Skeleton review proof.")).toBe(true);
+		expect(text.split("\n")[0]?.startsWith("# Skeleton review lock.")).toBe(true);
 		expect(text).toContain(
-			`\n\na.md doc=sha256:${"a".repeat(16)} deps=sha256:${"c".repeat(16)}\n\nb.md doc=sha256:${"b".repeat(16)} deps=none\n`,
+			`version = 4\n\n"a.md" = { doc = "${A}", deps = "${C}" }\n\n"b.md" = { doc = "${B}" }\n`,
 		);
 		const parsed = parseReviewProofFile(text);
 		expect(parsed.status === "valid" && [...parsed.entries.keys()]).toEqual(["a.md", "b.md"]);
 	});
 
+	it("is valid TOML, and a valid hand-reformatted lock still reads", () => {
+		const text = formatReviewProofFile([
+			{ document: "a.md", documentHash: A, dependenciesHash: C },
+		]);
+		expect(parseToml(text)).toEqual({ version: 4, "a.md": { doc: A, deps: C } });
+		const reformatted = `version = 4\n["a.md"]\ndoc = "${A}"\ndeps = "${C}"\n`;
+		const parsed = parseReviewProofFile(reformatted);
+		expect(parsed.status === "valid" && parsed.entries.get("a.md")?.dependenciesHash).toBe(C);
+	});
+
+	it("requires exactly one version line, and writes keys TOML accepts", () => {
+		expect(parseReviewProofFile(`"a.md" = { doc = "${A}" }\n`)).toEqual({
+			status: "invalid",
+			line: 1,
+		});
+		expect(parseReviewProofFile(`version = 4\nversion = 4\n`)).toEqual({
+			status: "invalid",
+			line: 2,
+		});
+		const odd = formatReviewProofFile([
+			{ document: 'we"ird\\path\u007f.md', documentHash: A, dependenciesHash: null },
+		]);
+		expect(parseToml(odd)).toEqual({ version: 4, 'we"ird\\path\u007f.md': { doc: A } });
+		expect(() =>
+			formatReviewProofFile([{ document: "version", documentHash: A, dependenciesHash: null }]),
+		).toThrow(/version/);
+	});
+
 	it("parses a CRLF checkout the same as the LF file it writes", () => {
 		const parsed = parseReviewProofFile(
-			`# header\r\n\r\na.md doc=sha256:${"0".repeat(16)} deps=none\r\n`,
+			`# header\r\nversion = 4\r\n\r\n"a.md" = { doc = "${A}" }\r\n`,
 		);
 		expect(parsed.status === "valid" && [...parsed.entries.keys()]).toEqual(["a.md"]);
 	});
 
 	it("reports conflict markers and duplicate entries as a conflict, and bad lines as invalid", () => {
-		const a = `a.md doc=sha256:${"1".repeat(16)} deps=none`;
-		const a2 = `a.md doc=sha256:${"2".repeat(16)} deps=none`;
+		const a = `"a.md" = { doc = "${A}" }`;
+		const a2 = `"a.md" = { doc = "${B}" }`;
 		expect(
 			parseReviewProofFile(`<<<<<<< ours\n${a}\n=======\n${a2}\n>>>>>>> theirs\n`).status,
 		).toBe("conflicted");
 		expect(parseReviewProofFile(`${a}\n\n${a2}\n`).status).toBe("conflicted");
-		expect(parseReviewProofFile("a.md doc=nope\n")).toEqual({ status: "invalid", line: 1 });
+		expect(parseReviewProofFile('"a.md" = { doc = "nope" }\n')).toEqual({
+			status: "invalid",
+			line: 1,
+		});
+		expect(parseReviewProofFile("version = 3\n")).toEqual({ status: "invalid", line: 1 });
 	});
 });
 
@@ -154,8 +186,9 @@ describe("single-file review proof", () => {
 			expect(result.modifiedFiles).toEqual([PROOF]);
 			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toBe(before);
 			expect(entryLine(root, "docs/example.md")).toMatch(
-				/^docs\/example\.md doc=sha256:[a-f0-9]{16} deps=sha256:[a-f0-9]{16}$/,
+				/^"docs\/example\.md" = \{ doc = "sha256:[a-f0-9]{16}", deps = "sha256:[a-f0-9]{16}" \}$/,
 			);
+			expect(existsSync(join(root, ".skeleton/review-proof"))).toBe(false);
 			expect(existsSync(join(root, ".skeleton/reviews"))).toBe(false);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
@@ -271,7 +304,7 @@ describe("single-file review proof", () => {
 		try {
 			expect(await codes(root)).toEqual([["docs/example.md", "review-proof-missing"]]);
 			mkdirSync(join(root, ".skeleton"), { recursive: true });
-			writeFileSync(join(root, PROOF), "docs/example.md doc=broken\n");
+			writeFileSync(join(root, PROOF), '"docs/example.md" = { doc = "broken" }\n');
 			expect(await codes(root)).toEqual([[PROOF, "review-proof-invalid"]]);
 			expect(() => attestDocuments({ root, paths: ["docs/example.md"] })).toThrow(/malformed/);
 		} finally {
@@ -284,10 +317,10 @@ describe("single-file review proof", () => {
 		try {
 			writeFileSync(
 				join(root, "skeleton.toml"),
-				`${readFileSync(join(root, "skeleton.toml"), "utf8")}\n[reviewProof]\nfile = "proof.txt"\n`,
+				`${readFileSync(join(root, "skeleton.toml"), "utf8")}\n[reviewProof]\nfile = "proof.toml"\n`,
 			);
-			expect(attestDocuments({ root, paths: ["docs/example.md"] }).proofFile).toBe("proof.txt");
-			expect((await evaluateAudit(auditOptions(root))).reviewProof.proofFile).toBe("proof.txt");
+			expect(attestDocuments({ root, paths: ["docs/example.md"] }).proofFile).toBe("proof.toml");
+			expect((await evaluateAudit(auditOptions(root))).reviewProof.proofFile).toBe("proof.toml");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -443,7 +476,6 @@ describe("repairing review proof (--fix=review-proof)", () => {
 	it("does not ask for a review of a legacy entry that a current entry already covers", () => {
 		const root = legacyRepo();
 		try {
-			writeFileSync(join(root, PROOF), "");
 			rmSync(join(root, ".skeleton/review-lock.json"));
 			attestDocuments({ root, paths: ["docs/stale.md"] });
 			mkdirSync(join(root, ".skeleton"), { recursive: true });
@@ -482,6 +514,61 @@ describe("repairing review proof (--fix=review-proof)", () => {
 			);
 			expect(repairReviewProof({ root }).migrated).toEqual(["docs/example.md"]);
 			expect(existsSync(join(root, ".skeleton/reviews"))).toBe(false);
+			expect(await codes(root)).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("migrates a Skeleton 7 review-proof file unchanged, stale entries included", async () => {
+		const root = makeRepo();
+		try {
+			writeDoc(root, "docs/b.md", "src/example.ts");
+			attestDocuments({ root, paths: ["docs/example.md", "docs/b.md"] });
+			const lock = proofText(root);
+			const lines = [
+				...lock.matchAll(
+					/^"(.+)" = \{ doc = "(sha256:[a-f0-9]{16})", deps = "(sha256:[a-f0-9]{16})" \}$/gm,
+				),
+			].map(([, doc, docHash, deps]) => `${doc} doc=${docHash} deps=${deps}`);
+			rmSync(join(root, PROOF));
+			writeFileSync(
+				join(root, ".skeleton/review-proof"),
+				`# Skeleton review proof.\n\n${lines.join("\n\n")}\n`,
+			);
+			writeFileSync(
+				join(root, "docs/b.md"),
+				`${readFileSync(join(root, "docs/b.md"), "utf8")}Edited.\n`,
+			);
+			expect((await codes(root)).map(([, code]) => code)).toEqual(["review-proof-legacy"]);
+			expect(repairReviewProof({ root }).migrated).toEqual(["docs/b.md", "docs/example.md"]);
+			expect(existsSync(join(root, ".skeleton/review-proof"))).toBe(false);
+			expect(await codes(root, ["docs/example.md", "docs/b.md"])).toEqual([
+				["docs/b.md", "review-document-changed"],
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("migrates a Skeleton 7 line file at a custom configured path into the default lock", async () => {
+		const root = makeRepo();
+		try {
+			attestDocuments({ root, paths: ["docs/example.md"] });
+			const [, doc, docHash, deps] =
+				/^"(.+)" = \{ doc = "(sha256:[a-f0-9]{16})", deps = "(sha256:[a-f0-9]{16})" \}$/m.exec(
+					proofText(root),
+				) ?? [];
+			rmSync(join(root, PROOF));
+			writeFileSync(
+				join(root, "skeleton.toml"),
+				`${readFileSync(join(root, "skeleton.toml"), "utf8")}\n[reviewProof]\nfile = ".skeleton/proof"\n`,
+			);
+			writeFileSync(join(root, ".skeleton/proof"), `${doc} doc=${docHash} deps=${deps}\n`);
+			expect((await codes(root)).map(([, code]) => code)).toEqual(["review-proof-legacy"]);
+			expect(repairReviewProof({ root }).migrated).toEqual(["docs/example.md"]);
+			expect(existsSync(join(root, ".skeleton/proof"))).toBe(false);
+			expect(existsSync(join(root, PROOF))).toBe(true);
 			expect(await codes(root)).toEqual([]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
@@ -579,7 +666,7 @@ describe("parallel review proof", () => {
 		const root = repoWithDocs(["a"]);
 		try {
 			const good = entryLine(root, "docs/a.md");
-			const stale = good.replace(/doc=sha256:[a-f0-9]{16}/, `doc=sha256:${"0".repeat(16)}`);
+			const stale = good.replace(/doc = "sha256:[a-f0-9]{16}"/, `doc = "sha256:${"0".repeat(16)}"`);
 			writeFileSync(
 				join(root, PROOF),
 				proofText(root).replace(good, `<<<<<<< ours\n${stale}\n=======\n${good}\n>>>>>>> theirs`),

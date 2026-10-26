@@ -20,7 +20,7 @@ After a full re-read, attest only that path:
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Attestation rewrites that document's line in `.skeleton/review-proof` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that review different documents do not conflict. If that file has a merge conflict, run `bun src/cli.ts audit docs --fix=review-proof` first.
+Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. If that file has a merge conflict, run `bun src/cli.ts audit docs --fix=review-proof` first.
 
 ## First hour
 

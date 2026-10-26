@@ -27,10 +27,10 @@ skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --fix=review-proof    # migrate 5/6 proof, resolve a conflict, move renamed entries, remove orphans; never attests
+skeleton audit docs --fix=review-proof    # migrate Skeleton 5–7 proof, resolve a conflict, move renamed entries, remove orphans; never attests
 ```
 
-`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes the document's line in `<reviewProof.file>` (default `.skeleton/review-proof`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
+`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes the document's line in `<reviewProof.file>` (default `.skeleton/review-lock.toml`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 

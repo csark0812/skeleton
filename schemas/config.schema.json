@@ -156,7 +156,7 @@
 				"file": {
 					"type": "string",
 					"minLength": 1,
-					"description": "Repo-relative proof file (default: .skeleton/review-proof)"
+					"description": "Repo-relative review lock (default: .skeleton/review-lock.toml)"
 				},
 				"dir": {
 					"type": "string",

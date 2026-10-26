@@ -35,7 +35,7 @@ export interface ReviewCoverageConfig {
 export interface ReviewProofConfig {
 	/** Accepted for older configs; hash is the only mode. */
 	mode?: "hash";
-	/** Repo-relative proof file (default: .skeleton/review-proof). */
+	/** Repo-relative review lock (default: .skeleton/review-lock.toml). */
 	file?: string;
 	/** Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews). */
 	dir?: string;

@@ -1,0 +1,7 @@
+# Skeleton review lock. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# One entry per document. Do not edit by hand; keep the blank line between entries.
+version = 4
+
+"docs/billing-webhook-a.md" = { doc = "sha256:1207bf5da5b7350d" }
+
+"docs/billing-webhook-b.md" = { doc = "sha256:d34a0ef83296dd0d" }

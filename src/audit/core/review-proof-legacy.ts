@@ -9,12 +9,15 @@ import {
 	manifestWithoutReleaseVersion,
 	sha256,
 } from "./review-digest.ts";
+import type { ReviewProofEntry } from "./review-proof-file.ts";
 import { normalizeRelPath } from "./shared.ts";
 
 /** Skeleton 5 kept every document in one JSON lock. Read only to migrate it. */
 export const LEGACY_REVIEW_LOCKFILE = ".skeleton/review-lock.json";
 /** Skeleton 6 kept one JSON proof per document. Read only to migrate it. */
 export const LEGACY_REVIEW_PROOF_DIR = ".skeleton/reviews";
+/** Skeleton 7 kept one plain line per document in this file. Read only to migrate it. */
+export const LEGACY_LINE_PROOF_FILE = ".skeleton/review-proof";
 
 /** A recorded review from either legacy format, with the digests that format used. */
 interface LegacyReview {
@@ -28,8 +31,21 @@ export interface LegacyReviewProof {
 	/** Repo-relative legacy files that exist and must be removed after migration. */
 	files: string[];
 	reviews: LegacyReview[];
+	/**
+	 * Skeleton 7 entries. They use the current digests, so they carry over unchanged;
+	 * a conflicted Skeleton 7 file contributes every candidate from every side.
+	 */
+	lineEntries: { entries: ReviewProofEntry[]; conflicted: boolean };
 	/** A legacy file that could not be parsed, or null. */
 	malformed: string | null;
+}
+
+/** Skeleton 7 line files: the default path, and a configured `file` that is not a `.toml` lock. */
+export function legacyLineProofPaths(config: Pick<SkeletonConfig, "reviewProof">): string[] {
+	const configured = config.reviewProof?.file;
+	const paths = [LEGACY_LINE_PROOF_FILE];
+	if (configured && !configured.endsWith(".toml")) paths.push(normalizeRelPath(configured));
+	return [...new Set(paths)];
 }
 
 export function legacyLockPath(config: Pick<SkeletonConfig, "reviewProof">): string {
@@ -87,6 +103,32 @@ function parseShard(document: string, content: string): LegacyReview | null {
 	}
 }
 
+const LINE_ENTRY_RE = /^(.+?) doc=(sha256:[a-f0-9]{16}) deps=(sha256:[a-f0-9]{16}|none)$/;
+const CONFLICT_MARKER_RE = /^(<{7}|={7}|>{7}|\|{7})(\s|$)/;
+
+/** Skeleton 7 line format: `<path> doc=sha256:<16 hex> deps=sha256:<16 hex>|none`. */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one pass classifies comment, conflict-marker, and entry lines of the Skeleton 7 file
+function parseLineProof(content: string): LegacyReviewProof["lineEntries"] | null {
+	const entries: ReviewProofEntry[] = [];
+	let conflicted = false;
+	for (const line of content.split(/\r?\n/)) {
+		if (line.trim() === "" || line.startsWith("#")) continue;
+		if (CONFLICT_MARKER_RE.test(line)) {
+			conflicted = true;
+			continue;
+		}
+		const match = LINE_ENTRY_RE.exec(line);
+		if (!(match?.[1] && match[2] && match[3])) return null;
+		entries.push({
+			document: match[1],
+			documentHash: match[2],
+			dependenciesHash: match[3] === "none" ? null : match[3],
+		});
+	}
+	const documents = entries.map((entry) => entry.document);
+	return { entries, conflicted: conflicted || new Set(documents).size !== documents.length };
+}
+
 /** Find and parse every legacy proof file in the repository. */
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: both legacy formats are found and parsed in one place so migration sees every legacy file
 export function loadLegacyReviewProof(input: {
@@ -95,7 +137,26 @@ export function loadLegacyReviewProof(input: {
 	source?: FileSource;
 }): LegacyReviewProof {
 	const source = input.source ?? "worktree";
-	const result: LegacyReviewProof = { files: [], reviews: [], malformed: null };
+	const result: LegacyReviewProof = {
+		files: [],
+		reviews: [],
+		lineEntries: { entries: [], conflicted: false },
+		malformed: null,
+	};
+	for (const lineRel of legacyLineProofPaths(input.config)) {
+		const lineContent = readRepoText(input.root, lineRel, source);
+		if (lineContent === null) continue;
+		result.files.push(lineRel);
+		const parsed = parseLineProof(lineContent);
+		if (!parsed) {
+			result.malformed ??= lineRel;
+			continue;
+		}
+		result.lineEntries = {
+			entries: [...result.lineEntries.entries, ...parsed.entries],
+			conflicted: result.lineEntries.conflicted || parsed.conflicted,
+		};
+	}
 	const lockRel = legacyLockPath(input.config);
 	const lock = readRepoText(input.root, lockRel, source);
 	if (lock !== null) {

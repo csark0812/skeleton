@@ -73,7 +73,7 @@ Index docs and SSOT-bearing files require:
 <!-- doc-meta: owner=eng -->
 ```
 
-The comment names an owner only. Review evidence lives outside the document, as the document's line in `.skeleton/review-proof`. Do **not** add review or edit dates: git dates that line, and its hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `--fix=review-proof` or by the next attestation.
+The comment names an owner only. Review evidence lives outside the document, as the document's line in `.skeleton/review-lock.toml`. Do **not** add review or edit dates: git dates that line, and its hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `--fix=review-proof` or by the next attestation.
 
 Audit treats review invalidation and calendar cadence differently:
 
@@ -90,7 +90,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
 ```
 
-The command requires explicit paths and runs only after the operator confirms a complete review. It writes the document's line in `.skeleton/review-proof` with deterministic document and dependency hashes, leaves other entries unchanged, and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
+The command requires explicit paths and runs only after the operator confirms a complete review. It writes the document's line in `.skeleton/review-lock.toml` with deterministic document and dependency hashes, leaves other entries unchanged, and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
 
 ## Example canonical doc
 
