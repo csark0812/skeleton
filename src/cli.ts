@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import process from "node:process";
+import { ATTEST_USAGE, parseAttestArgs, runAttest } from "./attest/cli.ts";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { runCatalogCli } from "./catalog.ts";
@@ -17,6 +18,8 @@ function usage(): void {
 
 Commands:
   init [--skills] [--no-skills] [skills add flags…]
+  attest <document…> [--reason "<what you checked>"] [--dry-run]
+                                record that you re-read documents; --repair fixes the review lock
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
                          [--fix[=doc-meta|review-proof|anchors|ssot]] [--dry-run]
                          [--confirm-reviewed (doc-meta only; requires --paths)]
@@ -146,11 +149,26 @@ function handleInit(argv: string[]): number {
 	return 0;
 }
 
+/** `skeleton <command> --help` or `skeleton <command> <sub> --help`; later args may be values. */
+function wantsHelp(rest: string[]): boolean {
+	return rest.slice(0, 2).some((arg) => arg === "--help" || arg === "-h");
+}
+
+function printHelp(command: string | undefined): number {
+	if (command === "attest") console.log(ATTEST_USAGE);
+	else usage();
+	return 0;
+}
+
 async function dispatchCommand(argv: string[]): Promise<number | null> {
 	const command = argv[0];
 	const rest = argv.slice(1);
 
+	if (wantsHelp(rest)) return printHelp(command);
+
 	switch (command) {
+		case "attest":
+			return runAttest(parseAttestArgs(rest));
 		case "audit":
 			return handleAudit(rest);
 		case "build-plugin":

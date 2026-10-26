@@ -207,7 +207,11 @@ describe("single-file review proof", () => {
 			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 2; }\n");
 			expect(await changedLinks(root)).toEqual(["src/example.ts"]);
 
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			attestDocuments({
+				root,
+				paths: ["docs/example.md"],
+				reason: "checked against the changed code",
+			});
 			writeFileSync(
 				join(root, "docs/example.md"),
 				`${readFileSync(join(root, "docs/example.md"), "utf8")}\nChanged after review.\n`,
@@ -646,7 +650,7 @@ describe("parallel review proof", () => {
 			reviewOnBranch(root, "one", "docs/b.md", "Edited b.");
 			git(root, "checkout", "-q", "main");
 			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 3; }\n");
-			attestDocuments({ root, paths: ["docs/b.md"] });
+			attestDocuments({ root, paths: ["docs/b.md"], reason: "checked against the changed code" });
 			git(root, "commit", "-q", "-am", "change code, review b");
 			expect(tryMerge(root, "one")).toBe(false);
 			expect(await codes(root, ["docs/b.md"])).toEqual([[PROOF, "review-proof-conflict"]]);
@@ -684,7 +688,7 @@ describe("parallel review proof", () => {
 		try {
 			git(root, "checkout", "-q", "-b", "deps", "main");
 			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 2; }\n");
-			attestDocuments({ root, paths: ["docs/a.md"] });
+			attestDocuments({ root, paths: ["docs/a.md"], reason: "checked against the changed code" });
 			git(root, "commit", "-q", "-am", "change code, review a only");
 			git(root, "checkout", "-q", "main");
 			expect(tryMerge(root, "deps")).toBe(true);

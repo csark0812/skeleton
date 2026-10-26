@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,package.json#scripts,package.json#bin,package.json#engines,package.json#packageManager,package.json#name -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app. Prefer `bun src/cli.ts`.
 
@@ -17,10 +17,12 @@ Then run the printed command. Do not open developer docs to pick a lane.
 After a full re-read, attest only that path:
 
 ```bash
-bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
+bun src/cli.ts attest docs/a.md
 ```
 
-Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. If that file has a merge conflict, run `bun src/cli.ts audit docs --fix=review-proof` first.
+If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason in the lock.
+
+Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. If that file has a merge conflict, run `bun src/cli.ts attest --repair` first.
 
 ## First hour
 

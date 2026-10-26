@@ -208,7 +208,11 @@ describe("validate changed hook gates", () => {
 
 		writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 		runGit(root, ["add", "src/example.ts"]);
-		attestDocuments({ root, paths: ["docs/example.md"] });
+		attestDocuments({
+			root,
+			paths: ["docs/example.md"],
+			reason: "checked against the changed code",
+		});
 
 		const result = await evaluateValidateChanged({ root, staged: true });
 		expect(result.exitCode).toBe(1);
@@ -247,7 +251,11 @@ describe("validate changed hook gates", () => {
 			expect(auditCodes(before)).toContain("review-dependency-changed");
 
 			const doc = readFileSync(join(root, "docs/example.md"), "utf8");
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			attestDocuments({
+				root,
+				paths: ["docs/example.md"],
+				reason: "checked against the changed code",
+			});
 			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toBe(doc);
 			const after = await evaluateValidateChanged({ root });
 			expect(auditCodes(after)).not.toContain("review-dependency-changed");
@@ -262,7 +270,11 @@ describe("validate changed hook gates", () => {
 				"review-dependency-changed",
 			);
 
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			attestDocuments({
+				root,
+				paths: ["docs/example.md"],
+				reason: "checked against the changed code",
+			});
 			runGit(root, ["add", "-A"]);
 			runGit(root, ["commit", "-m", "review doc"]);
 			setSystemTime(new Date("2030-01-01T00:00:00Z"));

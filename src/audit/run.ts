@@ -22,6 +22,8 @@ export interface AuditCliOptions {
 	fix?: string | true | null;
 	dryRun?: boolean;
 	confirmReviewed?: boolean;
+	/** What the reviewer checked; required to re-attest a document whose text did not change. */
+	reason?: string;
 	fileSource?: FileSource;
 }
 
@@ -69,6 +71,16 @@ function applyAuditFlag(input: ApplyAuditFlagInput): number {
 	if (arg === "--confirm-reviewed") {
 		state.confirmReviewed = true;
 		return index;
+	}
+	if (arg.startsWith("--reason=")) {
+		state.reason = arg.slice("--reason=".length);
+		return index;
+	}
+	if (arg === "--reason") {
+		const value = argv[index + 1];
+		if (value === undefined) throw new Error("audit: --reason needs text");
+		state.reason = value;
+		return index + 1;
 	}
 	if (arg.startsWith("--dry-run=")) {
 		throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
@@ -231,7 +243,7 @@ function shouldRunRule(
 	return true;
 }
 
-function migrateAndReport(root: string, dryRun: boolean | undefined): void {
+export function migrateAndReport(root: string, dryRun: boolean | undefined): void {
 	const result = repairReviewProof({ root, dryRun });
 	const parts = [
 		`migrated ${result.migrated.length}`,
@@ -269,6 +281,7 @@ async function runAuditFixes(
 			root: ctx.root,
 			paths: options.paths,
 			dryRun: options.dryRun,
+			reason: options.reason,
 		});
 	}
 	if (kinds.includes("review-proof")) migrateAndReport(ctx.root, options.dryRun);

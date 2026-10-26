@@ -19,7 +19,7 @@ export interface RouteResult {
 
 const VALIDATE = "skeleton validate changed";
 const AUDIT_SKILLS = "skeleton audit skills";
-const ATTEST = "skeleton audit docs --paths=<paper> --fix=doc-meta --confirm-reviewed";
+const ATTEST = "skeleton attest <paper>";
 const REVIEW = "skeleton review prepare --base <base>";
 
 /** Static lane card. No path. No plugin load. */
@@ -72,7 +72,11 @@ function linesForClassification(
 	]);
 	for (const impacted of impactedDocuments) {
 		if (!classified.has(impacted.path)) {
-			lines.push({ lane: "impacted", path: impacted.path, action: "re-read" });
+			lines.push({
+				lane: "impacted",
+				path: impacted.path,
+				action: `re-read, then skeleton attest ${impacted.path}`,
+			});
 		}
 	}
 	return lines;

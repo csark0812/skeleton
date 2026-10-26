@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
+<!-- review-deps: paths=src/validate/**,src/audit/run.ts,src/attest/**,src/audit/core/review-proof.ts,src/audit/rules/review-deps.ts -->
 
 Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
 
@@ -94,21 +94,27 @@ Two different signals (see [doc system](doc-system.md#doc-meta)):
 **Fix:** Re-read the entire document against every current dependency. Attest it only if the content is still correct:
 
 ```bash
-skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
+skeleton attest docs/example.md
+skeleton attest docs/example.md --dry-run
 ```
 
 Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Naming a dependency needs the commit that recorded the review; without git history the line reads `changed: review dependency set`. Do not hand-edit the proof file.
 
+**"Text unchanged since the last review"** — attestation refused. A dependency changed but the document did not. Check the document's claims against the change, then attest with `--reason "<what you checked>"`, or fix the text and attest without it.
+
+**Lock attested but not staged** — under `--staged`, a review error can mean you attested but did not stage the lock (pre-commit hides unstaged changes). The output then says `git add .skeleton/review-lock.toml`.
+
+**Dependency warnings** — `review-dependency-broad`: a document depends on a whole `package.json`; name the keys it describes (`package.json#scripts`). `review-dependency-cycle`: documents depend on each other; replace the document dependency with a link.
+
 **Missing proof** — code `review-proof-missing`. The document has never been attested. Review it, then run the command above.
 
-**Legacy proof** — code `review-proof-legacy`. Skeleton 5 (`review-lock.json`), 6 (`.skeleton/reviews/`) or 7 (`.skeleton/review-proof`) proof is still present. Run `skeleton audit docs --fix=review-proof` once to move it into `.skeleton/review-lock.toml` ([config](config.md#reviewproof)). Attestation refuses to run until then, and likewise while the lock has a merge conflict.
+**Legacy proof** — code `review-proof-legacy`. Skeleton 5 (`review-lock.json`), 6 (`.skeleton/reviews/`) or 7 (`.skeleton/review-proof`) proof is still present. Run `skeleton attest --repair` once to move it into `.skeleton/review-lock.toml` ([config](config.md#reviewproof)). Attestation refuses to run until then, and likewise while the lock has a merge conflict.
 
-**Merge conflict** — code `review-proof-conflict`. Two branches re-attested the same document, one added or removed an entry next to one the other re-attested, or a merge left duplicate entries. Run `skeleton audit docs --fix=review-proof`; it keeps the side that still verifies and drops the rest, so a document whose entry was dropped needs a fresh review.
+**Merge conflict** — code `review-proof-conflict`. Two branches re-attested the same document, one added or removed an entry next to one the other re-attested, or a merge left duplicate entries. Run `skeleton attest --repair`; it keeps the side that still verifies and drops the rest, so a document whose entry was dropped needs a fresh review.
 
-**Orphaned entry** — code `review-proof-orphan` (warning). A document was renamed or deleted. `--fix=review-proof` moves or removes the entry. Reported only by full audits, not under `--paths`.
+**Orphaned entry** — code `review-proof-orphan` (warning). A document was renamed or deleted. `skeleton attest --repair` moves or removes the entry. Reported only by full audits, not under `--paths`.
 
-**Malformed proof file** — code `review-proof-invalid`. An entry is not `"<path>" = { doc = "sha256:<16 hex>", deps = "sha256:<16 hex>" }` (`deps` optional), or the lock does not have exactly one `version = 4` line. A Skeleton 7 line file at a custom `[reviewProof] file` path reports `review-proof-legacy` instead; `--fix=review-proof` migrates it to `.skeleton/review-lock.toml`. Restore the file from git, then re-attest the affected documents.
+**Malformed proof file** — code `review-proof-invalid`. An entry is not `"<path>" = { doc = "sha256:<16 hex>", deps = "sha256:<16 hex>", note = "…" }` (`deps` and `note` optional), or the lock does not have exactly one `version = 4` line. A Skeleton 7 line file at a custom `[reviewProof] file` path reports `review-proof-legacy` instead; `skeleton attest --repair` migrates it to `.skeleton/review-lock.toml`. Restore the file from git, then re-attest the affected documents.
 
 **Re-read cadence** — code `review-cadence-exceeded`.
 

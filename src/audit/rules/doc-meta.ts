@@ -16,7 +16,7 @@ function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
 		code: "legacy-review-date",
 		message: "doc-meta still carries a last-reviewed date; review proof no longer stores dates",
 		severity: "warning",
-		remediation: "Run `skeleton audit docs --fix=review-proof` to remove legacy dates.",
+		remediation: "Run `skeleton attest --repair` to remove legacy dates.",
 	});
 }
 
