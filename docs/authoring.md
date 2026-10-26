@@ -18,4 +18,4 @@ Index docs and SSOT-bearing files require a doc-meta comment:
 <!-- doc-meta: owner=eng -->
 ```
 
-After editing a paper, re-read the entire document and attest it only when the content is still correct. Attestation writes a hash proof file under `.skeleton/reviews/`; the paper itself carries no review date. Cadence vs changed-since-review: [doc system](developer/doc-system.md#doc-meta).
+After editing a paper, re-read the entire document and attest it only when the content is still correct. Attestation writes the paper's line in `.skeleton/review-proof`; the paper itself carries no review date. Cadence vs changed-since-review: [doc system](developer/doc-system.md#doc-meta).

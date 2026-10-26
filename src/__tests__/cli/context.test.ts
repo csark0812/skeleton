@@ -126,15 +126,11 @@ describe("context CLI", () => {
 		const document =
 			"<!-- source-of-truth: Billing retry policy -->\n\n<!-- review-deps: paths=src/billing.ts -->\n\nBilling retries once.\n";
 		const digest = (content: string) =>
-			`sha256:${createHash("sha256").update(content).digest("hex")}`;
-		mkdirSync(join(root, ".skeleton/reviews/docs"), { recursive: true });
+			`sha256:${createHash("sha256").update(content).digest("hex").slice(0, 16)}`;
+		mkdirSync(join(root, ".skeleton"), { recursive: true });
 		writeFileSync(
-			join(root, ".skeleton/reviews/docs/billing.md.json"),
-			JSON.stringify({
-				version: 3,
-				documentHash: digest(document),
-				reviewDependencies: { "src/billing.ts": digest("stale") },
-			}),
+			join(root, ".skeleton/review-proof"),
+			`docs/billing.md doc=${digest(document)} deps=${digest("stale")}\n`,
 		);
 		const result = run(root, ["billing retry"]);
 		expect(result.status).toBe(0);

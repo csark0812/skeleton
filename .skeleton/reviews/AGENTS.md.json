@@ -1,8 +1,0 @@
-{
-	"version": 3,
-	"documentHash": "sha256:eea5947d75324b6f7b113e0e823771233f9b4caef188ed1e9411b019aa51aad8",
-	"reviewDependencies": {
-		"package.json": "sha256:a5d5aefd5af9a901b02d7b11a27f9d635e4febabffe892ceddaf22b059910085",
-		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c"
-	}
-}

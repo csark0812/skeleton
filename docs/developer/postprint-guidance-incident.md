@@ -211,11 +211,12 @@ direct dependencies where a paper independently states implementation facts.
 A general semantic detector is a separate, larger product decision and is not
 needed to make the existing review gate useful.
 
-Since Skeleton 6, hash proof is always on and stored per document under
-`.skeleton/reviews/`. Upgrading therefore requires recorded proof for every doc-meta
+Since Skeleton 6, hash proof is always on (stored per document in 6, and as
+one line per document in `.skeleton/review-proof` since 7). Upgrading therefore requires recorded proof for every doc-meta
 paper in the audit corpus, not one product-owner attestation. Plan that review debt
-explicitly: `--fix=review-proof` carries over only version 2 entries that still
-verify, and every other paper needs a normal review.
+explicitly: `--fix=review-proof` carries over only Skeleton 5/6 proofs that still
+verify (for PostPrint's 5.0.4 lock, its version 2 entries), and every other paper
+needs a normal review.
 
 ## Remaining uncertainty and completion boundary
 

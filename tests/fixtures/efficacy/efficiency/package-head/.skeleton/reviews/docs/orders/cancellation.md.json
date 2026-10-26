@@ -1,7 +1,0 @@
-{
-	"version": 3,
-	"documentHash": "sha256:4142937d96d86297d81937446171b8f5606f091f4747948efcca87f51c0aeb17",
-	"reviewDependencies": {
-		"src/orders/cancellation.ts": "sha256:35c4ad3c2c90fc88ef6bcff35851bb228fe68c0edaf9676ba30ca4389a2136b9"
-	}
-}

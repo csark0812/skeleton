@@ -92,6 +92,13 @@ describe("review prepare", () => {
 		expect((await prepareReview({ root })).documentsToReread).toEqual([]);
 	});
 
+	it("stops when the review proof file has a merge conflict", async () => {
+		const root = makeRepo();
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		write(root, ".skeleton/review-proof", "<<<<<<< ours\n=======\n>>>>>>> theirs\n");
+		await expect(prepareReview({ root })).rejects.toThrow(/merge conflict/);
+	});
+
 	it("names high-consequence paths from [review] humanPaths", async () => {
 		const root = makeRepo('[review]\nhumanPaths = ["src/auth/**"]\n');
 		write(root, "src/auth/session.ts", "export const ttl = 0;\n");

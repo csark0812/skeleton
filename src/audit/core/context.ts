@@ -42,6 +42,8 @@ export interface AuditContext {
 	policies: PolicyFile[];
 	/** Read document and dependency bytes from the worktree or the git index. */
 	fileSource?: FileSource;
+	/** True when `--paths` narrowed the run; repository-wide checks such as orphan proof are skipped. */
+	pathScoped?: boolean;
 }
 
 export interface AuditOptions {
@@ -99,5 +101,6 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 		lockedSkillSlugs: new Set(skillIndex.foreignSlugs),
 		policies: options.policies ?? [],
 		fileSource: options.fileSource,
+		pathScoped: Boolean(options.paths && options.paths.length > 0),
 	};
 }

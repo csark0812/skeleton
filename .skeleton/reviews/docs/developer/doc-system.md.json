@@ -1,9 +1,0 @@
-{
-	"version": 3,
-	"documentHash": "sha256:29fd391d64a4b35ad84b339ecb626af7bf730d5d20249ddf7c21e99f5f377f4b",
-	"reviewDependencies": {
-		"src/audit/core/ssot-fit.ts": "sha256:9b78c8ea894e4156d1c52183de17e004e8ddb2664920a61148d5620937cb0c8f",
-		"src/audit/rules/doc-meta.ts": "sha256:bdfa5b29945cbb611aee9f7639a9933738dece8c3f2b8388c161a2ff0678546e",
-		"src/catalog.ts": "sha256:3427516541ae56209b24c221d16f7d57d80aa4bd547c4f9cbab25e22a39e8633"
-	}
-}

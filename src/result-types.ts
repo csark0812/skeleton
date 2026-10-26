@@ -5,8 +5,8 @@ export type CatalogStatus = "current" | "missing" | "stale" | "skipped-ci" | "no
 export interface ReviewProofResult {
 	mode: "hash";
 	status: "not-checked" | "valid" | "invalid";
-	/** Directory of per-document proof files. */
-	proofDir: string;
+	/** The repository's review proof file. */
+	proofFile: string;
 }
 
 export interface AuditResult {

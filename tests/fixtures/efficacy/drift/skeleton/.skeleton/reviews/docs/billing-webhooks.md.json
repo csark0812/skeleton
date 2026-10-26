@@ -1,7 +1,0 @@
-{
-	"version": 3,
-	"documentHash": "sha256:237dc8b889740e5acf7bf7f05d23ed9893b295c896b2ea1a98bd39596c2dfd18",
-	"reviewDependencies": {
-		"src/billing.ts": "sha256:5818bf4bafa703acd66743c1c90a3ba50b67e2fd9bf6d61a186042be957ac183"
-	}
-}

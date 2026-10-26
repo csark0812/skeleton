@@ -1,14 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments, migrateReviewProof } from "../core/review-proof.ts";
+import { attestDocuments, repairReviewProof } from "../core/review-proof.ts";
+import { formatReviewProofFile, parseReviewProofFile } from "../core/review-proof-file.ts";
 import { evaluateAudit, parseAuditArgs } from "../run.ts";
 
-const PROOF = ".skeleton/reviews/docs/example.md.json";
+const PROOF = ".skeleton/review-proof";
 
 function makeRepo(): string {
 	const root = mkdtempSync(join(tmpdir(), "skeleton-review-proof-"));
@@ -24,31 +25,8 @@ exclude = []
 `,
 	);
 	writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 1; }\n");
-	writeFileSync(
-		join(root, "docs/example.md"),
-		`# Example
-
-<!-- source-of-truth: example command behavior -->
-
-<!-- doc-meta: owner=eng -->
-
-<!-- review-deps: paths=src/example.ts -->
-
-Call runThing for the example command behavior.
-`,
-	);
+	writeDoc(root, "docs/example.md", "src/example.ts");
 	return root;
-}
-
-function auditOptions(root: string) {
-	return {
-		suite: "docs",
-		strict: false,
-		json: false,
-		paths: ["docs/example.md"],
-		only: new Set(["review-proof"]),
-		root,
-	};
 }
 
 function writeDoc(root: string, relPath: string, deps: string, meta = "owner=eng"): void {
@@ -67,33 +45,56 @@ Body of ${relPath}.
 	);
 }
 
-function batchAuditOptions(root: string, paths: string[]) {
-	return { ...auditOptions(root), paths };
-}
-
-function readJson(root: string, relPath: string): Record<string, unknown> {
-	return JSON.parse(readFileSync(join(root, relPath), "utf8"));
-}
-
-function makeManifestRepo(dependency: string): string {
-	const root = makeRepo();
-	const manifest = {
-		name: "example",
-		version: "1.0.0",
-		scripts: { check: "bun test" },
-		engines: { node: ">=22" },
+function auditOptions(root: string, paths = ["docs/example.md"]) {
+	return {
+		suite: "docs",
+		strict: false,
+		json: false,
+		paths,
+		only: new Set(["review-proof"]),
+		root,
 	};
-	mkdirSync(join(root, dependency, ".."), { recursive: true });
-	writeFileSync(join(root, dependency), `${JSON.stringify(manifest, null, "\t")}\n`);
-	writeFileSync(
-		join(root, "docs/example.md"),
-		readFileSync(join(root, "docs/example.md"), "utf8").replace(
-			"paths=src/example.ts",
-			`paths=src/example.ts,${dependency}`,
-		),
-	);
-	attestDocuments({ root, paths: ["docs/example.md"] });
-	return root;
+}
+
+/** CI runners have no git identity, so every command that may commit sets one. */
+const GIT_ENV = {
+	...process.env,
+	GIT_AUTHOR_NAME: "test",
+	GIT_AUTHOR_EMAIL: "test@example.com",
+	GIT_COMMITTER_NAME: "test",
+	GIT_COMMITTER_EMAIL: "test@example.com",
+};
+
+function git(root: string, ...args: string[]): string {
+	return execFileSync("git", args, { cwd: root, encoding: "utf8", env: GIT_ENV });
+}
+
+function commitAll(root: string, message: string): void {
+	if (!existsSync(join(root, ".git"))) git(root, "init", "-q", "-b", "main");
+	git(root, "add", "-A");
+	git(root, "commit", "-q", "-m", message);
+}
+
+function proofText(root: string): string {
+	return readFileSync(join(root, PROOF), "utf8");
+}
+
+function entryLine(root: string, document: string): string {
+	return proofText(root)
+		.split("\n")
+		.find((line) => line.startsWith(`${document} doc=`)) as string;
+}
+
+async function codes(root: string, paths?: string[]): Promise<Array<[string, string]>> {
+	const result = await evaluateAudit(auditOptions(root, paths));
+	return result.diagnostics.map((item) => [item.file, item.code ?? ""]);
+}
+
+async function changedLinks(root: string): Promise<string[]> {
+	const result = await evaluateAudit(auditOptions(root));
+	return result.diagnostics
+		.filter((item) => item.code === "review-dependency-changed")
+		.map((item) => item.link ?? "");
 }
 
 function editJson(path: string, edit: (value: Record<string, unknown>) => void): void {
@@ -102,44 +103,60 @@ function editJson(path: string, edit: (value: Record<string, unknown>) => void):
 	writeFileSync(path, `${JSON.stringify(value, null, "\t")}\n`);
 }
 
-async function changedDependencies(root: string): Promise<string[]> {
-	const result = await evaluateAudit(auditOptions(root));
-	return result.diagnostics
-		.filter((item) => item.code === "review-dependency-changed")
-		.map((item) => item.link ?? "");
-}
-
 function sha256(content: string): string {
 	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
 }
 
-function git(root: string, ...args: string[]): string {
-	return execFileSync("git", args, {
-		cwd: root,
-		encoding: "utf8",
-		env: {
-			...process.env,
-			GIT_AUTHOR_NAME: "test",
-			GIT_AUTHOR_EMAIL: "test@example.com",
-			GIT_COMMITTER_NAME: "test",
-			GIT_COMMITTER_EMAIL: "test@example.com",
-		},
+describe("review proof file format", () => {
+	it("writes a header, sorted entries, and one blank line between entries", () => {
+		const text = formatReviewProofFile([
+			{ document: "b.md", documentHash: `sha256:${"b".repeat(16)}`, dependenciesHash: null },
+			{
+				document: "a.md",
+				documentHash: `sha256:${"a".repeat(16)}`,
+				dependenciesHash: `sha256:${"c".repeat(16)}`,
+			},
+		]);
+		const lines = text.split("\n");
+		expect(lines[0]?.startsWith("# Skeleton review proof.")).toBe(true);
+		expect(text).toContain(
+			`\n\na.md doc=sha256:${"a".repeat(16)} deps=sha256:${"c".repeat(16)}\n\nb.md doc=sha256:${"b".repeat(16)} deps=none\n`,
+		);
+		const parsed = parseReviewProofFile(text);
+		expect(parsed.status === "valid" && [...parsed.entries.keys()]).toEqual(["a.md", "b.md"]);
 	});
-}
 
-describe("per-document review proof", () => {
-	it("writes one dateless proof file per document and leaves the document bytes alone", async () => {
+	it("parses a CRLF checkout the same as the LF file it writes", () => {
+		const parsed = parseReviewProofFile(
+			`# header\r\n\r\na.md doc=sha256:${"0".repeat(16)} deps=none\r\n`,
+		);
+		expect(parsed.status === "valid" && [...parsed.entries.keys()]).toEqual(["a.md"]);
+	});
+
+	it("reports conflict markers and duplicate entries as a conflict, and bad lines as invalid", () => {
+		const a = `a.md doc=sha256:${"1".repeat(16)} deps=none`;
+		const a2 = `a.md doc=sha256:${"2".repeat(16)} deps=none`;
+		expect(
+			parseReviewProofFile(`<<<<<<< ours\n${a}\n=======\n${a2}\n>>>>>>> theirs\n`).status,
+		).toBe("conflicted");
+		expect(parseReviewProofFile(`${a}\n\n${a2}\n`).status).toBe("conflicted");
+		expect(parseReviewProofFile("a.md doc=nope\n")).toEqual({ status: "invalid", line: 1 });
+	});
+});
+
+describe("single-file review proof", () => {
+	it("writes one entry per document into one file and leaves the document alone", () => {
 		const root = makeRepo();
 		try {
 			const before = readFileSync(join(root, "docs/example.md"), "utf8");
 			const result = attestDocuments({ root, paths: ["docs/example.md"] });
-			expect(result.proofFiles).toEqual([PROOF]);
+			expect(result.proofFile).toBe(PROOF);
 			expect(result.modifiedFiles).toEqual([PROOF]);
 			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toBe(before);
-			const proof = readJson(root, PROOF);
-			expect(Object.keys(proof).sort()).toEqual(["documentHash", "reviewDependencies", "version"]);
-			expect(proof.version).toBe(3);
-			expect(existsSync(join(root, ".skeleton/review-lock.json"))).toBe(false);
+			expect(entryLine(root, "docs/example.md")).toMatch(
+				/^docs\/example\.md doc=sha256:[a-f0-9]{16} deps=sha256:[a-f0-9]{16}$/,
+			);
+			expect(existsSync(join(root, ".skeleton/reviews"))).toBe(false);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -151,61 +168,63 @@ describe("per-document review proof", () => {
 			attestDocuments({ root, paths: ["docs/example.md"] });
 			const valid = await evaluateAudit(auditOptions(root));
 			expect(valid.exitCode).toBe(0);
-			expect(valid.reviewProof).toEqual({
-				mode: "hash",
-				status: "valid",
-				proofDir: ".skeleton/reviews",
-			});
+			expect(valid.reviewProof).toEqual({ mode: "hash", status: "valid", proofFile: PROOF });
 
+			commitAll(root, "review");
 			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 2; }\n");
-			const codeDrift = await evaluateAudit(auditOptions(root));
-			expect(codeDrift.exitCode).toBe(1);
-			expect(codeDrift.reviewProof.status).toBe("invalid");
-			expect(codeDrift.diagnostics.some((item) => item.code === "review-dependency-changed")).toBe(
-				true,
-			);
+			expect(await changedLinks(root)).toEqual(["src/example.ts"]);
 
 			attestDocuments({ root, paths: ["docs/example.md"] });
 			writeFileSync(
 				join(root, "docs/example.md"),
 				`${readFileSync(join(root, "docs/example.md"), "utf8")}\nChanged after review.\n`,
 			);
-			const docDrift = await evaluateAudit(auditOptions(root));
-			expect(docDrift.diagnostics.some((item) => item.code === "review-document-changed")).toBe(
-				true,
-			);
+			expect(await codes(root)).toEqual([["docs/example.md", "review-document-changed"]]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("ignores doc-meta edits, so metadata never invalidates a review", async () => {
+	it("reports a changed dependency without naming it when git has no history", async () => {
 		const root = makeRepo();
 		try {
 			attestDocuments({ root, paths: ["docs/example.md"] });
-			const doc = join(root, "docs/example.md");
-			writeFileSync(
-				doc,
-				readFileSync(doc, "utf8").replace(
-					"owner=eng -->",
-					"owner=docs | last-reviewed=2026-08-19 -->",
-				),
-			);
-			expect((await evaluateAudit(auditOptions(root))).diagnostics).toEqual([]);
+			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 2; }\n");
+			expect(await changedLinks(root)).toEqual([""]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("removes a legacy last-reviewed date when it attests a document", () => {
+	it("rewrites only the attested entries and keeps every other line byte-identical", () => {
+		const root = makeRepo();
+		try {
+			writeDoc(root, "docs/a.md", "src/example.ts");
+			writeDoc(root, "docs/b.md", "src/example.ts");
+			attestDocuments({ root, paths: ["docs/a.md", "docs/b.md", "docs/example.md"] });
+			const before = proofText(root).split("\n");
+			writeFileSync(
+				join(root, "docs/b.md"),
+				`${readFileSync(join(root, "docs/b.md"), "utf8")}More.\n`,
+			);
+			attestDocuments({ root, paths: ["docs/b.md"] });
+			const after = proofText(root).split("\n");
+			const changed = after.filter((line, index) => line !== before[index]);
+			expect(changed).toEqual([entryLine(root, "docs/b.md")]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("ignores doc-meta edits and removes a legacy date when it attests", async () => {
 		const root = makeRepo();
 		try {
 			writeDoc(root, "docs/example.md", "src/example.ts", "owner=eng | last-reviewed=2026-08-19");
 			const result = attestDocuments({ root, paths: ["docs/example.md"] });
 			expect(result.modifiedFiles).toEqual(["docs/example.md", PROOF]);
-			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toContain(
-				"<!-- doc-meta: owner=eng -->",
-			);
+			const doc = join(root, "docs/example.md");
+			writeFileSync(doc, readFileSync(doc, "utf8").replace("owner=eng -->", "owner=docs -->"));
+			expect(await codes(root)).toEqual([]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -222,14 +241,7 @@ describe("per-document review proof", () => {
 				writeDoc(root, "docs/b.md", "docs/c.md", "owner=eng | last-reviewed=2026-08-19");
 				writeDoc(root, "docs/c.md", "src/example.ts");
 				attestDocuments({ root, paths: order });
-
-				const result = await evaluateAudit(batchAuditOptions(root, order));
-				expect(result.diagnostics).toEqual([]);
-				expect(result.exitCode).toBe(0);
-				const proof = (doc: string) => readJson(root, `.skeleton/reviews/${doc}.json`);
-				const deps = (doc: string) => proof(doc).reviewDependencies as Record<string, string>;
-				expect(deps("docs/a.md")["docs/b.md"]).toBe(proof("docs/b.md").documentHash as string);
-				expect(deps("docs/b.md")["docs/c.md"]).toBe(proof("docs/c.md").documentHash as string);
+				expect(await codes(root, order)).toEqual([]);
 			} finally {
 				rmSync(root, { recursive: true, force: true });
 			}
@@ -241,43 +253,8 @@ describe("per-document review proof", () => {
 		try {
 			writeDoc(root, "docs/a.md", "docs/b.md");
 			writeDoc(root, "docs/b.md", "docs/a.md");
-			const paths = ["docs/b.md", "docs/a.md"];
-			attestDocuments({ root, paths });
-			const result = await evaluateAudit(batchAuditOptions(root, paths));
-			expect(result.diagnostics).toEqual([]);
-			expect(result.exitCode).toBe(0);
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-
-	it("keeps package.json review evidence across a release version bump", async () => {
-		for (const dependency of ["package.json", "packages/app/package.json"]) {
-			const root = makeManifestRepo(dependency);
-			try {
-				const manifest = join(root, dependency);
-				editJson(manifest, (value) => {
-					value.version = "1.0.1";
-				});
-				expect(await changedDependencies(root)).toEqual([]);
-
-				editJson(manifest, (value) => {
-					value.scripts = { check: "bun test && bun run lint" };
-				});
-				expect(await changedDependencies(root)).toEqual([dependency]);
-			} finally {
-				rmSync(root, { recursive: true, force: true });
-			}
-		}
-	});
-
-	it("binds every other dependency byte for byte, including a version field", async () => {
-		const root = makeManifestRepo("config/release.json");
-		try {
-			editJson(join(root, "config/release.json"), (value) => {
-				value.version = "1.0.1";
-			});
-			expect(await changedDependencies(root)).toEqual(["config/release.json"]);
+			attestDocuments({ root, paths: ["docs/b.md", "docs/a.md"] });
+			expect(await codes(root, ["docs/a.md", "docs/b.md"])).toEqual([]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -286,50 +263,127 @@ describe("per-document review proof", () => {
 	it("requires explicit confirmation and paths for doc-meta attestation", () => {
 		expect(() => parseAuditArgs(["--fix=doc-meta"])).toThrow(/confirm-reviewed/i);
 		expect(() => parseAuditArgs(["--fix=doc-meta", "--confirm-reviewed"])).toThrow(/paths/i);
-		expect(
-			parseAuditArgs(["--paths=docs/example.md", "--fix=doc-meta", "--confirm-reviewed"])
-				.confirmReviewed,
-		).toBe(true);
+		expect(parseAuditArgs(["--fix=review-proof"]).fix).toBe("review-proof");
 	});
 
-	it("reports a missing or malformed proof file without throwing, and a review replaces it", async () => {
+	it("reports a missing entry, a malformed file, and refuses to attest over a malformed file", async () => {
 		const root = makeRepo();
 		try {
-			expect((await evaluateAudit(auditOptions(root))).diagnostics).toContainEqual(
-				expect.objectContaining({ code: "review-proof-missing", file: "docs/example.md" }),
-			);
-			mkdirSync(join(root, ".skeleton/reviews/docs"), { recursive: true });
-			writeFileSync(join(root, PROOF), JSON.stringify({ version: 3, documentHash: "nope" }));
-			const result = await evaluateAudit(auditOptions(root));
-			expect(result.exitCode).toBe(1);
-			expect(result.diagnostics).toContainEqual(
-				expect.objectContaining({ code: "review-proof-invalid", file: PROOF }),
-			);
-			attestDocuments({ root, paths: ["docs/example.md"] });
-			expect((await evaluateAudit(auditOptions(root))).exitCode).toBe(0);
+			expect(await codes(root)).toEqual([["docs/example.md", "review-proof-missing"]]);
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			writeFileSync(join(root, PROOF), "docs/example.md doc=broken\n");
+			expect(await codes(root)).toEqual([[PROOF, "review-proof-invalid"]]);
+			expect(() => attestDocuments({ root, paths: ["docs/example.md"] })).toThrow(/malformed/);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("honors a configured proof directory", async () => {
+	it("honors a configured proof file", async () => {
 		const root = makeRepo();
 		try {
 			writeFileSync(
 				join(root, "skeleton.toml"),
-				`${readFileSync(join(root, "skeleton.toml"), "utf8")}\n[reviewProof]\ndir = "proof"\n`,
+				`${readFileSync(join(root, "skeleton.toml"), "utf8")}\n[reviewProof]\nfile = "proof.txt"\n`,
 			);
-			expect(attestDocuments({ root, paths: ["docs/example.md"] }).proofFiles).toEqual([
-				"proof/docs/example.md.json",
-			]);
-			expect((await evaluateAudit(auditOptions(root))).reviewProof.proofDir).toBe("proof");
+			expect(attestDocuments({ root, paths: ["docs/example.md"] }).proofFile).toBe("proof.txt");
+			expect((await evaluateAudit(auditOptions(root))).reviewProof.proofFile).toBe("proof.txt");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 });
 
-describe("version 2 review lock migration", () => {
+describe("dependency digests", () => {
+	function manifestRepo(dependency: string, selectors = ""): string {
+		const root = makeRepo();
+		mkdirSync(join(root, dependency, ".."), { recursive: true });
+		writeFileSync(
+			join(root, dependency),
+			`${JSON.stringify({ name: "x", version: "1.0.0", scripts: { check: "bun test" }, devDependencies: { a: "1" } }, null, "\t")}\n`,
+		);
+		writeDoc(root, "docs/example.md", `src/example.ts,${dependency}${selectors}`);
+		attestDocuments({ root, paths: ["docs/example.md"] });
+		commitAll(root, "review");
+		return root;
+	}
+
+	it("keeps package.json review evidence across a release version bump", async () => {
+		for (const dependency of ["package.json", "packages/app/package.json"]) {
+			const root = manifestRepo(dependency);
+			try {
+				editJson(join(root, dependency), (value) => {
+					value.version = "1.0.1";
+				});
+				expect(await changedLinks(root)).toEqual([]);
+				editJson(join(root, dependency), (value) => {
+					value.scripts = { check: "bun test && bun run lint" };
+				});
+				expect(await changedLinks(root)).toEqual([dependency]);
+			} finally {
+				rmSync(root, { recursive: true, force: true });
+			}
+		}
+	});
+
+	it("binds every other dependency byte for byte, including a version field", async () => {
+		const root = manifestRepo("config/release.json");
+		try {
+			editJson(join(root, "config/release.json"), (value) => {
+				value.version = "1.0.1";
+			});
+			expect(await changedLinks(root)).toEqual(["config/release.json"]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("binds only the selected JSON key paths", async () => {
+		const root = manifestRepo("package.json", "#scripts");
+		try {
+			editJson(join(root, "package.json"), (value) => {
+				value.devDependencies = { a: "2" };
+			});
+			expect(await changedLinks(root)).toEqual([]);
+			editJson(join(root, "package.json"), (value) => {
+				value.scripts = { check: "vitest" };
+			});
+			expect(await changedLinks(root)).toEqual(["package.json"]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("indexes arrays in a selector, so a changed array element invalidates the review", async () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(join(root, "files.json"), `${JSON.stringify({ files: ["a", "b"] })}\n`);
+			writeDoc(root, "docs/example.md", "src/example.ts,files.json#files.0");
+			attestDocuments({ root, paths: ["docs/example.md"] });
+			commitAll(root, "review");
+			writeFileSync(join(root, "files.json"), `${JSON.stringify({ files: ["a", "c"] })}\n`);
+			expect(await changedLinks(root)).toEqual([]);
+			writeFileSync(join(root, "files.json"), `${JSON.stringify({ files: ["z", "c"] })}\n`);
+			expect(await changedLinks(root)).toEqual(["files.json"]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects a selector on a glob or a non-JSON file", async () => {
+		const root = makeRepo();
+		try {
+			writeDoc(root, "docs/example.md", "src/example.ts#exports");
+			expect(() => attestDocuments({ root, paths: ["docs/example.md"] })).toThrow(
+				/selector needs one \.json file/,
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("repairing review proof (--fix=review-proof)", () => {
 	function legacyRepo(): string {
 		const root = makeRepo();
 		writeDoc(root, "docs/example.md", "src/example.ts", "owner=eng | last-reviewed=2026-08-19");
@@ -358,31 +412,27 @@ describe("version 2 review lock migration", () => {
 		return root;
 	}
 
-	it("asks for migration while a version 2 lock exists", async () => {
+	it("blocks per-document checks while a legacy proof exists", async () => {
 		const root = legacyRepo();
 		try {
-			const result = await evaluateAudit(auditOptions(root));
-			expect(result.diagnostics.map((item) => item.code)).toEqual(["review-proof-legacy-lock"]);
+			expect((await codes(root)).map(([, code]) => code)).toEqual(["review-proof-legacy"]);
+			expect(() => attestDocuments({ root, paths: ["docs/example.md"] })).toThrow(/Legacy/);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("carries over only proofs that still verify, strips dates, and removes the lock", async () => {
+	it("migrates a Skeleton 5 lock: only verifying proofs carry over, dates go, the lock goes", async () => {
 		const root = legacyRepo();
 		try {
-			const result = migrateReviewProof({ root });
+			const result = repairReviewProof({ root });
 			expect(result.migrated).toEqual(["docs/example.md"]);
 			expect(result.unverified).toEqual(["docs/stale.md"]);
 			expect(existsSync(join(root, ".skeleton/review-lock.json"))).toBe(false);
-			expect(existsSync(join(root, ".skeleton/reviews/docs/stale.md.json"))).toBe(false);
 			for (const doc of ["docs/example.md", "docs/stale.md"]) {
 				expect(readFileSync(join(root, doc), "utf8")).not.toContain("last-reviewed");
 			}
-			const audit = await evaluateAudit(
-				batchAuditOptions(root, ["docs/example.md", "docs/stale.md"]),
-			);
-			expect(audit.diagnostics.map((item) => [item.file, item.code])).toEqual([
+			expect(await codes(root, ["docs/example.md", "docs/stale.md"])).toEqual([
 				["docs/stale.md", "review-proof-missing"],
 			]);
 		} finally {
@@ -390,21 +440,85 @@ describe("version 2 review lock migration", () => {
 		}
 	});
 
-	it("is available as --fix=review-proof without --confirm-reviewed", () => {
-		expect(parseAuditArgs(["--fix=review-proof"]).fix).toBe("review-proof");
+	it("does not ask for a review of a legacy entry that a current entry already covers", () => {
+		const root = legacyRepo();
+		try {
+			writeFileSync(join(root, PROOF), "");
+			rmSync(join(root, ".skeleton/review-lock.json"));
+			attestDocuments({ root, paths: ["docs/stale.md"] });
+			mkdirSync(join(root, ".skeleton"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/review-lock.json"),
+				JSON.stringify({
+					version: 2,
+					documents: {
+						"docs/stale.md": {
+							reviewedAt: "2026-08-19",
+							documentHash: sha256("older bytes"),
+							reviewDependencies: {},
+						},
+					},
+				}),
+			);
+			expect(repairReviewProof({ root }).unverified).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("migrates Skeleton 6 per-document proof files", async () => {
+		const root = makeRepo();
+		try {
+			const doc = readFileSync(join(root, "docs/example.md"), "utf8");
+			const source = readFileSync(join(root, "src/example.ts"), "utf8");
+			mkdirSync(join(root, ".skeleton/reviews/docs"), { recursive: true });
+			writeFileSync(
+				join(root, ".skeleton/reviews/docs/example.md.json"),
+				JSON.stringify({
+					version: 3,
+					documentHash: sha256(doc.replace(/<!-- doc-meta:[^>]*-->/, "<!-- doc-meta -->")),
+					reviewDependencies: { "src/example.ts": sha256(source) },
+				}),
+			);
+			expect(repairReviewProof({ root }).migrated).toEqual(["docs/example.md"]);
+			expect(existsSync(join(root, ".skeleton/reviews"))).toBe(false);
+			expect(await codes(root)).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("moves the entry of a renamed document and removes the entry of a deleted one", async () => {
+		const root = makeRepo();
+		try {
+			writeDoc(root, "docs/gone.md", "src/example.ts");
+			attestDocuments({ root, paths: ["docs/example.md", "docs/gone.md"] });
+			rmSync(join(root, "docs/gone.md"));
+			const renamed = readFileSync(join(root, "docs/example.md"), "utf8");
+			rmSync(join(root, "docs/example.md"));
+			writeFileSync(join(root, "docs/renamed.md"), renamed);
+			expect(
+				(await evaluateAudit({ ...auditOptions(root), paths: [] })).diagnostics,
+			).toContainEqual(
+				expect.objectContaining({ code: "review-proof-orphan", severity: "warning" }),
+			);
+			const result = repairReviewProof({ root });
+			expect(result.moved).toEqual([{ from: "docs/example.md", to: "docs/renamed.md" }]);
+			expect(result.removed).toEqual(["docs/gone.md"]);
+			expect(await codes(root, ["docs/renamed.md"])).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });
 
 describe("parallel review proof", () => {
-	function sharedDependencyRepo(): string {
+	function repoWithDocs(names: string[]): string {
 		const root = makeRepo();
 		writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "x", scripts: {} })}\n`);
-		writeDoc(root, "docs/a.md", "src/example.ts,package.json");
-		writeDoc(root, "docs/b.md", "src/example.ts,package.json");
-		attestDocuments({ root, paths: ["docs/a.md", "docs/b.md"] });
-		git(root, "init", "-q", "-b", "main");
-		git(root, "add", "-A");
-		git(root, "commit", "-q", "-m", "base");
+		for (const name of names) writeDoc(root, `docs/${name}.md`, "src/example.ts,package.json");
+		attestDocuments({ root, paths: names.map((name) => `docs/${name}.md`) });
+		commitAll(root, "base");
 		return root;
 	}
 
@@ -418,32 +532,76 @@ describe("parallel review proof", () => {
 		git(root, "commit", "-q", "-am", `review ${doc}`);
 	}
 
-	it("merges two branches that re-attest different documents without conflicts", async () => {
-		const root = sharedDependencyRepo();
+	function tryMerge(root: string, branch: string): boolean {
+		return (
+			spawnSync("git", ["merge", "-q", "--no-edit", branch], { cwd: root, env: GIT_ENV }).status ===
+			0
+		);
+	}
+
+	it("merges branches that re-attest neighbouring documents without conflicts", async () => {
+		const root = repoWithDocs(["a", "b", "c"]);
 		try {
 			reviewOnBranch(root, "one", "docs/a.md", "Edited a.");
 			reviewOnBranch(root, "two", "docs/b.md", "Edited b.");
 			git(root, "checkout", "-q", "main");
-			git(root, "merge", "-q", "--no-edit", "one");
-			git(root, "merge", "-q", "--no-edit", "two");
-			const audit = await evaluateAudit(batchAuditOptions(root, ["docs/a.md", "docs/b.md"]));
-			expect(audit.diagnostics).toEqual([]);
+			expect(tryMerge(root, "one")).toBe(true);
+			expect(tryMerge(root, "two")).toBe(true);
+			expect(await codes(root, ["docs/a.md", "docs/b.md", "docs/c.md"])).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("conflicts when both branches re-attest the same document, and --fix=review-proof resolves it", async () => {
+		const root = repoWithDocs(["a", "b"]);
+		try {
+			reviewOnBranch(root, "one", "docs/b.md", "Edited b.");
+			git(root, "checkout", "-q", "main");
+			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 3; }\n");
+			attestDocuments({ root, paths: ["docs/b.md"] });
+			git(root, "commit", "-q", "-am", "change code, review b");
+			expect(tryMerge(root, "one")).toBe(false);
+			expect(await codes(root, ["docs/b.md"])).toEqual([[PROOF, "review-proof-conflict"]]);
+			// Neither side's entry for b covers the merged bytes, so b needs a fresh review;
+			// a was not in conflict and keeps its entry, which reports the changed code.
+			expect(repairReviewProof({ root }).resolved).toEqual([]);
+			expect(await codes(root, ["docs/a.md", "docs/b.md"])).toEqual([
+				["docs/a.md", "review-dependency-changed"],
+				["docs/b.md", "review-proof-missing"],
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps the side of a conflict that still verifies against the merged bytes", async () => {
+		const root = repoWithDocs(["a"]);
+		try {
+			const good = entryLine(root, "docs/a.md");
+			const stale = good.replace(/doc=sha256:[a-f0-9]{16}/, `doc=sha256:${"0".repeat(16)}`);
+			writeFileSync(
+				join(root, PROOF),
+				proofText(root).replace(good, `<<<<<<< ours\n${stale}\n=======\n${good}\n>>>>>>> theirs`),
+			);
+			expect(repairReviewProof({ root }).resolved).toEqual(["docs/a.md"]);
+			expect(entryLine(root, "docs/a.md")).toBe(good);
+			expect(await codes(root, ["docs/a.md"])).toEqual([]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
 	it("still fails the merged result when a shared dependency changed on another branch", async () => {
-		const root = sharedDependencyRepo();
+		const root = repoWithDocs(["a", "b"]);
 		try {
 			git(root, "checkout", "-q", "-b", "deps", "main");
 			writeFileSync(join(root, "src/example.ts"), "export function runThing() { return 2; }\n");
 			attestDocuments({ root, paths: ["docs/a.md"] });
 			git(root, "commit", "-q", "-am", "change code, review a only");
 			git(root, "checkout", "-q", "main");
-			git(root, "merge", "-q", "--no-edit", "deps");
-			const audit = await evaluateAudit(batchAuditOptions(root, ["docs/a.md", "docs/b.md"]));
-			expect(audit.diagnostics.map((item) => [item.file, item.code])).toEqual([
+			expect(tryMerge(root, "deps")).toBe(true);
+			expect(await codes(root, ["docs/a.md", "docs/b.md"])).toEqual([
 				["docs/b.md", "review-dependency-changed"],
 			]);
 		} finally {

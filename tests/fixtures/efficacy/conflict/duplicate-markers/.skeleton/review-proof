@@ -1,0 +1,6 @@
+# Skeleton review proof. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# One entry per document. Do not edit by hand; keep the blank line between entries.
+
+docs/billing-webhook-a.md doc=sha256:b9906cace187f321 deps=none
+
+docs/billing-webhook-b.md doc=sha256:bd9f30f47397a964 deps=none

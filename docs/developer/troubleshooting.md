@@ -22,9 +22,9 @@ The same error fires on local, `--staged`, and `--base` runs. A mixed docs commi
 
 ## `stage-required`
 
-**Cause:** `--staged` saw an impacted paper or its proof file (`.skeleton/reviews/<path>.json`) that differs from HEAD and is not in the index.
+**Cause:** `--staged` saw an impacted paper or the review proof file (`.skeleton/review-proof`) that differs from HEAD and is not in the index.
 
-**Fix:** Stage the attested document and its proof file.
+**Fix:** Stage the attested document and `.skeleton/review-proof`.
 
 ## `validate changed: all paths were skipped`
 
@@ -87,9 +87,9 @@ Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plu
 
 Two different signals (see [doc system](doc-system.md#doc-meta)):
 
-**Changed since review** — code `review-document-changed`, `review-dependency-changed`, or `review-dependency-set-changed`.
+**Changed since review** — code `review-document-changed` or `review-dependency-changed`.
 
-**Cause:** The document or a `review-deps` dependency no longer matches the hashes in its proof file, so the recorded review no longer covers it.
+**Cause:** The document or a `review-deps` dependency no longer matches its entry in `.skeleton/review-proof`, so the recorded review no longer covers it.
 
 **Fix:** Re-read the entire document against every current dependency. Attest it only if the content is still correct:
 
@@ -98,15 +98,21 @@ skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
 
-Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Do not hand-edit proof files.
+Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Naming a dependency needs the commit that recorded the review; without git history the line reads `changed: review dependency set`. Do not hand-edit the proof file.
 
 **Missing proof** — code `review-proof-missing`. The document has never been attested. Review it, then run the command above.
 
-**Version 2 lock** — code `review-proof-legacy-lock`. Run `skeleton audit docs --fix=review-proof` once to move the entries that still verify into proof files ([config](config.md#reviewproof)).
+**Legacy proof** — code `review-proof-legacy`. Skeleton 5 (`review-lock.json`) or 6 (`.skeleton/reviews/`) proof is still present. Run `skeleton audit docs --fix=review-proof` once to move the proofs that still verify into `.skeleton/review-proof` ([config](config.md#reviewproof)). Attestation refuses to run until then, and likewise while the file has a merge conflict.
+
+**Merge conflict** — code `review-proof-conflict`. Two branches re-attested the same document. Run `skeleton audit docs --fix=review-proof`; it keeps the side that still verifies and drops the rest, so a document whose entry was dropped needs a fresh review.
+
+**Orphaned entry** — code `review-proof-orphan` (warning). A document was renamed or deleted. `--fix=review-proof` moves or removes the entry. Reported only by full audits, not under `--paths`.
+
+**Malformed proof file** — code `review-proof-invalid`. A line is not `<path> doc=sha256:<16 hex> deps=sha256:<16 hex>|none`. Restore the file from git, then re-attest the affected documents.
 
 **Re-read cadence** — code `review-cadence-exceeded`.
 
-**Cause:** The last commit that changed the document's proof file is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
+**Cause:** The last commit that changed the document's line in `.skeleton/review-proof` (from `git blame`) is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
 
 **Fix:** Re-read and attest the paper again, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
 

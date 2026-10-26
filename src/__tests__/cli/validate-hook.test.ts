@@ -215,7 +215,7 @@ describe("validate changed hook gates", () => {
 		expect(result.diagnostics).toContainEqual(
 			expect.objectContaining({
 				code: "stage-required",
-				file: ".skeleton/reviews/docs/example.md.json",
+				file: ".skeleton/review-proof",
 			}),
 		);
 		expect(

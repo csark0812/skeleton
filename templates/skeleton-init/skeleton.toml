@@ -15,9 +15,9 @@ exclude = [
 [deny]
 paths = []
 
-# Review proof is always on: one hash file per reviewed document.
+# Review proof is always on: one line per reviewed document in one file.
 # [reviewProof]
-# dir = ".skeleton/reviews"
+# file = ".skeleton/review-proof"
 
 # Defaults apply when this section is omitted. Empty include disables the gate.
 # [reviewCoverage]

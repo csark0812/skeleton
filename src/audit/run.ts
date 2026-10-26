@@ -6,7 +6,7 @@ import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
-import { attestDocuments, migrateReviewProof, reviewProofDir } from "./core/review-proof.ts";
+import { attestDocuments, repairReviewProof, reviewProofFile } from "./core/review-proof.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
@@ -210,14 +210,14 @@ function reviewProofStatus(
 	diagnostics: ReturnType<typeof finalizeIssues>,
 	executed: string[],
 ): ReviewProofResult {
-	const proofDir = reviewProofDir(config);
+	const proofFile = reviewProofFile(config);
 	if (!executed.includes("review-proof")) {
-		return { mode: "hash", status: "not-checked", proofDir };
+		return { mode: "hash", status: "not-checked", proofFile };
 	}
 	const invalid = diagnostics.some(
 		(item) => item.rule === "review-proof" && item.severity === "error",
 	);
-	return { mode: "hash", status: invalid ? "invalid" : "valid", proofDir };
+	return { mode: "hash", status: invalid ? "invalid" : "valid", proofFile };
 }
 
 function shouldRunRule(
@@ -232,10 +232,19 @@ function shouldRunRule(
 }
 
 function migrateAndReport(root: string, dryRun: boolean | undefined): void {
-	const { migrated, unverified } = migrateReviewProof({ root, dryRun });
-	console.error(
-		`review proof: migrated ${migrated.length} document(s); ${unverified.length} need a fresh review (${unverified.join(", ") || "none"})`,
-	);
+	const result = repairReviewProof({ root, dryRun });
+	const parts = [
+		`migrated ${result.migrated.length}`,
+		`resolved ${result.resolved.length} from a conflict`,
+		`moved ${result.moved.length} renamed`,
+		`removed ${result.removed.length} orphaned`,
+	];
+	console.error(`review proof: ${parts.join(", ")}`);
+	if (result.unverified.length > 0) {
+		console.error(
+			`review proof: ${result.unverified.length} legacy review(s) no longer verify and need a fresh review: ${result.unverified.join(", ")}`,
+		);
+	}
 }
 
 async function runAuditFixes(
