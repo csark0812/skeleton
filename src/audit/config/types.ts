@@ -31,13 +31,15 @@ export interface ReviewCoverageConfig {
 	exclude?: string[];
 }
 
-/** Where review proof lives. Proof is always hash-based: one file per reviewed document. */
+/** Where review proof lives. Proof is always hash-based: one line per reviewed document in one file. */
 export interface ReviewProofConfig {
 	/** Accepted for older configs; hash is the only mode. */
 	mode?: "hash";
-	/** Repo-relative directory of per-document proof files (default: .skeleton/reviews). */
+	/** Repo-relative proof file (default: .skeleton/review-proof). */
+	file?: string;
+	/** Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews). */
 	dir?: string;
-	/** Version 2 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
+	/** Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
 	lockfile?: string;
 }
 
@@ -67,7 +69,7 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
-	/** Re-read cadence (days), measured from the last commit of a document's review proof. */
+	/** Re-read cadence (days), measured from the commit that recorded a document's review. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;

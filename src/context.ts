@@ -1,7 +1,6 @@
 import { globSync } from "tinyglobby";
 import { loadConfig } from "./audit/config/load.ts";
 import { collectScanFiles } from "./audit/core/collect.ts";
-import { lastGitCommitDate } from "./audit/core/git-meta.ts";
 import { type FileSource, readRepoText } from "./audit/core/repo-files.ts";
 import {
 	resolveReviewDependencies,
@@ -9,11 +8,11 @@ import {
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
 import {
-	documentReviewDigest,
+	type LoadedReviewProof,
 	loadReviewProof,
-	matchesRecordedDependency,
-	type ReviewProof,
-	reviewProofPath,
+	type ReviewProofEntry,
+	reviewCommitDay,
+	reviewStateFor,
 } from "./audit/core/review-proof.ts";
 import { normalizeRelPath } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
@@ -236,19 +235,19 @@ interface ReviewInput {
 	root: string;
 	document: string;
 	content: string;
-	sources: Array<{ path: string; content: string | null }>;
-	proof: ReviewProof | null;
-	proofPath: string;
+	entry: ReviewProofEntry | null;
+	config: ReturnType<typeof loadConfig>;
+	source: FileSource;
 	staleDays: number;
 }
 
-function proofOf(loaded: ReturnType<typeof loadReviewProof>): ReviewProof | null {
-	return loaded.status === "present" ? loaded.proof : null;
+function entryOf(loaded: LoadedReviewProof, document: string): ReviewProofEntry | null {
+	return loaded.status === "valid" ? (loaded.entries.get(document) ?? null) : null;
 }
 
 /** The last committed review is older than the re-read cadence. */
 function cadenceReviewReasons(input: ReviewInput): string[] {
-	const committed = lastGitCommitDate(input.proofPath, input.root);
+	const committed = reviewCommitDay(input.root, input.config, input.document);
 	if (!committed) return [];
 	const ageDays = (Date.now() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
 	if (!(ageDays > input.staleDays)) return [];
@@ -256,33 +255,23 @@ function cadenceReviewReasons(input: ReviewInput): string[] {
 }
 
 function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "reviewReasons"> {
-	const entry = input.proof;
-	const hasDocumentProof = entry?.documentHash === documentReviewDigest(input.content);
-	const sameTargets =
-		JSON.stringify(
-			Object.keys(entry?.reviewDependencies ?? {}).sort((a, b) => a.localeCompare(b)),
-		) ===
-		JSON.stringify(input.sources.map((source) => source.path).sort((a, b) => a.localeCompare(b)));
-	const sameSourceBytes = input.sources.every(
-		(source) =>
-			source.content !== null &&
-			matchesRecordedDependency({
-				target: source.path,
-				content: source.content,
-				recorded: entry?.reviewDependencies?.[source.path],
-			}),
-	);
-	if (hasDocumentProof && !(sameTargets && sameSourceBytes)) {
-		return { review: "changed-since-review" };
+	if (!input.entry) return { review: "unreviewed" };
+	const state = reviewStateFor({
+		root: input.root,
+		entry: input.entry,
+		content: input.content,
+		source: input.source,
+	});
+	if (state.status === "document-changed") {
+		return {
+			review: "review-required",
+			reviewReasons: ["document changed after its recorded review"],
+		};
 	}
-	const reviewReasons =
-		entry && !hasDocumentProof
-			? ["document changed after its recorded review"]
-			: hasDocumentProof
-				? cadenceReviewReasons(input)
-				: [];
+	if (state.status !== "matches") return { review: "changed-since-review" };
+	const reviewReasons = cadenceReviewReasons(input);
 	if (reviewReasons.length > 0) return { review: "review-required", reviewReasons };
-	return { review: hasDocumentProof ? "matches-recorded-review" : "unreviewed" };
+	return { review: "matches-recorded-review" };
 }
 
 /** Build bounded, read-only evidence from canonical papers and their declared source owners. */
@@ -298,6 +287,7 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 	const files = collectScanFiles(config, options.root);
 	const ssot = collectSsotEntries(files, options.root).entries;
 	const terms = queryTerms(options.query);
+	const proof = loadReviewProof({ root: options.root, config, source });
 	const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
 	const candidates = ssot
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one document needs source, query, and bounds decisions before it can be returned.
@@ -364,11 +354,9 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 				root: options.root,
 				document: entry.path,
 				content,
-				sources: sourceEntries,
-				proof: proofOf(
-					loadReviewProof({ root: options.root, config, document: entry.path, source }),
-				),
-				proofPath: reviewProofPath(config, entry.path),
+				entry: entryOf(proof, entry.path),
+				config,
+				source,
 				staleDays: config.daysUntilStale,
 			}),
 		};

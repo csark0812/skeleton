@@ -1,246 +1,178 @@
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, posix } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
+import { globSync } from "tinyglobby";
 import type { SkeletonConfig } from "../config/types.ts";
 import type { AuditContext } from "./context.ts";
 import { createContext } from "./context.ts";
 import { resolveWritePath } from "./fix.ts";
+import { lastCommitOfLine, readAtCommit } from "./git-meta.ts";
 import { type FileSource, readRepoText } from "./repo-files.ts";
 import { type Issue, issue } from "./report.ts";
 import { resolveReviewDependencies, reviewDependencyPatterns } from "./review-deps.ts";
 import {
-	DOC_META_RE,
-	normalizeDocMetaForReview,
-	normalizeRelPath,
-	stripLegacyReviewDate,
-} from "./shared.ts";
+	combinedDependenciesDigest,
+	dependencyDigest,
+	fullDocumentDigest,
+	shortDigest,
+} from "./review-digest.ts";
+import {
+	formatReviewProofFile,
+	parseReviewProofFile,
+	type ReviewProofEntry,
+	reviewProofEntryLine,
+} from "./review-proof-file.ts";
+import {
+	legacyProofDir,
+	legacyReviewVerifies,
+	loadLegacyReviewProof,
+} from "./review-proof-legacy.ts";
+import { DOC_META_RE, normalizeRelPath, stripLegacyReviewDate } from "./shared.ts";
 
-/** One proof file per document keeps parallel attestations of different documents conflict-free. */
-export const DEFAULT_REVIEW_PROOF_DIR = ".skeleton/reviews";
-/** Version 2 kept every document in one shared file; it is read only to migrate it. */
-export const LEGACY_REVIEW_LOCKFILE = ".skeleton/review-lock.json";
+export type { ReviewProofEntry } from "./review-proof-file.ts";
 
-const PROOF_VERSION = 3;
+/** The one proof file: an entry per reviewed document, so the repository holds no per-document proof files. */
+export const DEFAULT_REVIEW_PROOF_FILE = ".skeleton/review-proof";
 
-/**
- * Evidence that someone re-read one document against exact bytes.
- * No date: staleness comes from the git history of the proof file.
- */
-export interface ReviewProof {
-	version: 3;
-	documentHash: string;
-	reviewDependencies: Record<string, string>;
+export function reviewProofFile(config: Pick<SkeletonConfig, "reviewProof">): string {
+	return normalizeRelPath(config.reviewProof?.file ?? DEFAULT_REVIEW_PROOF_FILE);
 }
 
-interface LegacyReviewEntry {
-	documentHash: string;
-	reviewDependencies: Record<string, string>;
-}
-
-export interface AttestDocumentsOptions {
-	root: string;
-	paths: string[];
-	dryRun?: boolean;
-}
-
-export interface AttestDocumentsResult {
-	documents: string[];
-	proofFiles: string[];
-	modifiedFiles: string[];
-}
-
-export interface MigrateReviewProofResult {
-	migrated: string[];
-	unverified: string[];
-	modifiedFiles: string[];
-}
-
-export function reviewProofDir(config: Pick<SkeletonConfig, "reviewProof">): string {
-	return normalizeRelPath(config.reviewProof?.dir ?? DEFAULT_REVIEW_PROOF_DIR).replace(/\/$/, "");
-}
-
-/** Repo-relative proof file for one document, e.g. `.skeleton/reviews/docs/a.md.json`. */
-export function reviewProofPath(
-	config: Pick<SkeletonConfig, "reviewProof">,
-	document: string,
-): string {
-	return `${reviewProofDir(config)}/${normalizeRelPath(document)}.json`;
-}
-
-function legacyLockPath(config: Pick<SkeletonConfig, "reviewProof">): string {
-	return normalizeRelPath(config.reviewProof?.lockfile ?? LEGACY_REVIEW_LOCKFILE);
-}
-
-function hash(content: string): string {
-	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
-}
-
-/** Digest of a reviewed document. Doc-meta is metadata, so editing it never invalidates a review. */
+/** Short digest of a reviewed document, without its doc-meta comment. */
 export function documentReviewDigest(content: string): string {
-	return hash(normalizeDocMetaForReview(content));
-}
-
-function isPackageManifest(target: string): boolean {
-	return posix.basename(normalizeRelPath(target)) === "package.json";
-}
-
-function isMarkdown(target: string): boolean {
-	return /\.mdx?$/i.test(target);
-}
-
-/**
- * Review evidence for an npm manifest without its release version.
- * Release tooling rewrites the top-level `version` field, which no reviewed claim can depend on.
- * Returns null when the manifest is not a JSON object, so the caller binds the raw bytes.
- */
-function manifestWithoutReleaseVersion(content: string): string | null {
-	try {
-		const parsed: unknown = JSON.parse(content);
-		if (!isRecord(parsed)) return null;
-		const reviewed = { ...parsed };
-		delete reviewed.version;
-		return JSON.stringify(reviewed);
-	} catch {
-		return null;
-	}
-}
-
-/**
- * Digest that binds a review to one dependency.
- * A `package.json` is compared as parsed JSON without its top-level `version`;
- * a Markdown dependency is compared without its doc-meta comment;
- * every other dependency is compared byte for byte.
- */
-export function reviewDependencyDigest(target: string, content: string): string {
-	if (isMarkdown(target)) return documentReviewDigest(content);
-	if (!isPackageManifest(target)) return hash(content);
-	const manifest = manifestWithoutReleaseVersion(content);
-	return manifest === null ? hash(content) : hash(manifest);
-}
-
-/** True when the current dependency still matches its recorded review digest. */
-export function matchesRecordedDependency(input: {
-	target: string;
-	content: string;
-	recorded: string | undefined;
-}): boolean {
-	const { target, content, recorded } = input;
-	if (recorded === undefined) return false;
-	return recorded === reviewDependencyDigest(target, content);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isSafeRepoPath(value: string): boolean {
-	const normalized = normalizeRelPath(value);
-	return (
-		value.length > 0 &&
-		value === normalized &&
-		normalized !== "." &&
-		normalized !== ".." &&
-		!normalized.startsWith("/") &&
-		!normalized.startsWith("../") &&
-		!normalized.includes("/../") &&
-		!/^[A-Za-z]:\//.test(normalized)
-	);
-}
-
-function isHash(value: unknown): value is string {
-	return typeof value === "string" && /^sha256:[a-f0-9]{64}$/.test(value);
-}
-
-function parseDependencies(value: unknown): Record<string, string> | null {
-	if (!isRecord(value)) return null;
-	const out: Record<string, string> = {};
-	for (const [target, targetHash] of Object.entries(value)) {
-		if (!isSafeRepoPath(target)) return null;
-		if (!isHash(targetHash)) return null;
-		out[target] = targetHash;
-	}
-	return out;
-}
-
-function parseProof(content: string): ReviewProof | null {
-	try {
-		const parsed: unknown = JSON.parse(content);
-		if (!isRecord(parsed) || parsed.version !== PROOF_VERSION) return null;
-		if (!isHash(parsed.documentHash)) return null;
-		const reviewDependencies = parseDependencies(parsed.reviewDependencies);
-		if (!reviewDependencies) return null;
-		return { version: PROOF_VERSION, documentHash: parsed.documentHash, reviewDependencies };
-	} catch {
-		return null;
-	}
+	return shortDigest(fullDocumentDigest(content));
 }
 
 export type LoadedReviewProof =
 	| { status: "missing" }
-	| { status: "invalid" }
-	| { status: "present"; proof: ReviewProof };
+	| { status: "legacy"; files: string[] }
+	| { status: "invalid"; line: number }
+	| { status: "conflicted"; candidates: ReviewProofEntry[] }
+	| { status: "valid"; entries: Map<string, ReviewProofEntry>; content: string };
 
-/** Read one document's proof file. */
+/** Read the proof file once per run. Legacy proof files block it until they are migrated. */
 export function loadReviewProof(input: {
 	root: string;
 	config: Pick<SkeletonConfig, "reviewProof">;
-	document: string;
 	source?: FileSource;
 }): LoadedReviewProof {
-	const content = readRepoText(
-		input.root,
-		reviewProofPath(input.config, input.document),
-		input.source ?? "worktree",
-	);
+	const source = input.source ?? "worktree";
+	const legacy = loadLegacyReviewProof({ root: input.root, config: input.config, source });
+	if (legacy.files.length > 0) return { status: "legacy", files: legacy.files };
+	const proofPath = reviewProofFile(input.config);
+	// An unmerged file has no index entry; the worktree copy then shows the conflict.
+	const content =
+		readRepoText(input.root, proofPath, source) ??
+		(source === "index" ? readRepoText(input.root, proofPath, "worktree") : null);
 	if (content === null) return { status: "missing" };
-	const proof = parseProof(content);
-	return proof ? { status: "present", proof } : { status: "invalid" };
+	const parsed = parseReviewProofFile(content);
+	if (parsed.status === "valid") return { status: "valid", entries: parsed.entries, content };
+	return parsed;
 }
 
-function formatProof(proof: ReviewProof): string {
-	const sorted: ReviewProof = {
-		version: PROOF_VERSION,
-		documentHash: proof.documentHash,
-		reviewDependencies: Object.fromEntries(
-			Object.entries(proof.reviewDependencies).sort(([a], [b]) => a.localeCompare(b)),
-		),
-	};
-	return `${JSON.stringify(sorted, null, "\t")}\n`;
-}
-
-/**
- * Hash each dependency as it will exist after this run commits.
- * A dependency that this run also rewrites is read from its pending write, not from disk.
- */
-function hashDependencies(
-	root: string,
-	targets: string[],
-	pendingWrites: Map<string, string>,
-): Record<string, string> {
+/** Per-dependency evidence for a document as it reads now (or as this run will write it). */
+function dependencyDigests(input: {
+	root: string;
+	content: string;
+	source: FileSource;
+	pending?: Map<string, string>;
+}): Record<string, string> {
+	const resolved = resolveReviewDependencies(input.root, reviewDependencyPatterns(input.content));
 	const out: Record<string, string> = {};
-	for (const target of targets) {
-		const pending = pendingWrites.get(target);
-		if (pending !== undefined) {
-			out[target] = reviewDependencyDigest(target, pending);
-			continue;
-		}
-		const abs = resolveWritePath(root, target);
-		if (!existsSync(abs)) throw new Error(`Cannot attest missing review dependency: ${target}`);
-		out[target] = reviewDependencyDigest(target, readFileSync(abs, "utf8"));
+	for (const target of resolved.targets) {
+		const text = input.pending?.get(target) ?? readRepoText(input.root, target, input.source);
+		if (text === null) throw new Error(`Review dependency is missing: ${target}`);
+		out[target] = dependencyDigest(target, text, resolved.selectors[target]);
 	}
 	return out;
 }
 
-function proofFor(root: string, content: string, pendingWrites: Map<string, string>): ReviewProof {
+function entryFor(input: {
+	root: string;
+	document: string;
+	content: string;
+	source: FileSource;
+	pending?: Map<string, string>;
+}): ReviewProofEntry {
 	return {
-		version: PROOF_VERSION,
-		documentHash: documentReviewDigest(content),
-		reviewDependencies: hashDependencies(
-			root,
-			resolveReviewDependencies(root, reviewDependencyPatterns(content)).targets,
-			pendingWrites,
-		),
+		document: input.document,
+		documentHash: documentReviewDigest(input.content),
+		dependenciesHash: combinedDependenciesDigest(dependencyDigests(input)),
 	};
+}
+
+export type ReviewState =
+	| { status: "matches" }
+	| { status: "document-changed" }
+	| { status: "dependencies-changed" }
+	| { status: "dependencies-invalid"; message: string };
+
+/** Compare one document's recorded entry with its current bytes and dependencies. */
+export function reviewStateFor(input: {
+	root: string;
+	entry: ReviewProofEntry;
+	content: string;
+	source?: FileSource;
+}): ReviewState {
+	if (input.entry.documentHash !== documentReviewDigest(input.content)) {
+		return { status: "document-changed" };
+	}
+	try {
+		const current = combinedDependenciesDigest(
+			dependencyDigests({
+				root: input.root,
+				content: input.content,
+				source: input.source ?? "worktree",
+			}),
+		);
+		return current === input.entry.dependenciesHash
+			? { status: "matches" }
+			: { status: "dependencies-changed" };
+	} catch (error) {
+		return {
+			status: "dependencies-invalid",
+			message: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
+/** The commit that recorded a document's current entry, from `git blame` of its line. */
+function entryCommit(root: string, config: Pick<SkeletonConfig, "reviewProof">, document: string) {
+	const proofPath = reviewProofFile(config);
+	const content = readRepoText(root, proofPath, "worktree");
+	const line = content === null ? null : reviewProofEntryLine(content, document);
+	return line === null ? null : lastCommitOfLine(root, proofPath, line);
+}
+
+/** UTC day of the commit that recorded a document's review, or null when not committed yet. */
+export function reviewCommitDay(
+	root: string,
+	config: Pick<SkeletonConfig, "reviewProof">,
+	document: string,
+): string | null {
+	return entryCommit(root, config, document)?.day ?? null;
+}
+
+/**
+ * Name the dependencies that changed since the commit that recorded the review.
+ * Empty when git cannot say (no history, uncommitted entry, or only the dependency set changed).
+ */
+export function changedDependencies(input: {
+	root: string;
+	config: Pick<SkeletonConfig, "reviewProof">;
+	document: string;
+	content: string;
+	source?: FileSource;
+}): string[] {
+	const commit = entryCommit(input.root, input.config, input.document);
+	if (commit === null) return [];
+	const resolved = resolveReviewDependencies(input.root, reviewDependencyPatterns(input.content));
+	return resolved.targets.filter((target) => {
+		const now = readRepoText(input.root, target, input.source ?? "worktree");
+		const then = readAtCommit(input.root, commit.sha, target);
+		if (now === null || then === null) return true;
+		const selectors = resolved.selectors[target];
+		return dependencyDigest(target, now, selectors) !== dependencyDigest(target, then, selectors);
+	});
 }
 
 /** Apply every write, or none: a failure restores the files already written. A null content deletes. */
@@ -275,22 +207,14 @@ function commitWrites(root: string, writes: Map<string, string | null>): void {
 	}
 }
 
-/**
- * Read each selected document and drop a legacy `last-reviewed` date.
- * Returns the content each document will have after this run commits.
- */
-function documentsWithoutLegacyDates(root: string, selected: string[]): Map<string, string> {
-	const documents = new Map<string, string>();
-	for (const relPath of selected) {
-		const abs = resolveWritePath(root, relPath);
-		if (!existsSync(abs)) throw new Error(`Cannot attest missing document: ${relPath}`);
-		const original = readFileSync(abs, "utf8");
-		if (!DOC_META_RE.test(original)) {
-			throw new Error(`Cannot attest ${relPath}: missing doc-meta comment`);
-		}
-		documents.set(relPath, stripLegacyReviewDate(original) ?? original);
+/** Each document's content after this run commits: legacy `last-reviewed` dates removed. */
+function documentsWithoutLegacyDates(root: string, documents: string[]): Map<string, string> {
+	const out = new Map<string, string>();
+	for (const relPath of documents) {
+		const content = readRepoText(root, relPath, "worktree");
+		if (content !== null) out.set(relPath, stripLegacyReviewDate(content) ?? content);
 	}
-	return documents;
+	return out;
 }
 
 function changedDocumentWrites(
@@ -306,271 +230,408 @@ function changedDocumentWrites(
 	return writes;
 }
 
-/** Record explicit review evidence for exactly the selected documents. */
+function assertAttestable(root: string, selected: string[]): void {
+	for (const relPath of selected) {
+		// The proof file treats `#` lines as comments, so such a path could never be read back.
+		if (relPath.startsWith("#"))
+			throw new Error(`Cannot attest a path that starts with #: ${relPath}`);
+		const content = readRepoText(root, relPath, "worktree");
+		if (content === null) throw new Error(`Cannot attest missing document: ${relPath}`);
+		if (!DOC_META_RE.test(content)) {
+			throw new Error(`Cannot attest ${relPath}: missing doc-meta comment`);
+		}
+	}
+}
+
+/** Entries attestation builds on. Anything other than a clean or absent file must be repaired first. */
+function entriesToExtend(
+	loaded: LoadedReviewProof,
+	proofPath: string,
+): Map<string, ReviewProofEntry> {
+	if (loaded.status === "valid") return new Map(loaded.entries);
+	if (loaded.status === "missing") return new Map();
+	if (loaded.status === "legacy") {
+		throw new Error(
+			`Legacy review proof found (${loaded.files[0]}); run \`skeleton audit docs --fix=review-proof\` first`,
+		);
+	}
+	if (loaded.status === "conflicted") {
+		throw new Error(
+			`Review proof ${proofPath} has a merge conflict; run \`skeleton audit docs --fix=review-proof\` first`,
+		);
+	}
+	throw new Error(`Review proof ${proofPath} is malformed at line ${loaded.line}`);
+}
+
+export interface AttestDocumentsOptions {
+	root: string;
+	paths: string[];
+	dryRun?: boolean;
+}
+
+export interface AttestDocumentsResult {
+	documents: string[];
+	proofFile: string;
+	modifiedFiles: string[];
+}
+
+/** Record explicit review evidence for exactly the selected documents. Other entries stay byte-identical. */
 export function attestDocuments(options: AttestDocumentsOptions): AttestDocumentsResult {
 	if (options.paths.length === 0) throw new Error("Review attestation requires explicit paths");
 	const ctx = createContext({ root: options.root, paths: options.paths });
 	const selected = [...new Set(ctx.docMetaPaths)].sort();
 	if (selected.length === 0) throw new Error("No reviewable documents matched --paths");
+	assertAttestable(ctx.root, selected);
 
+	const proofPath = reviewProofFile(ctx.config);
+	const entries = entriesToExtend(
+		loadReviewProof({ root: ctx.root, config: ctx.config }),
+		proofPath,
+	);
 	const documents = documentsWithoutLegacyDates(ctx.root, selected);
-	const writes = changedDocumentWrites(ctx.root, documents);
-	const proofFiles: string[] = [];
-	// Proofs are built after every document write is known, so a selected document that
+	// Entries are built after every document write is known, so a selected document that
 	// depends on another selected document binds the bytes this run writes.
-	for (const [relPath, content] of documents) {
-		const proofPath = reviewProofPath(ctx.config, relPath);
-		writes.set(proofPath, formatProof(proofFor(ctx.root, content, documents)));
-		proofFiles.push(proofPath);
+	for (const [document, content] of documents) {
+		entries.set(
+			document,
+			entryFor({ root: ctx.root, document, content, source: "worktree", pending: documents }),
+		);
 	}
+	const writes = changedDocumentWrites(ctx.root, documents);
+	writes.set(proofPath, formatReviewProofFile(entries.values()));
 	if (!options.dryRun) commitWrites(ctx.root, writes);
 	return {
 		documents: selected,
-		proofFiles,
+		proofFile: proofPath,
 		modifiedFiles: options.dryRun ? [] : [...writes.keys()],
 	};
 }
 
-function parseLegacyLock(content: string): Record<string, LegacyReviewEntry> | null {
-	try {
-		const parsed: unknown = JSON.parse(content);
-		if (!isRecord(parsed) || parsed.version !== 2 || !isRecord(parsed.documents)) return null;
-		const documents: Record<string, LegacyReviewEntry> = {};
-		for (const [path, value] of Object.entries(parsed.documents)) {
-			if (!(isSafeRepoPath(path) && isRecord(value) && isHash(value.documentHash))) return null;
-			const reviewDependencies = parseDependencies(value.reviewDependencies);
-			if (!reviewDependencies) return null;
-			documents[path] = { documentHash: value.documentHash, reviewDependencies };
-		}
-		return documents;
-	} catch {
-		return null;
-	}
+function entryVerifies(
+	root: string,
+	entry: ReviewProofEntry,
+	content: string | undefined,
+): boolean {
+	return content !== undefined && reviewStateFor({ root, entry, content }).status === "matches";
 }
 
-/** Version 2 dependency digest: a manifest without its release version, or raw bytes. */
-function legacyDependencyMatches(target: string, content: string, recorded: string): boolean {
-	if (recorded === hash(content)) return true;
-	if (!isPackageManifest(target)) return false;
-	const manifest = manifestWithoutReleaseVersion(content);
-	return manifest !== null && recorded === hash(manifest);
-}
-
-/** True when a version 2 entry still proves a review of the current bytes. */
-function legacyEntryVerifies(root: string, document: string, entry: LegacyReviewEntry): boolean {
-	const content = readRepoText(root, document, "worktree");
-	if (content === null || hash(content) !== entry.documentHash) return false;
-	const targets = resolveReviewDependencies(root, reviewDependencyPatterns(content)).targets;
-	if (JSON.stringify(targets) !== JSON.stringify(Object.keys(entry.reviewDependencies).sort())) {
-		return false;
-	}
-	return targets.every((target) => {
-		const current = readRepoText(root, target, "worktree");
-		const recorded = entry.reviewDependencies[target];
-		return (
-			current !== null &&
-			recorded !== undefined &&
-			legacyDependencyMatches(target, current, recorded)
-		);
-	});
-}
-
-function verifiedLegacyDocuments(
-	ctx: AuditContext,
-	legacy: Record<string, LegacyReviewEntry>,
-): string[] {
-	const docMetaPaths = new Set(ctx.docMetaPaths);
-	return Object.entries(legacy)
-		.filter(([document]) => docMetaPaths.has(document))
-		.filter(([document, entry]) => legacyEntryVerifies(ctx.root, document, entry))
-		.map(([document]) => document)
-		.sort();
-}
-
-function scannedDocumentsWithoutLegacyDates(ctx: AuditContext): Map<string, string> {
-	const documents = new Map<string, string>();
-	for (const relPath of ctx.docMetaPaths) {
-		const content = readRepoText(ctx.root, relPath, "worktree");
-		if (content !== null) documents.set(relPath, stripLegacyReviewDate(content) ?? content);
-	}
-	return documents;
+export interface RepairReviewProofResult {
+	/** Documents carried over from a Skeleton 5 or 6 proof that still verifies. */
+	migrated: string[];
+	/** Legacy reviews that no longer verify; those documents need a normal review. */
+	unverified: string[];
+	/** Documents whose entry was chosen from a merge conflict because it still verifies. */
+	resolved: string[];
+	/** Entries moved to a renamed document whose bytes still match. */
+	moved: Array<{ from: string; to: string }>;
+	/** Entries removed because their document is gone. */
+	removed: string[];
+	modifiedFiles: string[];
 }
 
 /**
- * Convert a version 2 lock into per-document proof files and drop legacy dates.
- * Only entries that still verify against current bytes carry over; this never attests anything new.
+ * Resolve a conflicted file. A document with one candidate keeps it, stale or not, so the audit
+ * still says what changed. A document with competing candidates keeps the first one that verifies
+ * against the merged bytes, or none: then it needs a fresh review.
  */
-export function migrateReviewProof(options: {
+function conflictWinners(
+	root: string,
+	candidates: ReviewProofEntry[],
+	documents: Map<string, string>,
+): { entries: Map<string, ReviewProofEntry>; resolved: string[] } {
+	const byDocument = new Map<string, ReviewProofEntry[]>();
+	for (const candidate of candidates) {
+		byDocument.set(candidate.document, [...(byDocument.get(candidate.document) ?? []), candidate]);
+	}
+	const entries = new Map<string, ReviewProofEntry>();
+	const resolved: string[] = [];
+	for (const [document, group] of byDocument) {
+		const winner =
+			group.length === 1
+				? group[0]
+				: group.find((candidate) => entryVerifies(root, candidate, documents.get(document)));
+		if (!winner) continue;
+		entries.set(document, winner);
+		if (group.length > 1) resolved.push(document);
+	}
+	return { entries, resolved: sortedPaths(resolved) };
+}
+
+function moveRenamedEntries(input: {
+	root: string;
+	entries: Map<string, ReviewProofEntry>;
+	documents: Map<string, string>;
+}): Array<{ from: string; to: string }> {
+	const moved: Array<{ from: string; to: string }> = [];
+	const unproven = [...input.documents.keys()].filter((document) => !input.entries.has(document));
+	for (const [document, entry] of [...input.entries]) {
+		if (input.documents.has(document)) continue;
+		const target = unproven.find((candidate) =>
+			entryVerifies(input.root, { ...entry, document: candidate }, input.documents.get(candidate)),
+		);
+		if (!target) continue;
+		input.entries.delete(document);
+		input.entries.set(target, { ...entry, document: target });
+		unproven.splice(unproven.indexOf(target), 1);
+		moved.push({ from: document, to: target });
+	}
+	return moved;
+}
+
+function removeOrphans(
+	entries: Map<string, ReviewProofEntry>,
+	documents: Map<string, string>,
+): string[] {
+	const removed = sortedPaths([...entries.keys()].filter((document) => !documents.has(document)));
+	for (const document of removed) entries.delete(document);
+	return removed;
+}
+
+/** Skeleton 6 kept proof in nested folders; drop them once their files are migrated. */
+function removeEmptyLegacyDir(root: string, dir: string): void {
+	const abs = resolveWritePath(root, dir);
+	if (!existsSync(abs)) return;
+	if (globSync("**/*", { cwd: abs, dot: true, onlyFiles: true }).length === 0) {
+		rmSync(abs, { recursive: true, force: true });
+	}
+}
+
+function sortedPaths(paths: Iterable<string>): string[] {
+	return [...new Set(paths)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
+function legacyVerifies(
+	root: string,
+	review: Parameters<typeof legacyReviewVerifies>[1],
+	documents: Map<string, string>,
+): boolean {
+	try {
+		return documents.has(review.document) && legacyReviewVerifies(root, review);
+	} catch {
+		return false;
+	}
+}
+
+/** Add an entry for every legacy review that still verifies and has no current entry. */
+function migrateLegacyReviews(input: {
+	root: string;
+	reviews: Parameters<typeof legacyReviewVerifies>[1][];
+	entries: Map<string, ReviewProofEntry>;
+	documents: Map<string, string>;
+}): { migrated: string[]; unverified: string[] } {
+	const migrated: string[] = [];
+	const unverified: string[] = [];
+	for (const review of input.reviews) {
+		// A current entry or a deleted document makes the legacy review irrelevant.
+		if (input.entries.has(review.document) || !input.documents.has(review.document)) continue;
+		if (!legacyVerifies(input.root, review, input.documents)) {
+			unverified.push(review.document);
+		} else {
+			input.entries.set(
+				review.document,
+				entryFor({
+					root: input.root,
+					document: review.document,
+					content: input.documents.get(review.document) ?? "",
+					source: "worktree",
+					pending: input.documents,
+				}),
+			);
+			migrated.push(review.document);
+		}
+	}
+	return { migrated: sortedPaths(migrated), unverified: sortedPaths(unverified) };
+}
+
+/** The proof file's entries; a conflicted file keeps, per document, the first candidate that verifies. */
+function currentEntries(input: {
+	root: string;
+	proofPath: string;
+	documents: Map<string, string>;
+}): { content: string | null; entries: Map<string, ReviewProofEntry>; resolved: string[] } {
+	const content = readRepoText(input.root, input.proofPath, "worktree");
+	const parsed = content === null ? null : parseReviewProofFile(content);
+	if (parsed === null) return { content, entries: new Map(), resolved: [] };
+	if (parsed.status === "invalid") {
+		throw new Error(`Review proof ${input.proofPath} is malformed at line ${parsed.line}`);
+	}
+	if (parsed.status === "valid") return { content, entries: new Map(parsed.entries), resolved: [] };
+	return { content, ...conflictWinners(input.root, parsed.candidates, input.documents) };
+}
+
+/**
+ * `--fix=review-proof`: migrate Skeleton 5/6 proof, resolve a merge conflict, move entries
+ * of renamed documents, and drop entries of deleted ones. Only proof that still verifies
+ * against current bytes survives; this never attests anything new.
+ */
+export function repairReviewProof(options: {
 	root: string;
 	dryRun?: boolean;
-}): MigrateReviewProofResult {
+}): RepairReviewProofResult {
 	const ctx = createContext({ root: options.root });
-	const lockRel = legacyLockPath(ctx.config);
-	const lockContent = readRepoText(ctx.root, lockRel, "worktree");
-	const legacy = lockContent === null ? {} : parseLegacyLock(lockContent);
-	if (legacy === null) throw new Error(`Review proof lockfile is malformed: ${lockRel}`);
+	const proofPath = reviewProofFile(ctx.config);
+	const legacy = loadLegacyReviewProof({ root: ctx.root, config: ctx.config });
+	if (legacy.malformed) throw new Error(`Legacy review proof is malformed: ${legacy.malformed}`);
+	const documents = documentsWithoutLegacyDates(ctx.root, ctx.docMetaPaths);
 
-	const verified = verifiedLegacyDocuments(ctx, legacy);
-	const unverified = Object.keys(legacy)
-		.filter((document) => !verified.includes(document))
-		.sort();
-	const documents = scannedDocumentsWithoutLegacyDates(ctx);
+	const { content, entries, resolved } = currentEntries({ root: ctx.root, proofPath, documents });
+	const { migrated, unverified } = migrateLegacyReviews({
+		root: ctx.root,
+		reviews: legacy.reviews,
+		entries,
+		documents,
+	});
+	const moved = moveRenamedEntries({ root: ctx.root, entries, documents });
+	const removed = removeOrphans(entries, documents);
 	const writes = changedDocumentWrites(ctx.root, documents);
-	for (const relPath of verified) {
-		const content = documents.get(relPath);
-		if (content === undefined) continue;
-		writes.set(
-			reviewProofPath(ctx.config, relPath),
-			formatProof(proofFor(ctx.root, content, documents)),
-		);
+	if (content !== null || entries.size > 0)
+		writes.set(proofPath, formatReviewProofFile(entries.values()));
+	for (const file of legacy.files) writes.set(file, null);
+	if (!options.dryRun) {
+		commitWrites(ctx.root, writes);
+		removeEmptyLegacyDir(ctx.root, legacyProofDir(ctx.config));
 	}
-	if (lockContent !== null) writes.set(lockRel, null);
-	if (!options.dryRun) commitWrites(ctx.root, writes);
 	return {
-		migrated: verified,
+		migrated,
 		unverified,
+		resolved,
+		moved,
+		removed,
 		modifiedFiles: options.dryRun ? [] : [...writes.keys()],
 	};
 }
 
-function changedDependencyIssue(relPath: string, target: string): Issue {
-	return issue("review-proof", relPath, {
-		code: "review-dependency-changed",
-		message: `review dependency changed after the recorded review: ${target}`,
-		link: target,
-		remediation:
-			"Re-read the entire document against the current dependencies, then attest it again.",
-	});
-}
+const REPAIR = "Run `skeleton audit docs --fix=review-proof`.";
+const REREAD =
+	"Re-read the entire document against its current dependencies, then attest it again.";
 
-function currentDependencies(input: {
-	root: string;
-	relPath: string;
-	content: string;
-	issues: Issue[];
-}): string[] | null {
-	const { root, relPath, content, issues } = input;
-	try {
-		return resolveReviewDependencies(root, reviewDependencyPatterns(content)).targets;
-	} catch (error) {
-		issues.push(
-			issue("review-proof", relPath, {
-				code: "review-dependency-invalid",
-				message: error instanceof Error ? error.message : String(error),
-			}),
-		);
-		return null;
-	}
-}
-
-function dependencyIssues(input: {
-	root: string;
-	relPath: string;
-	targets: string[];
-	proof: ReviewProof;
-	source: FileSource;
-}): Issue[] {
-	const { root, relPath, targets, proof, source } = input;
-	const issues: Issue[] = [];
-	for (const target of targets) {
-		const content = readRepoText(root, target, source);
-		if (content === null) {
-			issues.push(
-				issue("review-proof", relPath, {
-					code: "review-dependency-missing",
-					message: `recorded review dependency is missing: ${target}`,
-					link: target,
-				}),
-			);
-		} else if (
-			!matchesRecordedDependency({ target, content, recorded: proof.reviewDependencies[target] })
-		) {
-			issues.push(changedDependencyIssue(relPath, target));
-		}
-	}
-	return issues;
-}
-
-function proofIssues(input: {
+function documentIssues(input: {
 	ctx: AuditContext;
-	relPath: string;
+	document: string;
 	content: string;
-	proof: ReviewProof;
+	entry: ReviewProofEntry;
 	source: FileSource;
 }): Issue[] {
-	const { ctx, relPath, content, proof, source } = input;
-	const issues: Issue[] = [];
-	if (proof.documentHash !== documentReviewDigest(content)) {
-		issues.push(
-			issue("review-proof", relPath, {
+	const { ctx, document, content, entry, source } = input;
+	const state = reviewStateFor({ root: ctx.root, entry, content, source });
+	if (state.status === "matches") return [];
+	if (state.status === "document-changed") {
+		return [
+			issue("review-proof", document, {
 				code: "review-document-changed",
 				message: "document changed after the recorded review",
-				remediation: "Re-read the entire document, then attest it again.",
+				remediation: REREAD,
 			}),
-		);
+		];
 	}
-	const currentTargets = currentDependencies({ root: ctx.root, relPath, content, issues });
-	if (!currentTargets) return issues;
-	const recordedTargets = Object.keys(proof.reviewDependencies).sort();
-	if (JSON.stringify(currentTargets) !== JSON.stringify(recordedTargets)) {
-		issues.push(
-			issue("review-proof", relPath, {
-				code: "review-dependency-set-changed",
-				message: "review dependency set changed after the recorded review",
+	if (state.status === "dependencies-invalid") {
+		return [
+			issue("review-proof", document, {
+				code: "review-dependency-invalid",
+				message: state.message,
 			}),
-		);
-		return issues;
+		];
 	}
-	issues.push(
-		...dependencyIssues({ root: ctx.root, relPath, targets: currentTargets, proof, source }),
+	const changed = changedDependencies({
+		root: ctx.root,
+		config: ctx.config,
+		document,
+		content,
+		source,
+	});
+	if (changed.length === 0) {
+		return [
+			issue("review-proof", document, {
+				code: "review-dependency-changed",
+				message: "review dependencies changed after the recorded review",
+				remediation: REREAD,
+			}),
+		];
+	}
+	return changed.map((target) =>
+		issue("review-proof", document, {
+			code: "review-dependency-changed",
+			message: `review dependency changed after the recorded review: ${target}`,
+			link: target,
+			remediation: REREAD,
+		}),
 	);
-	return issues;
 }
 
-function legacyLockIssue(lockRel: string): Issue {
-	return issue("review-proof", lockRel, {
-		code: "review-proof-legacy-lock",
-		message: "version 2 review lock found; review proof now lives in one file per document",
-		remediation:
-			"Run `skeleton audit docs --fix=review-proof` to migrate the proofs that still verify.",
-	});
+function fileIssue(proofPath: string, loaded: LoadedReviewProof): Issue | null {
+	if (loaded.status === "legacy") {
+		return issue("review-proof", loaded.files[0] ?? proofPath, {
+			code: "review-proof-legacy",
+			message: "Skeleton 5/6 review proof found; review proof now lives in one file",
+			remediation: `${REPAIR} It moves every proof that still verifies into ${proofPath}.`,
+		});
+	}
+	if (loaded.status === "invalid") {
+		return issue("review-proof", proofPath, {
+			code: "review-proof-invalid",
+			message: `review proof file is malformed at line ${loaded.line}`,
+		});
+	}
+	if (loaded.status === "conflicted") {
+		return issue("review-proof", proofPath, {
+			code: "review-proof-conflict",
+			message: "review proof file has a merge conflict",
+			remediation: `${REPAIR} It keeps the entries that still verify and attests nothing new.`,
+		});
+	}
+	return null;
+}
+
+function orphanIssues(
+	ctx: AuditContext,
+	entries: Map<string, ReviewProofEntry>,
+	source: FileSource,
+): Issue[] {
+	if (ctx.pathScoped) return [];
+	const documents = new Set(ctx.docMetaPaths);
+	return [...entries.keys()]
+		.filter((document) => !documents.has(document))
+		.filter((document) => {
+			const content = readRepoText(ctx.root, document, source);
+			return content === null || !DOC_META_RE.test(content);
+		})
+		.map((document) =>
+			issue("review-proof", reviewProofFile(ctx.config), {
+				code: "review-proof-orphan",
+				message: `review proof entry has no document: ${document}`,
+				severity: "warning",
+				remediation: `${REPAIR} It moves the entry of a renamed document or removes it.`,
+			}),
+		);
 }
 
 export function runReviewProofRule(ctx: AuditContext): Issue[] {
 	const source = ctx.fileSource ?? "worktree";
-	const lockRel = legacyLockPath(ctx.config);
-	if (readRepoText(ctx.root, lockRel, source) !== null) return [legacyLockIssue(lockRel)];
+	const proofPath = reviewProofFile(ctx.config);
+	const loaded = loadReviewProof({ root: ctx.root, config: ctx.config, source });
+	const blocking = fileIssue(proofPath, loaded);
+	if (blocking) return [blocking];
+	const entries = loaded.status === "valid" ? loaded.entries : new Map<string, ReviewProofEntry>();
 
 	const issues: Issue[] = [];
-	for (const relPath of ctx.docMetaPaths) {
-		const content = readRepoText(ctx.root, relPath, source);
+	for (const document of ctx.docMetaPaths) {
+		const content = readRepoText(ctx.root, document, source);
 		if (content === null) continue;
-		const loaded = loadReviewProof({
-			root: ctx.root,
-			config: ctx.config,
-			document: relPath,
-			source,
-		});
-		if (loaded.status === "missing") {
+		const entry = entries.get(normalizeRelPath(document));
+		if (!entry) {
 			issues.push(
-				issue("review-proof", relPath, {
+				issue("review-proof", document, {
 					code: "review-proof-missing",
 					message: "document has no recorded review proof",
 					remediation:
 						"Review the complete document, then run the explicit review attestation command.",
 				}),
 			);
-		} else if (loaded.status === "invalid") {
-			issues.push(
-				issue("review-proof", reviewProofPath(ctx.config, relPath), {
-					code: "review-proof-invalid",
-					message: "review proof file is malformed or uses an unsupported version",
-				}),
-			);
-		} else {
-			issues.push(...proofIssues({ ctx, relPath, content, proof: loaded.proof, source }));
+			continue;
 		}
+		issues.push(...documentIssues({ ctx, document, content, entry, source }));
 	}
+	issues.push(...orphanIssues(ctx, entries, source));
 	return issues;
 }
 

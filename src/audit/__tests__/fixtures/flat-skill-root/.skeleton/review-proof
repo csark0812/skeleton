@@ -1,0 +1,4 @@
+# Skeleton review proof. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# One entry per document. Do not edit by hand; keep the blank line between entries.
+
+docs/README.md doc=sha256:94808ba4b97041f7 deps=none

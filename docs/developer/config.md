@@ -20,7 +20,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | ---------------- | -------------------------------------------------------------------------------------------- |
 | `scan.include`   | Glob patterns for markdown/docs/skills in the audit perimeter (links, doc-meta, SSOT)        |
 | `scan.exclude`   | Removed from the perimeter (drafts, refs, local install trees)                               |
-| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when the last commit of a document's review proof is older than N days — not the same as “edited after review” (that is a hash mismatch; see [doc system](doc-system.md#doc-meta)) |
+| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when the commit that recorded a document's review (`git blame` of its proof line) is older than N days — not the same as “edited after review” (that is a hash mismatch; see [doc system](doc-system.md#doc-meta)) |
 
 ## Optional
 
@@ -32,7 +32,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
 | `review`                  | Human-review globs and an optional reviewer command for `review prepare` ([code review](review.md)) |
-| `reviewProof`             | Where per-document hash proof lives (always on); `package.json` ignores its release `version` (see below) |
+| `reviewProof`             | Where the review proof file lives (always on); `package.json` ignores its release `version` (see below) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -67,12 +67,22 @@ paths = ["apps/**/*_ANALYSIS.md"]
 ```toml
 # Optional. Review proof is always on.
 [reviewProof]
-dir = ".skeleton/reviews"
+file = ".skeleton/review-proof"
 ```
 
-Explicit attestation writes one proof file per document, `<dir>/<document path>.json`. It stores SHA-256 digests for the document (with its doc-meta comment replaced by a fixed token) and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until someone re-reads and attests the document again. Commit the proof files. The doc-meta comment is left out of the document digest, so editing an owner never invalidates a review. A Markdown dependency is compared the same way. Proof files hold no dates: the re-read cadence uses the date of the last commit that changed the proof file. Two PRs that review different documents therefore touch different files and do not conflict. Two PRs that review the same document still conflict on purpose.
+Explicit attestation writes one line per document into that file:
 
-`mode = "hash"` is still accepted. `lockfile` names a version 2 shared lock (default `.skeleton/review-lock.json`). While that file exists, `review-proof` reports only `review-proof-legacy-lock` and runs no per-document checks. Run `skeleton audit docs --fix=review-proof` once: it moves every entry that still verifies into proof files, removes legacy `last-reviewed` dates, and deletes the lock. It never attests anything new. Documents whose entries no longer verify need a normal review.
+```
+docs/api.md doc=sha256:2b7f90e14c6ad388 deps=sha256:d04c18e5f9a273b6
+```
+
+`doc` digests the document with its doc-meta comment replaced by a fixed token, so editing an owner never invalidates a review. `deps` is one digest over every resolved `review-deps` target and its own digest, so both a changed file and a changed dependency set invalidate the review (`deps=none` when there are none). A Markdown dependency is compared without its doc-meta comment. Digests are 64-bit prefixes of SHA-256: change detection, not a security boundary. Commit the file.
+
+Entries are sorted by path with one blank line between them. That blank line keeps git's merge from treating edits to neighbouring entries as one conflict, so two PRs that re-attest different documents merge cleanly; two PRs that re-attest the same document still conflict on purpose, and so can a newly added or removed entry right next to a re-attested one. Resolve such a conflict with `skeleton audit docs --fix=review-proof`: for a document with competing entries it keeps the first that still verifies against the merged bytes and otherwise drops it, so the document needs a fresh review; an uncontested entry is kept as is, so the audit can still say what changed. The file holds no dates; the re-read cadence uses the commit that last changed the document's line. When a dependency changed, the audit names it by comparing each dependency with its content at that commit.
+
+`review-deps` can narrow a JSON dependency to key paths, for example `package.json#scripts,package.json#bin`. The digest then covers only those keys (a missing key counts as evidence too); impact discovery still treats any change to the file as touching the document. Selectors work only on one `.json` file, not on a glob.
+
+`mode = "hash"` is still accepted. `dir` (Skeleton 6 per-document files, default `.skeleton/reviews`) and `lockfile` (Skeleton 5 lock, default `.skeleton/review-lock.json`) are read only to migrate. While either exists, `review-proof` reports only `review-proof-legacy` and runs no per-document checks. `skeleton audit docs --fix=review-proof` moves every legacy proof that still verifies into the file, removes legacy `last-reviewed` dates, deletes the legacy files, moves the entry of a renamed document when both digests still verify at the new path and that path has no entry, and removes entries whose path is no longer a reviewed document. It never attests anything new. A moved or migrated entry counts as a new line for the re-read cadence, so its age restarts at the repair commit.
 
 One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte.
 

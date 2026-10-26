@@ -1,7 +1,0 @@
-{
-	"version": 3,
-	"documentHash": "sha256:8fb19e5a1d4c736ef4c027b6d3423f7c75b57da25d285d62bf6a4d3fe04560fe",
-	"reviewDependencies": {
-		"src/orders/returns.ts": "sha256:eaa9cc56c19094c01e6db9990fc86838f6da635b21324840b9e36c869a4c9d97"
-	}
-}

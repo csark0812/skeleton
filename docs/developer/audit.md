@@ -27,10 +27,10 @@ skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --fix=review-proof    # migrate a v2 review-lock.json; never attests anything new
+skeleton audit docs --fix=review-proof    # migrate 5/6 proof, resolve a conflict, move renamed entries, remove orphans; never attests
 ```
 
-`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes hash evidence to `<reviewProof.dir>/<path>.json` (default `.skeleton/reviews/`). It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
+`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes the document's line in `<reviewProof.file>` (default `.skeleton/review-proof`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 
@@ -41,7 +41,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | links, doc-meta, review-proof, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
-\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.
+\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change. `review-proof` reports `review-proof-orphan` only on runs without `--paths`.
 
 ## Config
 
@@ -49,7 +49,7 @@ Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, 
 
 ## Machine-readable results
 
-`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its proof directory. Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
+`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its proof file (`reviewProof.proofFile`). Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
 
 Plugins: [plugins.md](plugins.md).
 

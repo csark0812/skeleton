@@ -1,0 +1,38 @@
+# Skeleton review proof. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# One entry per document. Do not edit by hand; keep the blank line between entries.
+
+AGENTS.md doc=sha256:a1d509f27ca7d777 deps=sha256:06684cdd76aa8b22
+
+README.md doc=sha256:c76560b52609729b deps=sha256:60b5637cfa45bcba
+
+agent-suites/README.md doc=sha256:53438437d6a5a2fc deps=sha256:b20db5822678f201
+
+docs/authoring.md doc=sha256:1c231d6d7454ff4c deps=sha256:4d8e91f6fe045bc3
+
+docs/developer/audit.md doc=sha256:e36e7c37351c6bdb deps=sha256:2bfb9d8eab0c36b2
+
+docs/developer/config.md doc=sha256:8f796ded9821c2e6 deps=sha256:df894f3201d51376
+
+docs/developer/doc-system.md doc=sha256:9e5e08b344d065a5 deps=sha256:ffe2bb2cb09292c4
+
+docs/developer/efficacy.md doc=sha256:6cbbf6503b16afb3 deps=sha256:7d0976409a0f693f
+
+docs/developer/getting-started.md doc=sha256:2c3d74371f435e77 deps=sha256:e1617b727cb3700f
+
+docs/developer/install.md doc=sha256:8478362965404af6 deps=sha256:92e16456aa3fb515
+
+docs/developer/plugins.md doc=sha256:cec5695fd7b9b8fe deps=sha256:3853058df90db094
+
+docs/developer/postprint-guidance-incident.md doc=sha256:2b257ab0a3e4136d deps=sha256:0b4131c59c10d3ed
+
+docs/developer/review.md doc=sha256:14d3ed0bc81552f3 deps=sha256:dc5c2515fb685d3c
+
+docs/developer/troubleshooting.md doc=sha256:c6730da7e7475af6 deps=sha256:a1d644d3732fa384
+
+docs/developer/validation.md doc=sha256:0cf48c737dc88c24 deps=sha256:9753b544388af08c
+
+docs/tiers.md doc=sha256:845cd35c6dcae810 deps=sha256:d1c5318945c7020d
+
+skeleton/SKILL.md doc=sha256:4bc90a9733e211f6 deps=none
+
+skeleton/references/operations.md doc=sha256:1d18be5e20a352ad deps=sha256:59263aa96498c567

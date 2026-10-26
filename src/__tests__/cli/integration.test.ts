@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -252,6 +253,14 @@ Run the project commands through the package scripts.
 `,
 			);
 			attestDocuments({ root, paths: ["docs/commands.md"] });
+			// Naming the changed dependency needs the commit that recorded the review.
+			for (const args of [
+				["init", "-q"],
+				["add", "-A"],
+				["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "review"],
+			]) {
+				execFileSync("git", args, { cwd: root });
+			}
 			writeFileSync(join(root, "package.json"), '{"scripts":{"commands":"new"}}\n');
 
 			const result = await evaluateValidateChanged({ root, paths: ["package.json"] });

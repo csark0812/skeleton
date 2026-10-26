@@ -1,9 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
-import { lastGitCommitDate } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { reviewProofPath } from "../core/review-proof.ts";
+import { reviewCommitDay } from "../core/review-proof.ts";
 import { DOC_META_RE, hasLegacyReviewDate } from "../core/shared.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
@@ -21,14 +20,14 @@ function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
 	});
 }
 
-/** Age of the last committed review, from the git history of the document's proof file. */
+/** Age of the last committed review: the commit that last changed the document's proof entry. */
 function checkStaleReview(input: {
 	ctx: AuditContext;
 	relPath: string;
 	today: Date;
 }): Issue | null {
 	const { ctx, relPath, today } = input;
-	const committed = lastGitCommitDate(reviewProofPath(ctx.config, relPath), ctx.root);
+	const committed = reviewCommitDay(ctx.root, ctx.config, relPath);
 	if (!committed) return null;
 	const ageDays = (today.getTime() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
 	if (!(ageDays > ctx.config.daysUntilStale)) return null;

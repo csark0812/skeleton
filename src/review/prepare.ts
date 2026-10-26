@@ -144,11 +144,19 @@ function documentsToReread(input: {
 		paths: candidates.map((document) => document.path),
 		fileSource: input.source,
 	});
-	const stale = new Set(
-		runReviewProofRule(ctx)
-			.filter((item) => item.severity === "error")
-			.map((item) => item.file),
+	const errors = runReviewProofRule(ctx).filter((item) => item.severity === "error");
+	// A legacy, conflicted, or malformed proof file blocks every per-document check.
+	const blocking = errors.find((item) =>
+		["review-proof-legacy", "review-proof-conflict", "review-proof-invalid"].includes(
+			item.code ?? "",
+		),
 	);
+	if (blocking) {
+		throw new Error(
+			`review prepare: ${blocking.file}: ${blocking.message}. ${blocking.remediation ?? ""}`.trim(),
+		);
+	}
+	const stale = new Set(errors.map((item) => item.file));
 	return candidates
 		.filter((document) => stale.has(document.path))
 		.map((document) => ({

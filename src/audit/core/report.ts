@@ -112,11 +112,7 @@ function printSuccess(label: string, options: ReportOptions, warnings: Issue[]):
 	return 0;
 }
 
-const REREAD_CODES = new Set([
-	"review-dependency-changed",
-	"review-document-changed",
-	"review-dependency-set-changed",
-]);
+const REREAD_CODES = new Set(["review-dependency-changed", "review-document-changed"]);
 
 export function isRereadIssue(item: Issue): boolean {
 	return Boolean(item.code && REREAD_CODES.has(item.code));
