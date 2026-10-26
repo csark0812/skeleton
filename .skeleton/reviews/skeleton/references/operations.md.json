@@ -2,7 +2,7 @@
 	"version": 3,
 	"documentHash": "sha256:e64dce53e77e152ca40926f240d12571d3d1ab745cb6e28c0ae2f8d9451ad651",
 	"reviewDependencies": {
-		"package.json": "sha256:57cd15ff2ae20b87bb48bb3865fd7ea42cc002a1c6c6e6556c727b93178cd5cf",
+		"package.json": "sha256:a5d5aefd5af9a901b02d7b11a27f9d635e4febabffe892ceddaf22b059910085",
 		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c",
 		"src/context.ts": "sha256:5db85865be45520ebf3bb3b3373a2c5f177a62c0bfc35ae255c5b319c36a3c6e",
 		"src/init/init.ts": "sha256:99c9a58836202f5e1954696db54f90cbbe5a66765695f8cd64b54cf17108f106",

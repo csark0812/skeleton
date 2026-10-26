@@ -29,7 +29,7 @@
 		"agent-test.matrix.config.ts": "sha256:78d57129fcb7e280e8f3cb98635c93d131bd6a777d4b897ba9b16fc9330316b9",
 		"agent-test.offline.config.ts": "sha256:697c9dd1d21a1a40f137d28471a98f43b857ad2de30656d5bf8c51904f1709de",
 		"bunfig.toml": "sha256:9747faa9eabcfaf3f3f891b37ed35522fad069a319e07badcdc505860af7957a",
-		"package.json": "sha256:57cd15ff2ae20b87bb48bb3865fd7ea42cc002a1c6c6e6556c727b93178cd5cf",
+		"package.json": "sha256:a5d5aefd5af9a901b02d7b11a27f9d635e4febabffe892ceddaf22b059910085",
 		"scripts/efficacy/adoption.ts": "sha256:29119a4a878aef74bc1f66239c214cc38bd42415c65d1b579dbcfd1b4a849950",
 		"scripts/efficacy/billing-document.ts": "sha256:9feff7f34856bcf44f61f95effd572badc331611f0e2446096c10be98439308f",
 		"scripts/efficacy/documents.ts": "sha256:e6fdd2ff56ad2679f32d082f6d7af60446659c55e2afe1728b75c6854425e441",
