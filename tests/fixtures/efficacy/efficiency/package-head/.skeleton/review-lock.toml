@@ -1,0 +1,15 @@
+# Skeleton review lock. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
+# One entry per document. Do not edit by hand; keep the blank line between entries.
+version = 4
+
+"docs/billing/delivery.md" = { doc = "sha256:f82c200c4c70ef78", deps = "sha256:482870c9766031e4" }
+
+"docs/billing/idempotency.md" = { doc = "sha256:d112b39301d91c31", deps = "sha256:d25713dffe0d865e" }
+
+"docs/deployment/billing-rollout.md" = { doc = "sha256:8e48098469b4f99a", deps = "sha256:b0079001f7dfaae8" }
+
+"docs/orders/cancellation.md" = { doc = "sha256:4142937d96d86297", deps = "sha256:7854dbdd645989c7" }
+
+"docs/orders/fulfillment.md" = { doc = "sha256:e641fd3b8ead123a", deps = "sha256:7ef45df0ca5b3f68" }
+
+"docs/orders/returns.md" = { doc = "sha256:8fb19e5a1d4c736e", deps = "sha256:934ea9b0f6767252" }

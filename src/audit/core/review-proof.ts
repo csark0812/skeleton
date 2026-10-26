@@ -30,11 +30,16 @@ import { DOC_META_RE, normalizeRelPath, stripLegacyReviewDate } from "./shared.t
 
 export type { ReviewProofEntry } from "./review-proof-file.ts";
 
-/** The one proof file: an entry per reviewed document, so the repository holds no per-document proof files. */
-export const DEFAULT_REVIEW_PROOF_FILE = ".skeleton/review-proof";
+/** The review lock: one TOML entry per reviewed document, so the repository holds one proof file. */
+export const DEFAULT_REVIEW_PROOF_FILE = ".skeleton/review-lock.toml";
 
+/**
+ * The review lock path. A configured `file` that is not a `.toml` path is a Skeleton 7 line
+ * file; it is read only to migrate it, and the lock goes to the default path.
+ */
 export function reviewProofFile(config: Pick<SkeletonConfig, "reviewProof">): string {
-	return normalizeRelPath(config.reviewProof?.file ?? DEFAULT_REVIEW_PROOF_FILE);
+	const configured = config.reviewProof?.file;
+	return normalizeRelPath(configured?.endsWith(".toml") ? configured : DEFAULT_REVIEW_PROOF_FILE);
 }
 
 /** Short digest of a reviewed document, without its doc-meta comment. */
@@ -232,9 +237,6 @@ function changedDocumentWrites(
 
 function assertAttestable(root: string, selected: string[]): void {
 	for (const relPath of selected) {
-		// The proof file treats `#` lines as comments, so such a path could never be read back.
-		if (relPath.startsWith("#"))
-			throw new Error(`Cannot attest a path that starts with #: ${relPath}`);
 		const content = readRepoText(root, relPath, "worktree");
 		if (content === null) throw new Error(`Cannot attest missing document: ${relPath}`);
 		if (!DOC_META_RE.test(content)) {
@@ -316,7 +318,7 @@ function entryVerifies(
 }
 
 export interface RepairReviewProofResult {
-	/** Documents carried over from a Skeleton 5 or 6 proof that still verifies. */
+	/** Documents carried over: Skeleton 5/6 proofs that still verify, and Skeleton 7 entries unchanged. */
 	migrated: string[];
 	/** Legacy reviews that no longer verify; those documents need a normal review. */
 	unverified: string[];
@@ -412,6 +414,28 @@ function legacyVerifies(
 	}
 }
 
+/**
+ * Skeleton 7 entries use the current digests, so each one carries over unchanged (a stale one
+ * stays stale). From a conflicted Skeleton 7 file, the same rules as a conflicted lock apply.
+ */
+function carryLineEntries(input: {
+	root: string;
+	legacy: { entries: ReviewProofEntry[]; conflicted: boolean };
+	entries: Map<string, ReviewProofEntry>;
+	documents: Map<string, string>;
+}): string[] {
+	const chosen = input.legacy.conflicted
+		? conflictWinners(input.root, input.legacy.entries, input.documents).entries
+		: new Map(input.legacy.entries.map((entry) => [entry.document, entry]));
+	const carried: string[] = [];
+	for (const [document, entry] of chosen) {
+		if (input.entries.has(document)) continue;
+		input.entries.set(document, entry);
+		carried.push(document);
+	}
+	return carried;
+}
+
 /** Add an entry for every legacy review that still verifies and has no current entry. */
 function migrateLegacyReviews(input: {
 	root: string;
@@ -460,7 +484,7 @@ function currentEntries(input: {
 }
 
 /**
- * `--fix=review-proof`: migrate Skeleton 5/6 proof, resolve a merge conflict, move entries
+ * `--fix=review-proof`: migrate Skeleton 5, 6, and 7 proof, resolve a merge conflict, move entries
  * of renamed documents, and drop entries of deleted ones. Only proof that still verifies
  * against current bytes survives; this never attests anything new.
  */
@@ -475,7 +499,13 @@ export function repairReviewProof(options: {
 	const documents = documentsWithoutLegacyDates(ctx.root, ctx.docMetaPaths);
 
 	const { content, entries, resolved } = currentEntries({ root: ctx.root, proofPath, documents });
-	const { migrated, unverified } = migrateLegacyReviews({
+	const carried = carryLineEntries({
+		root: ctx.root,
+		legacy: legacy.lineEntries,
+		entries,
+		documents,
+	});
+	const { migrated: migratedReviews, unverified } = migrateLegacyReviews({
 		root: ctx.root,
 		reviews: legacy.reviews,
 		entries,
@@ -492,7 +522,7 @@ export function repairReviewProof(options: {
 		removeEmptyLegacyDir(ctx.root, legacyProofDir(ctx.config));
 	}
 	return {
-		migrated,
+		migrated: sortedPaths([...carried, ...migratedReviews]),
 		unverified,
 		resolved,
 		moved,
@@ -562,8 +592,8 @@ function fileIssue(proofPath: string, loaded: LoadedReviewProof): Issue | null {
 	if (loaded.status === "legacy") {
 		return issue("review-proof", loaded.files[0] ?? proofPath, {
 			code: "review-proof-legacy",
-			message: "Skeleton 5/6 review proof found; review proof now lives in one file",
-			remediation: `${REPAIR} It moves every proof that still verifies into ${proofPath}.`,
+			message: "Skeleton 5, 6, or 7 review proof found; review proof now lives in the review lock",
+			remediation: `${REPAIR} It moves the old proof into ${proofPath}; Skeleton 5/6 proofs carry over only while they still verify.`,
 		});
 	}
 	if (loaded.status === "invalid") {

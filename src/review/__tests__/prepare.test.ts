@@ -95,7 +95,7 @@ describe("review prepare", () => {
 	it("stops when the review proof file has a merge conflict", async () => {
 		const root = makeRepo();
 		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
-		write(root, ".skeleton/review-proof", "<<<<<<< ours\n=======\n>>>>>>> theirs\n");
+		write(root, ".skeleton/review-lock.toml", "<<<<<<< ours\n=======\n>>>>>>> theirs\n");
 		await expect(prepareReview({ root })).rejects.toThrow(/merge conflict/);
 	});
 

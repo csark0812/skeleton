@@ -50,7 +50,7 @@ describe("context", () => {
 	it("requires source comparison for unreviewed claims while preserving historical intent", () => {
 		const root = makeRepo();
 		try {
-			rmSync(join(root, ".skeleton/review-proof"));
+			rmSync(join(root, ".skeleton/review-lock.toml"));
 			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
 			expect(packet).toContain("action\tdocs/billing.md\tNo matching recorded review proof");
 			expect(packet).toContain("active implementation claims");

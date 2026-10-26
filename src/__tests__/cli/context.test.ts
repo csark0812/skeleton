@@ -129,8 +129,8 @@ describe("context CLI", () => {
 			`sha256:${createHash("sha256").update(content).digest("hex").slice(0, 16)}`;
 		mkdirSync(join(root, ".skeleton"), { recursive: true });
 		writeFileSync(
-			join(root, ".skeleton/review-proof"),
-			`docs/billing.md doc=${digest(document)} deps=${digest("stale")}\n`,
+			join(root, ".skeleton/review-lock.toml"),
+			`version = 4\n\n"docs/billing.md" = { doc = "${digest(document)}", deps = "${digest("stale")}" }\n`,
 		);
 		const result = run(root, ["billing retry"]);
 		expect(result.status).toBe(0);
