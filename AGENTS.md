@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:32Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/cli.ts,package.json -->
 
@@ -20,7 +20,7 @@ After a full re-read, attest only that path:
 bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Attestation writes a UTC `last-reviewed` timestamp (`YYYY-MM-DDTHH:MM:SSZ`), so a same-day re-review still changes the file. Legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in that line, keep the later stamp.
+Attestation writes one proof file per document under `.skeleton/reviews/` and writes no date into the document. Commit that file with the change. Proof files hold hashes only, so parallel PRs that review different documents do not conflict.
 
 ## First hour
 

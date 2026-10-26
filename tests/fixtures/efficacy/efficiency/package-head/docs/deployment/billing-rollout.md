@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Billing webhook rollout flag; source owner src/deployment/billing-rollout.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/deployment/billing-rollout.ts -->
 

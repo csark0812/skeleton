@@ -3,9 +3,10 @@ import type { Issue } from "./audit/core/report.ts";
 export type CatalogStatus = "current" | "missing" | "stale" | "skipped-ci" | "not-applicable";
 
 export interface ReviewProofResult {
-	mode: "date" | "hash";
-	status: "not-enabled" | "not-checked" | "valid" | "invalid";
-	lockfile?: string;
+	mode: "hash";
+	status: "not-checked" | "valid" | "invalid";
+	/** Directory of per-document proof files. */
+	proofDir: string;
 }
 
 export interface AuditResult {

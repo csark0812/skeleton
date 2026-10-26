@@ -1,7 +1,7 @@
 # Agent tests
 
 <!-- source-of-truth: agent comparison tasks and supporting checks -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng -->
 <!-- review-deps: paths=agent-suites/**/*.ts,agent-suites/seeds/**,scripts/efficacy/**,scripts/run-efficacy.ts -->
 
 | Suite | Question |

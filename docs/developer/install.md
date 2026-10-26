@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: installing skeleton in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/init/** -->
 

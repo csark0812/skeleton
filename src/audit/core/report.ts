@@ -114,7 +114,6 @@ function printSuccess(label: string, options: ReportOptions, warnings: Issue[]):
 
 const REREAD_CODES = new Set([
 	"review-dependency-changed",
-	"impacted-document-review-required",
 	"review-document-changed",
 	"review-dependency-set-changed",
 ]);
@@ -125,12 +124,7 @@ export function isRereadIssue(item: Issue): boolean {
 
 function rereadTrigger(item: Issue): string | null {
 	if (item.code === "review-document-changed") return item.file;
-	if (
-		item.code === "review-dependency-changed" ||
-		item.code === "impacted-document-review-required"
-	) {
-		return item.link ?? null;
-	}
+	if (item.code === "review-dependency-changed") return item.link ?? null;
 	return null;
 }
 

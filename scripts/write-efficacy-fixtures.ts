@@ -5,7 +5,6 @@ import { buildCatalogContent } from "../src/catalog.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/efficacy");
-const REVIEWED_AT = "2026-09-14";
 
 rmSync(FIXTURES, { recursive: true, force: true });
 
@@ -41,7 +40,7 @@ paths = []
 function addSkeletonArtifacts(root: string, docsToAttest: string[]): void {
 	const abs = join(ROOT, root);
 	for (const doc of docsToAttest) {
-		attestDocuments({ root: abs, paths: [doc], reviewedAt: REVIEWED_AT });
+		attestDocuments({ root: abs, paths: [doc] });
 	}
 	const { content } = buildCatalogContent(abs);
 	write(join(root, ".skeleton/catalog.md"), content);
@@ -97,7 +96,7 @@ const billingDocSkeleton = `# Billing webhook delivery
 
 <!-- source-of-truth: Billing webhook endpoint and retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing.ts -->
 
@@ -146,7 +145,7 @@ function authorityPaper(options: { label: "A" | "B"; url: string; marked: boolea
 	const marker = options.marked ? "<!-- source-of-truth: Billing webhook endpoint -->\n\n" : "";
 	return `# Billing webhook reference ${options.label}
 
-${marker}<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+${marker}<!-- doc-meta: owner=billing -->
 
 New integrations send webhooks to ${options.url}.
 `;
@@ -255,7 +254,7 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 	};
 	for (const [path, fact] of Object.entries(efficiencyFacts)) {
 		files[path] = skeleton
-			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng | last-reviewed=${REVIEWED_AT} -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
+			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
 			: `# ${fact.summary}\n\n${fact.body}\n`;
 	}
 	for (const [slug, title, body] of noiseTopics)
@@ -422,7 +421,7 @@ function postPrintFixtureFiles(treatment: EfficiencyTreatment): Record<string, s
 
 <!-- source-of-truth: Workspace document realtime protocol, generated client, and cache invalidation boundaries -->
 
-<!-- doc-meta: owner=eng | last-reviewed=${REVIEWED_AT} -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=${Object.keys(postPrintRealtimeSources).join(",")} -->
 

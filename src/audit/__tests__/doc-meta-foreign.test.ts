@@ -35,7 +35,7 @@ function writeConsumerFixture(
 	);
 	writeFileSync(
 		join(root, "docs/README.md"),
-		"# Docs\n\n<!-- source-of-truth: docs index -->\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n",
+		"# Docs\n\n<!-- source-of-truth: docs index -->\n\n<!-- doc-meta: owner=eng -->\n",
 	);
 	writeFileSync(
 		join(root, `.claude/skills/${foreignSlug}/SKILL.md`),
@@ -109,7 +109,7 @@ describe("foreign skill doc-meta scope", () => {
 				ownedSlug: "local-skill",
 				ownedSlugs: ["local-skill"],
 				refRel: ".claude/skills/local-skill/references/bar.md",
-				refDocMeta: "<!-- doc-meta: owner=eng | last-reviewed=2000-01-01 -->\n",
+				refDocMeta: "<!-- doc-meta: owner=eng -->\n",
 			});
 			mkdirSync(join(root, ".claude/skills/local-skill/references"), { recursive: true });
 			writeFileSync(
@@ -138,8 +138,11 @@ describe("foreign skill doc-meta scope", () => {
 
 			const ctx = createContext({ root });
 			const issues = runDocMetaRule(ctx);
-			expect(issues.some((i) => i.file === ".claude/skills/local-skill/references/bar.md")).toBe(
-				true,
+			expect(issues).toContainEqual(
+				expect.objectContaining({
+					file: ".claude/skills/local-skill/references/bar.md",
+					code: "legacy-review-date",
+				}),
 			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });

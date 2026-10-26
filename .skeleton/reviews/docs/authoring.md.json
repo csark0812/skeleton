@@ -1,0 +1,7 @@
+{
+	"version": 3,
+	"documentHash": "sha256:4b37c7cbda743899bd6679eaeb5a9fcd4b59ca0d0d7dbcb587e9e4d454191f63",
+	"reviewDependencies": {
+		"src/catalog.ts": "sha256:3427516541ae56209b24c221d16f7d57d80aa4bd547c4f9cbab25e22a39e8633"
+	}
+}

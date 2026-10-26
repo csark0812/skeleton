@@ -25,7 +25,7 @@ describe("evidence + overlap", () => {
 
 **Source of truth for** the three-tier agent ecosystem.
 
-<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->
+<!-- doc-meta: owner=eng -->
 
 Map of the three-tier agent ecosystem across skeleton and toolbox.
 

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Workspace document realtime protocol, generated client, and cache invalidation boundaries -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=apps/backend/postprint/realtime/schemas.py,apps/backend/postprint/papers/realtime/publish.py,tspackages/websocket/src/realtime/realtime.gen.ts,apps/client/src/websocket/projectUpdates.ts,apps/backend/postprint/realtime/openapi_ws.json,tspackages/websocket/project.json,tspackages/websocket/scripts/generate-types.ts -->
 

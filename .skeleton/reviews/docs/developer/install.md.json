@@ -1,0 +1,12 @@
+{
+	"version": 3,
+	"documentHash": "sha256:9aec0a2a8db1706272667a61db200ca2cc356b1b5aea47c3a5ee956d51646093",
+	"reviewDependencies": {
+		"src/init/init.ts": "sha256:27430b6ce33d497f2eb0a9f2f04173a37d34ecc644d57d6b50e5ddb3deb03867",
+		"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
+		"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
+		"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
+		"src/init/parse-args.ts": "sha256:30c9b45ffefcd57957670e32333131dd472c6a935e5f4291ae0b1fdbfea10257",
+		"src/init/skills-args.ts": "sha256:6f58361b2186e50d270e36c16a5c6d40a029503a25cfa04f0503cf34d985dc13"
+	}
+}

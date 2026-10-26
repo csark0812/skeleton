@@ -1,6 +1,6 @@
 # Skeleton operations
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:10Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/cli.ts,src/context.ts,src/init/init.ts,src/init/skills-args.ts,package.json -->
 
@@ -32,7 +32,7 @@ After a complete human re-read, record review evidence for explicit paths only:
 npx --no-install skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 ```
 
-Attestation writes a UTC `last-reviewed` timestamp (`YYYY-MM-DDTHH:MM:SSZ`), so a same-day re-review still changes the file. Legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in that line, keep the later stamp.
+Attestation writes one proof file per document under `.skeleton/reviews/` and writes no date into the document. Commit that file with the change. Proof files hold hashes only, so parallel PRs that review different documents do not conflict. To upgrade from a version 2 `.skeleton/review-lock.json`, run `npx --no-install skeleton audit docs --fix=review-proof` once.
 
 Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 
@@ -52,7 +52,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.
 
-Context emits review actions for missing proof (`unreviewed`), dependency changes (`changed-since-review`), and a review date behind a document edit or the configured cadence (`review-required`). Missing proof requires comparing active implementation claims with source; historical alternatives and future aspirations remain qualified intent. A matching hash proves recorded bytes, not semantic agreement.
+Context emits review actions for missing proof (`unreviewed`), dependency changes (`changed-since-review`), and a document edited after its review or a review older than the configured cadence (`review-required`). Missing proof requires comparing active implementation claims with source; historical alternatives and future aspirations remain qualified intent. A matching hash proves recorded bytes, not semantic agreement.
 
 Each matching paper receives a share of the excerpt budget so one broad owner cannot consume it all. `omitted` and `omitted-source` list excluded papers and declared sources, with an action to narrow the query, increase `--max-chars`, or report the remaining evidence limit. Review status compares the full declared dependency set, including files removed from a glob, even when excerpts are omitted. Complete the relevant review and omission actions before treating the packet as sufficient evidence.
 

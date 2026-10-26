@@ -1,0 +1,11 @@
+{
+	"version": 3,
+	"documentHash": "sha256:388e3cd0083627b032a4cc7110771e772df4b7bbb7c768c10d40327af2b9a900",
+	"reviewDependencies": {
+		"scripts/reproduce-postprint-guidance-incident.py": "sha256:1f6bf4d1fe47c5e048ae16d8666f0948c930d5ebceef00e2956104b392b7410f",
+		"src/audit/core/review-coverage.ts": "sha256:822546726ac5473cd1ec5827fecc3bf1b1956348d8d6fe9fe710489c6acf3156",
+		"src/audit/rules/index.ts": "sha256:bae2d28301d2a623724ac8adb1f14a47609a51570d1cce9a59c54b923d41b20f",
+		"src/context.ts": "sha256:5db85865be45520ebf3bb3b3373a2c5f177a62c0bfc35ae255c5b319c36a3c6e",
+		"src/validate/changed.ts": "sha256:9237332701eb176c16e09a5aa1b1c506b5499a7fbc153dcc394e59bc2259ed9d"
+	}
+}

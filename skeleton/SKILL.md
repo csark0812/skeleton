@@ -7,7 +7,7 @@ description: Use Skeleton to find canonical repository context for questions or 
 
 <!-- source-of-truth: maintaining a skeleton-enabled repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-04 -->
+<!-- doc-meta: owner=eng -->
 
 ## Repository context
 

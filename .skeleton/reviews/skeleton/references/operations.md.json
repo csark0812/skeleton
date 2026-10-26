@@ -1,0 +1,11 @@
+{
+	"version": 3,
+	"documentHash": "sha256:e250f592beacdd12ebb74a4ae8fa9b1da699d90103c50da57e5f476b11830d5e",
+	"reviewDependencies": {
+		"package.json": "sha256:8baab4e6a35cfffebc6f7045cb232576a168e037cec1d0ff1def96a2189f7f61",
+		"src/cli.ts": "sha256:32bf0909680e2619fabc603127112f71c707becc4cc699da66fc9c53d0783fd8",
+		"src/context.ts": "sha256:5db85865be45520ebf3bb3b3373a2c5f177a62c0bfc35ae255c5b319c36a3c6e",
+		"src/init/init.ts": "sha256:27430b6ce33d497f2eb0a9f2f04173a37d34ecc644d57d6b50e5ddb3deb03867",
+		"src/init/skills-args.ts": "sha256:6f58361b2186e50d270e36c16a5c6d40a029503a25cfa04f0503cf34d985dc13"
+	}
+}

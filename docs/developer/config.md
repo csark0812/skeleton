@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:10Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/audit/config/** -->
 
@@ -20,7 +20,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | ---------------- | -------------------------------------------------------------------------------------------- |
 | `scan.include`   | Glob patterns for markdown/docs/skills in the audit perimeter (links, doc-meta, SSOT)        |
 | `scan.exclude`   | Removed from the perimeter (drafts, refs, local install trees)                               |
-| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when `last-reviewed` is older than N days — not the same as “edited after review” (that uses git; see [doc system](doc-system.md#doc-meta)) |
+| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when the last commit of a document's review proof is older than N days — not the same as “edited after review” (that is a hash mismatch; see [doc system](doc-system.md#doc-meta)) |
 
 ## Optional
 
@@ -31,7 +31,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `plugins`                 | Plugin entry paths relative to `.skeleton/` (each needs a built sibling `.mjs`) — [plugins](plugins.md) |
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
-| `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes; `package.json` ignores its release `version` (see below) |
+| `reviewProof`             | Where per-document hash proof lives (always on); `package.json` ignores its release `version` (see below) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -64,16 +64,16 @@ paths = ["apps/**/*_ANALYSIS.md"]
 ## `reviewProof`
 
 ```toml
+# Optional. Review proof is always on.
 [reviewProof]
-mode = "hash"
-# lockfile = ".skeleton/review-lock.json"
+dir = ".skeleton/reviews"
 ```
 
-Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile.
+Explicit attestation writes one proof file per document, `<dir>/<document path>.json`. It stores SHA-256 digests for the document (with its doc-meta comment replaced by a fixed token) and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until someone re-reads and attests the document again. Commit the proof files. The doc-meta comment is left out of the document digest, so editing an owner never invalidates a review. A Markdown dependency is compared the same way. Proof files hold no dates: the re-read cadence uses the date of the last commit that changed the proof file. Two PRs that review different documents therefore touch different files and do not conflict. Two PRs that review the same document still conflict on purpose.
 
-One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte. Digests recorded before this rule still match while the manifest bytes stay unchanged. The first change after an upgrade needs one re-attestation. Init enables this section by default.
+`mode = "hash"` is still accepted. `lockfile` names a version 2 shared lock (default `.skeleton/review-lock.json`). While that file exists, `review-proof` reports only `review-proof-legacy-lock` and runs no per-document checks. Run `skeleton audit docs --fix=review-proof` once: it moves every entry that still verifies into proof files, removes legacy `last-reviewed` dates, and deletes the lock. It never attests anything new. Documents whose entries no longer verify need a normal review.
 
-Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with an explicit review stamp. The gate compares the UTC day of the stamp. Under `--base`, that day must be on or after the UTC date of the latest non-merge commit in the range that touched the dependency; local runs require today's UTC date.
+One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte.
 
 ## `reviewCoverage`
 

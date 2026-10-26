@@ -31,11 +31,13 @@ export interface ReviewCoverageConfig {
 	exclude?: string[];
 }
 
-/** Verifiable evidence that a human review covered exact document and code bytes. */
+/** Where review proof lives. Proof is always hash-based: one file per reviewed document. */
 export interface ReviewProofConfig {
-	/** Hash mode stores reviewed document and code-target digests in a lockfile. */
-	mode: "hash";
-	/** Repo-relative proof lockfile (default: .skeleton/review-lock.json). */
+	/** Accepted for older configs; hash is the only mode. */
+	mode?: "hash";
+	/** Repo-relative directory of per-document proof files (default: .skeleton/reviews). */
+	dir?: string;
+	/** Version 2 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
 	lockfile?: string;
 }
 
@@ -57,7 +59,7 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
-	/** Re-read cadence (days) for doc-meta last-reviewed; separate from git edit-behind-review. */
+	/** Re-read cadence (days), measured from the last commit of a document's review proof. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;

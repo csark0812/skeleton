@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: common Skeleton validation failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
 
@@ -20,17 +20,11 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 
 The same error fires on local, `--staged`, and `--base` runs. A mixed docs commit does not hide it.
 
-## `impacted-document-review-required`
-
-**Cause:** Date mode (no `[reviewProof]`). A `review-deps` dependency changed, and the linked paper did not co-change with a current `last-reviewed` stamp. The gate compares the UTC day of the stamp. Under `--base`, current means on or after the UTC committer date of the latest non-merge commit in `base..HEAD` that touched that dependency. Local and `--staged` runs require today's UTC date.
-
-**Fix:** Re-read the paper against the changed dependency, then attest it with `--fix=doc-meta --confirm-reviewed` and include it in the change. Attestation writes a UTC timestamp with seconds, so a same-day re-review still changes the paper; do not add filler edits. Re-running CI on a later day does not change a `--base` result. On a merge conflict in the `last-reviewed` line, keep the later stamp.
-
 ## `stage-required`
 
-**Cause:** `--staged` saw an impacted paper or hash lockfile that differs from HEAD and is not in the index.
+**Cause:** `--staged` saw an impacted paper or its proof file (`.skeleton/reviews/<path>.json`) that differs from HEAD and is not in the index.
 
-**Fix:** Stage the attested document. In hash mode, stage `.skeleton/review-lock.json` too.
+**Fix:** Stage the attested document and its proof file.
 
 ## `validate changed: all paths were skipped`
 
@@ -93,24 +87,28 @@ Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plu
 
 Two different signals (see [doc system](doc-system.md#doc-meta)):
 
-**Review behind latest edit** — message mentions `content changed after last-reviewed` / a git date.
+**Changed since review** — code `review-document-changed`, `review-dependency-changed`, or `review-dependency-set-changed`.
 
-**Cause:** The file’s last content commit is newer than `last-reviewed`, so the stamp no longer covers the paper.
+**Cause:** The document or a `review-deps` dependency no longer matches the hashes in its proof file, so the recorded review no longer covers it.
 
-**Fix:** Re-read the entire document. Bump `last-reviewed` only if the content is still correct; changing the date alone does not satisfy the check. Record the completed review for explicit paths:
+**Fix:** Re-read the entire document against every current dependency. Attest it only if the content is still correct:
 
 ```bash
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
 skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
 ```
 
-If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
+Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Do not hand-edit proof files.
 
-**Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
+**Missing proof** — code `review-proof-missing`. The document has never been attested. Review it, then run the command above.
 
-**Cause:** Calendar age of `last-reviewed` (even if the file was not edited). This is process hygiene, not proof the text is wrong.
+**Version 2 lock** — code `review-proof-legacy-lock`. Run `skeleton audit docs --fix=review-proof` once to move the entries that still verify into proof files ([config](config.md#reviewproof)).
 
-**Fix:** Re-affirm the paper and bump the date, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
+**Re-read cadence** — code `review-cadence-exceeded`.
+
+**Cause:** The last commit that changed the document's proof file is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
+
+**Fix:** Re-read and attest the paper again, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
 
 ## Still stuck?
 

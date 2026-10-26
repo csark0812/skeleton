@@ -38,7 +38,7 @@ for (const variant of ["adoption", "truncated", "missing", "trivial"]) {
 		write(root, "tests/limits.test.ts", tests);
 		const marker =
 			side === "skeleton" && variant !== "adoption" && variant !== "missing"
-				? "<!-- source-of-truth: Order limits -->\n<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n"
+				? "<!-- source-of-truth: Order limits -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n"
 				: "";
 		write(
 			root,

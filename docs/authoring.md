@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Skeleton framework authoring conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/catalog.ts -->
 
@@ -15,7 +15,7 @@ Full day-one flow: [getting started](developer/getting-started.md). Banner / cat
 Index docs and SSOT-bearing files require a doc-meta comment:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 ```
 
-After editing a paper, re-read the entire document and bump `last-reviewed` only when the content is still correct. Do not change the date alone: git is the last-edit signal, and there is no separate authored edit date. Attestation writes a UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`); legacy `YYYY-MM-DD` dates stay valid. On a merge conflict in the stamp line, keep the later stamp. Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).
+After editing a paper, re-read the entire document and attest it only when the content is still correct. Attestation writes a hash proof file under `.skeleton/reviews/`; the paper itself carries no review date. Cadence vs changed-since-review: [doc system](developer/doc-system.md#doc-meta).

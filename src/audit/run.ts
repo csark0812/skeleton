@@ -6,7 +6,7 @@ import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
-import { attestDocuments } from "./core/review-proof.ts";
+import { attestDocuments, migrateReviewProof, reviewProofDir } from "./core/review-proof.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
@@ -28,9 +28,9 @@ export interface AuditCliOptions {
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
 	const next = argv[index + 1];
 	if (next && !next.startsWith("-")) {
-		if (next !== "doc-meta" && next !== "anchors" && next !== "ssot") {
+		if (!["doc-meta", "review-proof", "anchors", "ssot"].includes(next)) {
 			throw new Error(
-				`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, --fix=anchors, or --fix=ssot.`,
+				`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, --fix=review-proof, --fix=anchors, or --fix=ssot.`,
 			);
 		}
 		return { fix: next, nextIndex: index + 1 };
@@ -210,15 +210,14 @@ function reviewProofStatus(
 	diagnostics: ReturnType<typeof finalizeIssues>,
 	executed: string[],
 ): ReviewProofResult {
-	if (!config.reviewProof) return { mode: "date", status: "not-enabled" };
-	const lockfile = config.reviewProof.lockfile ?? ".skeleton/review-lock.json";
+	const proofDir = reviewProofDir(config);
 	if (!executed.includes("review-proof")) {
-		return { mode: "hash", status: "not-checked", lockfile };
+		return { mode: "hash", status: "not-checked", proofDir };
 	}
 	const invalid = diagnostics.some(
 		(item) => item.rule === "review-proof" && item.severity === "error",
 	);
-	return { mode: "hash", status: invalid ? "invalid" : "valid", lockfile };
+	return { mode: "hash", status: invalid ? "invalid" : "valid", proofDir };
 }
 
 function shouldRunRule(
@@ -230,6 +229,13 @@ function shouldRunRule(
 	if (options.pathScopedOnly) return !rule.global || Boolean(rule.alwaysRun);
 	if (pathScoped && rule.global && !rule.alwaysRun) return false;
 	return true;
+}
+
+function migrateAndReport(root: string, dryRun: boolean | undefined): void {
+	const { migrated, unverified } = migrateReviewProof({ root, dryRun });
+	console.error(
+		`review proof: migrated ${migrated.length} document(s); ${unverified.length} need a fresh review (${unverified.join(", ") || "none"})`,
+	);
 }
 
 async function runAuditFixes(
@@ -256,7 +262,8 @@ async function runAuditFixes(
 			dryRun: options.dryRun,
 		});
 	}
-	const mechanicalKinds = kinds.filter((kind) => kind !== "doc-meta");
+	if (kinds.includes("review-proof")) migrateAndReport(ctx.root, options.dryRun);
+	const mechanicalKinds = kinds.filter((kind) => kind !== "doc-meta" && kind !== "review-proof");
 	if (mechanicalKinds.length > 0) {
 		applyFixes(ctx, { kinds: mechanicalKinds, dryRun: options.dryRun });
 	}

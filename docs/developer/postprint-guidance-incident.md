@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: PostPrint product guidance incident findings, reproduction, and Skeleton detection boundaries -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:51:10Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=scripts/reproduce-postprint-guidance-incident.py,src/context.ts,src/validate/changed.ts,src/audit/rules/index.ts,src/audit/core/review-coverage.ts -->
 
@@ -153,7 +153,7 @@ python3 scripts/reproduce-postprint-guidance-incident.py \
 
 # Current source, independently of the installed executable.
 python3 scripts/reproduce-postprint-guidance-incident.py \
-  --runtime bun --cli src/cli.ts \
+  --runtime bun --cli src/cli.ts --expect-prevention \
   --output /private/tmp/skeleton-guidance-source
 ```
 
@@ -198,7 +198,7 @@ review and omission actions, rather than a semantic detector.
 
 | Order / owner | Concrete change | Acceptance gate |
 | --- | --- | --- |
-| 1 — PostPrint product/engineering | Have `docs/product/object-model.md` declare `papers/models.py`, `annotations/models.py`, and the relevant document-edit ownership sources by full repo-relative paths. Include migration 0091 as inspected evidence. Review the active model/ADR against those sources; the existing date-mode dependency gate is sufficient to start. Give other active papers dependencies for their own factual claims; use root model/ADR links to route the wider manual reconciliation. | `context --path=<model>` returns the product owner with source evidence. A code-only change to a declared implementation path triggers required review. Historical alternatives and unimplemented aspirations remain explicitly qualified. |
+| 1 — PostPrint product/engineering | Have `docs/product/object-model.md` declare `papers/models.py`, `annotations/models.py`, and the relevant document-edit ownership sources by full repo-relative paths. Include migration 0091 as inspected evidence. Review the active model/ADR against those sources; the dependency gate with per-document hash proof is sufficient to start. Give other active papers dependencies for their own factual claims; use root model/ADR links to route the wider manual reconciliation. | `context --path=<model>` returns the product owner with source evidence. A code-only change to a declared implementation path triggers required review. Historical alternatives and unimplemented aspirations remain explicitly qualified. |
 | 2 — PostPrint validation | Replace the empty coverage include with a narrow set covering those model/contract paths. Run Skeleton `validate changed --staged` for source changes as well as docs, or run its equivalent impact pass from the existing wrapper/CI. Do not substitute the staged-doc audit or catalog generator. | An unowned relevant source fails; a code-only declared dependency change fails until reviewed. Check the actual installed bundle and hook command, then capture the receipt. |
 | 3 — Skeleton regression ownership | Retain this reproduction as a boundary case; add the positive owner/coverage/hash cases to the CLI regression suite when implementing integration changes. Any future semantic checker must grade active ownership claims separately from historical and aspirational statements. | Stale active prose must not become a semantic pass by updating dates alone. History/future controls stay valid. Report the current known semantic miss honestly until that capability exists. |
 | 4 — Skeleton retrieval follow-up | Consider a structured action for omitted evidence and a budget reservation for additional matched papers before one owner's source excerpts consume all space. Keep path ownership recovery explicit. | A bounded query exposes the relevant active owner or a required omission follow-up. Correctness is measured against final evidence, not only exit status or keyword presence. |
@@ -211,12 +211,11 @@ direct dependencies where a paper independently states implementation facts.
 A general semantic detector is a separate, larger product decision and is not
 needed to make the existing review gate useful.
 
-Hash proof is a useful follow-up for byte-accurate freshness and actionable context.
-Enabling it is repository-wide: it requires recorded proof for the selected audit
-corpus, so a full audit needs more than one product-owner attestation. Plan that
-migration and review debt explicitly instead of enabling it and assuming a single
-new lock entry makes the consumer pass. The minimal correction above can use
-existing date-mode impact enforcement first.
+Since Skeleton 6, hash proof is always on and stored per document under
+`.skeleton/reviews/`. Upgrading therefore requires recorded proof for every doc-meta
+paper in the audit corpus, not one product-owner attestation. Plan that review debt
+explicitly: `--fix=review-proof` carries over only version 2 entries that still
+verify, and every other paper needs a normal review.
 
 ## Remaining uncertainty and completion boundary
 
@@ -238,8 +237,8 @@ existing date-mode impact enforcement first.
 
 ## Prevention follow-up
 
-The shared change in `src/context.ts` adds review actions for absent proof and
-review dates behind a document edit or cadence. It partitions the excerpt budget
+The shared change in `src/context.ts` adds review actions for absent proof, a
+document changed after its recorded review, and a review older than the cadence. It partitions the excerpt budget
 across matching papers, lists omitted sources, and requires a relevant omission
 follow-up. Hash comparison checks the complete dependency set, so deleting a file
 covered by a declared glob invalidates the recorded review. The Node CLI now
@@ -256,7 +255,8 @@ python3 scripts/reproduce-postprint-guidance-incident.py \
   --output /private/tmp/skeleton-guidance-prevention
 ```
 
-The minimal stale and reconciled cases still both pass a strict structural audit;
+In the minimal stale and reconciled cases, the only strict audit errors are missing
+review proof (with 5.0.4 they passed a strict structural audit outright);
 the candidate now returns a source-comparison action for each unreviewed active
 paper. Historical and future controls remain valid. In the pinned PostPrint
 replay, the default packet returns the alignment plan with a required review,
@@ -266,9 +266,8 @@ actionable evidence, not that an autonomous reviewer will reconcile every claim.
 
 The PostPrint upgrade must still implement recommendation steps 1–2. Refresh
 the copied Skeleton skill and existing context guide along with the package;
-`init` preserves an existing marked guide rather than replacing it. Prefer the
-existing date-mode impact gate for a narrow rollout unless repository-wide hash
-review debt is explicitly addressed. Confirm a code-only declared source change
+`init` preserves an existing marked guide rather than replacing it. Attest the owning
+papers first: every doc-meta paper needs proof. Confirm a code-only declared source change
 fails until its owning paper is reviewed, an unowned covered path fails, and
 qualified historical and aspirational prose stays valid.
 

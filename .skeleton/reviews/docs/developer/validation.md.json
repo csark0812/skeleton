@@ -1,0 +1,10 @@
+{
+	"version": 3,
+	"documentHash": "sha256:23cbac7036f87d742c460a7d20fb415c5aff302e4f19a7f69ea306c616d19600",
+	"reviewDependencies": {
+		"src/validate/changed.ts": "sha256:9237332701eb176c16e09a5aa1b1c506b5499a7fbc153dcc394e59bc2259ed9d",
+		"src/validate/git-diff.ts": "sha256:b2c18f555d54d1bda79f3f246561640bb8ee3f5098980bbd8e16dfec283c2df4",
+		"src/validate/route.ts": "sha256:06f680a63cca3937b42f04a26129afad563e16e61fe7e7edf0fce56a7406fb58",
+		"src/validate/staged.ts": "sha256:8cbfbf2d53a1c021a3d92ab48d099e576a058b85f425f52481b9e8a844f486f4"
+	}
+}
