@@ -3,67 +3,40 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import { lastGitCommitDate } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { DOC_META_RE, docMetaLastReviewed, parseReviewStamp } from "../core/shared.ts";
-import { slugFromPath } from "../core/skill-roots.ts";
+import { reviewProofPath } from "../core/review-proof.ts";
+import { DOC_META_RE, hasLegacyReviewDate } from "../core/shared.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
 	if (DOC_META_RE.test(content)) return null;
-	return issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)");
+	return issue("doc-meta", relPath, "missing doc-meta comment (<!-- doc-meta: owner=<team> -->)");
 }
 
-interface StaleReviewInput {
-	relPath: string;
-	content: string;
-	today: Date;
-	staleDays: number;
-}
-
-function checkStaleReview(input: StaleReviewInput): Issue | null {
-	const { relPath, content, today, staleDays } = input;
-	const reviewedStr = docMetaLastReviewed(content);
-	if (!reviewedStr) return null;
-	const reviewed = parseReviewStamp(reviewedStr);
-	if (!reviewed) return null;
-	const ageDays = (today.getTime() - reviewed.instant.getTime()) / 86_400_000;
-	if (ageDays <= staleDays) return null;
+function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
+	if (!hasLegacyReviewDate(content)) return null;
 	return issue("doc-meta", relPath, {
-		message: `doc-meta last-reviewed ${reviewedStr} exceeds re-read cadence (>${staleDays} days) — re-affirm the paper or bump after review`,
+		code: "legacy-review-date",
+		message: "doc-meta still carries a last-reviewed date; review proof no longer stores dates",
 		severity: "warning",
+		remediation: "Run `skeleton audit docs --fix=review-proof` to remove legacy dates.",
 	});
 }
 
-interface GitFreshnessInput {
+/** Age of the last committed review, from the git history of the document's proof file. */
+function checkStaleReview(input: {
+	ctx: AuditContext;
 	relPath: string;
-	content: string;
-	root: string;
-	lockedSkillSlugs: Set<string>;
-}
-
-export function gitFreshnessMessage(reviewedStr: string, gitDate: string): string {
-	return `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — REQUIRED: re-read the entire document, then bump last-reviewed only if the content is still correct; do not change the date alone`;
-}
-
-function checkGitFreshness(input: GitFreshnessInput): Issue | null {
-	const { relPath, content, root, lockedSkillSlugs } = input;
-	const reviewedStr = docMetaLastReviewed(content);
-	if (!reviewedStr) return null;
-	const reviewed = parseReviewStamp(reviewedStr);
-	if (!reviewed) return null;
-
-	const slug = slugFromPath(relPath, root);
-	if (slug !== null && lockedSkillSlugs.has(slug)) return null;
-
-	const gitDate = lastGitCommitDate(relPath, root);
-	if (!gitDate) return null;
-	const committed = parseReviewStamp(gitDate);
+	today: Date;
+}): Issue | null {
+	const { ctx, relPath, today } = input;
+	const committed = lastGitCommitDate(reviewProofPath(ctx.config, relPath), ctx.root);
 	if (!committed) return null;
-	if (committed.day <= reviewed.day) return null;
-
+	const ageDays = (today.getTime() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
+	if (!(ageDays > ctx.config.daysUntilStale)) return null;
 	return issue("doc-meta", relPath, {
-		code: "review-behind-git-edit",
-		message: gitFreshnessMessage(reviewedStr, gitDate),
-		severity: "error",
-		remediation: "Re-read the entire document, then use explicit review attestation for that path.",
+		code: "review-cadence-exceeded",
+		message: `last review was committed ${committed}, beyond the re-read cadence (>${ctx.config.daysUntilStale} days)`,
+		severity: "warning",
+		remediation: "Re-read the entire document, then attest it again.",
 	});
 }
 
@@ -81,22 +54,10 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 			issues.push(banner);
 			continue;
 		}
-
-		const stale = checkStaleReview({
-			relPath,
-			content,
-			today,
-			staleDays: ctx.config.daysUntilStale,
-		});
+		const legacy = checkLegacyReviewDate(relPath, content);
+		if (legacy) issues.push(legacy);
+		const stale = checkStaleReview({ ctx, relPath, today });
 		if (stale) issues.push(stale);
-
-		const git = checkGitFreshness({
-			relPath,
-			content,
-			root: ctx.root,
-			lockedSkillSlugs: ctx.lockedSkillSlugs,
-		});
-		if (git) issues.push(git);
 	}
 
 	return issues;

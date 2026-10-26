@@ -14,13 +14,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { formatUtcReviewDate } from "../audit/core/review-proof.ts";
-import {
-	docMetaLastReviewed,
-	matchesGlobScope,
-	normalizeRelPath,
-	parseReviewStamp,
-} from "../audit/core/shared.ts";
+import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import {
 	buildSkillIndex,
 	isForeignSkillPath,
@@ -33,7 +27,7 @@ import { evaluateAudit, printAuditResult } from "../audit/run.ts";
 import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
-import { type ChangedGitPath, gitDiffChangedFiles, gitLatestCommitTime } from "./git-diff.ts";
+import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
 import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
@@ -183,16 +177,6 @@ function parseJsonContent(content: string): unknown {
 
 function validationIssue(code: string, file: string, message: string): Issue {
 	return issue("validate-changed", file, { code, message, severity: "error" });
-}
-
-function rereadValidationIssue(file: string, target: string): Issue {
-	return issue("validate-changed", file, {
-		code: "impacted-document-review-required",
-		message:
-			"a linked review dependency changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
-		severity: "error",
-		link: target,
-	});
 }
 
 function validateJson(relPath: string, root: string, fileSource: FileSource): Issue | null {
@@ -449,82 +433,6 @@ function impactReasons(
 		}
 	}
 	return reasons;
-}
-
-function dateModeImpactDiagnostics(input: {
-	config: ReturnType<typeof loadConfig>;
-	impactedDocuments: ImpactedDocument[];
-	relPaths: string[];
-	root: string;
-	fileSource: FileSource;
-	base: string | undefined;
-}): Issue[] {
-	if (input.config.reviewProof) return [];
-	const changed = new Set(input.relPaths.map(normalizeRelPath));
-	const today = formatUtcReviewDate(new Date());
-	return input.impactedDocuments.flatMap((impacted) =>
-		dateModeIssuesForDocument({
-			impacted,
-			changed,
-			reviewFloor: dateModeReviewFloor({ impacted, today, root: input.root, base: input.base }),
-			exact: !input.base,
-			root: input.root,
-			fileSource: input.fileSource,
-		}),
-	);
-}
-
-/**
- * Earliest acceptable `last-reviewed` UTC day for one impacted document.
- * `--base`: UTC committer date of the latest non-merge commit in `base..HEAD` that touched
- * a changed dependency, so the result depends only on the commit range. Otherwise: UTC today.
- */
-function dateModeReviewFloor(input: {
-	impacted: ImpactedDocument;
-	today: string;
-	root: string;
-	base: string | undefined;
-}): string {
-	if (!input.base) return input.today;
-	const targets = [
-		...new Set(
-			input.impacted.reasons
-				.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
-				.map((reason) => reason.target ?? ""),
-		),
-	];
-	const latest = gitLatestCommitTime({ root: input.root, base: input.base, paths: targets });
-	return latest ? formatUtcReviewDate(latest) : input.today;
-}
-
-function dateModeIssuesForDocument(input: {
-	impacted: ImpactedDocument;
-	changed: Set<string>;
-	reviewFloor: string;
-	exact: boolean;
-	root: string;
-	fileSource: FileSource;
-}): Issue[] {
-	const content = readRepoText(input.root, input.impacted.path, input.fileSource);
-	if (!content) {
-		return input.impacted.reasons
-			.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
-			.map((reason) => rereadValidationIssue(input.impacted.path, reason.target ?? ""));
-	}
-	const reviewedStr = docMetaLastReviewed(content);
-	const reviewed = reviewedStr ? parseReviewStamp(reviewedStr) : null;
-	const current =
-		reviewed !== null &&
-		(input.exact ? reviewed.day === input.reviewFloor : reviewed.day >= input.reviewFloor);
-	if (input.changed.has(input.impacted.path) && current) {
-		return [];
-	}
-	const issues: Issue[] = [];
-	for (const reason of input.impacted.reasons) {
-		if (reason.kind !== "changed-review-dependency" || !reason.target) continue;
-		issues.push(rereadValidationIssue(input.impacted.path, reason.target));
-	}
-	return issues;
 }
 
 function uncoveredChangedPathDiagnostics(
@@ -835,16 +743,6 @@ export async function evaluateValidateChanged(
 		base: options.base,
 		fileSource,
 	});
-	evaluated.diagnostics.push(
-		...dateModeImpactDiagnostics({
-			config,
-			impactedDocuments,
-			relPaths,
-			root,
-			fileSource,
-			base: options.base,
-		}),
-	);
 	return resultFor({
 		options,
 		relPaths,

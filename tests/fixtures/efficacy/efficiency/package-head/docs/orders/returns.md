@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Order return authorization requirement; source owner src/orders/returns.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/orders/returns.ts -->
 

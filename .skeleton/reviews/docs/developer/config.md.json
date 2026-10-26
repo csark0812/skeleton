@@ -1,0 +1,8 @@
+{
+	"version": 3,
+	"documentHash": "sha256:d821f81deb4b678ec6cdd19211c406fc64d26723444bd982e1e8f862a7e0d015",
+	"reviewDependencies": {
+		"src/audit/config/load.ts": "sha256:60b40e3b17f1912cd035956af963aad598161968e4c74507983a33dd013adc2a",
+		"src/audit/config/types.ts": "sha256:dac2402bb75aa2404fc375bb1dd8f356ca398abc30c2f9c443215d8d1177fadd"
+	}
+}

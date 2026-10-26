@@ -16,7 +16,7 @@ function makeRepo(docMarker: string): string {
 	);
 	writeFileSync(
 		join(root, "docs/example.md"),
-		`# Example\n\n<!-- source-of-truth: example -->\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n${docMarker}\n`,
+		`# Example\n\n<!-- source-of-truth: example -->\n\n<!-- doc-meta: owner=eng -->\n\n${docMarker}\n`,
 	);
 	return root;
 }

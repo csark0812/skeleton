@@ -7,71 +7,33 @@ export const REGISTRY_DIR_REL = ".skeleton";
 export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;
 export const SOURCE_OF_TRUTH_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*/m;
-export const DOC_META_RE =
-	/<!--\s*doc-meta:\s*owner=[^|]+\|\s*last-reviewed=\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?\s*-->/;
-export const DOC_META_LAST_REVIEWED_RE =
-	/last-reviewed=(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?)/;
-
-const REVIEW_STAMP_RE = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})Z)?$/;
-
 /**
- * A `last-reviewed` value: legacy UTC day (`YYYY-MM-DD`) or UTC timestamp
- * (`YYYY-MM-DDTHH:MM:SSZ`). Gates compare `day`; age uses `instant`.
+ * The doc-meta comment: `<!-- doc-meta: owner=eng -->`.
+ * A legacy `| last-reviewed=<date>` suffix is still recognized so migration can remove it.
  */
-export interface ReviewStamp {
-	day: string;
-	instant: Date;
-	kind: "date" | "timestamp";
-}
+export const DOC_META_RE =
+	/<!--\s*doc-meta:\s*owner=[^|\s][^|]*?\s*(?:\|\s*last-reviewed=\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?\s*)?-->/;
+const LEGACY_REVIEW_DATE_RE =
+	/\s*\|\s*last-reviewed=\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?\s*(?=-->)/;
 
-/** Parse a legacy date or UTC timestamp review stamp. Returns null for invalid values. */
-export function parseReviewStamp(value: string): ReviewStamp | null {
-	const match = REVIEW_STAMP_RE.exec(value);
-	if (!match) return null;
-	const [, year, month, day, hour = "00", minute = "00", second = "00"] = match;
-	const instant = new Date(
-		Date.UTC(
-			Number(year),
-			Number(month) - 1,
-			Number(day),
-			Number(hour),
-			Number(minute),
-			Number(second),
-		),
-	);
-	if (Number.isNaN(instant.getTime())) return null;
-	if (
-		instant.toISOString().slice(0, 19) !== `${year}-${month}-${day}T${hour}:${minute}:${second}`
-	) {
-		return null;
-	}
-	return {
-		day: `${year}-${month}-${day}`,
-		instant,
-		kind: match[4] === undefined ? "date" : "timestamp",
-	};
-}
-
-/** Format the review stamp that attestation writes: UTC with seconds, so re-reviews always change bytes. */
-export function formatUtcReviewStamp(now: Date): string {
-	return `${now.toISOString().slice(0, 19)}Z`;
-}
-
-/** Extract the raw last-reviewed stamp from the doc-meta comment only (ignore prose examples). */
-export function docMetaLastReviewed(content: string): string | null {
+/** True when the doc-meta comment still carries a legacy `last-reviewed` date. */
+export function hasLegacyReviewDate(content: string): boolean {
 	const meta = DOC_META_RE.exec(content);
-	if (!meta?.[0]) return null;
-	const match = DOC_META_LAST_REVIEWED_RE.exec(meta[0]);
-	return match?.[1] ?? null;
+	return meta?.[0] !== undefined && LEGACY_REVIEW_DATE_RE.test(meta[0]);
 }
 
-/** Replace last-reviewed inside the doc-meta comment only. Returns null if unchanged/missing. */
-export function replaceDocMetaLastReviewed(content: string, stamp: string): string | null {
+/** Remove a legacy `last-reviewed` date from the doc-meta comment only. Returns null if none. */
+export function stripLegacyReviewDate(content: string): string | null {
 	const meta = DOC_META_RE.exec(content);
 	if (!meta?.[0] || meta.index === undefined) return null;
-	const updatedComment = meta[0].replace(DOC_META_LAST_REVIEWED_RE, `last-reviewed=${stamp}`);
+	const updatedComment = meta[0].replace(LEGACY_REVIEW_DATE_RE, " ");
 	if (updatedComment === meta[0]) return null;
 	return content.slice(0, meta.index) + updatedComment + content.slice(meta.index + meta[0].length);
+}
+
+/** Replace the doc-meta comment with a fixed token, so review digests ignore metadata edits. */
+export function normalizeDocMetaForReview(content: string): string {
+	return content.replace(DOC_META_RE, "<!-- doc-meta -->");
 }
 export const SKILL_LINK_IN_TARGET_RE =
 	/(?:\.claude\/skills\/|\.agents\/skills\/|(?:\.\.\/)+)([a-z0-9-]+)\/SKILL\.md/;

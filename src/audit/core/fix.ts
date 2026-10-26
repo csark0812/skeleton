@@ -1,13 +1,12 @@
 import { existsSync, realpathSync, writeFileSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { collectAnchorFixes } from "../fix/anchors.ts";
-import { collectDocMetaFixes } from "../fix/doc-meta.ts";
 import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
-import { docMetaLastReviewed, replaceDocMetaLastReviewed } from "./shared.ts";
 import { rewriteLegacySsotToComment } from "./ssot.ts";
 
-export type FixKind = "doc-meta" | "anchors" | "ssot";
+/** `doc-meta` attests reviewed documents; `review-proof` migrates version 2 proof. */
+export type FixKind = "doc-meta" | "review-proof" | "anchors" | "ssot";
 
 export interface FixEdit {
 	file: string;
@@ -26,58 +25,32 @@ export interface ApplyFixesResult {
 }
 
 function collectFixes(ctx: AuditContext, kinds: Set<FixKind>): FixEdit[] {
-	const meta = kinds.has("doc-meta") ? collectDocMetaFixes(ctx) : [];
 	const anchors = kinds.has("anchors") ? collectAnchorFixes(ctx) : [];
 	const ssot = kinds.has("ssot") ? collectSsotFixes(ctx) : [];
-	return coalesceFixEdits(meta, anchors, ssot);
+	return coalesceFixEdits(anchors, ssot);
 }
 
-/**
- * Merge per-file snapshots so default `--fix` (doc-meta + anchors) does not
- * last-write-win. Prefer anchors content, then overlay last-reviewed from meta.
- */
-/** Merge per-file fix edits: anchors content, overlay last-reviewed, then SSOT rewrite. */
-export function coalesceFixEdits(
-	metaEdits: FixEdit[],
-	anchorEdits: FixEdit[],
-	ssotEdits: FixEdit[] = [],
-): FixEdit[] {
-	const metaByFile = new Map(metaEdits.map((e) => [e.file, e]));
+/** Merge per-file fix edits so anchors and SSOT rewrites of one file do not last-write-win. */
+export function coalesceFixEdits(anchorEdits: FixEdit[], ssotEdits: FixEdit[] = []): FixEdit[] {
 	const anchorByFile = new Map(anchorEdits.map((e) => [e.file, e]));
 	const ssotByFile = new Map(ssotEdits.map((e) => [e.file, e]));
-	const files = new Set([...metaByFile.keys(), ...anchorByFile.keys(), ...ssotByFile.keys()]);
-	const out: FixEdit[] = [];
-
-	for (const file of [...files].sort()) {
-		out.push(
-			coalesceOneFile({
-				file,
-				meta: metaByFile.get(file),
-				anchors: anchorByFile.get(file),
-				ssot: ssotByFile.get(file),
-			}),
+	const files = new Set([...anchorByFile.keys(), ...ssotByFile.keys()]);
+	return [...files]
+		.sort()
+		.map((file) =>
+			coalesceOneFile({ file, anchors: anchorByFile.get(file), ssot: ssotByFile.get(file) }),
 		);
-	}
-	return out;
 }
 
 function coalesceOneFile(input: {
 	file: string;
-	meta: FixEdit | undefined;
 	anchors: FixEdit | undefined;
 	ssot: FixEdit | undefined;
 }): FixEdit {
-	const { file, meta, anchors, ssot } = input;
+	const { file, anchors, ssot } = input;
 	const descriptions: string[] = [];
-	let content = anchors?.content ?? meta?.content ?? ssot?.content ?? "";
-	if (meta) descriptions.push(meta.description);
-	if (anchors) {
-		descriptions.push(anchors.description);
-		content = anchors.content;
-		if (meta) content = overlayLastReviewed(content, meta.content);
-	} else if (meta) {
-		content = meta.content;
-	}
+	let content = anchors?.content ?? ssot?.content ?? "";
+	if (anchors) descriptions.push(anchors.description);
 	if (ssot) {
 		descriptions.push(ssot.description);
 		content = rewriteSsotOnto(content, ssot.content);
@@ -90,12 +63,6 @@ function rewriteSsotOnto(base: string, ssotContent: string): string {
 	// anchor/meta edits. Falling back to the collector snapshot is safe when
 	// this is the only available edit.
 	return rewriteLegacySsotToComment(base) ?? ssotContent ?? base;
-}
-
-function overlayLastReviewed(targetContent: string, metaContent: string): string {
-	const date = docMetaLastReviewed(metaContent);
-	if (!date) return targetContent;
-	return replaceDocMetaLastReviewed(targetContent, date) ?? targetContent;
 }
 
 function underRoot(rootAbs: string, candidateAbs: string): boolean {
@@ -157,18 +124,21 @@ export function parseFixKinds(raw: string | true): FixKind[] {
 	switch (raw) {
 		case "doc-meta":
 			return ["doc-meta"];
+		case "review-proof":
+			return ["review-proof"];
 		case "anchors":
 			return ["anchors"];
 		case "ssot":
 			return ["ssot"];
 		default:
-			throw new Error(`Unknown --fix kind: ${raw}. Use doc-meta, anchors, or ssot.`);
+			throw new Error(`Unknown --fix kind: ${raw}. Use doc-meta, review-proof, anchors, or ssot.`);
 	}
 }
 
 /** Owning audit rule id for each fix kind (used to scope `--fix` under `--only`). */
 export const FIX_KIND_RULE: Record<FixKind, string> = {
 	"doc-meta": "doc-meta",
+	"review-proof": "review-proof",
 	anchors: "links",
 	ssot: "ssot",
 };

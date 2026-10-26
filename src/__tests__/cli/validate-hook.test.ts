@@ -35,7 +35,7 @@ function writeOwnedDoc(root: string, extra = ""): void {
 
 <!-- source-of-truth: example runThing behavior -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-01 -->
+<!-- doc-meta: owner=eng -->
 
 ${extra}
 The runThing export provides the example behavior.
@@ -59,6 +59,10 @@ function runGit(root: string, args: string[], env: Record<string, string> = {}):
 	if (result.status !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
 	}
+}
+
+function auditCodes(result: Awaited<ReturnType<typeof evaluateValidateChanged>>): string[] {
+	return result.audits.flatMap((audit) => audit.diagnostics).map((item) => item.code ?? "");
 }
 
 afterEach(() => {
@@ -168,9 +172,7 @@ describe("validate changed hook gates", () => {
 			paths: ["src/example.ts"],
 		});
 		expect(result.diagnostics.some((item) => item.code === "uncovered-changed-path")).toBe(false);
-		expect(result.diagnostics).toContainEqual(
-			expect.objectContaining({ code: "impacted-document-review-required" }),
-		);
+		expect(auditCodes(result)).toContain("review-proof-missing");
 	});
 
 	it("does not flag deleted coverage files as uncovered", async () => {
@@ -193,29 +195,29 @@ describe("validate changed hook gates", () => {
 		expect(result.diagnostics.some((item) => item.file === "src/gone.ts")).toBe(false);
 	});
 
-	it("fails --staged when attested lockfile and document stay unstaged", async () => {
+	it("fails --staged when the attested proof file stays unstaged", async () => {
 		const root = makeRoot();
-		writeToml(
-			root,
-			`[reviewProof]
-mode = "hash"
-`,
-		);
+		writeToml(root);
 		writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
 		mkdirSync(join(root, "src"), { recursive: true });
 		writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
-		attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-01" });
+		attestDocuments({ root, paths: ["docs/example.md"] });
 		runGit(root, ["init"]);
 		runGit(root, ["add", "-A"]);
 		runGit(root, ["commit", "-m", "init"]);
 
 		writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 		runGit(root, ["add", "src/example.ts"]);
-		attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-09-13" });
+		attestDocuments({ root, paths: ["docs/example.md"] });
 
 		const result = await evaluateValidateChanged({ root, staged: true });
 		expect(result.exitCode).toBe(1);
-		expect(result.diagnostics.some((item) => item.code === "stage-required")).toBe(true);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({
+				code: "stage-required",
+				file: ".skeleton/reviews/docs/example.md.json",
+			}),
+		);
 		expect(
 			result.audits
 				.flatMap((audit) => audit.diagnostics)
@@ -223,114 +225,50 @@ mode = "hash"
 		).toBe(true);
 	});
 
-	describe("date mode without --base", () => {
-		function setupDoc(lastReviewed: string): string {
+	describe("hash proof for an impacted document", () => {
+		function setupRepo(): string {
 			const root = makeRoot();
 			writeToml(root);
 			writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
-			const doc = join(root, "docs/example.md");
-			const text = readFileSync(doc, "utf8");
-			writeFileSync(doc, text.replace("last-reviewed=2026-08-01", `last-reviewed=${lastReviewed}`));
 			mkdirSync(join(root, "src"), { recursive: true });
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
-			return root;
-		}
-
-		async function reviewRequired(root: string, paths?: string[]): Promise<boolean> {
-			const result = await evaluateValidateChanged({ root, paths });
-			return result.diagnostics.some((item) => item.code === "impacted-document-review-required");
-		}
-
-		it.each([
-			"2026-10-09",
-			"2026-10-09T07:00:00Z",
-		])("passes a same-day re-review of a %s stamp because attestation changes its bytes", async (stamp) => {
-			setSystemTime(new Date("2026-10-09T08:00:00Z"));
-			const root = setupDoc(stamp);
-			runGit(root, ["init"]);
-			runGit(root, ["add", "-A"]);
-			runGit(root, ["commit", "-m", "init"]);
-
-			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-			expect(await reviewRequired(root)).toBe(true);
-
-			const doc = join(root, "docs/example.md");
-			const before = readFileSync(doc, "utf8");
 			attestDocuments({ root, paths: ["docs/example.md"] });
-			const after = readFileSync(doc, "utf8");
-			expect(after).not.toBe(before);
-			expect(after).toContain("last-reviewed=2026-10-09T08:00:00Z");
-			expect(await reviewRequired(root)).toBe(false);
-		});
-
-		it("keeps legacy date-only stamps on today's UTC day", async () => {
-			setSystemTime(new Date("2026-10-09T23:45:00Z"));
-			const paths = ["docs/example.md", "src/example.ts"];
-			expect(await reviewRequired(setupDoc("2026-10-09"), paths)).toBe(false);
-			expect(await reviewRequired(setupDoc("2026-10-08"), paths)).toBe(true);
-		});
-	});
-
-	describe("date mode with --base", () => {
-		function commitAt(root: string, args: string[], iso: string): void {
-			runGit(root, args, { GIT_AUTHOR_DATE: iso, GIT_COMMITTER_DATE: iso });
-		}
-
-		function setupRange(lastReviewed: string): string {
-			const root = makeRoot();
-			writeToml(root);
-			writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
-			mkdirSync(join(root, "src"), { recursive: true });
-			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
 			runGit(root, ["init", "-b", "main"]);
 			runGit(root, ["add", "-A"]);
-			commitAt(root, ["commit", "-m", "init"], "2026-10-01T12:00:00Z");
-			runGit(root, ["checkout", "-b", "feature"]);
-			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-			const doc = join(root, "docs/example.md");
-			const text = readFileSync(doc, "utf8");
-			writeFileSync(doc, text.replace("last-reviewed=2026-08-01", `last-reviewed=${lastReviewed}`));
-			runGit(root, ["add", "-A"]);
-			commitAt(root, ["commit", "-m", "change source and review doc"], "2026-10-09T23:30:00Z");
+			runGit(root, ["commit", "-m", "init"]);
 			return root;
 		}
 
-		async function reviewRequired(root: string, now: string): Promise<boolean> {
-			setSystemTime(new Date(now));
-			const result = await evaluateValidateChanged({ root, base: "main" });
-			return result.diagnostics.some((item) => item.code === "impacted-document-review-required");
-		}
+		it("requires a re-read when a dependency changes, and passes once it is attested", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			const before = await evaluateValidateChanged({ root });
+			expect(before.exitCode).toBe(1);
+			expect(auditCodes(before)).toContain("review-dependency-changed");
 
-		it("gives the same result for the same range before and after UTC midnight", async () => {
-			const root = setupRange("2026-10-09");
-			expect(await reviewRequired(root, "2026-10-09T23:45:00Z")).toBe(false);
-			expect(await reviewRequired(root, "2026-10-10T00:41:00Z")).toBe(false);
+			const doc = readFileSync(join(root, "docs/example.md"), "utf8");
+			attestDocuments({ root, paths: ["docs/example.md"] });
+			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toBe(doc);
+			const after = await evaluateValidateChanged({ root });
+			expect(auditCodes(after)).not.toContain("review-dependency-changed");
 		});
 
-		it("requires a review date on or after the latest dependency commit", async () => {
-			const root = setupRange("2026-10-08");
-			expect(await reviewRequired(root, "2026-10-09T23:45:00Z")).toBe(true);
-			expect(await reviewRequired(root, "2026-10-10T00:41:00Z")).toBe(true);
-		});
-
-		it("compares a timestamp review stamp by its UTC day", async () => {
-			expect(await reviewRequired(setupRange("2026-10-09T00:05:00Z"), "2026-10-10T00:41:00Z")).toBe(
-				false,
+		it("checks a --base range by bytes, not by commit dates", async () => {
+			const root = setupRepo();
+			runGit(root, ["checkout", "-b", "feature"]);
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			runGit(root, ["commit", "-am", "change source"]);
+			expect(auditCodes(await evaluateValidateChanged({ root, base: "main" }))).toContain(
+				"review-dependency-changed",
 			);
-			expect(await reviewRequired(setupRange("2026-10-08T23:59:59Z"), "2026-10-10T00:41:00Z")).toBe(
-				true,
-			);
-		});
 
-		it("ignores later merge commits that do not change the dependency", async () => {
-			const root = setupRange("2026-10-09");
-			runGit(root, ["checkout", "main"]);
-			writeFileSync(join(root, "README.md"), "# Readme\n");
+			attestDocuments({ root, paths: ["docs/example.md"] });
 			runGit(root, ["add", "-A"]);
-			commitAt(root, ["commit", "-m", "main moves"], "2026-10-10T00:20:00Z");
-			runGit(root, ["checkout", "feature"]);
-			commitAt(root, ["merge", "--no-ff", "-m", "merge main", "main"], "2026-10-10T00:41:00Z");
-			expect(await reviewRequired(root, "2026-10-10T00:45:00Z")).toBe(false);
+			runGit(root, ["commit", "-m", "review doc"]);
+			setSystemTime(new Date("2030-01-01T00:00:00Z"));
+			expect(auditCodes(await evaluateValidateChanged({ root, base: "main" }))).not.toContain(
+				"review-dependency-changed",
+			);
 		});
 	});
 });

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { globSync } from "tinyglobby";
 import { loadConfig } from "./audit/config/load.ts";
 import { collectScanFiles } from "./audit/core/collect.ts";
@@ -9,8 +8,14 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
-import { matchesRecordedDependency } from "./audit/core/review-proof.ts";
-import { docMetaLastReviewed, normalizeRelPath, parseReviewStamp } from "./audit/core/shared.ts";
+import {
+	documentReviewDigest,
+	loadReviewProof,
+	matchesRecordedDependency,
+	type ReviewProof,
+	reviewProofPath,
+} from "./audit/core/review-proof.ts";
+import { normalizeRelPath } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
 
 const DEFAULT_MAX_CHARS = 12_000;
@@ -68,28 +73,6 @@ export interface ContextOptions {
 	path?: string;
 	staged?: boolean;
 	maxChars?: number;
-}
-
-type ReviewLock = {
-	documents?: Record<
-		string,
-		{ documentHash?: string; reviewDependencies?: Record<string, string> }
-	>;
-};
-
-function digest(content: string): string {
-	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
-}
-
-function readLock(root: string, source: FileSource, lockfile: string): ReviewLock | null {
-	const content = readRepoText(root, lockfile, source);
-	if (!content) return null;
-	try {
-		const parsed: unknown = JSON.parse(content);
-		return typeof parsed === "object" && parsed !== null ? (parsed as ReviewLock) : null;
-	} catch {
-		return null;
-	}
 }
 
 function queryTerms(query: string | undefined): string[] {
@@ -254,30 +237,27 @@ interface ReviewInput {
 	document: string;
 	content: string;
 	sources: Array<{ path: string; content: string | null }>;
-	lock: ReviewLock | null;
+	proof: ReviewProof | null;
+	proofPath: string;
 	staleDays: number;
 }
 
-function dateReviewReasons(input: ReviewInput): string[] {
-	const reviewed = docMetaLastReviewed(input.content);
-	const stamp = reviewed ? parseReviewStamp(reviewed) : null;
-	if (!(reviewed && stamp)) return [];
-	const reasons: string[] = [];
-	const gitDate = lastGitCommitDate(input.document, input.root);
-	if (gitDate && gitDate > stamp.day) {
-		reasons.push(`content changed after last-reviewed ${reviewed} (git: ${gitDate})`);
-	}
-	const ageDays = (Date.now() - stamp.instant.getTime()) / 86_400_000;
-	if (ageDays > input.staleDays) {
-		reasons.push(`last-reviewed ${reviewed} exceeds re-read cadence (>${input.staleDays} days)`);
-	}
-	return reasons;
+function proofOf(loaded: ReturnType<typeof loadReviewProof>): ReviewProof | null {
+	return loaded.status === "present" ? loaded.proof : null;
+}
+
+/** The last committed review is older than the re-read cadence. */
+function cadenceReviewReasons(input: ReviewInput): string[] {
+	const committed = lastGitCommitDate(input.proofPath, input.root);
+	if (!committed) return [];
+	const ageDays = (Date.now() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
+	if (!(ageDays > input.staleDays)) return [];
+	return [`last review committed ${committed} exceeds re-read cadence (>${input.staleDays} days)`];
 }
 
 function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "reviewReasons"> {
-	const entry = input.lock?.documents?.[input.document];
-	const hasDocumentProof =
-		entry?.documentHash && entry.reviewDependencies && entry.documentHash === digest(input.content);
+	const entry = input.proof;
+	const hasDocumentProof = entry?.documentHash === documentReviewDigest(input.content);
 	const sameTargets =
 		JSON.stringify(
 			Object.keys(entry?.reviewDependencies ?? {}).sort((a, b) => a.localeCompare(b)),
@@ -295,7 +275,12 @@ function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "rev
 	if (hasDocumentProof && !(sameTargets && sameSourceBytes)) {
 		return { review: "changed-since-review" };
 	}
-	const reviewReasons = dateReviewReasons(input);
+	const reviewReasons =
+		entry && !hasDocumentProof
+			? ["document changed after its recorded review"]
+			: hasDocumentProof
+				? cadenceReviewReasons(input)
+				: [];
 	if (reviewReasons.length > 0) return { review: "review-required", reviewReasons };
 	return { review: hasDocumentProof ? "matches-recorded-review" : "unreviewed" };
 }
@@ -313,11 +298,6 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 	const files = collectScanFiles(config, options.root);
 	const ssot = collectSsotEntries(files, options.root).entries;
 	const terms = queryTerms(options.query);
-	const lock = readLock(
-		options.root,
-		source,
-		normalizeRelPath(config.reviewProof?.lockfile ?? ".skeleton/review-lock.json"),
-	);
 	const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
 	const candidates = ssot
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one document needs source, query, and bounds decisions before it can be returned.
@@ -385,7 +365,10 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 				document: entry.path,
 				content,
 				sources: sourceEntries,
-				lock,
+				proof: proofOf(
+					loadReviewProof({ root: options.root, config, document: entry.path, source }),
+				),
+				proofPath: reviewProofPath(config, entry.path),
 				staleDays: config.daysUntilStale,
 			}),
 		};
@@ -416,11 +399,11 @@ function formattedDocument(document: ContextDocument): string[] {
 	}
 	if (document.review === "review-required") {
 		lines.push(
-			`action\t${document.path}\tReview required: ${document.reviewReasons?.join("; ")}. Re-read the complete paper against its implementation before relying on active claims. Do not update the date alone. For read-only work, report the conflict or review gap; preserve historical alternatives and future aspirations as qualified intent.`,
+			`action\t${document.path}\tReview required: ${document.reviewReasons?.join("; ")}. Re-read the complete paper against its implementation before relying on active claims, then attest it again only if it is still correct. For read-only work, report the conflict or review gap; preserve historical alternatives and future aspirations as qualified intent.`,
 		);
 	} else if (document.review === "unreviewed") {
 		lines.push(
-			`action\t${document.path}\tNo matching recorded review proof. Compare active implementation claims with the relevant source before relying on them. Preserve historical alternatives and future aspirations as qualified intent. If active implementation claims lack review-deps, identify and declare their owner when editing; for read-only work, report the missing evidence without editing. Do not treat a source-of-truth marker or a fresh review date as proof of semantic consistency.`,
+			`action\t${document.path}\tNo matching recorded review proof. Compare active implementation claims with the relevant source before relying on them. Preserve historical alternatives and future aspirations as qualified intent. If active implementation claims lack review-deps, identify and declare their owner when editing; for read-only work, report the missing evidence without editing. Do not treat a source-of-truth marker or doc-meta comment as proof of semantic consistency.`,
 		);
 	}
 	lines.push(document.excerpt);

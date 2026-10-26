@@ -20,9 +20,6 @@ exclude = [
   ".claude/**",
 ]
 
-[reviewProof]
-mode = "hash"
-
 [reviewCoverage]
 include = ["src/**/*.ts", "package.json"]
 exclude = [

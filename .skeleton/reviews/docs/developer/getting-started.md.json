@@ -1,0 +1,14 @@
+{
+	"version": 3,
+	"documentHash": "sha256:26d596f52ade8ca5fb5747d3ff13301e75ca3160476bca996aaa6960d323ae20",
+	"reviewDependencies": {
+		"src/cli.ts": "sha256:54f426409237d8443a35340d65fcf891e679e909208007cd7dbc0911bf06251c",
+		"src/context.ts": "sha256:5db85865be45520ebf3bb3b3373a2c5f177a62c0bfc35ae255c5b319c36a3c6e",
+		"src/init/init.ts": "sha256:99c9a58836202f5e1954696db54f90cbbe5a66765695f8cd64b54cf17108f106",
+		"src/init/merge-precommit.ts": "sha256:167604fe1a756612980887eb56a7dc534f4f4a6fa7cdf5e41cc3dafa8fd0f4d7",
+		"src/init/merge-scripts.ts": "sha256:387e8adfbcb165df1fa6dcdd45ca25331cc59e8406dcfbba587e7c6b783ddea7",
+		"src/init/package-paths.ts": "sha256:0476e3c9067d9128da789d2c9741a00e91cb1c1e55cc014f9d38ecf6c7a527cf",
+		"src/init/parse-args.ts": "sha256:30c9b45ffefcd57957670e32333131dd472c6a935e5f4291ae0b1fdbfea10257",
+		"src/init/skills-args.ts": "sha256:6f58361b2186e50d270e36c16a5c6d40a029503a25cfa04f0503cf34d985dc13"
+	}
+}

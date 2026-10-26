@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { attestDocuments } from "../audit/core/review-proof.ts";
 import { evaluateContext, formatContext } from "../context.ts";
 
-function makeRepo(reviewedAt = "2026-09-16"): string {
+function makeRepo(): string {
 	const root = mkdtempSync(join(tmpdir(), "skel-context-"));
 	mkdirSync(join(root, "docs"), { recursive: true });
 	mkdirSync(join(root, "src/billing"), { recursive: true });
@@ -18,8 +18,6 @@ function makeRepo(reviewedAt = "2026-09-16"): string {
 [scan]
 include = ["docs/**"]
 exclude = []
-[reviewProof]
-mode = "hash"
 `,
 	);
 	writeFileSync(join(root, "src/billing/delivery.ts"), "export const MAX_RETRIES = 1;\n");
@@ -33,14 +31,14 @@ mode = "hash"
 
 <!-- source-of-truth: Billing webhook retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=2026-09-16 -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing/delivery.ts -->
 
 Billing webhooks retry once after a failed delivery.
 `,
 	);
-	attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt });
+	attestDocuments({ root, paths: ["docs/billing.md"] });
 	return root;
 }
 
@@ -52,7 +50,7 @@ describe("context", () => {
 	it("requires source comparison for unreviewed claims while preserving historical intent", () => {
 		const root = makeRepo();
 		try {
-			writeFileSync(join(root, ".skeleton/review-lock.json"), "{}\n");
+			writeFileSync(join(root, ".skeleton/reviews/docs/billing.md.json"), "{}\n");
 			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
 			expect(packet).toContain("action\tdocs/billing.md\tNo matching recorded review proof");
 			expect(packet).toContain("active implementation claims");
@@ -62,16 +60,27 @@ describe("context", () => {
 		}
 	});
 
-	it.each([
-		"2026-09-16",
-		"2026-09-16T23:59:59Z",
-	])("surfaces own-edit freshness for a %s stamp without requiring hash mode", (reviewedAt) => {
-		const root = makeRepo(reviewedAt);
+	it("requires a review when the document changed after its recorded review", () => {
+		const root = makeRepo();
 		try {
 			writeFileSync(
-				join(root, "skeleton.toml"),
-				'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
+				join(root, "docs/billing.md"),
+				readFileSync(join(root, "docs/billing.md"), "utf8").replace("once", "twice"),
 			);
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.review).toBe("review-required");
+			expect(result.documents[0]?.reviewReasons).toEqual([
+				"document changed after its recorded review",
+			]);
+			expect(formatContext(result)).toContain("then attest it again only if it is still correct");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("measures re-read cadence from the last commit of the review proof", () => {
+		const root = makeRepo();
+		try {
 			for (const args of [
 				["init", "-q"],
 				["add", "."],
@@ -92,34 +101,21 @@ describe("context", () => {
 					cwd: root,
 					env: {
 						...process.env,
-						GIT_AUTHOR_DATE: "2026-09-17T00:00:00Z",
-						GIT_COMMITTER_DATE: "2026-09-17T00:00:00Z",
+						TZ: "UTC",
+						GIT_AUTHOR_DATE: "2026-09-16T12:00:00Z",
+						GIT_COMMITTER_DATE: "2026-09-16T12:00:00Z",
 					},
 				});
 				expect(result.status).toBe(0);
 			}
-			const result = evaluateContext({ root, query: "billing retry" });
-			expect(result.documents[0]?.review).toBe("review-required");
-			expect(formatContext(result)).toContain(
-				`content changed after last-reviewed ${reviewedAt} (git: 2026-09-17)`,
-			);
-			expect(formatContext(result)).toContain("Do not update the date alone");
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-
-	it("measures re-read cadence from the timestamp instant", () => {
-		const root = makeRepo("2026-09-16T12:00:00Z");
-		try {
-			setSystemTime(new Date("2027-09-16T11:00:00Z"));
+			setSystemTime(new Date("2027-09-16T00:00:00Z"));
 			expect(evaluateContext({ root, query: "billing retry" }).documents[0]?.review).toBe(
 				"matches-recorded-review",
 			);
-			setSystemTime(new Date("2027-09-16T13:00:00Z"));
+			setSystemTime(new Date("2027-09-16T00:00:01Z"));
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.reviewReasons).toEqual([
-				"last-reviewed 2026-09-16T12:00:00Z exceeds re-read cadence (>365 days)",
+				"last review committed 2026-09-16 exceeds re-read cadence (>365 days)",
 			]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
@@ -163,10 +159,10 @@ describe("context", () => {
 		try {
 			writeFileSync(
 				join(root, "docs/billing.md"),
-				"<!-- source-of-truth: Billing retry policy -->\n<!-- doc-meta: owner=eng | last-reviewed=2026-09-16 -->\n<!-- review-deps: paths=src/billing/*.ts -->\nBilling retries once.\n",
+				"<!-- source-of-truth: Billing retry policy -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/billing/*.ts -->\nBilling retries once.\n",
 			);
 			writeFileSync(join(root, "src/billing/retired.ts"), "export const retired = true;\n");
-			attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt: "2026-09-16" });
+			attestDocuments({ root, paths: ["docs/billing.md"] });
 			rmSync(join(root, "src/billing/retired.ts"));
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.review).toBe("changed-since-review");
@@ -229,14 +225,14 @@ describe("context", () => {
 
 <!-- source-of-truth: Billing webhook retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=2026-09-16 -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing/delivery.ts,package.json -->
 
 Billing webhooks retry once after a failed delivery.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt: "2026-09-16" });
+			attestDocuments({ root, paths: ["docs/billing.md"] });
 			writeFileSync(join(root, "package.json"), manifest("1.0.1"));
 			const result = evaluateContext({ root, query: "billing webhook retry" });
 			expect(result.documents[0]?.review).toBe("matches-recorded-review");

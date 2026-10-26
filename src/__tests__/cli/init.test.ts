@@ -62,7 +62,7 @@ describe("skeleton init", () => {
 		const hook = readFileSync(join(cwd, ".pre-commit-config.yaml"), "utf8");
 		expect(hook).toContain("validate changed --staged");
 		expect(hook).not.toContain("bun test");
-		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain('mode = "hash"');
+		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain("Review proof is always on");
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			'npx --no-install skeleton context "<topic>"',
 		);

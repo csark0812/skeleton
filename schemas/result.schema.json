@@ -87,11 +87,11 @@
 				"reviewProof": {
 					"type": "object",
 					"additionalProperties": false,
-					"required": ["mode", "status"],
+					"required": ["mode", "status", "proofDir"],
 					"properties": {
-						"mode": { "enum": ["date", "hash"] },
-						"status": { "enum": ["not-enabled", "not-checked", "valid", "invalid"] },
-						"lockfile": { "type": "string" }
+						"mode": { "const": "hash" },
+						"status": { "enum": ["not-checked", "valid", "invalid"] },
+						"proofDir": { "type": "string" }
 					}
 				},
 				"successSuffix": { "type": "string" }

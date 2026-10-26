@@ -42,7 +42,7 @@
 		"daysUntilStale": {
 			"type": "integer",
 			"minimum": 1,
-			"description": "Re-read cadence in days for doc-meta last-reviewed (warn; --strict → error). Separate from git edit-behind-review checks."
+			"description": "Re-read cadence in days, measured from the last commit of a document's review proof (warn; --strict → error)."
 		},
 		"docsLint": {
 			"type": "object",
@@ -127,20 +127,41 @@
 				}
 			}
 		},
+		"review": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Harness-neutral review settings for `skeleton review prepare`",
+			"properties": {
+				"humanPaths": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Globs for high-consequence paths; a change there needs a person, not an agent"
+				},
+				"command": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Shell command that receives the review bundle on stdin (`review prepare --run`)"
+				}
+			}
+		},
 		"reviewProof": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["mode"],
-			"description": "Bind an explicit documentation review to exact document and code-target bytes",
+			"description": "Where review proof lives. Proof is always hash-based: one file per reviewed document",
 			"properties": {
 				"mode": {
 					"const": "hash",
-					"description": "Store SHA-256 review evidence"
+					"description": "Accepted for older configs; hash is the only mode"
+				},
+				"dir": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Repo-relative directory of per-document proof files (default: .skeleton/reviews)"
 				},
 				"lockfile": {
 					"type": "string",
 					"minLength": 1,
-					"description": "Repo-relative review proof lockfile (default: .skeleton/review-lock.json)"
+					"description": "Version 2 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json)"
 				}
 			}
 		},

@@ -13,7 +13,6 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
-from datetime import datetime, timezone
 
 
 STALE = "e04277ea94744fc4d6fa88b690135b417f07bd29"
@@ -66,11 +65,11 @@ def must(command, root):
     return result.stdout
 
 
-def document(title, summary, date, body, dependency=None):
+def document(title, summary, body, dependency=None):
     deps = f"<!-- review-deps: paths={dependency} -->\n\n" if dependency else ""
     return (
         f"# {title}\n\n<!-- source-of-truth: {summary} -->\n\n"
-        f"<!-- doc-meta: owner=eng | last-reviewed={date} -->\n\n{deps}{body}\n"
+        f"<!-- doc-meta: owner=eng -->\n\n{deps}{body}\n"
     )
 
 
@@ -147,7 +146,6 @@ def main():
             prefix="skeleton-guidance-incident-"
         ) as temporary:
             scratch = Path(temporary)
-            date = datetime.now(timezone.utc).date().isoformat()
             config = 'daysUntilStale = 180\n[scan]\ninclude = ["docs/**"]\nexclude = []\n[reviewCoverage]\ninclude = []\n'
             model = "class Annotation:\n    kinds = ('comment', 'task')\n\nclass DocumentVersion:\n    pass\n\nclass DocumentEditIntent:\n    pass\n"
             stale = "Research ownership uses DocumentSourceRef evidence refs. /cite is the primary capture path. Annotations are legacy and should retire."
@@ -162,7 +160,7 @@ def main():
                 write(
                     root,
                     "docs/model.md",
-                    document("Research ownership", "Research ownership", date, body),
+                    document("Research ownership", "Research ownership", body),
                 )
                 write(
                     root,
@@ -170,7 +168,6 @@ def main():
                     document(
                         "Historical alternatives",
                         "Historical alternatives",
-                        date,
                         history,
                     ),
                 )
@@ -180,18 +177,24 @@ def main():
                     document(
                         "Future citation aspirations",
                         "Future citation aspirations",
-                        date,
                         future,
                     ),
                 )
                 initialize(root)
                 run(f"minimal-{state}-catalog", root, ["catalog"], 0)
-                run(
+                # Structure is clean; the only errors are the missing review proof
+                # that marks these papers' active claims as unreviewed.
+                audit = run(
                     f"minimal-{state}-audit",
                     root,
                     ["audit", "docs", "--strict", "--json"],
-                    0,
+                    1,
                 )
+                assert {
+                    d["code"]
+                    for d in json.loads(audit.stdout)["diagnostics"]
+                    if d["severity"] == "error"
+                } == {"review-proof-missing"}
                 context = run(
                     f"minimal-{state}-context",
                     root,
@@ -267,28 +270,11 @@ def main():
                 document(
                     "Research ownership",
                     "Research ownership",
-                    date,
                     stale,
                     "src/models.py",
                 ),
             )
             initialize(root)
-            run("owner-date-baseline", root, ["audit", "docs", "--strict", "--json"], 0)
-            write(root, "src/models.py", model)
-            run(
-                "owner-date-invalidated",
-                root,
-                ["validate", "changed", "src/models.py"],
-                1,
-            )
-            assert (
-                "docs/model.md"
-                in (output / "owner-date-invalidated.stdout").read_text()
-            )
-            write(
-                root, "src/models.py", model + "\nclass DocumentSourceRef:\n    pass\n"
-            )
-            write(root, "skeleton.toml", config + '[reviewProof]\nmode = "hash"\n')
             # Fixture setup attests exact baseline bytes; this is not a human-review claim.
             run(
                 "owner-hash-baseline",

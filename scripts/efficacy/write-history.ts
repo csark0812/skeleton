@@ -36,7 +36,7 @@ function copyHistory(
 				"",
 			);
 			if (options.skeleton && path === task.doc)
-				contents = `<!-- source-of-truth: ${task.name} behavior -->\n<!-- doc-meta: owner=eng | last-reviewed=2026-09-16 -->\n<!-- review-deps: paths=${task.source} -->\n\n${contents}`;
+				contents = `<!-- source-of-truth: ${task.name} behavior -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=${task.source} -->\n\n${contents}`;
 		}
 		write(root, path, contents);
 	}
@@ -76,7 +76,7 @@ function prepare(task: (typeof HISTORY_TASKS)[number], side: string, archived: s
 		"skeleton.toml",
 		`daysUntilStale = 365\n[scan]\ninclude = ["${task.doc}"]\nexclude = []\n[reviewProof]\nmode = "hash"\n[reviewCoverage]\ninclude = ["${task.source}"]\n[deny]\npaths = []\n`,
 	);
-	attestDocuments({ root, paths: [task.doc], reviewedAt: "2026-09-16" });
+	attestDocuments({ root, paths: [task.doc] });
 }
 
 const archives = join(ROOT, "agent-suites/history");

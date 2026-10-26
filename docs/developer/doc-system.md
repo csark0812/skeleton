@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T18:37:38Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts -->
 
@@ -68,19 +68,17 @@ Each comma-separated path is repo-relative. Exact paths must exist; globs may te
 Index docs and SSOT-bearing files require:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 ```
 
-`last-reviewed` is the **only** authored freshness stamp — a human claim that someone stood behind this text as of that moment. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
-
-Attestation writes a UTC timestamp with seconds: `last-reviewed=2026-08-16T14:05:09Z`. Skeleton also accepts the legacy date form `last-reviewed=2026-08-16` everywhere. Review gates compare only the UTC day of either form; cadence age uses the exact instant (midnight UTC for a legacy date). The seconds make each attestation change the document bytes, so a same-day re-review still enters the changed set. On a merge conflict in the stamp line, keep the later stamp.
+The comment names an owner only. Review evidence lives outside the document, in one proof file per document under `.skeleton/reviews/`. Do **not** add review or edit dates: git dates the proof file, and the proof's hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `--fix=review-proof` or by the next attestation.
 
 Audit treats review invalidation and calendar cadence differently:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git or hash proof) | Blocking error: review no longer covers the latest edit or linked dependency bytes | **Required:** re-read the entire document against current dependencies, then attest it. Do not change the date alone. |
-| `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
+| Document or dependency bytes differ from the proof (`review-document-changed`, `review-dependency-changed`, `review-dependency-set-changed`) | Blocking error: the review no longer covers the latest edit or linked dependency bytes | **Required:** re-read the entire document against current dependencies, then attest it. |
+| Last commit of the proof file older than `daysUntilStale` (`review-cadence-exceeded`) | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-read, then attest again; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
 
@@ -90,7 +88,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
 ```
 
-The command requires explicit paths. It sets `last-reviewed` to the current UTC timestamp only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and dependency hashes. Bare `--fix` never touches review dates.
+The command requires explicit paths and runs only after the operator confirms a complete review. It writes `.skeleton/reviews/<path>.json` with deterministic document and dependency hashes and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
 
 ## Example canonical doc
 
@@ -99,7 +97,7 @@ The command requires explicit paths. It sets `last-reviewed` to the current UTC 
 
 <!-- source-of-truth: Backend API conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 
 Keep request and response shapes consistent across services.
 ```

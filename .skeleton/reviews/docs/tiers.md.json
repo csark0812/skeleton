@@ -1,0 +1,9 @@
+{
+	"version": 3,
+	"documentHash": "sha256:845cd35c6dcae81081137dec53cbe9dcd52877dcd8c92e752ce7705ecf8bd208",
+	"reviewDependencies": {
+		"docs/developer/getting-started.md": "sha256:26d596f52ade8ca5fb5747d3ff13301e75ca3160476bca996aaa6960d323ae20",
+		"docs/developer/install.md": "sha256:8478362965404af6a3f9228d86ab6e1a9e8460319bb8b042575dd0d480d3acc3",
+		"docs/developer/validation.md": "sha256:66aa383d280ac43fb04859b9454a86494172a17dbad437f2196e0d169704b7d1"
+	}
+}

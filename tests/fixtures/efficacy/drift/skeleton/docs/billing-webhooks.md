@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Billing webhook endpoint and retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing.ts -->
 

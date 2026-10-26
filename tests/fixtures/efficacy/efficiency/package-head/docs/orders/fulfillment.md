@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Order fulfillment shipment event; source owner src/orders/fulfillment.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/orders/fulfillment.ts -->
 

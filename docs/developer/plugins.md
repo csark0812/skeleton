@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/plugins/load.ts,src/plugins/build.ts,src/plugins/paths.ts,src/plugin-types.ts -->
 

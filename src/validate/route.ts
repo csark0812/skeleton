@@ -20,6 +20,7 @@ export interface RouteResult {
 const VALIDATE = "skeleton validate changed";
 const AUDIT_SKILLS = "skeleton audit skills";
 const ATTEST = "skeleton audit docs --paths=<paper> --fix=doc-meta --confirm-reviewed";
+const REVIEW = "skeleton review prepare --base <base>";
 
 /** Static lane card. No path. No plugin load. */
 export const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
@@ -32,6 +33,7 @@ export const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
 	["foreign-skill", "skip"],
 	["orphan-policy", "fail-closed"],
 	["attest", ATTEST],
+	["review", REVIEW],
 ];
 
 export function formatRouteCard(): string {

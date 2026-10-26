@@ -1,6 +1,6 @@
 # Registry
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-01-01 -->
+<!-- doc-meta: owner=eng -->
 
 **Source of truth for** fixture registry.
 

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton audit suites and rule scoping -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-10-13T19:02:48Z -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
 
@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. A `package.json` dependency ignores its top-level release `version` ([config](config.md#reviewproof)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -27,9 +27,10 @@ skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
+skeleton audit docs --fix=review-proof    # migrate a v2 review-lock.json; never attests anything new
 ```
 
-`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, writes the current UTC timestamp (`YYYY-MM-DDTHH:MM:SSZ`) to `last-reviewed`, and writes hash evidence when `[reviewProof] mode = "hash"` is configured. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
+`doc-meta` is not a mechanical fix. It requires explicit paths and `--confirm-reviewed`, and writes hash evidence to `<reviewProof.dir>/<path>.json` (default `.skeleton/reviews/`). It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 
@@ -37,7 +38,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
-| links, doc-meta, review-proof, review-deps, prose-policy (`alwaysRun` — all marked docs) | no* |
+| links, doc-meta, review-proof, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
 \* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.
@@ -48,7 +49,7 @@ Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, 
 
 ## Machine-readable results
 
-`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and the active review-proof mode/status. Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
+`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its proof directory. Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
 
 Plugins: [plugins.md](plugins.md).
 
