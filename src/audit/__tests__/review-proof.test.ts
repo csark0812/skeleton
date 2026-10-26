@@ -56,18 +56,17 @@ function auditOptions(root: string, paths = ["docs/example.md"]) {
 	};
 }
 
+/** CI runners have no git identity, so every command that may commit sets one. */
+const GIT_ENV = {
+	...process.env,
+	GIT_AUTHOR_NAME: "test",
+	GIT_AUTHOR_EMAIL: "test@example.com",
+	GIT_COMMITTER_NAME: "test",
+	GIT_COMMITTER_EMAIL: "test@example.com",
+};
+
 function git(root: string, ...args: string[]): string {
-	return execFileSync("git", args, {
-		cwd: root,
-		encoding: "utf8",
-		env: {
-			...process.env,
-			GIT_AUTHOR_NAME: "test",
-			GIT_AUTHOR_EMAIL: "test@example.com",
-			GIT_COMMITTER_NAME: "test",
-			GIT_COMMITTER_EMAIL: "test@example.com",
-		},
-	});
+	return execFileSync("git", args, { cwd: root, encoding: "utf8", env: GIT_ENV });
 }
 
 function commitAll(root: string, message: string): void {
@@ -534,7 +533,10 @@ describe("parallel review proof", () => {
 	}
 
 	function tryMerge(root: string, branch: string): boolean {
-		return spawnSync("git", ["merge", "-q", "--no-edit", branch], { cwd: root }).status === 0;
+		return (
+			spawnSync("git", ["merge", "-q", "--no-edit", branch], { cwd: root, env: GIT_ENV }).status ===
+			0
+		);
 	}
 
 	it("merges branches that re-attest neighbouring documents without conflicts", async () => {
