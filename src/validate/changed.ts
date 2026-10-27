@@ -1,8 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, extname, join } from "node:path";
+import { basename, extname, join, posix } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
+import { extractLinksFromMarkdown } from "../audit/core/markdown.ts";
+import {
+	owningPackageJson,
+	packageManagerOf,
+	parsePackageJson,
+	scriptReferences,
+} from "../audit/core/package-references.ts";
 import { type FileSource, readRepoText } from "../audit/core/repo-files.ts";
 import { type Issue, isRereadIssue, issue, printReport } from "../audit/core/report.ts";
 import {
@@ -14,7 +21,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
+import { isExternalLink, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import {
 	buildSkillIndex,
 	isForeignSkillPath,
@@ -252,6 +259,69 @@ function documentsMentioning(input: {
 		.filter((path) => {
 			const content = readRepoText(input.root, path, input.source);
 			return content !== null && names.some((name) => content.includes(name));
+		});
+}
+
+/** Repo-relative file a document's link points at, without its anchor; null for external links. */
+function linkedPath(docPath: string, target: string): string | null {
+	if (isExternalLink(target) || target.startsWith("#")) return null;
+	const pathPart = target.split("#")[0]?.split("?")[0] ?? "";
+	return pathPart ? normalizeRelPath(posix.join(posix.dirname(docPath), pathPart)) : null;
+}
+
+function linksToChanged(docPath: string, content: string, changed: Set<string>): boolean {
+	return extractLinksFromMarkdown(content).some((link) => {
+		const path = linkedPath(docPath, link.target);
+		return path !== null && changed.has(path);
+	});
+}
+
+/** Whether a changed package.json owns this document's commands or toolchain facts. */
+function usesChangedPackage(input: {
+	root: string;
+	docPath: string;
+	content: string;
+	changed: Set<string>;
+	source: FileSource;
+}): boolean {
+	const { root, docPath, content, changed, source } = input;
+	const packagePath = owningPackageJson(root, docPath, source);
+	if (packagePath === null || !changed.has(packagePath)) return false;
+	if (basename(docPath) === "AGENTS.md" && posix.dirname(docPath) === posix.dirname(packagePath)) {
+		return true;
+	}
+	const pkg = parsePackageJson(readRepoText(root, packagePath, source));
+	const pm = pkg ? packageManagerOf(pkg) : null;
+	return pm !== null && scriptReferences(content, pm).length > 0;
+}
+
+/**
+ * A change can break a reference in a document the diff never touched: a link to a renamed
+ * symbol, key or heading, or a command naming a removed script. Those documents are audited again;
+ * whether one also needs a re-read stays with its review-deps.
+ */
+function documentsReferencing(input: {
+	root: string;
+	config: ReturnType<typeof loadConfig>;
+	paths: string[];
+	source: FileSource;
+}): string[] {
+	const changed = new Set(input.paths.map((path) => normalizeRelPath(path)));
+	if (changed.size === 0) return [];
+	const names = [...changed].map((path) => basename(path));
+	const touchesPackage = names.includes("package.json");
+	return collectScanFiles(input.config, input.root)
+		.map((abs) => relPathFromAbs(abs, input.root))
+		.filter((docPath) => /\.mdx?$/i.test(docPath) && !changed.has(docPath))
+		.filter((docPath) => {
+			const content = readRepoText(input.root, docPath, input.source);
+			if (content === null) return false;
+			const named = names.some((name) => content.includes(name));
+			if (named && linksToChanged(docPath, content, changed)) return true;
+			return (
+				touchesPackage &&
+				usesChangedPackage({ root: input.root, docPath, content, changed, source: input.source })
+			);
 		});
 }
 
@@ -738,6 +808,10 @@ export async function evaluateValidateChanged(
 	addMissingDocs(
 		classification.buckets.docs,
 		documentsMentioning({ root, config, paths: [...resolvedPaths.deleted], source: fileSource }),
+	);
+	addMissingDocs(
+		classification.buckets.docs,
+		documentsReferencing({ root, config, paths: relPaths, source: fileSource }),
 	);
 	classification.buckets.docs.sort();
 

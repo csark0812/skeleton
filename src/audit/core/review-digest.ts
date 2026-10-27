@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { posix } from "node:path";
+import { selectedRegion } from "./selectors.ts";
 import { normalizeDocMetaForReview, normalizeRelPath } from "./shared.ts";
 
 /** Full SHA-256 digest of UTF-8 text, as `sha256:<64 hex>`. */
@@ -41,58 +42,43 @@ function manifestWithoutReleaseVersion(content: string): string | null {
 	}
 }
 
-/** JSON with object keys sorted, so key order and formatting never change a digest. */
-function canonicalJson(value: unknown): string {
-	if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-	if (isRecord(value)) {
-		const keys = Object.keys(value).sort();
-		return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
-	}
-	return JSON.stringify(value) ?? "null";
-}
-
-/** Walk a dotted key path through objects and, by numeric segment, arrays. */
-function selectedValue(root: unknown, selector: string): unknown {
-	let current = root;
-	for (const key of selector.split(".")) {
-		if (Array.isArray(current) && /^\d+$/.test(key)) {
-			current = current[Number(key)];
-		} else if (isRecord(current) && key in current) {
-			current = current[key];
-		} else {
-			return;
-		}
-	}
-	return current;
-}
-
-/** Digest of the selected JSON key paths only; a missing key is part of the evidence. */
-function selectedJsonDigest(content: string, selectors: string[]): string | null {
+function isJson(content: string): boolean {
 	try {
-		const parsed: unknown = JSON.parse(content);
-		return sha256(
-			selectors
-				.map((selector) => {
-					const value = selectedValue(parsed, selector);
-					return `${selector}=${value === undefined ? "<missing>" : canonicalJson(value)}`;
-				})
-				.join("\n"),
-		);
+		JSON.parse(content);
+		return true;
 	} catch {
-		return null;
+		return false;
 	}
 }
 
 /**
+ * Digest of the selected regions only (`package.json#scripts`, `src/run.ts#parseArgs`,
+ * `docs/a.md#install`); a selector that names nothing is part of the evidence.
+ * Null for unparseable JSON, so the caller binds the raw bytes.
+ */
+function selectedDigest(target: string, content: string, selectors: string[]): string | null {
+	if (/\.json$/i.test(target) && !isJson(content)) return null;
+	return sha256(
+		selectors
+			.map((selector) => {
+				const region = selectedRegion(target, content, selector);
+				return `${selector}=${region === null ? "<missing>" : region.text}`;
+			})
+			.join("\n"),
+	);
+}
+
+/**
  * Digest that binds a review to one dependency.
- * Selected JSON key paths (`package.json#scripts`) are compared on their own;
+ * Selected regions (a JSON key path, a heading's section, a JS/TS declaration) are compared on
+ * their own;
  * a `package.json` is compared as parsed JSON without its top-level `version`;
  * a Markdown dependency is compared without its doc-meta comment;
  * every other dependency is compared byte for byte.
  */
 export function dependencyDigest(target: string, content: string, selectors?: string[]): string {
 	if (selectors && selectors.length > 0) {
-		const selected = selectedJsonDigest(content, selectors);
+		const selected = selectedDigest(target, content, selectors);
 		if (selected !== null) return selected;
 	}
 	if (isMarkdown(target)) return fullDocumentDigest(content);

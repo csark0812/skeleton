@@ -82,4 +82,41 @@ describe("review-deps", () => {
 			rmSync(globRoot, { recursive: true, force: true });
 		}
 	});
+
+	it("accepts selectors on any single file and reports ones that name nothing", async () => {
+		const root = makeRepo(
+			"<!-- review-deps: paths=commands/build.sh#sh,package.json#scripts.test,package.json#scrpts -->",
+		);
+		writeFileSync(join(root, "package.json"), JSON.stringify({ scripts: { test: "x" } }));
+		try {
+			const result = await evaluateAudit({
+				suite: "docs",
+				strict: false,
+				json: false,
+				paths: ["docs/example.md"],
+				only: new Set(["review-deps"]),
+				root,
+			});
+			expect(result.diagnostics.map((item) => [item.code, item.message])).toEqual([
+				[
+					"unresolved-selector",
+					"review dependency package.json#scrpts names nothing: no key scrpts",
+				],
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects selectors on globs and line ranges", () => {
+		const root = makeRepo("");
+		try {
+			expect(() => resolveReviewDependencies(root, ["commands/**#x"])).toThrow("not a glob");
+			expect(() => resolveReviewDependencies(root, ["commands/build.sh#L1"])).toThrow(
+				"cannot name lines",
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 });

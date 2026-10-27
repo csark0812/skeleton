@@ -4,6 +4,7 @@ import { bannedRule } from "./banned.ts";
 import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { nearDuplicateRule } from "./near-duplicate.ts";
+import { packageReferencesRule } from "./package-references.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
 import { reviewCoverageRule } from "./review-coverage.ts";
 import { reviewDepsRule } from "./review-deps.ts";
@@ -36,6 +37,7 @@ const docsRules: AuditRule[] = [
 	{ ...coverageGapsRule, global: true },
 	{ ...reviewCoverageRule, global: true },
 	linksRule,
+	packageReferencesRule,
 	docMetaRule,
 	reviewDepsRule,
 	{ ...bannedRule, global: true },

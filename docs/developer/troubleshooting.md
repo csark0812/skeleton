@@ -87,6 +87,8 @@ See [keeping documents current](doc-system.md#keeping-documents-current).
 
 **Fix:** Re-read the entire document against the changed files and update it in the same commit. If it is still correct, commit once without the hook (pre-commit framework: `SKIP=<hook id> git commit …`).
 
+**Selector names nothing** — code `unresolved-selector`. A `review-deps` entry such as `package.json#scrpts` or `src/run.ts#oldName` selects nothing, so the document would never be asked for a re-read. Name a key, heading, or symbol that exists, or drop the selector.
+
 **Dependency warnings** — `review-dependency-broad`: a document depends on a whole `package.json`; name the keys it describes (`package.json#scripts`). `review-dependency-cycle`: documents depend on each other; replace the document dependency with a link.
 
 **Re-read cadence** — code `review-cadence-exceeded`.

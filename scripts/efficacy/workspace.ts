@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Workspace } from "@post-print/agent-test";
 
@@ -8,4 +10,18 @@ export function stageBillingChange(workspace: Workspace): void {
 		new URL("../../agent-suites/seeds/billing-v2.patch", import.meta.url),
 	);
 	execFileSync("git", ["apply", "--index", patch], { cwd: workspace.path });
+}
+
+/** Install the hook that `skeleton init` asks consumers to enable with `pre-commit install`. */
+export function installSkeletonPreCommitHook(workspace: Workspace): void {
+	const hooks = execFileSync("git", ["rev-parse", "--git-path", "hooks"], {
+		cwd: workspace.path,
+		encoding: "utf8",
+	}).trim();
+	mkdirSync(join(workspace.path, hooks), { recursive: true });
+	writeFileSync(
+		join(workspace.path, hooks, "pre-commit"),
+		"#!/bin/sh\nexec node node_modules/@csark0812/skeleton/dist/cli.js validate changed --staged\n",
+		{ mode: 0o755 },
+	);
 }

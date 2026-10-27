@@ -53,12 +53,13 @@ Flag details: [install](docs/developer/install.md).
 - **SSOT markers** — opt-in `source-of-truth` (comment or visible); dual/malformed forms fail; legacy banners accepted
 - **Near-duplicate docs** — shingle overlap + duplicate SSOT summaries (warn / `--strict`)
 - **SSOT summary fit** — heuristic overlap between the one-liner and the body (warn / `--strict`)
-- **Link audit** — broken refs, skill links, anchors in scanned markdown
+- **Link audit** — broken refs, skill links, and anchors in scanned markdown; an anchor on a code or JSON file must name a symbol or key that exists (`src/run.ts#parseArgs`, `package.json#scripts.test`)
+- **Package references** — a `pnpm <script>`-style command in any doc must name a script in the nearest `package.json`; the `AGENTS.md` beside it must quote the exact `packageManager` and `engines.node`
 - **Skill index** — disk matches taxonomy READMEs in detected skill roots
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
 - **Doc meta** — an owner on indexes and SSOT-bearing files
-- **Stale documents** — a change to a file a document declares in `review-deps` must update that document too: pre-commit blocks it, pull-request validation warns. Nothing records reviews, so documents merge exactly as git merges them; a `package.json` release `version`, keys outside a `#key` selector, and doc-meta-only edits do not count
+- **Stale documents** — a change to a file a document declares in `review-deps` must update that document too: pre-commit blocks it, pull-request validation warns. Nothing records reviews, so documents merge exactly as git merges them; a `package.json` release `version`, changes outside a `#` selector (a JSON key, a Markdown section, a JS/TS declaration), and doc-meta-only edits do not count
 - **Dependency routing** — changed repository files automatically pull matching documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
@@ -166,7 +167,7 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 
 ## Agent efficacy
 
-Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Two additional core tasks measure correctness and reliability without a savings gate, and four package-tradeoff comparisons measure adoption, recovery, and simple-task overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
+Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Three additional core tasks measure correctness and reliability without a savings gate, and five package-tradeoff comparisons measure adoption, recovery, and simple-task and hook overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
 
 Method: [Agent efficacy](docs/developer/efficacy.md).
 

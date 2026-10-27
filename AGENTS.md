@@ -18,7 +18,7 @@ When you change a file that a document lists in `review-deps`, re-read that docu
 
 ## First hour
 
-Bun `1.2.x`. Node ≥ 22. No runtime env vars.
+Bun (`bun@1.2.21`). Node `>=22`. No runtime env vars.
 
 ```bash
 bun install
