@@ -21,6 +21,19 @@ Every Skeleton run in these qualifications was correct. The staged task had two 
 
 Recording the evidence in the packaged README changed the tarball bytes after the live runs. The final validation repack is SHA-1 `634a16ff2dc0ad506d3dc37ed149aa529b0c9850`; its `dist/cli.js` SHA-256 is `17471b4b0f04c47e02bfcf44451647ddf7fb2e16a8fc19b9ba963473906cb887`. No runtime source changed between the evaluated artifacts and that repack.
 
+### Stale-doc-reference token gate
+
+On 2026-10-27 the two stale-doc-reference tests ran three paired attempts per host. Every run was correct on both sides. They fail when Skeleton's median tokens over matched correct pairs exceed control's.
+
+| Host | Test | Control median tokens | Skeleton median tokens | Result | Execution |
+| --- | --- | ---: | ---: | --- | --- |
+| Claude Code default model, agent-harness 2.3.5 | Rename a linked function | 224,434 | 150,956 | pass (−32.7%) | `5c4e592a-e67b-4351-a6b2-f10f10d8ccf4` |
+| Claude Code default model, agent-harness 2.3.5 | Edit beside a narrowed dependency | 184,508 | 149,474 | pass (−19.0%) | `5c4e592a-e67b-4351-a6b2-f10f10d8ccf4` |
+| OpenAI `gpt-5.6-luna`, agent-harness 2.3.4 | Rename a linked function | 88,985 | 118,231 | fail (+32.9%) | `5fa329c6-6bde-439b-8eae-bd0a02d591b2` |
+| OpenAI `gpt-5.6-luna`, agent-harness 2.3.4 | Edit beside a narrowed dependency | 84,999 | 118,442 | fail (+39.3%) | `5fa329c6-6bde-439b-8eae-bd0a02d591b2` |
+
+Claude edited directly from the context packet in three to six calls. With the same packet, `gpt-5.6-luna` still searched with `rg` and re-read the returned whole files, so on this three-file repository the context call was extra cost. Live runs on agent-harness 2.3.0 through 2.3.3, and Claude runs on 2.3.4, are not valid Skeleton evidence. In those runs, sealed shells could not start a bin-symlinked `npx`, so `skeleton context` crashed (post-print/agent-spec#67, #68).
+
 ## The tasks
 
 | Task | Repository problem | Correct work | Possible benefit |
