@@ -15,6 +15,15 @@ const test = describe("Does Skeleton help?", ({ agent }) => ({
 	),
 }));
 
+/** Skeleton may not cost more: over pairs where both sides are correct, its median is no higher. */
+function expectNoMoreTokens(report: Awaited<ReturnType<typeof measureReliability>>): void {
+	expect(report.efficiency.pairs, "At least one pair is correct on both sides").toBeGreaterThan(0);
+	expect(
+		report.efficiency.skeletonMedian ?? Number.POSITIVE_INFINITY,
+		"Skeleton uses no more median tokens than the baseline",
+	).toBeLessThanOrEqual(report.efficiency.baselineMedian ?? 0);
+}
+
 function finalText(run: Run, path: string): string {
 	const absolute = join(run.workspace.final.path, path);
 	return existsSync(absolute) ? readFileSync(absolute, "utf8") : "";
@@ -64,6 +73,7 @@ test("Skeleton reliability when a rename breaks a linked document", async ({
 		report.baseline.tokenErrors + report.withSkeleton.tokenErrors,
 		"No token measurements are invalid",
 	).toBe(0);
+	expectNoMoreTokens(report);
 });
 
 test("Skeleton overhead when an edit leaves a narrowed dependency untouched", async ({
@@ -105,5 +115,5 @@ test("Skeleton overhead when an edit leaves a narrowed dependency untouched", as
 	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
 		report.attempts,
 	);
-	// A negative savingsFraction exposes hook overhead; it is not a correctness failure.
+	expectNoMoreTokens(report);
 });

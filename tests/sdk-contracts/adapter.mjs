@@ -116,10 +116,22 @@ export default defineAgent({
 						yield retry;
 						if (!retry.succeeded) throw new Error(`Repaired commit failed: ${retry.result}`);
 					} else if (!first.succeeded) throw new Error(`Commit failed: ${first.result}`);
+					else if (rename) {
+						// Without the hook, the scripted baseline finds the stale link only on a second pass.
+						await edit(
+							"docs/invoice-reminders.md",
+							"sendInvoiceReminder",
+							"remindInvoiceRecipient",
+						);
+						const followUp = commit();
+						yield followUp;
+						if (!followUp.succeeded) throw new Error(`Follow-up commit failed: ${followUp.result}`);
+					}
 					yield { type: "text", text: "Offline invoice change committed." };
+					// Scripted totals that exercise the no-more-tokens gate; they are not measurements.
 					yield {
 						type: "usage",
-						usage: { totalTokens: skeleton ? (rename ? 120 : 105) : 100 },
+						usage: { totalTokens: rename ? (skeleton ? 120 : 130) : 100 },
 					};
 					return;
 				}

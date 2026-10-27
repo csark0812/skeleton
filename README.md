@@ -66,7 +66,7 @@ Flag details: [install](docs/developer/install.md).
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
-For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. It is read-only and reports whether recorded review evidence still matches:
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. An excerpt that is the entire file is marked `whole-file`, and a `reference` line lists each tracked file and line that names a code identifier from the request (camelCase, PascalCase, or snake_case), so a rename needs no further search. It is read-only and reports whether recorded review evidence still matches:
 
 ```bash
 skeleton context "billing webhook retry"

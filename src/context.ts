@@ -50,6 +50,8 @@ interface ContextSource {
 	path: string;
 	excerpt: string;
 	command?: string;
+	/** The excerpt is the entire file. */
+	wholeFile?: boolean;
 }
 
 interface ContextDocument {
@@ -63,9 +65,17 @@ interface ContextDocument {
 	omittedSources?: string[];
 }
 
+/** Every tracked file and line that names a code identifier from the request. */
+interface ContextReference {
+	identifier: string;
+	path: string;
+	lines: number[];
+}
+
 interface ContextResult {
 	documents: ContextDocument[];
 	omitted: string[];
+	references: ContextReference[];
 }
 
 interface ContextOptions {
@@ -82,6 +92,51 @@ function queryTerms(query: string | undefined): string[] {
 	);
 	const specific = terms.filter((term) => !QUERY_STOP_TERMS.has(term));
 	return specific.length > 0 ? specific : terms;
+}
+
+/** camelCase, PascalCase with an inner capital, or snake_case: words prose does not use. */
+const IDENTIFIER_RE = /^[A-Za-z_$][\w$]*$/;
+const CODE_SHAPED_RE = /[a-z0-9][A-Z]|_/;
+const MAX_REFERENCE_FILES = 40;
+
+function requestIdentifiers(query: string | undefined): string[] {
+	const words = (query ?? "").split(/[^\w$]+/).filter(Boolean);
+	return [
+		...new Set(words.filter((word) => IDENTIFIER_RE.test(word) && CODE_SHAPED_RE.test(word))),
+	];
+}
+
+function escapeRegExp(text: string): string {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Where each identifier the request names appears, so a rename or removal edits the complete
+ * list instead of searching for it again. Capped per identifier; a capped list says so.
+ */
+function identifierReferences(input: {
+	root: string;
+	query: string | undefined;
+	tracked: string[];
+	source: FileSource;
+}): ContextReference[] {
+	const identifiers = requestIdentifiers(input.query);
+	if (identifiers.length === 0) return [];
+	const contents = input.tracked.map((path) => ({
+		path,
+		content: readRepoText(input.root, path, input.source) ?? "",
+	}));
+	return identifiers.flatMap((identifier) => {
+		const word = new RegExp(`(^|[^\\w$])${escapeRegExp(identifier)}(?![\\w$])`);
+		return contents
+			.filter(({ content }) => !content.includes("\0") && word.test(content))
+			.slice(0, MAX_REFERENCE_FILES)
+			.map(({ path, content }) => ({
+				identifier,
+				path,
+				lines: content.split("\n").flatMap((line, index) => (word.test(line) ? [index + 1] : [])),
+			}));
+	});
 }
 
 function score(text: string, terms: string[]): number {
@@ -174,7 +229,12 @@ function boundedExcerpts(entries: ContextSource[], available: number, terms: str
 		if (chars >= available) break;
 		const value = excerpt(entry.excerpt, available - chars, terms);
 		chars += value.length;
-		items.push({ path: entry.path, excerpt: value, command: entry.command });
+		items.push({
+			path: entry.path,
+			excerpt: value,
+			command: entry.command,
+			wholeFile: value === entry.excerpt,
+		});
 	}
 	return { items, chars };
 }
@@ -367,12 +427,21 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 			}),
 		};
 	});
-	return { documents, omitted };
+	return {
+		documents,
+		omitted,
+		references: identifierReferences({ root: options.root, query: options.query, tracked, source }),
+	};
+}
+
+/** A `whole-file` excerpt is the entire file: nothing is left to read. */
+function excerptHeader(kind: "source" | "test", item: ContextSource): string {
+	return item.wholeFile ? `${kind}\t${item.path}\twhole-file` : `${kind}\t${item.path}`;
 }
 
 function formattedTests(tests: ContextSource[]): string[] {
 	return tests.flatMap((test) => [
-		`test\t${test.path}`,
+		excerptHeader("test", test),
 		test.excerpt,
 		...(test.command ? [`test-command\t${test.command}`] : []),
 	]);
@@ -386,7 +455,8 @@ function formattedDocument(document: ContextDocument): string[] {
 		lines.push(
 			`action\t${document.path}\tReturned source excerpts are authoritative current behavior. Preserve every unrelated source value exactly. Before finishing, compare every claim in the final document with those sources, update every stale claim, and never copy a stale document value over a source value.`,
 		);
-		for (const source of document.sources) lines.push(`source\t${source.path}`, source.excerpt);
+		for (const source of document.sources)
+			lines.push(excerptHeader("source", source), source.excerpt);
 		lines.push(...formattedTests(document.tests));
 		lines.push(`stale-document\t${document.path}`, document.excerpt);
 		return lines;
@@ -401,9 +471,17 @@ function formattedDocument(document: ContextDocument): string[] {
 		);
 	}
 	lines.push(document.excerpt);
-	for (const source of document.sources) lines.push(`source\t${source.path}`, source.excerpt);
+	for (const source of document.sources)
+		lines.push(excerptHeader("source", source), source.excerpt);
 	lines.push(...formattedTests(document.tests));
 	return lines;
+}
+
+function formattedReferences(result: ContextResult): string[] {
+	return result.references.map(
+		(reference) =>
+			`reference\t${reference.identifier}\t${reference.path}\t${reference.lines.join(",")}`,
+	);
 }
 
 export function formatContext(result: ContextResult): string {
@@ -412,9 +490,10 @@ export function formatContext(result: ContextResult): string {
 			[
 				"no-context\tno canonical document matched",
 				"action\tno-context\tInspect the relevant code, tests, and nearby documentation to find the canonical owner. If an owner exists, repair its source-of-truth summary, content, or review-deps so this request can find it. If no owner exists and the subject is durable behavior (a feature, policy, workflow, or architectural contract), create canonical documentation with a source-of-truth summary and review-deps for its implementation. A --path miss must gain an owning document. For a read-only task, report the gap and proposed document follow-up without editing. Skip one-off debugging details and transient implementation facts. Rerun this exact context request and continue until it returns the owner.",
+				...formattedReferences(result),
 			].join("\n") + "\n"
 		);
-	const lines = result.documents.flatMap(formattedDocument);
+	const lines = [...result.documents.flatMap(formattedDocument), ...formattedReferences(result)];
 	if (result.omitted.length) lines.push(`omitted\t${result.omitted.join(",")}`);
 	if (
 		result.omitted.length ||
