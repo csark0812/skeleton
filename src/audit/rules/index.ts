@@ -110,11 +110,3 @@ export function rulesForSuite(suite: string, pluginRules: AuditRule[] = []): Aud
 			throw new Error(`Unknown suite: ${suite}`);
 	}
 }
-
-export function globalRulesForSuite(suite: string, pluginRules: AuditRule[] = []): AuditRule[] {
-	return rulesForSuite(suite, pluginRules).filter((rule) => rule.global);
-}
-
-export function pathScopedRulesForSuite(suite: string, pluginRules: AuditRule[] = []): AuditRule[] {
-	return rulesForSuite(suite, pluginRules).filter((rule) => !rule.global);
-}

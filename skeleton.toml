@@ -12,7 +12,6 @@ include = [
 ]
 exclude = [
   "refs/**",
-  "docs/archive/**",
   "test-results/**",
   "editors/**",
   # Local skills-CLI install trees (not source) — avoid dual-SKILL dogfood fails

@@ -91,7 +91,3 @@ export function rewriteLegacySsotToComment(content: string): string | null {
 	const next = content.replace(LEGACY_BANNER_LINE_RE, comment);
 	return next === content ? null : next;
 }
-
-export function preferredSsotComment(summary: string): string {
-	return `<!-- source-of-truth: ${cleanSummary(summary)} -->`;
-}

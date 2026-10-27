@@ -213,10 +213,6 @@ describe("applyFixes dry-run", () => {
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** fix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/target.md"),
 			`# Target\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
 		);
@@ -247,10 +243,6 @@ describe("applyFixes dry-run", () => {
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** prefix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Source | [../docs/source.md](../docs/source.md) |\n| Target | [../docs/target.md](../docs/target.md) |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/target.md"),
@@ -603,10 +595,6 @@ describe("applyFixes dry-run", () => {
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** stderr fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/target.md"),

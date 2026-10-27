@@ -469,7 +469,6 @@ Run the project commands through the package scripts.
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
-		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
 			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
@@ -510,10 +509,6 @@ Run the project commands through the package scripts.
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/a.md"),
@@ -561,10 +556,6 @@ Run the project commands through the package scripts.
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
 			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
@@ -610,10 +601,6 @@ Run the project commands through the package scripts.
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/demo/demo.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
 			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
@@ -649,7 +636,6 @@ Run the project commands through the package scripts.
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\n`,
 		);
-		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
 			join(dir, ".claude/skills/foreign/SKILL.md"),
 			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
@@ -689,10 +675,6 @@ Run the project commands through the package scripts.
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/a.md"),

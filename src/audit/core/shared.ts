@@ -1,8 +1,4 @@
-import { join, relative, resolve } from "node:path";
-
-export const REGISTRY_REL_PATH = ".skeleton/registry.md";
 export const CATALOG_REL_PATH = ".skeleton/catalog.md";
-export const REGISTRY_DIR_REL = ".skeleton";
 
 export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;
@@ -78,9 +74,4 @@ export function extractScanRootsFromInclude(include: string[]): string[] {
 		if (root) roots.add(root);
 	}
 	return [...roots];
-}
-
-export function resolveFromRegistry(root: string, linkTarget: string): string {
-	const resolved = resolve(join(root, REGISTRY_DIR_REL), linkTarget);
-	return normalizeRelPath(relative(root, resolved));
 }

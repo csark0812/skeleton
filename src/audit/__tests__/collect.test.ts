@@ -199,12 +199,12 @@ describe("validateScanRoots", () => {
 
 describe("filterDocMetaPaths", () => {
 	it("keeps only doc-meta paths matching explicit --paths", () => {
-		const all = ["docs/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
+		const all = ["docs/a.md", "docs/dev/b.md", "README.md"];
 		expect(filterDocMetaPaths(all, ["docs/dev/b.md"])).toEqual(["docs/dev/b.md"]);
 	});
 
 	it("keeps doc-meta paths under a directory path", () => {
-		const all = ["docs/dev/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
+		const all = ["docs/dev/a.md", "docs/dev/b.md", "README.md"];
 		expect(filterDocMetaPaths(all, ["docs/dev"])).toEqual(["docs/dev/a.md", "docs/dev/b.md"]);
 	});
 });

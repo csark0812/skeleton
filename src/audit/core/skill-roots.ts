@@ -171,10 +171,6 @@ export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig):
 	return { roots, slugs, flatSlugs, ownedSlugs, foreignSlugs, provenance };
 }
 
-export function isOwnedSkillSlug(index: SkillIndex, slug: string): boolean {
-	return index.ownedSlugs.includes(slug);
-}
-
 export function isForeignSkillSlug(index: SkillIndex, slug: string): boolean {
 	return index.foreignSlugs.includes(slug);
 }

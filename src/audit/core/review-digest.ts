@@ -7,11 +7,6 @@ export function sha256(content: string): string {
 	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
 }
 
-/** The 64-bit prefix the proof file stores. Change detection, not a security boundary. */
-export function shortDigest(digest: string): string {
-	return digest.slice(0, "sha256:".length + 16);
-}
-
 /** Digest of a reviewed document. Doc-meta is metadata, so editing it never invalidates a review. */
 export function fullDocumentDigest(content: string): string {
 	return sha256(normalizeDocMetaForReview(content));
@@ -104,12 +99,4 @@ export function dependencyDigest(target: string, content: string, selectors?: st
 	if (!isPackageManifest(target)) return sha256(content);
 	const manifest = manifestWithoutReleaseVersion(content);
 	return manifest === null ? sha256(content) : sha256(manifest);
-}
-
-/** One digest over every dependency, keyed by path, so the set and each file's bytes both count. */
-export function combinedDependenciesDigest(perDependency: Record<string, string>): string | null {
-	const lines = Object.keys(perDependency)
-		.sort()
-		.map((target) => `${target}\t${perDependency[target]}`);
-	return lines.length === 0 ? null : shortDigest(sha256(`${lines.join("\n")}\n`));
 }

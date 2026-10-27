@@ -53,7 +53,6 @@ describe("skeleton init", () => {
 		expect(result.scaffold).toBe("created");
 		expect(existsSync(join(cwd, "skeleton.toml"))).toBe(true);
 		expect(existsSync(join(cwd, ".skeleton/config.yaml"))).toBe(false);
-		expect(existsSync(join(cwd, ".skeleton/registry.md"))).toBe(false);
 		expect(existsSync(join(cwd, ".skeleton/customize"))).toBe(false);
 		expect(existsSync(join(cwd, ".cursor/hooks.json"))).toBe(false);
 		const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));

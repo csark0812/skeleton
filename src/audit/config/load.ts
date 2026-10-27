@@ -113,10 +113,6 @@ export function mergedExcludes(config: SkeletonConfig): string[] {
 	return [...new Set([...BUILTIN_EXCLUDES, ...config.scan.exclude])];
 }
 
-export function denyPaths(config: SkeletonConfig): string[] {
-	return config.deny?.paths ?? [];
-}
-
 export function nonPublicSkills(config: SkeletonConfig): string[] {
 	return config.scan.nonPublicSkills ?? [];
 }

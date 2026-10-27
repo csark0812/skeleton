@@ -70,7 +70,7 @@ describe("foreign skill doc-meta scope", () => {
 			const paths = collectDocMetaPaths({
 				config,
 				root,
-				registryPaths: [foreignRef, "docs/README.md"],
+				ssotPaths: [foreignRef, "docs/README.md"],
 				skillIndex,
 			});
 			expect(paths).not.toContain(foreignRef);
