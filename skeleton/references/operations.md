@@ -32,9 +32,9 @@ After a complete human re-read, record review evidence for explicit paths only:
 npx --no-install skeleton attest docs/example.md
 ```
 
-If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason in the lock.
+Commit the edit first: a review records committed bytes. If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason.
 
-Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. To upgrade from Skeleton 5, 6, or 7 proof, to resolve a merge conflict in that file, or to move or drop entries for renamed or deleted documents, run `npx --no-install skeleton attest --repair`; it never attests anything new.
+Attestation adds one empty commit whose message carries a `Skeleton-Reviewed:` line with the digests of the document and its `review-deps`. It changes no tracked file and writes no date into the document. A document passes while some review reachable from HEAD recorded exactly its current bytes. Two branches that review the same document therefore never conflict. When both merge, the combined text is reported as `review-merged-unattested`: a warning for the repository, and an error for the next change that touches the document. Squash merges must keep commit messages (GitHub: "Default to commit messages"), or the review lines never reach the default branch. Proof is read from history, so a shallow clone reports `review-history-unavailable`; fetch full history in CI. To upgrade from a Skeleton 8 `.skeleton/review-lock.toml`, run `npx --no-install skeleton attest --migrate` once. It carries every review that still verifies and never attests anything new. Skeleton 5, 6, or 7 proof must first go through Skeleton 8 `attest --repair`.
 
 Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 
@@ -51,7 +51,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it does not attest review.
 | `context <query> \| --path <path> [--staged] [--max-chars=N]` | Read-only canonical-document, source-owner, and focused-test evidence. |
 | `build-plugin [--check]` | Build or verify plugin `.mjs` siblings. |
 | `validate changed [--staged] [--base <ref>]` | Validate changed paths and their owning papers. |
-| `attest <doc…> [--reason "…"]` / `attest --repair` | Record a full re-read / repair the review lock (migrate, resolve conflicts, move renamed entries). |
+| `attest <doc…> [--reason "…"]` / `attest --migrate` | Record a full re-read as an attest commit / move a Skeleton 8 review lock into history once. |
 | `review prepare [--staged \| --base <ref>] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.

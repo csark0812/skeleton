@@ -1,6 +1,7 @@
 import type { JsonValue } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { reviewInstructions, reviewSchema, transcript } from "../../scripts/efficacy/judge.ts";
+import { recordFixtureReviews } from "../../scripts/efficacy/workspace.ts";
 
 function boundedTranscript(run: Parameters<typeof transcript>[0]): JsonValue {
 	const trim = (item: JsonValue): JsonValue => {
@@ -21,9 +22,15 @@ function boundedTranscript(run: Parameters<typeof transcript>[0]): JsonValue {
 const prompt =
 	"Two Billing webhook documents disagree. Determine whether the repository identifies one as authoritative. If it does, give the URL new integrations should use. Cite every document you used.";
 const test = describe("Document authority", ({ agent, judge }) => ({
-	unmarked: agent({ workspace: "tests/fixtures/efficacy/conflict/unmarked" }),
-	marked: agent({ workspace: "tests/fixtures/efficacy/conflict/single-marker" }),
-	duplicate: agent({ workspace: "tests/fixtures/efficacy/conflict/duplicate-markers" }),
+	unmarked: agent({ workspace: "tests/fixtures/efficacy/conflict/unmarked" }).setup(
+		recordFixtureReviews,
+	),
+	marked: agent({ workspace: "tests/fixtures/efficacy/conflict/single-marker" }).setup(
+		recordFixtureReviews,
+	),
+	duplicate: agent({ workspace: "tests/fixtures/efficacy/conflict/duplicate-markers" }).setup(
+		recordFixtureReviews,
+	),
 	matchedAnswers: judge({
 		prompt: `${reviewInstructions}
 Both agents must use evidence from both disagreeing documents and cite them. Context-command excerpts count as inspection.

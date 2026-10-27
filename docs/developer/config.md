@@ -20,7 +20,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | ---------------- | -------------------------------------------------------------------------------------------- |
 | `scan.include`   | Glob patterns for markdown/docs/skills in the audit perimeter (links, doc-meta, SSOT)        |
 | `scan.exclude`   | Removed from the perimeter (drafts, refs, local install trees)                               |
-| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when the commit that recorded a document's review (`git blame` of its proof line) is older than N days — not the same as “edited after review” (that is a hash mismatch; see [doc system](doc-system.md#doc-meta)) |
+| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when the attest commit of the review that covers a document's current bytes is older than N days — not the same as “edited after review” (that is a hash mismatch; see [doc system](doc-system.md#doc-meta)) |
 
 ## Optional
 
@@ -32,7 +32,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
 | `review`                  | Human-review globs and an optional reviewer command for `review prepare` ([code review](review.md)) |
-| `reviewProof`             | Where the review proof file lives (always on); `package.json` ignores its release `version` (see below) |
+| `reviewProof`             | Review proof lives in commit history (always on); `file` only locates a Skeleton 8 lock to migrate (see below) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -64,29 +64,24 @@ paths = ["apps/**/*_ANALYSIS.md"]
 
 ## `reviewProof`
 
-```toml
-# Optional. Review proof is always on.
-[reviewProof]
-file = ".skeleton/review-lock.toml"
+Review proof is always on and lives in commit messages, so no tracked file records it. `skeleton attest <doc…>` adds one empty commit on HEAD whose message carries a line per document:
+
+```text
+Skeleton-Reviewed: docs/api.md doc=sha256:2b7f90e14c6ad388 deps=sha256:d04c18e5f9a273b6
+Skeleton-Review-Note: docs/api.md checked the retry limit against the client
 ```
 
-Explicit attestation writes one TOML inline table per document into that file:
+The note line appears only with `--reason`: the reason given when a re-attest left the text unchanged. `review prepare` shows it to the reviewer. A path with a space or a quote is written as a JSON string.
 
-```toml
-version = 4
+`doc` digests the document with its doc-meta comment replaced by a fixed token, so editing an owner never invalidates a review. `deps` is one digest over every resolved `review-deps` target and its own digest, so both a changed file and a changed dependency set invalidate the review (`none` when there are none). A Markdown dependency is compared without its doc-meta comment. Digests are 64-bit prefixes of SHA-256: change detection, not a security boundary.
 
-"docs/api.md" = { doc = "sha256:2b7f90e14c6ad388", deps = "sha256:d04c18e5f9a273b6" }
-```
+A document passes while some review reachable from HEAD recorded exactly its current `doc` and `deps` digests. Lines are read anywhere in a message, because a squash merge joins every commit body into one. Keep commit messages when squash-merging (GitHub: "Default to commit messages"); a squash message without the lines drops the review, and the document then fails on the default branch. Proof is read from history: a shallow clone reports `review-history-unavailable`, so CI must fetch full history.
 
-An entry may also carry `note = "…"`: the reason given with `--reason` when a re-attest left the text unchanged. `review prepare` shows it to the reviewer.
-
-`doc` digests the document with its doc-meta comment replaced by a fixed token, so editing an owner never invalidates a review. `deps` is one digest over every resolved `review-deps` target and its own digest, so both a changed file and a changed dependency set invalidate the review (`deps` is left out when there are none). A Markdown dependency is compared without its doc-meta comment. Digests are 64-bit prefixes of SHA-256: change detection, not a security boundary. The file is valid TOML, and TOML keeps an inline table on one line, so no formatter can wrap an entry; a valid hand-reformatted file still reads, and the next write restores the canonical layout. Commit the file.
-
-Entries are sorted by path with one blank line between them. That blank line keeps git's merge from treating edits to neighbouring entries as one conflict, so two PRs that re-attest different documents merge cleanly; two PRs that re-attest the same document still conflict on purpose, and so can a newly added or removed entry right next to a re-attested one. Resolve such a conflict with `skeleton attest --repair`: for a document with competing entries it keeps the first that still verifies against the merged bytes and otherwise drops it, so the document needs a fresh review; an uncontested entry is kept as is, so the audit can still say what changed. The file holds no dates; the re-read cadence uses the commit that last changed the document's line. When a dependency changed, the audit names it by comparing each dependency with its content at that commit.
+Nothing tracked changes, so two branches that review the same document never conflict, and git merges the document itself as usual. If both edits land, no one has read the combined text. When no review matches and the latest first-parent commit that changed the document or its dependencies landed a review of it (a squash whose message has its line, or a merge whose merged side does), the audit reports `review-merged-unattested`: a warning in a repository-wide audit, and an error in a path-scoped audit or `validate changed`, so whoever touches the document next re-reads the combination. A conflict resolution inside a merge commit is never counted as reviewed. The re-read cadence uses the committer day of the matching attest commit. When a dependency changed, the audit names it by comparing each dependency with its content at the latest attest commit.
 
 `review-deps` can narrow a JSON dependency to key paths, for example `package.json#scripts,package.json#bin`. The digest then covers only those keys (a missing key counts as evidence too); impact discovery still treats any change to the file as touching the document. Selectors work only on one `.json` file, not on a glob.
 
-`mode = "hash"` is still accepted. Three older proof files are read only to migrate them: Skeleton 5's `lockfile` (default `.skeleton/review-lock.json`), Skeleton 6's `dir` (default `.skeleton/reviews`), and Skeleton 7's line file (`.skeleton/review-proof`, or a configured `file` that does not end in `.toml`). `file` must name a `.toml` path; any other value is read as a Skeleton 7 line file and the lock goes to `.skeleton/review-lock.toml`, so update `file` after migrating. While any of them exists, `review-proof` reports only `review-proof-legacy` and runs no per-document checks. `skeleton attest --repair` moves every Skeleton 5/6 proof that still verifies into the lock, carries Skeleton 7 entries over unchanged (they use the same digests), removes legacy `last-reviewed` dates, deletes the old files, moves the entry of a renamed document when both digests still verify at the new path and that path has no entry, and removes entries whose path is no longer a reviewed document. It never attests anything new. A moved or migrated entry counts as a new line for the re-read cadence, so its age restarts at the repair commit.
+`mode = "hash"` is still accepted. `file` names a Skeleton 8 lock (default `.skeleton/review-lock.toml`) and is read only by `skeleton attest --migrate`. While that lock exists, a repository-wide audit reports `review-lock-retired`. `--migrate` makes one commit that deletes the lock and carries a review line, dated with `since=<day>` from the commit that recorded the entry, for every entry that still verifies; entries that no longer verify are listed and need a fresh review. It never attests anything new. Skeleton 5, 6, and 7 proof must first be repaired with Skeleton 8 (`attest --repair`).
 
 One exception covers release metadata. A dependency named `package.json` is digested as parsed JSON without its top-level `version` field. A release version bump or a whitespace-only edit therefore keeps the review valid. Any other manifest change, such as `scripts`, `engines`, `bin`, or dependencies, still invalidates it. A manifest that is not a JSON object is compared byte for byte.
 

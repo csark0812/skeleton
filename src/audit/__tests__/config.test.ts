@@ -65,13 +65,13 @@ exclude = []
 		mkdirSync(join(dir, ".skeleton"), { recursive: true });
 		writeFileSync(
 			join(dir, "skeleton.toml"),
-			`daysUntilStale = 180\n[scan]\ninclude = ["docs/**"]\nexclude = []\n[reviewProof]\nmode = "hash"\nlockfile = ".skeleton/custom-review-lock.json"\n`,
+			`daysUntilStale = 180\n[scan]\ninclude = ["docs/**"]\nexclude = []\n[reviewProof]\nmode = "hash"\nfile = ".skeleton/custom-review-lock.toml"\n`,
 		);
 		try {
 			const config = loadConfig(dir);
 			expect(config.reviewProof).toEqual({
 				mode: "hash",
-				lockfile: ".skeleton/custom-review-lock.json",
+				file: ".skeleton/custom-review-lock.toml",
 			});
 		} finally {
 			rmSync(dir, { recursive: true, force: true });

@@ -31,16 +31,12 @@ export interface ReviewCoverageConfig {
 	exclude?: string[];
 }
 
-/** Where review proof lives. Proof is always hash-based: one line per reviewed document in one file. */
+/** Review proof is hash-based and lives in commit messages; this only locates a Skeleton 8 lock to migrate. */
 export interface ReviewProofConfig {
 	/** Accepted for older configs; hash is the only mode. */
 	mode?: "hash";
-	/** Repo-relative review lock (default: .skeleton/review-lock.toml). */
+	/** Skeleton 8 review lock, read only by `skeleton attest --migrate` (default: .skeleton/review-lock.toml). */
 	file?: string;
-	/** Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews). */
-	dir?: string;
-	/** Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
-	lockfile?: string;
 }
 
 /** Harness-neutral review settings for `skeleton review prepare`. */

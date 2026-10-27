@@ -28,7 +28,6 @@ import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
 import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
-import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
 const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
@@ -538,7 +537,12 @@ function auditOptions(
 	suite: "docs" | "skills" | "self",
 	root: string,
 	paths: string[],
-	extra: { globalOnly?: boolean; pathScopedOnly?: boolean; fileSource?: FileSource } = {},
+	extra: {
+		globalOnly?: boolean;
+		pathScopedOnly?: boolean;
+		fileSource?: FileSource;
+		skipRules?: Set<string>;
+	} = {},
 ) {
 	return {
 		suite,
@@ -602,7 +606,11 @@ async function evaluateBucketAudits(input: {
 	const { classification, root, skillIndex, base, fileSource } = input;
 	const audits: AuditResult[] = [];
 	const diagnostics = validateLocalBuckets(classification.buckets, root, fileSource);
-	const sourceOpt = { fileSource };
+	// A review is recorded by a commit after the staged one, so --staged leaves review proof to --base.
+	const sourceOpt = {
+		fileSource,
+		...(fileSource === "index" ? { skipRules: new Set(["review-proof"]) } : {}),
+	};
 
 	if (base) {
 		audits.push(
@@ -759,13 +767,6 @@ export async function evaluateValidateChanged(
 			coverageCandidateCount,
 		}),
 		...uncoveredChangedPathDiagnostics(livePaths, config, ownerPatterns),
-		...stageRequiredDiagnostics({
-			staged: options.staged ?? false,
-			stagedPaths: relPaths,
-			impactedDocuments: impactedDocuments.map((item) => item.path),
-			config,
-			root,
-		}),
 	];
 
 	const evaluated = await evaluateBucketAudits({
@@ -783,12 +784,6 @@ export async function evaluateValidateChanged(
 		audits: evaluated.audits,
 		diagnostics: [...diagnostics, ...evaluated.diagnostics],
 	});
-}
-
-function hasReviewProofErrors(result: ValidateChangedResult): boolean {
-	return result.audits.some((audit) =>
-		audit.diagnostics.some((item) => item.rule === "review-proof" && item.severity === "error"),
-	);
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
@@ -818,10 +813,11 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 		const path = diagnostic.file === "." ? "" : `${diagnostic.file}: `;
 		console.error(`validate changed: ${path}${diagnostic.message}`);
 	}
-	if (result.input.staged && hasReviewProofErrors(result)) {
-		// pre-commit stashes unstaged changes, so an attested but unstaged lock looks unattested.
+	if (result.input.staged && result.impactedDocuments.length > 0) {
+		// A review is a commit after this one, so --staged cannot check it yet.
+		const documents = result.impactedDocuments.map((item) => item.path).join(" ");
 		console.log(
-			"If you already attested, stage the review lock too: git add .skeleton/review-lock.toml",
+			`Review proof is checked with --base: after committing, re-read and run \`skeleton attest ${documents}\`.`,
 		);
 	}
 	if (result.ok) {

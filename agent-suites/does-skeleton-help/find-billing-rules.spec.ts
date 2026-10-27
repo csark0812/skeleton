@@ -2,12 +2,15 @@ import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { reviewInstructions, reviewSchema, transcript } from "../../scripts/efficacy/judge.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
+import { recordFixtureReviews } from "../../scripts/efficacy/workspace.ts";
 
 const prompt =
 	"I'm about to touch billing webhooks. Tell me the important current constraints and where they live.";
 const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/efficiency/control" }),
-	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/efficiency/package-head" }),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/efficiency/package-head" }).setup(
+		recordFixtureReviews,
+	),
 	answer: judge({
 		prompt: `${reviewInstructions}
 The run must meet these requirements:

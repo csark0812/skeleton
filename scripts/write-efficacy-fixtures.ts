@@ -1,6 +1,5 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../src/audit/core/review-proof.ts";
 import { buildCatalogContent } from "../src/catalog.ts";
 
 const ROOT = join(import.meta.dir, "..");
@@ -37,11 +36,12 @@ paths = []
 `;
 }
 
-function addSkeletonArtifacts(root: string, docsToAttest: string[]): void {
+/**
+ * Review proof lives in commit history, which a fixture folder cannot carry; suites record the
+ * baseline reviews with `recordFixtureReviews` after the harness makes the first commit.
+ */
+function addSkeletonArtifacts(root: string): void {
 	const abs = join(ROOT, root);
-	for (const doc of docsToAttest) {
-		attestDocuments({ root: abs, paths: [doc] });
-	}
 	const { content } = buildCatalogContent(abs);
 	write(join(root, ".skeleton/catalog.md"), content);
 }
@@ -129,7 +129,7 @@ writeTree("tests/fixtures/efficacy/drift/skeleton", {
 	"docs/billing-webhooks.md": billingDocSkeleton,
 	"skeleton.toml": skeletonConfig(),
 });
-addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton", ["docs/billing-webhooks.md"]);
+addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton");
 
 const conflictReadme = `# Billing repository
 
@@ -172,7 +172,7 @@ function writeConflictFixture(
 		}),
 		"skeleton.toml": skeletonConfig(false),
 	});
-	addSkeletonArtifacts(fixtureRoot, ["docs/billing-webhook-a.md", "docs/billing-webhook-b.md"]);
+	addSkeletonArtifacts(fixtureRoot);
 }
 
 writeConflictFixture("unmarked", { a: false, b: false });
@@ -265,10 +265,7 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 
 writeTree("tests/fixtures/efficacy/efficiency/control", efficiencyFiles("control"));
 writeTree("tests/fixtures/efficacy/efficiency/package-head", efficiencyFiles("package"));
-addSkeletonArtifacts(
-	"tests/fixtures/efficacy/efficiency/package-head",
-	Object.keys(efficiencyFacts),
-);
+addSkeletonArtifacts("tests/fixtures/efficacy/efficiency/package-head");
 
 const postPrintRealtimeDoc = `# Workspace document realtime
 
@@ -478,9 +475,7 @@ writeTree(
 	"tests/fixtures/efficacy/postprint-applications/package-head",
 	postPrintFixtureFiles("package"),
 );
-addSkeletonArtifacts("tests/fixtures/efficacy/postprint-applications/package-head", [
-	"docs/developer/websocket.md",
-]);
+addSkeletonArtifacts("tests/fixtures/efficacy/postprint-applications/package-head");
 
 writeTree("tests/fixtures/efficacy/product-smoke/adopt-consumer", {
 	"AGENTS.md": `# Agent entry\n\nInstall @csark0812/skeleton with npm, then initialize it in this repository. Stay inside this repository.\n`,

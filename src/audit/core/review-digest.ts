@@ -7,7 +7,7 @@ export function sha256(content: string): string {
 	return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
 }
 
-/** The 64-bit prefix the proof file stores. Change detection, not a security boundary. */
+/** The 64-bit prefix a review line records. Change detection, not a security boundary. */
 export function shortDigest(digest: string): string {
 	return digest.slice(0, "sha256:".length + 16);
 }

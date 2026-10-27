@@ -52,10 +52,10 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 Skeleton does not claim to validate application code. It classifies code paths, prints the repo-native gates, and builds an exact reverse dependency map from `review-deps` declarations to scanned documents.
 
-- Impacted documents are audited with `review-proof`: changed dependency bytes invalidate the document's entry in `.skeleton/review-lock.toml` until explicit re-review and attestation. A `package.json` change to only its top-level `version` keeps the entry valid, and a `file.json#key` dependency compares only the selected keys ([config](config.md#reviewproof)). Pass or fail depends only on those normalized bytes, so the same range gives the same result on any day; only the advisory cadence warning uses git dates.
+- Impacted documents are audited with `review-proof`: changed dependency bytes leave the document without a matching review until explicit re-review and an attest commit. A `package.json` change to only its top-level `version` keeps the review valid, and a `file.json#key` dependency compares only the selected keys ([config](config.md#reviewproof)). Pass or fail depends only on those normalized bytes, so the same range gives the same result on any day; only the advisory cadence warning uses git dates.
 - No linked document: a live coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this. Deleted files do not fail that gate.
 - Deleted or renamed Markdown documents (in a diff run, not with explicit paths): every scanned document that mentions the old file name is audited too, so a link the change broke is reported even though that document is not in the diff.
-- `--staged`: read document, proof, and dependency bytes from the git index. If an impacted paper or the review proof file (`.skeleton/review-lock.toml`, or `[reviewProof] file`) differs from HEAD and is not staged, fail `stage-required`.
+- `--staged`: read document and dependency bytes from the git index, and skip review proof: the review is an attest commit after the staged one. The output names the impacted documents to attest after committing. `--base` checks proof against commit history, so CI needs full history (`fetch-depth: 0`).
 
 In this repo:
 

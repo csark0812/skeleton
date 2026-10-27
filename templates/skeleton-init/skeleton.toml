@@ -15,9 +15,8 @@ exclude = [
 [deny]
 paths = []
 
-# Review proof is always on: one TOML entry per reviewed document in .skeleton/review-lock.toml.
-# [reviewProof]
-# file = ".skeleton/review-lock.toml"
+# Review proof is always on. `skeleton attest <doc>` records each review as an empty commit
+# whose message carries a Skeleton-Reviewed line; nothing tracked changes.
 
 # Defaults apply when this section is omitted. Empty include disables the gate.
 # [reviewCoverage]

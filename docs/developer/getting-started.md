@@ -69,7 +69,7 @@ see [config](config.md#skillownership).
 
 Plugin-enabled example and more keys: [config](config.md).
 
-Review proof is always on. Each explicit review writes one line in `.skeleton/review-lock.toml`; commit that file. Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
+Review proof is always on. Each explicit review is an empty attest commit after your edit commit; no tracked file changes. Keep commit messages when squash-merging, and fetch full history in CI. Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
 
 ## 3. Write a canonical doc
 

@@ -20,11 +20,11 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 
 The same error fires on local, `--staged`, and `--base` runs. A mixed docs commit does not hide it.
 
-## `stage-required`
+## `attest`: "Commit these first, then attest"
 
-**Cause:** `--staged` saw an impacted paper or the review proof file (`.skeleton/review-lock.toml`) that differs from HEAD and is not in the index.
+**Cause:** A review records committed bytes. The document, one of its dependencies, or an untracked file that a dependency glob matches differs from HEAD.
 
-**Fix:** Stage the attested document and `.skeleton/review-lock.toml`.
+**Fix:** Commit the edit (or remove the stray file), then attest. `--staged` never checks review proof, because the review is a commit after the staged one; `validate changed --base` checks it.
 
 ## `validate changed: all paths were skipped`
 
@@ -89,7 +89,7 @@ Two different signals (see [doc system](doc-system.md#doc-meta)):
 
 **Changed since review** — code `review-document-changed` or `review-dependency-changed`.
 
-**Cause:** The document or a `review-deps` dependency no longer matches its entry in `.skeleton/review-lock.toml`, so the recorded review no longer covers it.
+**Cause:** No review reachable from HEAD recorded the document's current bytes and `review-deps` bytes, so no recorded review covers it.
 
 **Fix:** Re-read the entire document against every current dependency. Attest it only if the content is still correct:
 
@@ -98,27 +98,25 @@ skeleton attest docs/example.md
 skeleton attest docs/example.md --dry-run
 ```
 
-Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Naming a dependency needs the commit that recorded the review; without git history the line reads `changed: review dependency set`. Do not hand-edit the proof file.
+Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Naming a dependency compares it with its content at the latest attest commit; when that commit cannot say, the line reads `changed: review dependency set`.
 
 **"Text unchanged since the last review"** — attestation refused. A dependency changed but the document did not. Check the document's claims against the change, then attest with `--reason "<what you checked>"`, or fix the text and attest without it.
 
-**Lock attested but not staged** — under `--staged`, a review error can mean you attested but did not stage the lock (pre-commit hides unstaged changes). The output then says `git add .skeleton/review-lock.toml`.
+**Combined text not reviewed** — code `review-merged-unattested`. Two branches each reviewed the document and both merged, so no one has read the result. A warning for repository-wide audits; an error once a change touches the document. Re-read the combined text, then attest it.
 
 **Dependency warnings** — `review-dependency-broad`: a document depends on a whole `package.json`; name the keys it describes (`package.json#scripts`). `review-dependency-cycle`: documents depend on each other; replace the document dependency with a link.
 
 **Missing proof** — code `review-proof-missing`. The document has never been attested. Review it, then run the command above.
 
-**Legacy proof** — code `review-proof-legacy`. Skeleton 5 (`review-lock.json`), 6 (`.skeleton/reviews/`) or 7 (`.skeleton/review-proof`) proof is still present. Run `skeleton attest --repair` once to move it into `.skeleton/review-lock.toml` ([config](config.md#reviewproof)). Attestation refuses to run until then, and likewise while the lock has a merge conflict.
+**Retired lock** — code `review-lock-retired`. A Skeleton 8 `.skeleton/review-lock.toml` is still present and is no longer read. Run `skeleton attest --migrate` once ([config](config.md#reviewproof)). Skeleton 5, 6, or 7 proof must first go through Skeleton 8 `attest --repair`.
 
-**Merge conflict** — code `review-proof-conflict`. Two branches re-attested the same document, one added or removed an entry next to one the other re-attested, or a merge left duplicate entries. Run `skeleton attest --repair`; it keeps the side that still verifies and drops the rest, so a document whose entry was dropped needs a fresh review.
+**History unavailable** — code `review-history-unavailable`. The clone is shallow, so a missing review proves nothing. Fetch full history (`git fetch --unshallow`, or `fetch-depth: 0` in CI).
 
-**Orphaned entry** — code `review-proof-orphan` (warning). A document was renamed or deleted. `skeleton attest --repair` moves or removes the entry. Reported only by full audits, not under `--paths`.
-
-**Malformed proof file** — code `review-proof-invalid`. An entry is not `"<path>" = { doc = "sha256:<16 hex>", deps = "sha256:<16 hex>", note = "…" }` (`deps` and `note` optional), or the lock does not have exactly one `version = 4` line. A Skeleton 7 line file at a custom `[reviewProof] file` path reports `review-proof-legacy` instead; `skeleton attest --repair` migrates it to `.skeleton/review-lock.toml`. Restore the file from git, then re-attest the affected documents.
+**Review lines dropped by a squash merge** — a squash message without the `Skeleton-Reviewed:` lines fails the documents on the default branch. Keep commit messages when squash-merging, or attest again on the default branch.
 
 **Re-read cadence** — code `review-cadence-exceeded`.
 
-**Cause:** The last commit that changed the document's line in `.skeleton/review-lock.toml` (from `git blame`) is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
+**Cause:** The attest commit of the review that covers the document's current bytes is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
 
 **Fix:** Re-read and attest the paper again, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
 

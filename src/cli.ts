@@ -19,7 +19,7 @@ function usage(): void {
 Commands:
   init [--skills] [--no-skills] [skills add flags…]
   attest <document…> [--reason "<what you checked>"] [--dry-run]
-                                record that you re-read documents; --repair fixes the review lock
+                                record a re-read as a commit; --migrate moves a Skeleton 8 lock
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
                          [--fix[=doc-meta|review-proof|anchors|ssot]] [--dry-run]
                          [--confirm-reviewed (doc-meta only; requires --paths)]

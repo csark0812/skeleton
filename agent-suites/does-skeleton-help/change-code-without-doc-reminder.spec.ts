@@ -5,14 +5,14 @@ import { describe, expect } from "@post-print/agent-test";
 import { checkBillingDocument } from "../../scripts/efficacy/billing-document.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
 import { checkRegression } from "../../scripts/efficacy/regression.ts";
-import { stageBillingChange } from "../../scripts/efficacy/workspace.ts";
+import { recordFixtureReviews, stageBillingChange } from "../../scripts/efficacy/workspace.ts";
 
 const prompt = "Add one retry after a failed billing webhook delivery and verify the change.";
 const test = describe("Does Skeleton help?", ({ agent }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/drift/control" }).setup(stageBillingChange),
-	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" }).setup(
-		stageBillingChange,
-	),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" })
+		.setup(recordFixtureReviews)
+		.setup(stageBillingChange),
 }));
 
 test("Skeleton reliability and token efficiency when preserving staged billing work", async ({

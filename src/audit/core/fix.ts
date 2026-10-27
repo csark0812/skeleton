@@ -5,7 +5,7 @@ import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
 import { rewriteLegacySsotToComment } from "./ssot.ts";
 
-/** `doc-meta` attests reviewed documents; `review-proof` migrates version 2 proof. */
+/** `doc-meta` attests reviewed documents; `review-proof` moves a Skeleton 8 review lock into commit history. */
 export type FixKind = "doc-meta" | "review-proof" | "anchors" | "ssot";
 
 export interface FixEdit {

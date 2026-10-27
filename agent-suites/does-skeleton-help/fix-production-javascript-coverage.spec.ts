@@ -7,6 +7,7 @@ import {
 import { codeReviewSchema, reviewInstructions, transcript } from "../../scripts/efficacy/judge.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
 import { checkRegression } from "../../scripts/efficacy/regression.ts";
+import { recordFixtureReviews } from "../../scripts/efficacy/workspace.ts";
 
 const prompt =
 	"Production .mjs files are being skipped by documentation coverage checks. Fix that while keeping generated Skeleton plugins excluded. Update docs/developer/config.md to describe both rules, verify the change, and run focused tests for production .mjs inclusion and generated-plugin exclusion.";
@@ -14,7 +15,7 @@ const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/history/production-javascript/control" }),
 	withSkeleton: agent({
 		workspace: "tests/fixtures/efficacy/history/production-javascript/skeleton",
-	}),
+	}).setup(recordFixtureReviews),
 	documentationAndVerification: judge({
 		prompt: `${reviewInstructions}
 ${documentationInstructions}

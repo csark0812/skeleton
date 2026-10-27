@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
-import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments } from "../audit/core/review-proof.ts";
 import { evaluateContext, formatContext } from "../context.ts";
+import { review } from "./support/git-repo.ts";
 
-function makeRepo(): string {
+function makeRepo(reviewed = true): string {
 	const root = mkdtempSync(join(tmpdir(), "skel-context-"));
 	mkdirSync(join(root, "docs"), { recursive: true });
 	mkdirSync(join(root, "src/billing"), { recursive: true });
@@ -38,7 +37,7 @@ exclude = []
 Billing webhooks retry once after a failed delivery.
 `,
 	);
-	attestDocuments({ root, paths: ["docs/billing.md"] });
+	if (reviewed) review(root, ["docs/billing.md"], { message: "baseline" });
 	return root;
 }
 
@@ -48,9 +47,8 @@ afterEach(() => {
 
 describe("context", () => {
 	it("requires source comparison for unreviewed claims while preserving historical intent", () => {
-		const root = makeRepo();
+		const root = makeRepo(false);
 		try {
-			rmSync(join(root, ".skeleton/review-lock.toml"));
 			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
 			expect(packet).toContain("action\tdocs/billing.md\tNo matching recorded review proof");
 			expect(packet).toContain("active implementation claims");
@@ -78,36 +76,14 @@ describe("context", () => {
 		}
 	});
 
-	it("measures re-read cadence from the last commit of the review proof", () => {
-		const root = makeRepo();
+	it("measures re-read cadence from the commit that recorded the review", () => {
+		const root = makeRepo(false);
+		const saved = { ...process.env };
 		try {
-			for (const args of [
-				["init", "-q"],
-				["add", "."],
-				[
-					"-c",
-					"user.name=Fixture",
-					"-c",
-					"user.email=fixture@example.invalid",
-					"-c",
-					"core.hooksPath=/dev/null",
-					"commit",
-					"-q",
-					"-m",
-					"baseline",
-				],
-			]) {
-				const result = spawnSync("git", args, {
-					cwd: root,
-					env: {
-						...process.env,
-						TZ: "UTC",
-						GIT_AUTHOR_DATE: "2026-09-16T12:00:00Z",
-						GIT_COMMITTER_DATE: "2026-09-16T12:00:00Z",
-					},
-				});
-				expect(result.status).toBe(0);
-			}
+			process.env.GIT_AUTHOR_DATE = "2026-09-16T12:00:00Z";
+			process.env.GIT_COMMITTER_DATE = "2026-09-16T12:00:00Z";
+			review(root, ["docs/billing.md"], { message: "baseline" });
+			process.env = saved;
 			setSystemTime(new Date("2027-09-16T00:00:00Z"));
 			expect(evaluateContext({ root, query: "billing retry" }).documents[0]?.review).toBe(
 				"matches-recorded-review",
@@ -118,6 +94,7 @@ describe("context", () => {
 				"last review committed 2026-09-16 exceeds re-read cadence (>365 days)",
 			]);
 		} finally {
+			process.env = saved;
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
@@ -162,7 +139,7 @@ describe("context", () => {
 				"<!-- source-of-truth: Billing retry policy -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/billing/*.ts -->\nBilling retries once.\n",
 			);
 			writeFileSync(join(root, "src/billing/retired.ts"), "export const retired = true;\n");
-			attestDocuments({ root, paths: ["docs/billing.md"] });
+			review(root, ["docs/billing.md"]);
 			rmSync(join(root, "src/billing/retired.ts"));
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.review).toBe("changed-since-review");
@@ -232,7 +209,7 @@ describe("context", () => {
 Billing webhooks retry once after a failed delivery.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/billing.md"] });
+			review(root, ["docs/billing.md"]);
 			writeFileSync(join(root, "package.json"), manifest("1.0.1"));
 			const result = evaluateContext({ root, query: "billing webhook retry" });
 			expect(result.documents[0]?.review).toBe("matches-recorded-review");

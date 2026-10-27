@@ -1,9 +1,7 @@
-import { afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { afterAll, afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { runAudit } from "../../audit/run.ts";
 import { checkCatalog, runCatalogCli, writeCatalog } from "../../catalog.ts";
 import { runBuildPlugin } from "../../plugins/build.ts";
@@ -12,20 +10,35 @@ import {
 	evaluateValidateChanged,
 	runValidateChanged,
 } from "../../validate/changed.ts";
+import { review, reviewedCopy } from "../support/git-repo.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
-const FLAT_SKILL_ROOT = join(FIXTURES, "flat-skill-root");
-const PLUGIN_CONSUMER = join(FIXTURES, "plugins/consumer");
+const FLAT_SKILL_ROOT = reviewedCopy(join(FIXTURES, "flat-skill-root"), ["docs/README.md"]);
+const PLUGIN_CONSUMER = reviewedCopy(join(FIXTURES, "plugins/consumer"), [
+	"docs/clean.md",
+	"docs/hit.md",
+]);
 
 function removeFixtureCatalogs(): void {
-	for (const root of [FLAT_SKILL_ROOT, NESTED_SKILLS_CUSTOMIZE, PLUGIN_CONSUMER]) {
+	for (const root of [
+		FLAT_SKILL_ROOT,
+		NESTED_SKILLS_CUSTOMIZE,
+		PLUGIN_CONSUMER,
+		// Other suites audit the fixtures in place.
+		join(FIXTURES, "flat-skill-root"),
+		join(FIXTURES, "plugins/consumer"),
+	]) {
 		const catalog = join(root, ".skeleton/catalog.md");
 		if (existsSync(catalog)) unlinkSync(catalog);
 	}
 }
 
 afterEach(removeFixtureCatalogs);
+afterAll(() => {
+	for (const root of [FLAT_SKILL_ROOT, PLUGIN_CONSUMER])
+		rmSync(root, { recursive: true, force: true });
+});
 
 describe("catalog", () => {
 	it("can fail closed when a strict check finds no generated catalog", () => {
@@ -202,7 +215,7 @@ exclude = []
 The runThing export provides the example behavior.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			review(root, ["docs/example.md"]);
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 
 			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
@@ -252,15 +265,7 @@ The runThing export provides the example behavior.
 Run the project commands through the package scripts.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/commands.md"] });
-			// Naming the changed dependency needs the commit that recorded the review.
-			for (const args of [
-				["init", "-q"],
-				["add", "-A"],
-				["-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "review"],
-			]) {
-				execFileSync("git", args, { cwd: root });
-			}
+			review(root, ["docs/commands.md"], { message: "review" });
 			writeFileSync(join(root, "package.json"), '{"scripts":{"commands":"new"}}\n');
 
 			const result = await evaluateValidateChanged({ root, paths: ["package.json"] });
@@ -314,7 +319,7 @@ Run the project commands through the package scripts.
 The runThing export provides the example behavior.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			review(root, ["docs/example.md"]);
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 
 			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
@@ -667,7 +672,7 @@ The runThing export provides the example behavior.
 			join(dir, policyRel),
 			`name: clean\nentries:\n  - id: never\n    pattern: "ZZZ_NEVER_MATCH_POLICY_TOKEN"\n    message: "should not fire"\n`,
 		);
-		attestDocuments({ root: dir, paths: ["docs/a.md"] });
+		review(dir, ["docs/a.md"]);
 		try {
 			await runBuildPlugin({ root: dir });
 			const exit = await runValidateChanged({
@@ -767,7 +772,7 @@ The runThing export provides the example behavior.
 		);
 		const err = spyOn(console, "error").mockImplementation(() => {});
 		const log = spyOn(console, "log").mockImplementation(() => {});
-		attestDocuments({ root: dir, paths: ["docs/a.md"] });
+		review(dir, ["docs/a.md"]);
 		try {
 			await runBuildPlugin({ root: dir });
 			const exit = await runValidateChanged({

@@ -2,15 +2,15 @@ import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { reviewInstructions, reviewSchema, transcript } from "../../scripts/efficacy/judge.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
-import { stageBillingChange } from "../../scripts/efficacy/workspace.ts";
+import { recordFixtureReviews, stageBillingChange } from "../../scripts/efficacy/workspace.ts";
 
 const prompt =
 	"What billing webhook URL does the staged code use, and do our docs still match? Report only; do not modify files.";
 const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/drift/control" }).setup(stageBillingChange),
-	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" }).setup(
-		stageBillingChange,
-	),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/drift/skeleton" })
+		.setup(recordFixtureReviews)
+		.setup(stageBillingChange),
 	answer: judge({
 		prompt: `${reviewInstructions}
 The run must meet these requirements:

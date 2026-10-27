@@ -16,18 +16,19 @@ function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
 		code: "legacy-review-date",
 		message: "doc-meta still carries a last-reviewed date; review proof no longer stores dates",
 		severity: "warning",
-		remediation: "Run `skeleton attest --repair` to remove legacy dates.",
+		remediation:
+			"Delete the `| last-reviewed=…` part of the doc-meta comment; review dates come from commit history.",
 	});
 }
 
-/** Age of the last committed review: the commit that last changed the document's proof entry. */
+/** Age of the review that covers the document as it reads now: its attest commit's day. */
 function checkStaleReview(input: {
 	ctx: AuditContext;
 	relPath: string;
 	today: Date;
 }): Issue | null {
 	const { ctx, relPath, today } = input;
-	const committed = reviewCommitDay(ctx.root, ctx.config, relPath);
+	const committed = reviewCommitDay(ctx.root, relPath);
 	if (!committed) return null;
 	const ageDays = (today.getTime() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
 	if (!(ageDays > ctx.config.daysUntilStale)) return null;

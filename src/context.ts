@@ -7,13 +7,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
-import {
-	type LoadedReviewProof,
-	loadReviewProof,
-	type ReviewProofEntry,
-	reviewCommitDay,
-	reviewStateFor,
-} from "./audit/core/review-proof.ts";
+import { type Attestation, loadReviewHistory, reviewStateFor } from "./audit/core/review-proof.ts";
 import { normalizeRelPath } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
 
@@ -235,33 +229,35 @@ interface ReviewInput {
 	root: string;
 	document: string;
 	content: string;
-	entry: ReviewProofEntry | null;
-	config: ReturnType<typeof loadConfig>;
+	history: Map<string, Attestation[]>;
 	source: FileSource;
 	staleDays: number;
 }
 
-function entryOf(loaded: LoadedReviewProof, document: string): ReviewProofEntry | null {
-	return loaded.status === "valid" ? (loaded.entries.get(document) ?? null) : null;
-}
-
-/** The last committed review is older than the re-read cadence. */
-function cadenceReviewReasons(input: ReviewInput): string[] {
-	const committed = reviewCommitDay(input.root, input.config, input.document);
-	if (!committed) return [];
-	const ageDays = (Date.now() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
-	if (!(ageDays > input.staleDays)) return [];
-	return [`last review committed ${committed} exceeds re-read cadence (>${input.staleDays} days)`];
+/** The review that covers the document is older than the re-read cadence. */
+function cadenceReviewReasons(day: string, staleDays: number): string[] {
+	const ageDays = (Date.now() - Date.parse(`${day}T00:00:00Z`)) / 86_400_000;
+	if (!(ageDays > staleDays)) return [];
+	return [`last review committed ${day} exceeds re-read cadence (>${staleDays} days)`];
 }
 
 function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "reviewReasons"> {
-	if (!input.entry) return { review: "unreviewed" };
 	const state = reviewStateFor({
 		root: input.root,
-		entry: input.entry,
+		history: input.history,
+		document: input.document,
 		content: input.content,
 		source: input.source,
 	});
+	if (state.status === "missing") return { review: "unreviewed" };
+	if (state.status === "merged-unattested") {
+		return {
+			review: "review-required",
+			reviewReasons: [
+				"merged branches reviewed this document separately; no one reviewed the combined text",
+			],
+		};
+	}
 	if (state.status === "document-changed") {
 		return {
 			review: "review-required",
@@ -269,7 +265,7 @@ function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "rev
 		};
 	}
 	if (state.status !== "matches") return { review: "changed-since-review" };
-	const reviewReasons = cadenceReviewReasons(input);
+	const reviewReasons = cadenceReviewReasons(state.attestation.day, input.staleDays);
 	if (reviewReasons.length > 0) return { review: "review-required", reviewReasons };
 	return { review: "matches-recorded-review" };
 }
@@ -287,7 +283,11 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 	const files = collectScanFiles(config, options.root);
 	const ssot = collectSsotEntries(files, options.root).entries;
 	const terms = queryTerms(options.query);
-	const proof = loadReviewProof({ root: options.root, config, source });
+	const loadedHistory = loadReviewHistory(options.root);
+	const history =
+		loadedHistory.status === "available"
+			? loadedHistory.byDocument
+			: new Map<string, Attestation[]>();
 	const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
 	const candidates = ssot
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one document needs source, query, and bounds decisions before it can be returned.
@@ -354,8 +354,7 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 				root: options.root,
 				document: entry.path,
 				content,
-				entry: entryOf(proof, entry.path),
-				config,
+				history,
 				source,
 				staleDays: config.daysUntilStale,
 			}),

@@ -5,25 +5,30 @@ import { migrateAndReport } from "../audit/run.ts";
 export interface AttestOptions {
 	paths: string[];
 	reason?: string;
-	repair: boolean;
+	migrate: boolean;
 	dryRun: boolean;
 }
 
 export const ATTEST_USAGE = `Usage: skeleton attest <document…> [--reason "<what you checked>"] [--dry-run]
-       skeleton attest --repair [--dry-run]
+       skeleton attest --migrate [--dry-run]
 
-Record that you re-read each document in full against its current review-deps.
+Record that you re-read each committed document in full against its current review-deps.
+It adds one empty commit whose message carries a Skeleton-Reviewed line per document;
+nothing tracked changes, so reviews never conflict. Commit your edits first.
 --reason is required when a document's text did not change but its dependencies did.
---repair migrates older proof files, resolves a merge conflict in the review lock,
-and moves or removes entries of renamed or deleted documents. It never attests.`;
+--migrate moves a Skeleton 8 review lock into commit history, once. It never attests.`;
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
 export function parseAttestArgs(argv: string[]): AttestOptions {
-	const options: AttestOptions = { paths: [], repair: false, dryRun: false };
+	const options: AttestOptions = { paths: [], migrate: false, dryRun: false };
 	for (let i = 0; i < argv.length; i++) {
 		const arg = argv[i] ?? "";
-		if (arg === "--repair") options.repair = true;
-		else if (arg === "--dry-run") options.dryRun = true;
+		if (arg === "--migrate") options.migrate = true;
+		else if (arg === "--repair") {
+			throw new Error(
+				"attest: --repair is gone; review proof has no lock to repair. Use --migrate once.",
+			);
+		} else if (arg === "--dry-run") options.dryRun = true;
 		else if (arg === "--reason") {
 			const value = argv[++i];
 			if (value === undefined) throw new Error("attest: --reason needs text");
@@ -32,18 +37,18 @@ export function parseAttestArgs(argv: string[]): AttestOptions {
 		else if (arg.startsWith("-")) throw new Error(`attest: unknown flag ${arg}`);
 		else options.paths.push(...arg.split(",").filter(Boolean));
 	}
-	if (options.repair && (options.paths.length > 0 || options.reason !== undefined)) {
-		throw new Error("attest: --repair takes no documents and no --reason");
+	if (options.migrate && (options.paths.length > 0 || options.reason !== undefined)) {
+		throw new Error("attest: --migrate takes no documents and no --reason");
 	}
-	if (!options.repair && options.paths.length === 0) {
-		throw new Error("attest: name the documents you re-read, or use --repair");
+	if (!options.migrate && options.paths.length === 0) {
+		throw new Error("attest: name the documents you re-read, or use --migrate");
 	}
 	return options;
 }
 
 export function runAttest(options: AttestOptions): number {
 	const root = findRepoRoot();
-	if (options.repair) {
+	if (options.migrate) {
 		migrateAndReport(root, options.dryRun);
 		return 0;
 	}
@@ -53,8 +58,10 @@ export function runAttest(options: AttestOptions): number {
 		reason: options.reason,
 		dryRun: options.dryRun,
 	});
-	const verb = options.dryRun ? "would attest" : "attested";
-	console.log(`${verb} ${result.documents.join(", ")} in ${result.proofFile}`);
-	if (!options.dryRun) console.log(`stage: ${result.modifiedFiles.join(" ")}`);
+	if (result.commit === null) {
+		console.log(`would attest ${result.documents.join(", ")} with:\n\n${result.message}`);
+	} else {
+		console.log(`attested ${result.documents.join(", ")} in ${result.commit.slice(0, 12)}`);
+	}
 	return 0;
 }

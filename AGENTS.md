@@ -20,9 +20,9 @@ After a full re-read, attest only that path:
 bun src/cli.ts attest docs/a.md
 ```
 
-If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason in the lock.
+Commit the edit first: a review records committed bytes. If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason.
 
-Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. If that file has a merge conflict, run `bun src/cli.ts attest --repair` first.
+Attestation adds one empty commit whose message carries a `Skeleton-Reviewed:` line for that document. It changes no tracked file, so branches that review the same document never conflict. Keep commit messages when squash-merging, so the line reaches `main`.
 
 ## First hour
 

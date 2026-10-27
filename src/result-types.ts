@@ -5,8 +5,8 @@ export type CatalogStatus = "current" | "missing" | "stale" | "skipped-ci" | "no
 export interface ReviewProofResult {
 	mode: "hash";
 	status: "not-checked" | "valid" | "invalid";
-	/** The repository's review proof file. */
-	proofFile: string;
+	/** Review proof is read from commit messages reachable from HEAD. */
+	source: "commit-history";
 }
 
 export interface AuditResult {

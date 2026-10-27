@@ -6,7 +6,7 @@ import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
-import { attestDocuments, repairReviewProof, reviewProofFile } from "./core/review-proof.ts";
+import { attestDocuments, migrateReviewLock } from "./core/review-proof.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
@@ -25,6 +25,8 @@ export interface AuditCliOptions {
 	/** What the reviewer checked; required to re-attest a document whose text did not change. */
 	reason?: string;
 	fileSource?: FileSource;
+	/** Rule ids to leave out of this run. */
+	skipRules?: Set<string>;
 }
 
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
@@ -207,29 +209,27 @@ function selectionFailure(input: {
 	catalogStatus: CatalogStatus;
 	config: SkeletonConfig;
 }): AuditResult {
-	const { options, message, catalogStatus, config } = input;
+	const { options, message, catalogStatus } = input;
 	return buildAuditResult({
 		options,
 		issues: [issue("cli-selection", ".", { message, severity: "error" })],
 		executed: [],
 		catalogStatus,
-		reviewProof: reviewProofStatus(config, [], []),
+		reviewProof: reviewProofStatus([], []),
 	});
 }
 
 function reviewProofStatus(
-	config: SkeletonConfig,
 	diagnostics: ReturnType<typeof finalizeIssues>,
 	executed: string[],
 ): ReviewProofResult {
-	const proofFile = reviewProofFile(config);
 	if (!executed.includes("review-proof")) {
-		return { mode: "hash", status: "not-checked", proofFile };
+		return { mode: "hash", status: "not-checked", source: "commit-history" };
 	}
 	const invalid = diagnostics.some(
 		(item) => item.rule === "review-proof" && item.severity === "error",
 	);
-	return { mode: "hash", status: invalid ? "invalid" : "valid", proofFile };
+	return { mode: "hash", status: invalid ? "invalid" : "valid", source: "commit-history" };
 }
 
 function shouldRunRule(
@@ -244,17 +244,18 @@ function shouldRunRule(
 }
 
 export function migrateAndReport(root: string, dryRun: boolean | undefined): void {
-	const result = repairReviewProof({ root, dryRun });
-	const parts = [
-		`migrated ${result.migrated.length}`,
-		`resolved ${result.resolved.length} from a conflict`,
-		`moved ${result.moved.length} renamed`,
-		`removed ${result.removed.length} orphaned`,
-	];
-	console.error(`review proof: ${parts.join(", ")}`);
+	const result = migrateReviewLock({ root, dryRun });
+	if (result.migrated.length === 0 && result.unverified.length === 0 && result.commit === null) {
+		console.error("review proof: no review lock to migrate");
+		return;
+	}
+	const where = result.commit ? ` in ${result.commit.slice(0, 12)}` : dryRun ? " (dry run)" : "";
+	console.error(
+		`review proof: moved ${result.migrated.length} review(s) into commit history${where}`,
+	);
 	if (result.unverified.length > 0) {
 		console.error(
-			`review proof: ${result.unverified.length} legacy review(s) no longer verify and need a fresh review: ${result.unverified.join(", ")}`,
+			`review proof: ${result.unverified.length} review(s) no longer verify and need a fresh review: ${result.unverified.join(", ")}`,
 		);
 	}
 }
@@ -339,7 +340,9 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 	const rules = availableRules.filter((r) => !options.only || options.only.has(r.id));
 
 	const skipGlobalsForPaths = pathScoped && !options.globalOnly;
-	const executableRules = rules.filter((rule) => shouldRunRule(rule, options, skipGlobalsForPaths));
+	const executableRules = rules.filter(
+		(rule) => !options.skipRules?.has(rule.id) && shouldRunRule(rule, options, skipGlobalsForPaths),
+	);
 	if (executableRules.length === 0) {
 		return selectionFailure({
 			options,
@@ -360,7 +363,7 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 		executed,
 		fileCount: options.suite === "docs" || options.suite === "self" ? ctx.files.length : undefined,
 		catalogStatus,
-		reviewProof: reviewProofStatus(ctx.config, issues, executed),
+		reviewProof: reviewProofStatus(issues, executed),
 		successSuffix: options.suite === "skills" ? skillAuditSuffix(ctx) : undefined,
 	});
 }

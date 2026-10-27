@@ -87,11 +87,11 @@
 				"reviewProof": {
 					"type": "object",
 					"additionalProperties": false,
-					"required": ["mode", "status", "proofFile"],
+					"required": ["mode", "status", "source"],
 					"properties": {
 						"mode": { "const": "hash" },
 						"status": { "enum": ["not-checked", "valid", "invalid"] },
-						"proofFile": { "type": "string" }
+						"source": { "const": "commit-history" }
 					}
 				},
 				"successSuffix": { "type": "string" }

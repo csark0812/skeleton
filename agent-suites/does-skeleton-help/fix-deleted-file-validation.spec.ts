@@ -7,12 +7,15 @@ import {
 import { codeReviewSchema, reviewInstructions, transcript } from "../../scripts/efficacy/judge.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
 import { checkRegression } from "../../scripts/efficacy/regression.ts";
+import { recordFixtureReviews } from "../../scripts/efficacy/workspace.ts";
 
 const prompt =
 	"Validation reports uncovered-changed-path for deleted source files. Deleted paths must be excluded from both coverage-candidate counts and uncovered-path diagnostics. Files that still exist must retain coverage checks. Fix and verify the behavior, update docs/developer/validation.md to explain the deleted-file exemption and the ownership requirement for live coverage candidates, and run focused tests for both cases.";
 const test = describe("Does Skeleton help?", ({ agent, judge }) => ({
 	baseline: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/control" }),
-	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/skeleton" }),
+	withSkeleton: agent({ workspace: "tests/fixtures/efficacy/history/deleted-file/skeleton" }).setup(
+		recordFixtureReviews,
+	),
 	documentationAndVerification: judge({
 		prompt: `${reviewInstructions}
 ${documentationInstructions}

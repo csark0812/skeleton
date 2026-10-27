@@ -9,8 +9,8 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { reviewProofFile, runReviewProofRule } from "../audit/core/review-proof.ts";
-import { parseReviewProofFile, type ReviewProofEntry } from "../audit/core/review-proof-file.ts";
+import { attestationsInRange } from "../audit/core/review-history.ts";
+import { runReviewProofRule } from "../audit/core/review-proof.ts";
 import { matchesGlobScope } from "../audit/core/shared.ts";
 import { evaluateRouteClassification } from "../validate/changed.ts";
 import { gitDiffChangedFiles } from "../validate/git-diff.ts";
@@ -52,7 +52,7 @@ export interface ReviewBundle {
 	changedPaths: string[];
 	humanReviewRequired: string[];
 	documentsToReread: DocumentToReread[];
-	/** Documents whose review lock entry this change adds or rewrites. */
+	/** Documents this branch range attests (attest commits since the merge base). */
 	attestedDocuments: AttestedDocument[];
 	reviewGuides: ReviewGuide[];
 	agentGuide: string | null;
@@ -157,12 +157,8 @@ function documentsToReread(input: {
 		fileSource: input.source,
 	});
 	const errors = runReviewProofRule(ctx).filter((item) => item.severity === "error");
-	// A legacy, conflicted, or malformed proof file blocks every per-document check.
-	const blocking = errors.find((item) =>
-		["review-proof-legacy", "review-proof-conflict", "review-proof-invalid"].includes(
-			item.code ?? "",
-		),
-	);
+	// Without complete history no per-document check means anything.
+	const blocking = errors.find((item) => item.code === "review-history-unavailable");
 	if (blocking) {
 		throw new Error(
 			`review prepare: ${blocking.file}: ${blocking.message}. ${blocking.remediation ?? ""}`.trim(),
@@ -177,63 +173,32 @@ function documentsToReread(input: {
 		}));
 }
 
-function lockEntries(content: string | null): Map<string, ReviewProofEntry> {
-	if (content === null) return new Map();
-	const parsed = parseReviewProofFile(content);
-	return parsed.status === "valid" ? parsed.entries : new Map();
-}
-
-function showAt(root: string, ref: string, relPath: string): string | null {
-	const proc = spawnSync("git", ["show", `${ref}:./${relPath}`], { cwd: root, encoding: "utf8" });
-	return proc.status === 0 ? proc.stdout : null;
-}
-
 /**
- * The review lock before and after the change under review: a branch range compares the
- * merge base with HEAD; the index and the working tree compare with HEAD.
+ * Reviews recorded in the change under review. Reviews are commits, so only a branch range
+ * (merge base to HEAD) can contain them; the index and the working tree cannot.
  */
-function lockSides(
-	scope: ReviewScope,
-	lockPath: string,
-): { before: string | null; after: string | null } {
-	if (scope.base) {
-		const mergeBase = git(scope.root, ["merge-base", scope.base, "HEAD"]).trim();
-		return {
-			before: showAt(scope.root, mergeBase, lockPath),
-			after: showAt(scope.root, "HEAD", lockPath),
-		};
-	}
-	return {
-		before: showAt(scope.root, "HEAD", lockPath),
-		after: readRepoText(scope.root, lockPath, scope.staged ? "index" : "worktree"),
-	};
-}
-
 function attestedDocuments(input: {
 	scope: ReviewScope;
-	config: SkeletonConfig;
 	changedPaths: string[];
 	source: FileSource;
 }): AttestedDocument[] {
-	const lockPath = reviewProofFile(input.config);
-	const sides = lockSides(input.scope, lockPath);
-	const before = lockEntries(sides.before);
+	if (!input.scope.base) return [];
+	const mergeBase = git(input.scope.root, ["merge-base", input.scope.base, "HEAD"]).trim();
+	const changed = new Set(input.changedPaths);
+	const newest = new Map<string, { note: string | null }>();
+	for (const line of attestationsInRange(input.scope.root, mergeBase, "HEAD")) {
+		if (!newest.has(line.document)) newest.set(line.document, { note: line.note ?? null });
+	}
 	const out: AttestedDocument[] = [];
-	for (const [path, entry] of lockEntries(sides.after)) {
-		const previous = before.get(path);
-		const same =
-			previous?.documentHash === entry.documentHash &&
-			previous.dependenciesHash === entry.dependenciesHash &&
-			previous.note === entry.note;
-		if (same) continue;
+	for (const [path, review] of newest) {
 		const content = readRepoText(input.scope.root, path, input.source) ?? "";
 		const patterns = reviewDependencyPatterns(content);
 		out.push({
 			path,
-			textChanged: previous === undefined || previous.documentHash !== entry.documentHash,
-			note: entry.note ?? null,
-			changedDependencies: input.changedPaths.filter((changed) =>
-				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, changed)),
+			textChanged: changed.has(path),
+			note: review.note,
+			changedDependencies: input.changedPaths.filter((changedPath) =>
+				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, changedPath)),
 			),
 		});
 	}
@@ -276,7 +241,7 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 		changedPaths,
 		humanReviewRequired: humanReviewPaths(config, allPaths),
 		documentsToReread: documentsToReread({ root: scope.root, source, impacted: impactedDocuments }),
-		attestedDocuments: attestedDocuments({ scope, config, changedPaths, source }),
+		attestedDocuments: attestedDocuments({ scope, changedPaths, source }),
 		reviewGuides: reviewGuides({ root: scope.root, config, changedPaths, source }),
 		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
 		diff: gitDiffText(scope, untracked),

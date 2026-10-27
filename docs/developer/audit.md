@@ -27,10 +27,10 @@ skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 skeleton attest docs/a.md
-skeleton attest --repair    # migrate Skeleton 5–7 proof, resolve a conflict, move renamed entries, remove orphans; never attests
+skeleton attest --migrate   # move a Skeleton 8 review lock into commit history once; never attests
 ```
 
-`skeleton attest <doc…>` records a full re-read. It is the same as the older `audit docs --paths=<doc> --fix=doc-meta --confirm-reviewed`, which still works and takes `--reason=<text>`. Attestation writes the document's line in `<reviewProof.file>` (default `.skeleton/review-lock.toml`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. When a document's text is unchanged since its last review but its dependencies changed, attestation requires `--reason "<what you checked>"` and stores it as the entry's `note`, so a dependency change is not answered with a bare stamp. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
+`skeleton attest <doc…>` records a full re-read. It is the same as the older `audit docs --paths=<doc> --fix=doc-meta --confirm-reviewed`, which still works and takes `--reason=<text>`. Attestation adds one empty commit on HEAD (built with `git commit-tree`, so the index, the working tree, and hooks are untouched) whose message carries one `Skeleton-Reviewed: <path> doc=<digest> deps=<digest>|none` line per document. It refuses when the document, a resolved dependency, or an untracked file that a dependency glob matches differs from HEAD: commit first. It fails if the document has no doc-meta comment. When a document's text is unchanged since its last review but its dependencies changed, attestation requires `--reason "<what you checked>"` and records it as a `Skeleton-Review-Note:` line, so a dependency change is not answered with a bare stamp. One call can attest several documents, including documents that depend on each other.
 
 ## Global vs path-scoped
 

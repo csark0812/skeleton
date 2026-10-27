@@ -56,6 +56,8 @@ function makeRepo(review = ""): string {
 		"# Auth review\n\n<!-- review-deps: paths=src/auth/** -->\n\nSessions must expire.\n",
 	);
 	git(root, ["init", "-q", "-b", "main"]);
+	git(root, ["config", "user.name", "Test"]);
+	git(root, ["config", "user.email", "test@example.com"]);
 	git(root, ["add", "-A"]);
 	git(root, ["commit", "-q", "-m", "init"]);
 	return root;
@@ -85,18 +87,30 @@ describe("review prepare", () => {
 		expect(text).toContain("+export const retries = 2;");
 	});
 
-	it("drops a document from the re-read list once its review is attested", async () => {
+	it("drops a document from the re-read list once the branch attests it", async () => {
 		const root = makeRepo();
-		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
 		attestDocuments({ root, paths: ["docs/billing.md"] });
-		expect((await prepareReview({ root })).documentsToReread).toEqual([]);
+		git(root, ["checkout", "-q", "-b", "feature"]);
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		git(root, ["commit", "-q", "-am", "retry twice"]);
+		const before = await prepareReview({ root, base: "main" });
+		expect(before.documentsToReread.map((item) => item.path)).toEqual(["docs/billing.md"]);
+		attestDocuments({ root, paths: ["docs/billing.md"], reason: "still says the policy" });
+		const after = await prepareReview({ root, base: "main" });
+		expect(after.documentsToReread).toEqual([]);
+		expect(after.attestedDocuments.map((item) => [item.path, item.note])).toEqual([
+			["docs/billing.md", "still says the policy"],
+		]);
 	});
 
-	it("stops when the review proof file has a merge conflict", async () => {
+	it("stops when review history is incomplete", async () => {
 		const root = makeRepo();
-		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
-		write(root, ".skeleton/review-lock.toml", "<<<<<<< ours\n=======\n>>>>>>> theirs\n");
-		await expect(prepareReview({ root })).rejects.toThrow(/merge conflict/);
+		git(root, ["commit", "-q", "--allow-empty", "-m", "second"]);
+		const clone = mkdtempSync(join(tmpdir(), "skeleton-review-shallow-"));
+		roots.push(clone);
+		git(clone, ["clone", "-q", "--depth=1", `file://${root}`, "."]);
+		write(clone, "src/billing/charge.ts", "export const retries = 2;\n");
+		await expect(prepareReview({ root: clone })).rejects.toThrow(/shallow clone/);
 	});
 
 	it("names high-consequence paths from [review] humanPaths", async () => {

@@ -47,11 +47,25 @@ function makeRepo(meta = "owner=eng"): string {
 	return root;
 }
 
+/** Commit the document, then record its review, both at `committedAt`. */
 function commitReview(root: string, committedAt: string): void {
-	attestDocuments({ root, paths: ["docs/example.md"] });
 	git(root, ["init", "-q"], committedAt);
 	git(root, ["add", "."], committedAt);
-	git(root, ["commit", "-q", "-m", "review"], committedAt);
+	git(root, ["commit", "-q", "-m", "baseline"], committedAt);
+	const saved = { ...process.env };
+	try {
+		Object.assign(process.env, {
+			GIT_AUTHOR_NAME: "Fixture",
+			GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+			GIT_COMMITTER_NAME: "Fixture",
+			GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+			GIT_AUTHOR_DATE: committedAt,
+			GIT_COMMITTER_DATE: committedAt,
+		});
+		attestDocuments({ root, paths: ["docs/example.md"] });
+	} finally {
+		process.env = saved;
+	}
 }
 
 function docMetaIssues(root: string) {
@@ -95,7 +109,7 @@ describe("doc-meta", () => {
 		}
 	});
 
-	it("measures the re-read cadence from the last commit of the review proof", () => {
+	it("measures the re-read cadence from the commit that recorded the review", () => {
 		const root = makeRepo();
 		try {
 			commitReview(root, "2026-08-01T12:00:00Z");
@@ -114,10 +128,14 @@ describe("doc-meta", () => {
 		}
 	});
 
-	it("does not measure cadence for an uncommitted review", () => {
+	it("does not measure cadence when no review covers the document as it reads now", () => {
 		const root = makeRepo();
 		try {
-			attestDocuments({ root, paths: ["docs/example.md"] });
+			commitReview(root, "2026-08-01T12:00:00Z");
+			writeFileSync(
+				join(root, "docs/example.md"),
+				"# Example\n\n<!-- doc-meta: owner=eng -->\n\nEdited.\n",
+			);
 			setSystemTime(new Date("2030-01-01T00:00:00Z"));
 			expect(docMetaIssues(root)).toEqual([]);
 		} finally {

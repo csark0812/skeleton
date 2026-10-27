@@ -5,6 +5,7 @@ import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { commitAll, git } from "../support/git-repo.ts";
 
 const CLI = join(import.meta.dir, "../../cli.ts");
 let roots: string[] = [];
@@ -127,10 +128,14 @@ describe("context CLI", () => {
 			"<!-- source-of-truth: Billing retry policy -->\n\n<!-- review-deps: paths=src/billing.ts -->\n\nBilling retries once.\n";
 		const digest = (content: string) =>
 			`sha256:${createHash("sha256").update(content).digest("hex").slice(0, 16)}`;
-		mkdirSync(join(root, ".skeleton"), { recursive: true });
-		writeFileSync(
-			join(root, ".skeleton/review-lock.toml"),
-			`version = 4\n\n"docs/billing.md" = { doc = "${digest(document)}", deps = "${digest("stale")}" }\n`,
+		commitAll(root, "baseline");
+		git(
+			root,
+			"commit",
+			"-q",
+			"--allow-empty",
+			"-m",
+			`docs: attest docs/billing.md\n\nSkeleton-Reviewed: docs/billing.md doc=${digest(document)} deps=${digest("stale")}`,
 		);
 		const result = run(root, ["billing retry"]);
 		expect(result.status).toBe(0);

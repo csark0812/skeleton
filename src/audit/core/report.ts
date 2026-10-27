@@ -166,12 +166,8 @@ function printRereadLists(errors: Issue[]): Issue[] {
 	return rest;
 }
 
-const ATTEST_CODES = new Set([...REREAD_CODES, "review-proof-missing"]);
-const REPAIR_CODES = new Set([
-	"review-proof-legacy",
-	"review-proof-conflict",
-	"review-proof-orphan",
-]);
+const ATTEST_CODES = new Set([...REREAD_CODES, "review-proof-missing", "review-merged-unattested"]);
+const MIGRATE_CODES = new Set(["review-lock-retired"]);
 
 /** The exact commands that clear the printed review-proof errors. */
 export function reviewFixCommands(issues: Issue[]): string[] {
@@ -179,7 +175,8 @@ export function reviewFixCommands(issues: Issue[]): string[] {
 		...new Set(issues.filter((i) => ATTEST_CODES.has(i.code ?? "")).map((i) => i.file)),
 	];
 	const commands: string[] = [];
-	if (issues.some((i) => REPAIR_CODES.has(i.code ?? ""))) commands.push("skeleton attest --repair");
+	if (issues.some((i) => MIGRATE_CODES.has(i.code ?? "")))
+		commands.push("skeleton attest --migrate");
 	if (attest.length > 0) commands.push(`skeleton attest ${attest.sort().join(" ")}`);
 	return commands;
 }

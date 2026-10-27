@@ -1,30 +1,17 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
-import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import process from "node:process";
 import { parseAttestArgs } from "../attest/cli.ts";
 import { reviewFixCommands } from "../audit/core/report.ts";
-import { attestDocuments } from "../audit/core/review-proof.ts";
 import { formatReviewProofFile, parseReviewProofFile } from "../audit/core/review-proof-file.ts";
 import { evaluateAudit } from "../audit/run.ts";
 import { runInit } from "../init/init.ts";
 import { formatReviewBundle, prepareReview } from "../review/prepare.ts";
 import { evaluateValidateChanged, runValidateChanged } from "../validate/changed.ts";
+import { git, headMessage, review } from "./support/git-repo.ts";
 
-const GIT_ENV = {
-	...process.env,
-	GIT_AUTHOR_NAME: "test",
-	GIT_AUTHOR_EMAIL: "test@example.com",
-	GIT_COMMITTER_NAME: "test",
-	GIT_COMMITTER_EMAIL: "test@example.com",
-};
 let roots: string[] = [];
-
-function git(root: string, ...args: string[]): void {
-	execFileSync("git", args, { cwd: root, env: GIT_ENV });
-}
 
 function write(root: string, path: string, content: string): void {
 	mkdirSync(join(root, path, ".."), { recursive: true });
@@ -48,12 +35,6 @@ function makeRepo(): string {
 	return root;
 }
 
-function commitAll(root: string, message: string): void {
-	git(root, "init", "-q", "-b", "main");
-	git(root, "add", "-A");
-	git(root, "commit", "-q", "-m", message);
-}
-
 function auditCodes(root: string, paths: string[], only: string) {
 	return evaluateAudit({
 		suite: "docs",
@@ -71,38 +52,36 @@ afterEach(() => {
 });
 
 describe("skeleton attest", () => {
-	it("parses documents, --reason, and --repair", () => {
+	it("parses documents, --reason, and --migrate", () => {
 		expect(parseAttestArgs(["docs/a.md", "docs/b.md", "--reason", "checked limits"])).toEqual({
 			paths: ["docs/a.md", "docs/b.md"],
 			reason: "checked limits",
-			repair: false,
+			migrate: false,
 			dryRun: false,
 		});
-		expect(parseAttestArgs(["--repair"]).repair).toBe(true);
+		expect(parseAttestArgs(["--migrate"]).migrate).toBe(true);
 		expect(() => parseAttestArgs([])).toThrow(/name the documents/);
-		expect(() => parseAttestArgs(["--repair", "docs/a.md"])).toThrow(/takes no documents/);
+		expect(() => parseAttestArgs(["--migrate", "docs/a.md"])).toThrow(/takes no documents/);
+		expect(() => parseAttestArgs(["--repair"])).toThrow(/--migrate/);
 	});
 
 	it("requires a reason to re-attest unchanged text after a dependency change, and records it", () => {
 		const root = makeRepo();
-		attestDocuments({ root, paths: ["docs/a.md"] });
+		review(root, ["docs/a.md"]);
 		write(root, "src/a.ts", "export const a = 2;\n");
-		expect(() => attestDocuments({ root, paths: ["docs/a.md"] })).toThrow(/--reason/);
-		attestDocuments({ root, paths: ["docs/a.md"], reason: "a is still described correctly" });
-		const parsed = parseReviewProofFile(
-			readFileSync(join(root, ".skeleton/review-lock.toml"), "utf8"),
-		);
-		expect(parsed.status === "valid" && parsed.entries.get("docs/a.md")?.note).toBe(
-			"a is still described correctly",
+		expect(() => review(root, ["docs/a.md"])).toThrow(/--reason/);
+		review(root, ["docs/a.md"], { reason: "a is still described correctly" });
+		expect(headMessage(root)).toContain(
+			"Skeleton-Review-Note: docs/a.md a is still described correctly",
 		);
 	});
 
 	it("needs no reason when the document text changed", () => {
 		const root = makeRepo();
-		attestDocuments({ root, paths: ["docs/a.md"] });
+		review(root, ["docs/a.md"]);
 		write(root, "src/a.ts", "export const a = 2;\n");
 		write(root, "docs/a.md", doc("docs/a.md", "src/a.ts", "a is now 2."));
-		expect(() => attestDocuments({ root, paths: ["docs/a.md"] })).not.toThrow();
+		expect(() => review(root, ["docs/a.md"])).not.toThrow();
 	});
 
 	it("keeps notes readable as TOML and on the fast path", () => {
@@ -120,7 +99,7 @@ describe("skeleton attest", () => {
 });
 
 describe("fix commands in error output", () => {
-	it("names the attest and repair commands for the documents that need them", () => {
+	it("names the attest and migrate commands for the documents that need them", () => {
 		expect(
 			reviewFixCommands([
 				{
@@ -141,17 +120,16 @@ describe("fix commands in error output", () => {
 					rule: "review-proof",
 					file: ".skeleton/review-lock.toml",
 					message: "",
-					severity: "warning",
-					code: "review-proof-orphan",
+					severity: "error",
+					code: "review-lock-retired",
 				},
 			]),
-		).toEqual(["skeleton attest --repair", "skeleton attest docs/a.md docs/b.md"]);
+		).toEqual(["skeleton attest --migrate", "skeleton attest docs/a.md docs/b.md"]);
 	});
 
 	it("prints the attest command when validation fails", async () => {
 		const root = makeRepo();
-		attestDocuments({ root, paths: ["docs/a.md"] });
-		commitAll(root, "base");
+		review(root, ["docs/a.md"], { message: "base" });
 		write(root, "src/a.ts", "export const a = 2;\n");
 		const lines: string[] = [];
 		const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
@@ -168,8 +146,7 @@ describe("inbound links after a rename", () => {
 	it("audits documents that link to a renamed document", async () => {
 		const root = makeRepo();
 		write(root, "docs/hub.md", doc("docs/hub.md", "src/a.ts", "See [a](a.md)."));
-		attestDocuments({ root, paths: ["docs/a.md", "docs/hub.md"] });
-		commitAll(root, "base");
+		review(root, ["docs/a.md", "docs/hub.md"], { message: "base" });
 		git(root, "mv", "docs/a.md", "docs/renamed.md");
 		const result = await evaluateValidateChanged({ root, staged: true });
 		expect(result.classification.docs).toContain("docs/hub.md");
@@ -204,13 +181,13 @@ describe("review prepare", () => {
 			"AGENTS.md",
 			"# Agents\n\nKeep tests green.\n\n<!-- skeleton: context-guide -->\n## Skeleton context\n\nLong agent guide.\n",
 		);
-		attestDocuments({ root, paths: ["docs/a.md", "docs/b.md"] });
-		commitAll(root, "base");
+		review(root, ["docs/a.md", "docs/b.md"], { message: "base" });
+		git(root, "checkout", "-q", "-b", "change");
 		write(root, "src/a.ts", "export const a = 2;\n");
 		write(root, "docs/b.md", doc("docs/b.md", "src/a.ts", "b now says 2."));
-		attestDocuments({ root, paths: ["docs/a.md"], reason: "a does not mention the value" });
-		attestDocuments({ root, paths: ["docs/b.md"] });
-		const bundle = await prepareReview({ root });
+		review(root, ["docs/a.md"], { reason: "a does not mention the value" });
+		review(root, ["docs/b.md"]);
+		const bundle = await prepareReview({ root, base: "main" });
 		expect(bundle.attestedDocuments.map((item) => [item.path, item.textChanged])).toEqual([
 			["docs/a.md", false],
 			["docs/b.md", true],

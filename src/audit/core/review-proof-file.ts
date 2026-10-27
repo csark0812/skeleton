@@ -2,16 +2,9 @@ import { parse as parseToml } from "smol-toml";
 import { normalizeRelPath } from "./shared.ts";
 
 /**
- * The review lock: `.skeleton/review-lock.toml`, one TOML inline table per document,
- * a blank line between entries.
- *
- * Each entry is one line, and TOML requires an inline table to stay on one line, so no
- * formatter can wrap it. The blank line is load-bearing: git's three-way merge treats edits
- * to neighbouring lines as one conflict, so two pull requests that re-attest neighbouring
- * documents would collide without it. With one unchanged line between entries those in-place
- * re-attests merge cleanly. Two pull requests that re-attest the same document still conflict,
- * as they should, and so can an inserted or removed entry next to a re-attested one;
- * `skeleton attest --repair` resolves both.
+ * The Skeleton 8 review lock: `.skeleton/review-lock.toml`, one TOML inline table per document,
+ * a blank line between entries. Skeleton 9 keeps review proof in commit messages; this reader
+ * exists only for `skeleton attest --migrate`, and the writer only to build migration fixtures.
  */
 
 export const REVIEW_LOCK_VERSION = 4;

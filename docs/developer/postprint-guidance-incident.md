@@ -218,6 +218,8 @@ every doc-meta paper in the audit corpus, not one product-owner attestation. Pla
 review debt explicitly: `skeleton attest --repair` (or `--fix=review-proof`) carries over Skeleton 5/6 proofs that still
 verify (for PostPrint's 5.0.4 lock, its version 2 entries) and Skeleton 7 entries
 unchanged, and every other paper needs a normal review.
+Since Skeleton 9, the proof lives in attest-commit messages instead of a tracked file;
+`skeleton attest --migrate` moves a Skeleton 8 lock into history once.
 
 ## Remaining uncertainty and completion boundary
 

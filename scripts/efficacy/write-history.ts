@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../../src/audit/core/review-proof.ts";
 import { HISTORY_TASKS, SHARED_GUIDANCE } from "./history.ts";
 
 const ROOT = join(import.meta.dir, "../..");
@@ -76,7 +75,6 @@ function prepare(task: (typeof HISTORY_TASKS)[number], side: string, archived: s
 		"skeleton.toml",
 		`daysUntilStale = 365\n[scan]\ninclude = ["${task.doc}"]\nexclude = []\n[reviewProof]\nmode = "hash"\n[reviewCoverage]\ninclude = ["${task.source}"]\n[deny]\npaths = []\n`,
 	);
-	attestDocuments({ root, paths: [task.doc] });
 }
 
 const archives = join(ROOT, "agent-suites/history");

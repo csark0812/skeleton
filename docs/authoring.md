@@ -18,4 +18,4 @@ Index docs and SSOT-bearing files require a doc-meta comment:
 <!-- doc-meta: owner=eng -->
 ```
 
-After editing a paper, re-read the entire document and attest it only when the content is still correct. Attestation writes the paper's line in `.skeleton/review-lock.toml`; the paper itself carries no review date. Cadence vs changed-since-review: [doc system](developer/doc-system.md#doc-meta).
+After editing a paper, commit it, re-read the entire document, and attest it only when the content is still correct. Attestation adds an empty commit whose message records the review; no tracked file changes and the paper carries no review date. Cadence vs changed-since-review: [doc system](developer/doc-system.md#doc-meta).

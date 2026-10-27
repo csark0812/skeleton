@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts,src/audit/rules/review-deps.ts,src/audit/core/review-deps.ts,src/audit/core/review-digest.ts,src/audit/core/review-proof.ts,src/audit/core/review-proof-file.ts -->
+<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts,src/audit/rules/review-deps.ts,src/audit/core/review-deps.ts,src/audit/core/review-digest.ts,src/audit/core/review-proof.ts,src/audit/core/review-proof-file.ts,src/audit/core/review-history.ts -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
@@ -75,14 +75,15 @@ Index docs and SSOT-bearing files require:
 <!-- doc-meta: owner=eng -->
 ```
 
-The comment names an owner only. Review evidence lives outside the document, as the document's line in `.skeleton/review-lock.toml`. Do **not** add review or edit dates: git dates that line, and its hashes say exactly what was reviewed. A legacy `| last-reviewed=<date>` suffix is still parsed, warns `legacy-review-date`, and is removed by `skeleton attest --repair` or by the next attestation.
+The comment names an owner only. Review evidence lives outside the document, as a `Skeleton-Reviewed:` line in the message of an attest commit. Do **not** add review or edit dates: git dates that commit, and its hashes say exactly what was attested. A legacy `| last-reviewed=<date>` suffix is still parsed and warns `legacy-review-date`; delete it by hand.
 
 Audit treats review invalidation and calendar cadence differently:
 
 | Signal | Meaning | Typical fix |
 | ------ | ------- | ----------- |
-| Document or dependency bytes differ from the proof (`review-document-changed`, `review-dependency-changed`) | Blocking error: the review no longer covers the latest edit or linked dependency bytes | **Required:** re-read the entire document against current dependencies, then attest it. |
-| Commit that last changed the document's proof line older than `daysUntilStale` (`review-cadence-exceeded`) | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-read, then attest again; warn-only unless `--strict` |
+| No review in history matches the document or dependency bytes (`review-document-changed`, `review-dependency-changed`) | Blocking error: the review no longer covers the latest edit or linked dependency bytes | **Required:** commit, re-read the entire document against current dependencies, then attest it. |
+| Merged branches each reviewed the document, but no one reviewed the combined text (`review-merged-unattested`) | Warning for the repository; blocking for the next change that touches the document | Re-read the combined text, then attest it. |
+| Attest commit of the matching review older than `daysUntilStale` (`review-cadence-exceeded`) | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-read, then attest again; warn-only unless `--strict` |
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
 
@@ -92,7 +93,7 @@ SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc
 skeleton attest docs/api.md
 ```
 
-The command names the documents you re-read in full; it is the explicit claim that you did. It writes the document's line in `.skeleton/review-lock.toml` with deterministic document and dependency hashes, leaves other entries unchanged, and leaves the document unchanged (apart from removing a legacy date). Bare `--fix` never attests.
+The command names the documents you re-read in full; it is the explicit claim that you did. It adds an empty commit whose message records deterministic document and dependency hashes of the committed bytes, so commit your edits first. It changes no tracked file. The proof says that someone attested exactly these bytes, not that the document agrees with the code. Bare `--fix` never attests.
 
 ## Example canonical doc
 
