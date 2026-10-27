@@ -176,6 +176,9 @@ function printErrors(label: string, errors: Issue[]): number {
 		console.log(
 			"\nTo fix: re-read each listed document in full against the changed files and update it in the same change.",
 		);
+		console.log(
+			"If a document is still correct, commit once without the hook (pre-commit: SKIP=<hook id> git commit …).",
+		);
 	}
 	return 1;
 }

@@ -64,6 +64,7 @@ describe("re-read guidance in error output", () => {
 		const output = lines.join("\n");
 		expect(output).toContain("docs/a.md: error: review required\n  changed: src/a.ts");
 		expect(output).toContain("update it in the same change");
+		expect(output).toContain("SKIP=<hook id> git commit");
 		expect(output).not.toContain("skeleton attest");
 	});
 });
