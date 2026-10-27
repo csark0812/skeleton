@@ -3,15 +3,13 @@ import { basename } from "node:path";
 import { loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { collectScanFiles, relPath } from "../audit/core/collect.ts";
-import { createContext } from "../audit/core/context.ts";
 import { type FileSource, readRepoText } from "../audit/core/repo-files.ts";
 import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { reviewProofFile, runReviewProofRule } from "../audit/core/review-proof.ts";
-import { parseReviewProofFile, type ReviewProofEntry } from "../audit/core/review-proof-file.ts";
 import { matchesGlobScope } from "../audit/core/shared.ts";
+import { type DocumentImpact, staleDocuments } from "../audit/core/stale-documents.ts";
 import { evaluateRouteClassification } from "../validate/changed.ts";
 import { gitDiffChangedFiles } from "../validate/git-diff.ts";
 
@@ -28,19 +26,10 @@ export interface ReviewGuide {
 	content: string;
 }
 
-/** A document whose review proof no longer matches the change, so the author must re-read and attest it. */
+/** A document whose declared dependencies changed while it did not, so the author must re-read it. */
 export interface DocumentToReread {
 	path: string;
 	changed: string[];
-}
-
-/** A review recorded in this change. One whose text did not change is the likeliest rubber stamp. */
-export interface AttestedDocument {
-	path: string;
-	textChanged: boolean;
-	note: string | null;
-	/** Changed paths among the document's declared review dependencies. */
-	changedDependencies: string[];
 }
 
 /**
@@ -52,8 +41,6 @@ export interface ReviewBundle {
 	changedPaths: string[];
 	humanReviewRequired: string[];
 	documentsToReread: DocumentToReread[];
-	/** Documents whose review lock entry this change adds or rewrites. */
-	attestedDocuments: AttestedDocument[];
 	reviewGuides: ReviewGuide[];
 	agentGuide: string | null;
 	diff: string;
@@ -143,104 +130,10 @@ function reviewGuides(input: {
 	return guides.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-/** Impacted documents whose current review proof fails, with the paths that pulled them in. */
-function documentsToReread(input: {
-	root: string;
-	source: FileSource;
-	impacted: Array<{ path: string; reasons: Array<{ target?: string }> }>;
-}): DocumentToReread[] {
-	const candidates = input.impacted.filter((document) => basename(document.path) !== REVIEW_GUIDE);
-	if (candidates.length === 0) return [];
-	const ctx = createContext({
-		root: input.root,
-		paths: candidates.map((document) => document.path),
-		fileSource: input.source,
-	});
-	const errors = runReviewProofRule(ctx).filter((item) => item.severity === "error");
-	// A legacy, conflicted, or malformed proof file blocks every per-document check.
-	const blocking = errors.find((item) =>
-		["review-proof-legacy", "review-proof-conflict", "review-proof-invalid"].includes(
-			item.code ?? "",
-		),
-	);
-	if (blocking) {
-		throw new Error(
-			`review prepare: ${blocking.file}: ${blocking.message}. ${blocking.remediation ?? ""}`.trim(),
-		);
-	}
-	const stale = new Set(errors.map((item) => item.file));
-	return candidates
-		.filter((document) => stale.has(document.path))
-		.map((document) => ({
-			path: document.path,
-			changed: [...new Set(document.reasons.map((reason) => reason.target ?? document.path))],
-		}));
-}
-
-function lockEntries(content: string | null): Map<string, ReviewProofEntry> {
-	if (content === null) return new Map();
-	const parsed = parseReviewProofFile(content);
-	return parsed.status === "valid" ? parsed.entries : new Map();
-}
-
-function showAt(root: string, ref: string, relPath: string): string | null {
-	const proc = spawnSync("git", ["show", `${ref}:./${relPath}`], { cwd: root, encoding: "utf8" });
-	return proc.status === 0 ? proc.stdout : null;
-}
-
-/**
- * The review lock before and after the change under review: a branch range compares the
- * merge base with HEAD; the index and the working tree compare with HEAD.
- */
-function lockSides(
-	scope: ReviewScope,
-	lockPath: string,
-): { before: string | null; after: string | null } {
-	if (scope.base) {
-		const mergeBase = git(scope.root, ["merge-base", scope.base, "HEAD"]).trim();
-		return {
-			before: showAt(scope.root, mergeBase, lockPath),
-			after: showAt(scope.root, "HEAD", lockPath),
-		};
-	}
-	return {
-		before: showAt(scope.root, "HEAD", lockPath),
-		after: readRepoText(scope.root, lockPath, scope.staged ? "index" : "worktree"),
-	};
-}
-
-function attestedDocuments(input: {
-	scope: ReviewScope;
-	config: SkeletonConfig;
-	changedPaths: string[];
-	source: FileSource;
-}): AttestedDocument[] {
-	const lockPath = reviewProofFile(input.config);
-	const sides = lockSides(input.scope, lockPath);
-	const before = lockEntries(sides.before);
-	const out: AttestedDocument[] = [];
-	for (const [path, entry] of lockEntries(sides.after)) {
-		const previous = before.get(path);
-		const same =
-			previous?.documentHash === entry.documentHash &&
-			previous.dependenciesHash === entry.dependenciesHash &&
-			previous.note === entry.note;
-		if (same) continue;
-		const content = readRepoText(input.scope.root, path, input.source) ?? "";
-		const patterns = reviewDependencyPatterns(content);
-		out.push({
-			path,
-			textChanged: previous === undefined || previous.documentHash !== entry.documentHash,
-			note: entry.note ?? null,
-			changedDependencies: input.changedPaths.filter((changed) =>
-				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, changed)),
-			),
-		});
-	}
-	// Unchanged text first: those are where a stamp can stand in for a reread.
-	return out.sort(
-		(a, b) => Number(a.textChanged) - Number(b.textChanged) || a.path.localeCompare(b.path),
-	);
+/** Impacted documents whose declared dependencies changed in this scope while they did not. */
+function documentsToReread(scope: ReviewScope, impacted: DocumentImpact[]): DocumentToReread[] {
+	const candidates = impacted.filter((document) => basename(document.path) !== REVIEW_GUIDE);
+	return staleDocuments(scope, candidates);
 }
 
 /** AGENTS.md without the agent-facing context guide, which tells a reviewer nothing. */
@@ -275,8 +168,7 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 		scope: { staged: scope.staged ?? false, base: scope.base ?? null },
 		changedPaths,
 		humanReviewRequired: humanReviewPaths(config, allPaths),
-		documentsToReread: documentsToReread({ root: scope.root, source, impacted: impactedDocuments }),
-		attestedDocuments: attestedDocuments({ scope, config, changedPaths, source }),
+		documentsToReread: documentsToReread(scope, impactedDocuments),
 		reviewGuides: reviewGuides({ root: scope.root, config, changedPaths, source }),
 		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
 		diff: gitDiffText(scope, untracked),
@@ -285,21 +177,6 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 
 function section(title: string, body: string): string {
 	return `## ${title}\n\n${body.trimEnd()}\n`;
-}
-
-function attestedSection(documents: AttestedDocument[]): string | null {
-	if (documents.length === 0) return null;
-	const lines = documents.map((doc) => {
-		const what = doc.textChanged ? "text changed" : "text unchanged";
-		const deps =
-			doc.changedDependencies.length > 0 ? `; changed: ${doc.changedDependencies.join(", ")}` : "";
-		const note = doc.note ? `; checked: ${doc.note}` : "";
-		return `- ${doc.path} (${what}${deps}${note})`;
-	});
-	return section(
-		"Documents attested in this change",
-		`Each line is a recorded reread. For every document whose text did not change, check that its claims still hold against the listed changes; report a stale claim as important.\n\n${lines.join("\n")}`,
-	);
 }
 
 /** Render the bundle as one self-contained prompt for a reviewer with fresh context. */
@@ -321,15 +198,13 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 	if (bundle.documentsToReread.length > 0) {
 		parts.push(
 			section(
-				"Documents the author must re-read and attest",
+				"Documents the author must re-read and update",
 				bundle.documentsToReread
 					.map((document) => `- ${document.path} (changed: ${document.changed.join(", ")})`)
 					.join("\n"),
 			),
 		);
 	}
-	const attested = attestedSection(bundle.attestedDocuments);
-	if (attested) parts.push(attested);
 	for (const guide of bundle.reviewGuides)
 		parts.push(section(`Review guide: ${guide.path}`, guide.content));
 	if (bundle.agentGuide !== null) parts.push(section("AGENTS.md", bundle.agentGuide));

@@ -1,5 +1,0 @@
-# Skeleton review lock. Written by `skeleton attest`.
-# One entry per document. Do not edit by hand; keep the blank line between entries.
-version = 4
-
-"docs/developer/websocket.md" = { doc = "sha256:ee836c7fa6e978dc", deps = "sha256:90d18db11b5657d5" }

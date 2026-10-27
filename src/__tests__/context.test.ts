@@ -4,10 +4,10 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments } from "../audit/core/review-proof.ts";
 import { evaluateContext, formatContext } from "../context.ts";
+import { commitAll } from "./support/git-repo.ts";
 
-function makeRepo(): string {
+function makeRepo(committed = true): string {
 	const root = mkdtempSync(join(tmpdir(), "skel-context-"));
 	mkdirSync(join(root, "docs"), { recursive: true });
 	mkdirSync(join(root, "src/billing"), { recursive: true });
@@ -38,7 +38,7 @@ exclude = []
 Billing webhooks retry once after a failed delivery.
 `,
 	);
-	attestDocuments({ root, paths: ["docs/billing.md"] });
+	if (committed) commitAll(root, "baseline");
 	return root;
 }
 
@@ -47,12 +47,14 @@ afterEach(() => {
 });
 
 describe("context", () => {
-	it("requires source comparison for unreviewed claims while preserving historical intent", () => {
+	it("requires source comparison for claims with no declared sources while preserving historical intent", () => {
 		const root = makeRepo();
 		try {
-			rmSync(join(root, ".skeleton/review-lock.toml"));
+			const doc = join(root, "docs/billing.md");
+			writeFileSync(doc, readFileSync(doc, "utf8").replace(/<!-- review-deps:.*-->\n/, ""));
 			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
-			expect(packet).toContain("action\tdocs/billing.md\tNo matching recorded review proof");
+			expect(packet).toContain("document\tdocs/billing.md\tunreviewed");
+			expect(packet).toContain("action\tdocs/billing.md\tNo declared review-deps");
 			expect(packet).toContain("active implementation claims");
 			expect(packet).toContain("historical alternatives and future aspirations");
 		} finally {
@@ -60,26 +62,23 @@ describe("context", () => {
 		}
 	});
 
-	it("requires a review when the document changed after its recorded review", () => {
+	it("treats a document edited with its changed sources as current", () => {
 		const root = makeRepo();
 		try {
+			writeFileSync(join(root, "src/billing/delivery.ts"), "export const MAX_RETRIES = 2;\n");
 			writeFileSync(
 				join(root, "docs/billing.md"),
 				readFileSync(join(root, "docs/billing.md"), "utf8").replace("once", "twice"),
 			);
 			const result = evaluateContext({ root, query: "billing retry" });
-			expect(result.documents[0]?.review).toBe("review-required");
-			expect(result.documents[0]?.reviewReasons).toEqual([
-				"document changed after its recorded review",
-			]);
-			expect(formatContext(result)).toContain("then attest it again only if it is still correct");
+			expect(result.documents[0]?.review).toBe("current");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
 	});
 
-	it("measures re-read cadence from the last commit of the review proof", () => {
-		const root = makeRepo();
+	it("measures re-read cadence from the document's last commit", () => {
+		const root = makeRepo(false);
 		try {
 			for (const args of [
 				["init", "-q"],
@@ -110,12 +109,12 @@ describe("context", () => {
 			}
 			setSystemTime(new Date("2027-09-16T00:00:00Z"));
 			expect(evaluateContext({ root, query: "billing retry" }).documents[0]?.review).toBe(
-				"matches-recorded-review",
+				"current",
 			);
 			setSystemTime(new Date("2027-09-16T00:00:01Z"));
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.reviewReasons).toEqual([
-				"last review committed 2026-09-16 exceeds re-read cadence (>365 days)",
+				"last changed 2026-09-16, beyond the re-read cadence (>365 days)",
 			]);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
@@ -162,7 +161,7 @@ describe("context", () => {
 				"<!-- source-of-truth: Billing retry policy -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/billing/*.ts -->\nBilling retries once.\n",
 			);
 			writeFileSync(join(root, "src/billing/retired.ts"), "export const retired = true;\n");
-			attestDocuments({ root, paths: ["docs/billing.md"] });
+			commitAll(root, "add retired source");
 			rmSync(join(root, "src/billing/retired.ts"));
 			const result = evaluateContext({ root, query: "billing retry" });
 			expect(result.documents[0]?.review).toBe("changed-since-review");
@@ -198,7 +197,7 @@ describe("context", () => {
 			expect(result.documents).toEqual([
 				expect.objectContaining({
 					path: "docs/billing.md",
-					review: "matches-recorded-review",
+					review: "current",
 					sources: [expect.objectContaining({ path: "src/billing/delivery.ts" })],
 				}),
 			]);
@@ -232,10 +231,10 @@ describe("context", () => {
 Billing webhooks retry once after a failed delivery.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/billing.md"] });
+			commitAll(root, "declare package.json");
 			writeFileSync(join(root, "package.json"), manifest("1.0.1"));
 			const result = evaluateContext({ root, query: "billing webhook retry" });
-			expect(result.documents[0]?.review).toBe("matches-recorded-review");
+			expect(result.documents[0]?.review).toBe("current");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

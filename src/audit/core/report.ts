@@ -166,38 +166,15 @@ function printRereadLists(errors: Issue[]): Issue[] {
 	return rest;
 }
 
-const ATTEST_CODES = new Set([...REREAD_CODES, "review-proof-missing"]);
-const REPAIR_CODES = new Set([
-	"review-proof-legacy",
-	"review-proof-conflict",
-	"review-proof-orphan",
-]);
-
-/** The exact commands that clear the printed review-proof errors. */
-export function reviewFixCommands(issues: Issue[]): string[] {
-	const attest = [
-		...new Set(issues.filter((i) => ATTEST_CODES.has(i.code ?? "")).map((i) => i.file)),
-	];
-	const commands: string[] = [];
-	if (issues.some((i) => REPAIR_CODES.has(i.code ?? ""))) commands.push("skeleton attest --repair");
-	if (attest.length > 0) commands.push(`skeleton attest ${attest.sort().join(" ")}`);
-	return commands;
-}
-
 function printErrors(label: string, errors: Issue[]): number {
 	console.log(`${label} failed:\n`);
 	const rest = printRereadLists(errors);
 	for (const item of rest) {
 		console.log(`${item.file}: error: ${item.message}`);
 	}
-	const commands = reviewFixCommands(errors);
-	if (commands.length > 0) {
+	if (errors.some(isRereadIssue)) {
 		console.log(
-			"\nTo fix: re-read each listed document in full against its dependencies, then run:",
-		);
-		for (const command of commands) console.log(`  ${command}`);
-		console.log(
-			'Add --reason "<what you checked>" when a document\'s text did not need to change.',
+			"\nTo fix: re-read each listed document in full against the changed files and update it in the same change.",
 		);
 	}
 	return 1;

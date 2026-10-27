@@ -57,7 +57,7 @@ export interface AuditOptions {
 	 * matches path-scoped / validate `--base` prove.
 	 */
 	includeExcludedSkillTrees?: boolean;
-	/** When `index`, review-proof and coverage reads use `git show :path`. */
+	/** When `index`, document and coverage reads use `git show :path`. */
 	fileSource?: FileSource;
 }
 

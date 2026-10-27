@@ -14,15 +14,7 @@ Run `bun src/cli.ts route` for the lane card.
 Run `bun src/cli.ts route <path>` to classify one path.
 Then run the printed command. Do not open developer docs to pick a lane.
 
-After a full re-read, attest only that path:
-
-```bash
-bun src/cli.ts attest docs/a.md
-```
-
-If the text did not need to change but a dependency did, add `--reason "<what you checked>"`; attestation refuses a bare stamp in that case and records the reason in the lock.
-
-Attestation rewrites that document's line in `.skeleton/review-lock.toml` and writes no date into the document. Commit that file with the change. Entries are one line each with a blank line between them, so parallel PRs that re-attest different existing documents merge cleanly. If that file has a merge conflict, run `bun src/cli.ts attest --repair` first.
+When you change a file that a document lists in `review-deps`, re-read that document and update it in the same commit. Pre-commit blocks a commit that changes the dependency but not the document; nothing records reviews. If the document is still correct, commit once without that hook (`SKIP=<hook id> git commit …`).
 
 ## First hour
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import process from "node:process";
-import { ATTEST_USAGE, parseAttestArgs, runAttest } from "./attest/cli.ts";
 import { findRepoRoot } from "./audit/config/load.ts";
 import { parseAuditArgs, runAudit } from "./audit/run.ts";
 import { runCatalogCli } from "./catalog.ts";
@@ -18,11 +17,8 @@ function usage(): void {
 
 Commands:
   init [--skills] [--no-skills] [skills add flags…]
-  attest <document…> [--reason "<what you checked>"] [--dry-run]
-                                record that you re-read documents; --repair fixes the review lock
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
-                         [--fix[=doc-meta|review-proof|anchors|ssot]] [--dry-run]
-                         [--confirm-reviewed (doc-meta only; requires --paths)]
+                         [--fix[=anchors|ssot]] [--dry-run]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
   review prepare [--staged | --base <ref>] [--json] [--run]
@@ -30,7 +26,7 @@ Commands:
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   context <query> | --path <path> [--staged] [--max-chars=N]
-Note: \`register\` and \`customize\` were removed.`);
+Note: \`register\`, \`customize\`, and \`attest\` were removed.`);
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
@@ -144,6 +140,13 @@ function handleRemovedOverlay(command: string): number {
 	return 1;
 }
 
+function handleRemovedAttest(): number {
+	console.error(
+		"attest: removed in Skeleton 9 — nothing records reviews. Update a document in the same commit as its review-deps; delete .skeleton/review-lock.toml.",
+	);
+	return 1;
+}
+
 function handleInit(argv: string[]): number {
 	runInit(parseInitArgs(argv));
 	return 0;
@@ -154,9 +157,8 @@ function wantsHelp(rest: string[]): boolean {
 	return rest.slice(0, 2).some((arg) => arg === "--help" || arg === "-h");
 }
 
-function printHelp(command: string | undefined): number {
-	if (command === "attest") console.log(ATTEST_USAGE);
-	else usage();
+function printHelp(): number {
+	usage();
 	return 0;
 }
 
@@ -164,11 +166,11 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 	const command = argv[0];
 	const rest = argv.slice(1);
 
-	if (wantsHelp(rest)) return printHelp(command);
+	if (wantsHelp(rest)) return printHelp();
 
 	switch (command) {
 		case "attest":
-			return runAttest(parseAttestArgs(rest));
+			return handleRemovedAttest();
 		case "audit":
 			return handleAudit(rest);
 		case "build-plugin":

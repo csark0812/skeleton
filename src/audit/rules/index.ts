@@ -7,7 +7,6 @@ import { nearDuplicateRule } from "./near-duplicate.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
 import { reviewCoverageRule } from "./review-coverage.ts";
 import { reviewDepsRule } from "./review-deps.ts";
-import { reviewProofRule } from "./review-proof.ts";
 import { coverageGapsRule } from "./scan-gaps.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
@@ -38,7 +37,6 @@ export const docsRules: AuditRule[] = [
 	{ ...reviewCoverageRule, global: true },
 	linksRule,
 	docMetaRule,
-	reviewProofRule,
 	reviewDepsRule,
 	{ ...bannedRule, global: true },
 	prosePolicyRule,

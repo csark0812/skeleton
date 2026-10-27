@@ -4,8 +4,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { evaluateValidateChanged } from "../../validate/changed.ts";
+import { commitAll, git } from "../support/git-repo.ts";
 
 let tempDirs: string[] = [];
 
@@ -59,10 +59,6 @@ function runGit(root: string, args: string[], env: Record<string, string> = {}):
 	if (result.status !== 0) {
 		throw new Error(`git ${args.join(" ")} failed: ${result.stderr || result.stdout}`);
 	}
-}
-
-function auditCodes(result: Awaited<ReturnType<typeof evaluateValidateChanged>>): string[] {
-	return result.audits.flatMap((audit) => audit.diagnostics).map((item) => item.code ?? "");
 }
 
 afterEach(() => {
@@ -172,7 +168,7 @@ describe("validate changed hook gates", () => {
 			paths: ["src/example.ts"],
 		});
 		expect(result.diagnostics.some((item) => item.code === "uncovered-changed-path")).toBe(false);
-		expect(auditCodes(result)).toContain("review-proof-missing");
+		expect(result.impactedDocuments.map((item) => item.path)).toEqual(["docs/example.md"]);
 	});
 
 	it("does not flag deleted coverage files as uncovered", async () => {
@@ -195,92 +191,86 @@ describe("validate changed hook gates", () => {
 		expect(result.diagnostics.some((item) => item.file === "src/gone.ts")).toBe(false);
 	});
 
-	it("fails --staged when the attested proof file stays unstaged", async () => {
-		const root = makeRoot();
-		writeToml(root);
-		writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
-		mkdirSync(join(root, "src"), { recursive: true });
-		writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
-		attestDocuments({ root, paths: ["docs/example.md"] });
-		runGit(root, ["init"]);
-		runGit(root, ["add", "-A"]);
-		runGit(root, ["commit", "-m", "init"]);
-
-		writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-		runGit(root, ["add", "src/example.ts"]);
-		attestDocuments({
-			root,
-			paths: ["docs/example.md"],
-			reason: "checked against the changed code",
-		});
-
-		const result = await evaluateValidateChanged({ root, staged: true });
-		expect(result.exitCode).toBe(1);
-		expect(result.diagnostics).toContainEqual(
-			expect.objectContaining({
-				code: "stage-required",
-				file: ".skeleton/review-lock.toml",
-			}),
-		);
-		expect(
-			result.audits
-				.flatMap((audit) => audit.diagnostics)
-				.some((item) => item.code === "review-dependency-changed"),
-		).toBe(true);
-	});
-
-	describe("hash proof for an impacted document", () => {
-		function setupRepo(): string {
+	describe("a changed declared dependency", () => {
+		function setupRepo(deps = "src/example.ts"): string {
 			const root = makeRoot();
 			writeToml(root);
-			writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
+			writeOwnedDoc(root, `<!-- review-deps: paths=${deps} -->\n`);
 			mkdirSync(join(root, "src"), { recursive: true });
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
-			attestDocuments({ root, paths: ["docs/example.md"] });
-			runGit(root, ["init", "-b", "main"]);
-			runGit(root, ["add", "-A"]);
-			runGit(root, ["commit", "-m", "init"]);
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.0", scripts: { test: "bun test" } })}\n`,
+			);
+			commitAll(root, "init");
 			return root;
 		}
 
-		it("requires a re-read when a dependency changes, and passes once it is attested", async () => {
+		function staleDiagnostics(result: Awaited<ReturnType<typeof evaluateValidateChanged>>) {
+			return result.diagnostics
+				.filter((item) => item.code === "review-dependency-changed")
+				.map((item) => [item.file, item.link, item.severity]);
+		}
+
+		it("blocks a commit that changes the dependency but not the document", async () => {
 			const root = setupRepo();
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-			const before = await evaluateValidateChanged({ root });
-			expect(before.exitCode).toBe(1);
-			expect(auditCodes(before)).toContain("review-dependency-changed");
-
-			const doc = readFileSync(join(root, "docs/example.md"), "utf8");
-			attestDocuments({
-				root,
-				paths: ["docs/example.md"],
-				reason: "checked against the changed code",
-			});
-			expect(readFileSync(join(root, "docs/example.md"), "utf8")).toBe(doc);
-			const after = await evaluateValidateChanged({ root });
-			expect(auditCodes(after)).not.toContain("review-dependency-changed");
+			git(root, "add", "src/example.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(result.exitCode).toBe(1);
+			expect(staleDiagnostics(result)).toEqual([["docs/example.md", "src/example.ts", "error"]]);
 		});
 
-		it("checks a --base range by bytes, not by commit dates", async () => {
+		it("passes once the same commit updates the document", async () => {
 			const root = setupRepo();
-			runGit(root, ["checkout", "-b", "feature"]);
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-			runGit(root, ["commit", "-am", "change source"]);
-			expect(auditCodes(await evaluateValidateChanged({ root, base: "main" }))).toContain(
-				"review-dependency-changed",
+			const doc = join(root, "docs/example.md");
+			writeFileSync(
+				doc,
+				readFileSync(doc, "utf8").replace("example behavior.", "example behavior, now 2."),
 			);
+			git(root, "add", "-A");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(staleDiagnostics(result)).toEqual([]);
+		});
 
-			attestDocuments({
-				root,
-				paths: ["docs/example.md"],
-				reason: "checked against the changed code",
-			});
-			runGit(root, ["add", "-A"]);
-			runGit(root, ["commit", "-m", "review doc"]);
-			setSystemTime(new Date("2030-01-01T00:00:00Z"));
-			expect(auditCodes(await evaluateValidateChanged({ root, base: "main" }))).not.toContain(
-				"review-dependency-changed",
+		it("only warns on a branch range and in the working tree", async () => {
+			const root = setupRepo();
+			git(root, "checkout", "-q", "-b", "feature");
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root }))).toEqual([
+				["docs/example.md", "src/example.ts", "warning"],
+			]);
+			commitAll(root, "change source");
+			const range = await evaluateValidateChanged({ root, base: "main" });
+			expect(staleDiagnostics(range)).toEqual([["docs/example.md", "src/example.ts", "warning"]]);
+			expect(range.diagnostics.some((item) => item.severity === "error")).toBe(false);
+		});
+
+		it("ignores a package version bump and keys outside a selector", async () => {
+			const root = setupRepo("src/example.ts,package.json#scripts");
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.1", scripts: { test: "bun test" } })}\n`,
 			);
+			git(root, "add", "package.json");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.1", scripts: { test: "vitest" } })}\n`,
+			);
+			git(root, "add", "package.json");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "package.json", "error"],
+			]);
+		});
+
+		it("reports a deleted file that a dependency glob matched", async () => {
+			const root = setupRepo("src/*.ts");
+			git(root, "rm", "-q", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "src/example.ts", "error"],
+			]);
 		});
 	});
 });

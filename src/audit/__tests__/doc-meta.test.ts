@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { createContext } from "../core/context.ts";
-import { attestDocuments } from "../core/review-proof.ts";
 import { runDocMetaRule } from "../rules/doc-meta.ts";
 
 function git(root: string, args: string[], committedAt: string): void {
@@ -47,8 +46,7 @@ function makeRepo(meta = "owner=eng"): string {
 	return root;
 }
 
-function commitReview(root: string, committedAt: string): void {
-	attestDocuments({ root, paths: ["docs/example.md"] });
+function commitDocument(root: string, committedAt: string): void {
 	git(root, ["init", "-q"], committedAt);
 	git(root, ["add", "."], committedAt);
 	git(root, ["commit", "-q", "-m", "review"], committedAt);
@@ -95,17 +93,17 @@ describe("doc-meta", () => {
 		}
 	});
 
-	it("measures the re-read cadence from the last commit of the review proof", () => {
+	it("measures the re-read cadence from the document's last commit", () => {
 		const root = makeRepo();
 		try {
-			commitReview(root, "2026-08-01T12:00:00Z");
+			commitDocument(root, "2026-08-01T12:00:00Z");
 			setSystemTime(new Date("2026-08-31T00:00:00Z"));
 			expect(docMetaIssues(root)).toEqual([]);
 			setSystemTime(new Date("2026-09-01T00:00:01Z"));
 			expect(docMetaIssues(root)).toEqual([
 				expect.objectContaining({
 					code: "review-cadence-exceeded",
-					message: expect.stringContaining("last review was committed 2026-08-01"),
+					message: expect.stringContaining("last changed 2026-08-01"),
 					severity: "warning",
 				}),
 			]);
@@ -114,10 +112,9 @@ describe("doc-meta", () => {
 		}
 	});
 
-	it("does not measure cadence for an uncommitted review", () => {
+	it("does not measure cadence for an uncommitted document", () => {
 		const root = makeRepo();
 		try {
-			attestDocuments({ root, paths: ["docs/example.md"] });
 			setSystemTime(new Date("2030-01-01T00:00:00Z"));
 			expect(docMetaIssues(root)).toEqual([]);
 		} finally {

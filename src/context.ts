@@ -1,21 +1,21 @@
 import { globSync } from "tinyglobby";
 import { loadConfig } from "./audit/config/load.ts";
 import { collectScanFiles } from "./audit/core/collect.ts";
-import { type FileSource, readRepoText } from "./audit/core/repo-files.ts";
+import { lastCommitDay } from "./audit/core/git-meta.ts";
+import {
+	type FileSource,
+	pathDiffersFromHead,
+	readRepoText,
+	trackedPaths,
+} from "./audit/core/repo-files.ts";
 import {
 	resolveReviewDependencies,
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "./audit/core/review-deps.ts";
-import {
-	type LoadedReviewProof,
-	loadReviewProof,
-	type ReviewProofEntry,
-	reviewCommitDay,
-	reviewStateFor,
-} from "./audit/core/review-proof.ts";
 import { normalizeRelPath } from "./audit/core/shared.ts";
 import { collectSsotEntries } from "./audit/core/ssot-collect.ts";
+import { type DocumentImpact, staleDocuments } from "./audit/core/stale-documents.ts";
 
 const DEFAULT_MAX_CHARS = 12_000;
 const EXCERPT_MAX_CHARS = 3_600;
@@ -38,11 +38,13 @@ const QUERY_STOP_TERMS = new Set([
 	"tests",
 ]);
 
-export type ContextReview =
-	| "matches-recorded-review"
-	| "changed-since-review"
-	| "review-required"
-	| "unreviewed";
+/**
+ * `current`: declared sources read as committed. `changed-since-review`: a declared source
+ * differs from HEAD in this read while the document does not. `review-required`: the document's
+ * last commit is older than the re-read cadence. `unreviewed`: no declared sources, so nothing
+ * ties its implementation claims to code.
+ */
+export type ContextReview = "current" | "changed-since-review" | "review-required" | "unreviewed";
 
 export interface ContextSource {
 	path: string;
@@ -234,44 +236,49 @@ function excerpt(content: string, remaining: number, terms: string[]): string {
 interface ReviewInput {
 	root: string;
 	document: string;
-	content: string;
-	entry: ReviewProofEntry | null;
-	config: ReturnType<typeof loadConfig>;
-	source: FileSource;
+	dependencyPatterns: string[];
+	staged: boolean;
 	staleDays: number;
+	/** Index paths, read once per request. */
+	tracked: string[];
 }
 
-function entryOf(loaded: LoadedReviewProof, document: string): ReviewProofEntry | null {
-	return loaded.status === "valid" ? (loaded.entries.get(document) ?? null) : null;
-}
-
-/** The last committed review is older than the re-read cadence. */
+/** The document's last commit is older than the re-read cadence. */
 function cadenceReviewReasons(input: ReviewInput): string[] {
-	const committed = reviewCommitDay(input.root, input.config, input.document);
+	const committed = lastCommitDay(input.root, input.document);
 	if (!committed) return [];
 	const ageDays = (Date.now() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
 	if (!(ageDays > input.staleDays)) return [];
-	return [`last review committed ${committed} exceeds re-read cadence (>${input.staleDays} days)`];
+	return [`last changed ${committed}, beyond the re-read cadence (>${input.staleDays} days)`];
+}
+
+/** Every committed or present file a declared pattern names, so a removed glob member counts too. */
+function dependencyImpact(input: ReviewInput): DocumentImpact {
+	const tracked = input.tracked;
+	const present = resolveReviewDependencies(input.root, input.dependencyPatterns).targets;
+	const reasons: DocumentImpact["reasons"] = [];
+	for (const dependency of input.dependencyPatterns) {
+		for (const target of new Set([...present, ...tracked])) {
+			if (reviewDependencyMatchesPath(dependency, target)) {
+				reasons.push({ kind: "changed-review-dependency", dependency, target });
+			}
+		}
+	}
+	if (pathDiffersFromHead(input.root, input.document, input.staged ? "index" : "worktree")) {
+		reasons.push({ kind: "changed-document" });
+	}
+	return { path: input.document, reasons };
 }
 
 function reviewStatus(input: ReviewInput): Pick<ContextDocument, "review" | "reviewReasons"> {
-	if (!input.entry) return { review: "unreviewed" };
-	const state = reviewStateFor({
-		root: input.root,
-		entry: input.entry,
-		content: input.content,
-		source: input.source,
-	});
-	if (state.status === "document-changed") {
-		return {
-			review: "review-required",
-			reviewReasons: ["document changed after its recorded review"],
-		};
+	if (input.dependencyPatterns.length === 0) return { review: "unreviewed" };
+	const scope = { root: input.root, staged: input.staged };
+	if (staleDocuments(scope, [dependencyImpact(input)]).length > 0) {
+		return { review: "changed-since-review" };
 	}
-	if (state.status !== "matches") return { review: "changed-since-review" };
 	const reviewReasons = cadenceReviewReasons(input);
 	if (reviewReasons.length > 0) return { review: "review-required", reviewReasons };
-	return { review: "matches-recorded-review" };
+	return { review: "current" };
 }
 
 /** Build bounded, read-only evidence from canonical papers and their declared source owners. */
@@ -287,8 +294,8 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 	const files = collectScanFiles(config, options.root);
 	const ssot = collectSsotEntries(files, options.root).entries;
 	const terms = queryTerms(options.query);
-	const proof = loadReviewProof({ root: options.root, config, source });
 	const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
+	const tracked = trackedPaths(options.root);
 	const candidates = ssot
 		// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one document needs source, query, and bounds decisions before it can be returned.
 		.map((entry) => {
@@ -353,11 +360,10 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 			...reviewStatus({
 				root: options.root,
 				document: entry.path,
-				content,
-				entry: entryOf(proof, entry.path),
-				config,
-				source,
+				dependencyPatterns: reviewDependencyPatterns(content),
+				staged: options.staged ?? false,
 				staleDays: config.daysUntilStale,
+				tracked,
 			}),
 		};
 	});
@@ -387,11 +393,11 @@ function formattedDocument(document: ContextDocument): string[] {
 	}
 	if (document.review === "review-required") {
 		lines.push(
-			`action\t${document.path}\tReview required: ${document.reviewReasons?.join("; ")}. Re-read the complete paper against its implementation before relying on active claims, then attest it again only if it is still correct. For read-only work, report the conflict or review gap; preserve historical alternatives and future aspirations as qualified intent.`,
+			`action\t${document.path}\tReview required: ${document.reviewReasons?.join("; ")}. Re-read the complete paper against its implementation before relying on active claims, and commit any correction. For read-only work, report the conflict or review gap; preserve historical alternatives and future aspirations as qualified intent.`,
 		);
 	} else if (document.review === "unreviewed") {
 		lines.push(
-			`action\t${document.path}\tNo matching recorded review proof. Compare active implementation claims with the relevant source before relying on them. Preserve historical alternatives and future aspirations as qualified intent. If active implementation claims lack review-deps, identify and declare their owner when editing; for read-only work, report the missing evidence without editing. Do not treat a source-of-truth marker or doc-meta comment as proof of semantic consistency.`,
+			`action\t${document.path}\tNo declared review-deps, so nothing ties this paper to code. Compare active implementation claims with the relevant source before relying on them. Preserve historical alternatives and future aspirations as qualified intent. If active implementation claims lack review-deps, identify and declare their owner when editing; for read-only work, report the missing evidence without editing. Do not treat a source-of-truth marker or doc-meta comment as proof of semantic consistency.`,
 		);
 	}
 	lines.push(document.excerpt);

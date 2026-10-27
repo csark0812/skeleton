@@ -18,29 +18,31 @@ import { parseAuditArgs } from "../run.ts";
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
 		expect(parseFixKinds(true)).toEqual(["anchors", "ssot"]);
-		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
-		expect(parseFixKinds("review-proof")).toEqual(["review-proof"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
+		expect(() => parseFixKinds("doc-meta")).toThrow(/removed in Skeleton 9/);
+		expect(() => parseFixKinds("review-proof")).toThrow(/removed in Skeleton 9/);
 	});
 });
 
 describe("parseAuditArgs --fix", () => {
 	it("accepts --fix=kind and space-separated kind", () => {
 		expect(parseAuditArgs(["--fix"]).fix).toBe(true);
-		expect(parseAuditArgs(["--paths=docs/a.md", "--fix=doc-meta", "--confirm-reviewed"]).fix).toBe(
-			"doc-meta",
-		);
-		expect(
-			parseAuditArgs(["--paths=docs/a.md", "--fix", "doc-meta", "--confirm-reviewed"]).fix,
-		).toBe("doc-meta");
+		expect(parseAuditArgs(["--fix=ssot"]).fix).toBe("ssot");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).fix).toBe("anchors");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).dryRun).toBe(true);
 	});
 
 	it("rejects unknown space-separated --fix kinds", () => {
 		expect(() => parseAuditArgs(["--fix", "nope"])).toThrow(/Unknown --fix kind/);
+	});
+
+	it("names the review-proof flags removed in Skeleton 9", () => {
+		expect(() => parseAuditArgs(["--fix=doc-meta"])).toThrow(/removed in Skeleton 9/);
+		expect(() => parseAuditArgs(["--fix", "review-proof"])).toThrow(/removed in Skeleton 9/);
+		expect(() => parseAuditArgs(["--confirm-reviewed"])).toThrow(/removed in Skeleton 9/);
+		expect(() => parseAuditArgs(["--reason=checked"])).toThrow(/removed in Skeleton 9/);
 	});
 
 	it("rejects --dry-run=<value> forms", () => {
@@ -58,15 +60,15 @@ describe("parseAuditArgs --fix", () => {
 
 describe("fixKindsForOnly", () => {
 	it("keeps all kinds when --only is unset", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], null)).toEqual(["doc-meta", "anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], null)).toEqual(["ssot", "anchors"]);
 	});
 
 	it("maps --only=links to anchors only", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
 	});
 
 	it("returns empty when --only has no fix-owning rules", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["banned"]))).toEqual([]);
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["banned"]))).toEqual([]);
 	});
 });
 

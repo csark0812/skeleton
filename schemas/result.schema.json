@@ -33,8 +33,7 @@
 				"rules",
 				"counts",
 				"diagnostics",
-				"catalog",
-				"reviewProof"
+				"catalog"
 			],
 			"properties": {
 				"schemaVersion": { "const": 1 },
@@ -82,16 +81,6 @@
 						"status": {
 							"enum": ["current", "missing", "stale", "skipped-ci", "not-applicable"]
 						}
-					}
-				},
-				"reviewProof": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": ["mode", "status", "proofFile"],
-					"properties": {
-						"mode": { "const": "hash" },
-						"status": { "enum": ["not-checked", "valid", "invalid"] },
-						"proofFile": { "type": "string" }
 					}
 				},
 				"successSuffix": { "type": "string" }

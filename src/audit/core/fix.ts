@@ -5,8 +5,18 @@ import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
 import { rewriteLegacySsotToComment } from "./ssot.ts";
 
-/** `doc-meta` attests reviewed documents; `review-proof` migrates version 2 proof. */
-export type FixKind = "doc-meta" | "review-proof" | "anchors" | "ssot";
+export type FixKind = "anchors" | "ssot";
+
+/** Fix kinds that recorded review proof, removed in Skeleton 9. */
+const REMOVED_FIX_KINDS = new Set(["doc-meta", "review-proof"]);
+
+export function removedFixKindError(kind: string): Error | null {
+	return REMOVED_FIX_KINDS.has(kind)
+		? new Error(
+				`--fix=${kind} was removed in Skeleton 9: nothing records reviews. Update a document in the same change as its review-deps.`,
+			)
+		: null;
+}
 
 export interface FixEdit {
 	file: string;
@@ -121,24 +131,20 @@ export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): Apply
 
 export function parseFixKinds(raw: string | true): FixKind[] {
 	if (raw === true) return ["anchors", "ssot"];
+	const removed = removedFixKindError(raw);
+	if (removed) throw removed;
 	switch (raw) {
-		case "doc-meta":
-			return ["doc-meta"];
-		case "review-proof":
-			return ["review-proof"];
 		case "anchors":
 			return ["anchors"];
 		case "ssot":
 			return ["ssot"];
 		default:
-			throw new Error(`Unknown --fix kind: ${raw}. Use doc-meta, review-proof, anchors, or ssot.`);
+			throw new Error(`Unknown --fix kind: ${raw}. Use anchors or ssot.`);
 	}
 }
 
 /** Owning audit rule id for each fix kind (used to scope `--fix` under `--only`). */
 export const FIX_KIND_RULE: Record<FixKind, string> = {
-	"doc-meta": "doc-meta",
-	"review-proof": "review-proof",
 	anchors: "links",
 	ssot: "ssot",
 };

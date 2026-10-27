@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
+import { lastCommitDay } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { reviewCommitDay } from "../core/review-proof.ts";
 import { DOC_META_RE, hasLegacyReviewDate } from "../core/shared.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
@@ -14,28 +14,30 @@ function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
 	if (!hasLegacyReviewDate(content)) return null;
 	return issue("doc-meta", relPath, {
 		code: "legacy-review-date",
-		message: "doc-meta still carries a last-reviewed date; review proof no longer stores dates",
+		message: "doc-meta still carries a last-reviewed date; review dates are no longer stored",
 		severity: "warning",
-		remediation: "Run `skeleton attest --repair` to remove legacy dates.",
+		remediation:
+			"Delete the `| last-reviewed=…` part; the re-read cadence uses the document's last commit.",
 	});
 }
 
-/** Age of the last committed review: the commit that last changed the document's proof entry. */
+/** Age of the document's last commit: nothing records reviews, so an edit is the last review. */
 function checkStaleReview(input: {
 	ctx: AuditContext;
 	relPath: string;
 	today: Date;
 }): Issue | null {
 	const { ctx, relPath, today } = input;
-	const committed = reviewCommitDay(ctx.root, ctx.config, relPath);
+	const committed = lastCommitDay(ctx.root, relPath);
 	if (!committed) return null;
 	const ageDays = (today.getTime() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
 	if (!(ageDays > ctx.config.daysUntilStale)) return null;
 	return issue("doc-meta", relPath, {
 		code: "review-cadence-exceeded",
-		message: `last review was committed ${committed}, beyond the re-read cadence (>${ctx.config.daysUntilStale} days)`,
+		message: `last changed ${committed}, beyond the re-read cadence (>${ctx.config.daysUntilStale} days)`,
 		severity: "warning",
-		remediation: "Re-read the entire document, then attest it again.",
+		remediation:
+			"Re-read the entire document against its sources and commit any correction; raise daysUntilStale if the cadence is too tight.",
 	});
 }
 

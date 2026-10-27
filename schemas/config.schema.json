@@ -147,7 +147,7 @@
 		"reviewProof": {
 			"type": "object",
 			"additionalProperties": false,
-			"description": "Where review proof lives. Proof is always hash-based: one line per reviewed document in one file",
+			"description": "Deprecated and ignored: Skeleton 9 stores no review proof. Accepted so older configs keep loading",
 			"properties": {
 				"mode": {
 					"const": "hash",

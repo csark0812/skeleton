@@ -31,15 +31,14 @@ export interface ReviewCoverageConfig {
 	exclude?: string[];
 }
 
-/** Where review proof lives. Proof is always hash-based: one line per reviewed document in one file. */
+/**
+ * Deprecated: Skeleton 9 stores no review proof. The key still loads so older configs keep
+ * working, and nothing reads it.
+ */
 export interface ReviewProofConfig {
-	/** Accepted for older configs; hash is the only mode. */
 	mode?: "hash";
-	/** Repo-relative review lock (default: .skeleton/review-lock.toml). */
 	file?: string;
-	/** Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews). */
 	dir?: string;
-	/** Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
 	lockfile?: string;
 }
 
@@ -69,7 +68,7 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
-	/** Re-read cadence (days), measured from the commit that recorded a document's review. */
+	/** Re-read cadence (days), measured from the document's last commit. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;

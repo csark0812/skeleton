@@ -2,13 +2,6 @@ import type { Issue } from "./audit/core/report.ts";
 
 export type CatalogStatus = "current" | "missing" | "stale" | "skipped-ci" | "not-applicable";
 
-export interface ReviewProofResult {
-	mode: "hash";
-	status: "not-checked" | "valid" | "invalid";
-	/** The repository's review proof file. */
-	proofFile: string;
-}
-
 export interface AuditResult {
 	schemaVersion: 1;
 	command: "audit";
@@ -22,6 +15,5 @@ export interface AuditResult {
 	counts: { errors: number; warnings: number };
 	diagnostics: Issue[];
 	catalog: { status: CatalogStatus };
-	reviewProof: ReviewProofResult;
 	successSuffix?: string;
 }

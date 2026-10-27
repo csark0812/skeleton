@@ -96,7 +96,7 @@ import type { AuditResult } from "@csark0812/skeleton/result-types";
 
 const rule: AuditRule = { id: "consumer", run: (ctx: AuditContext) => [issue("consumer", ctx.root, { message: "ok" })] };
 const audit = {} as AuditResult;
-void [rule, audit.reviewProof.status];
+void [rule, audit.counts.errors];
 `,
 	);
 

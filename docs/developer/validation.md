@@ -52,10 +52,10 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 Skeleton does not claim to validate application code. It classifies code paths, prints the repo-native gates, and builds an exact reverse dependency map from `review-deps` declarations to scanned documents.
 
-- Impacted documents are audited with `review-proof`: changed dependency bytes invalidate the document's entry in `.skeleton/review-lock.toml` until explicit re-review and attestation. A `package.json` change to only its top-level `version` keeps the entry valid, and a `file.json#key` dependency compares only the selected keys ([config](config.md#reviewproof)). Pass or fail depends only on those normalized bytes, so the same range gives the same result on any day; only the advisory cadence warning uses git dates.
+- An impacted document whose dependency changed while the document did not is reported as `review-dependency-changed`: an error under `--staged`, a warning for `--base` and working-tree runs. A `package.json` change to only its top-level `version` and a change outside a `file.json#key` selector do not count ([doc system](doc-system.md#keeping-documents-current)). The result depends only on the two sides of the change, so the same range gives the same result on any day; only the advisory cadence warning uses git dates.
 - No linked document: a live coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this. Deleted files do not fail that gate.
 - Deleted or renamed Markdown documents (in a diff run, not with explicit paths): every scanned document that mentions the old file name is audited too, so a link the change broke is reported even though that document is not in the diff.
-- `--staged`: read document, proof, and dependency bytes from the git index. If an impacted paper or the review proof file (`.skeleton/review-lock.toml`, or `[reviewProof] file`) differs from HEAD and is not staged, fail `stage-required`.
+- `--staged`: read document and dependency bytes from the git index and compare them with HEAD. `--base`: compare HEAD with the merge base.
 
 In this repo:
 
