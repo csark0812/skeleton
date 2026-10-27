@@ -41,7 +41,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 | links, doc-meta, review-proof, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
-\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change. `review-proof` reports `review-proof-orphan` only on runs without `--paths`.
+\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change. `review-proof` reports `review-lock-retired` (a Skeleton 8 lock still present) only on runs without `--paths`, and reports `review-merged-unattested` as a warning there and as an error under `--paths`.
 
 ## Config
 
@@ -49,7 +49,7 @@ Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, 
 
 ## Machine-readable results
 
-`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its proof file (`reviewProof.proofFile`). Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
+`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its source (`reviewProof.source`, always `commit-history`). Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
 
 Plugins: [plugins.md](plugins.md).
 

@@ -102,9 +102,9 @@ npx skeleton audit docs
 npx skeleton validate changed --staged
 ```
 
-A new doc-meta paper fails `review-proof-missing` until you attest it once (command below); then audits pass. A foreign-only skill change can pass because synced
+A new doc-meta paper fails `review-proof-missing` until you commit it and attest it once (command below); then audits pass. A foreign-only skill change can pass because synced
 skill bodies are validated in their owning repo; `validate changed` prints each
-skip. Any changed repository file also pulls in documents whose `review-deps` marker matches it. Review failures require a complete re-read, followed by explicit attestation:
+skip. Any changed repository file also pulls in documents whose `review-deps` marker matches it. Review failures require a complete re-read and a commit of any fix, followed by explicit attestation:
 
 ```bash
 npx skeleton attest docs/example.md
@@ -136,6 +136,7 @@ Details: [install](install.md).
 - [ ] Edit `skeleton.toml` scan trees
 - [ ] Write a canonical doc with source-of-truth (+ doc-meta as needed)
 - [ ] `npx skeleton catalog`
+- [ ] Commit the setup and docs
 - [ ] `npx skeleton attest <doc>` after a full read
 - [ ] `npx skeleton audit docs`
 - [ ] `pre-commit install`
