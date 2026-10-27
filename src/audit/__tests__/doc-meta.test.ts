@@ -82,17 +82,6 @@ describe("doc-meta", () => {
 		}
 	});
 
-	it("warns about a legacy last-reviewed date", () => {
-		const root = makeRepo("owner=eng | last-reviewed=2026-08-19");
-		try {
-			expect(docMetaIssues(root)).toEqual([
-				expect.objectContaining({ code: "legacy-review-date", severity: "warning" }),
-			]);
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-
 	it("measures the re-read cadence from the document's last commit", () => {
 		const root = makeRepo();
 		try {

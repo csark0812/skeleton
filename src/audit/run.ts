@@ -2,7 +2,7 @@ import { refreshLocalCatalog } from "../catalog.ts";
 import { loadPlugins } from "../plugins/load.ts";
 import type { AuditResult, CatalogStatus } from "../result-types.ts";
 import { createContext } from "./core/context.ts";
-import { applyFixes, fixKindsForOnly, parseFixKinds, removedFixKindError } from "./core/fix.ts";
+import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
@@ -25,8 +25,6 @@ export interface AuditCliOptions {
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
 	const next = argv[index + 1];
 	if (next && !next.startsWith("-")) {
-		const removed = removedFixKindError(next);
-		if (removed) throw removed;
 		if (!["anchors", "ssot"].includes(next)) {
 			throw new Error(`Unknown --fix kind: ${next}. Use --fix, --fix=anchors, or --fix=ssot.`);
 		}
@@ -62,9 +60,6 @@ function applyAuditFlag(input: ApplyAuditFlagInput): number {
 	if (arg === "--dry-run") {
 		state.dryRun = true;
 		return index;
-	}
-	if (arg === "--confirm-reviewed" || arg === "--reason" || arg.startsWith("--reason=")) {
-		throw new Error(`audit: ${arg.split("=")[0]} was removed in Skeleton 9 with review proof`);
 	}
 	if (arg.startsWith("--dry-run=")) {
 		throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
@@ -114,10 +109,6 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 
 	for (let i = 0; i < argv.length; i++) {
 		i = applyAuditFlag({ state, arg: argv[i] ?? "", argv, index: i });
-	}
-	if (typeof state.fix === "string") {
-		const removed = removedFixKindError(state.fix);
-		if (removed) throw removed;
 	}
 
 	return state;

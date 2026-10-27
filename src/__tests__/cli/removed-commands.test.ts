@@ -16,13 +16,6 @@ describe("removed overlay commands", () => {
 		expect(result.stderr).toContain("customize: removed");
 	});
 
-	it("rejects attest with migration text, since nothing records reviews", () => {
-		const result = runCli(["attest", "docs/a.md"]);
-		expect(result.exitCode).toBe(1);
-		expect(result.stderr).toContain("attest: removed in Skeleton 9");
-		expect(result.stderr).toContain("delete .skeleton/review-lock.toml");
-	});
-
 	it("does not treat hook as a command", () => {
 		const result = runCli(["hook"]);
 		expect(result.exitCode).toBe(1);

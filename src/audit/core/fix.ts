@@ -7,17 +7,6 @@ import { rewriteLegacySsotToComment } from "./ssot.ts";
 
 export type FixKind = "anchors" | "ssot";
 
-/** Fix kinds that recorded review proof, removed in Skeleton 9. */
-const REMOVED_FIX_KINDS = new Set(["doc-meta", "review-proof"]);
-
-export function removedFixKindError(kind: string): Error | null {
-	return REMOVED_FIX_KINDS.has(kind)
-		? new Error(
-				`--fix=${kind} was removed in Skeleton 9: nothing records reviews. Update a document in the same change as its review-deps.`,
-			)
-		: null;
-}
-
 export interface FixEdit {
 	file: string;
 	description: string;
@@ -131,8 +120,6 @@ export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): Apply
 
 export function parseFixKinds(raw: string | true): FixKind[] {
 	if (raw === true) return ["anchors", "ssot"];
-	const removed = removedFixKindError(raw);
-	if (removed) throw removed;
 	switch (raw) {
 		case "anchors":
 			return ["anchors"];

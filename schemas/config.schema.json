@@ -144,32 +144,6 @@
 				}
 			}
 		},
-		"reviewProof": {
-			"type": "object",
-			"additionalProperties": false,
-			"description": "Deprecated and ignored: Skeleton 9 stores no review proof. Accepted so older configs keep loading",
-			"properties": {
-				"mode": {
-					"const": "hash",
-					"description": "Accepted for older configs; hash is the only mode"
-				},
-				"file": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Repo-relative review lock (default: .skeleton/review-lock.toml)"
-				},
-				"dir": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews)"
-				},
-				"lockfile": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json)"
-				}
-			}
-		},
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },

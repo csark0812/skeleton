@@ -89,8 +89,6 @@ See [keeping documents current](doc-system.md#keeping-documents-current).
 
 **Dependency warnings** — `review-dependency-broad`: a document depends on a whole `package.json`; name the keys it describes (`package.json#scripts`). `review-dependency-cycle`: documents depend on each other; replace the document dependency with a link.
 
-**Leftover review lock** — Skeleton 9 stores no review proof. Delete `.skeleton/review-lock.toml` (and any older `.skeleton/review-lock.json`, `.skeleton/reviews/`, or `.skeleton/review-proof`) and the `[reviewProof]` table; the table is still accepted and ignored. `skeleton attest`, `--fix=doc-meta`, and `--fix=review-proof` fail with this migration text.
-
 **Re-read cadence** — code `review-cadence-exceeded`.
 
 **Cause:** The document's last commit is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.

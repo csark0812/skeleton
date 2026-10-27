@@ -26,7 +26,7 @@ Commands:
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   context <query> | --path <path> [--staged] [--max-chars=N]
-Note: \`register\`, \`customize\`, and \`attest\` were removed.`);
+Note: \`register\` and \`customize\` were removed.`);
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: strict argv parsing enumerates every supported spelling and rejection
@@ -140,13 +140,6 @@ function handleRemovedOverlay(command: string): number {
 	return 1;
 }
 
-function handleRemovedAttest(): number {
-	console.error(
-		"attest: removed in Skeleton 9 — nothing records reviews. Update a document in the same commit as its review-deps; delete .skeleton/review-lock.toml.",
-	);
-	return 1;
-}
-
 function handleInit(argv: string[]): number {
 	runInit(parseInitArgs(argv));
 	return 0;
@@ -169,8 +162,6 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 	if (wantsHelp(rest)) return printHelp();
 
 	switch (command) {
-		case "attest":
-			return handleRemovedAttest();
 		case "audit":
 			return handleAudit(rest);
 		case "build-plugin":

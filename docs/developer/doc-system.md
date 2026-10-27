@@ -75,7 +75,7 @@ Index docs and SSOT-bearing files require:
 <!-- doc-meta: owner=eng -->
 ```
 
-The comment names an owner only. Do **not** add review or edit dates. A legacy `| last-reviewed=<date>` suffix is still parsed and warns `legacy-review-date`; delete it.
+The comment names an owner only. Do **not** add review or edit dates.
 
 ## Keeping documents current
 

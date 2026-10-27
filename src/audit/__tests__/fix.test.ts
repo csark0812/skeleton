@@ -21,8 +21,6 @@ describe("parseFixKinds", () => {
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
-		expect(() => parseFixKinds("doc-meta")).toThrow(/removed in Skeleton 9/);
-		expect(() => parseFixKinds("review-proof")).toThrow(/removed in Skeleton 9/);
 	});
 });
 
@@ -36,13 +34,6 @@ describe("parseAuditArgs --fix", () => {
 
 	it("rejects unknown space-separated --fix kinds", () => {
 		expect(() => parseAuditArgs(["--fix", "nope"])).toThrow(/Unknown --fix kind/);
-	});
-
-	it("names the review-proof flags removed in Skeleton 9", () => {
-		expect(() => parseAuditArgs(["--fix=doc-meta"])).toThrow(/removed in Skeleton 9/);
-		expect(() => parseAuditArgs(["--fix", "review-proof"])).toThrow(/removed in Skeleton 9/);
-		expect(() => parseAuditArgs(["--confirm-reviewed"])).toThrow(/removed in Skeleton 9/);
-		expect(() => parseAuditArgs(["--reason=checked"])).toThrow(/removed in Skeleton 9/);
 	});
 
 	it("rejects --dry-run=<value> forms", () => {

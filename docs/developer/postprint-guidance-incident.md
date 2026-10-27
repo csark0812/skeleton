@@ -218,10 +218,6 @@ every doc-meta paper in the audit corpus, not one product-owner attestation. Pla
 review debt explicitly: `skeleton attest --repair` (or `--fix=review-proof`) carries over Skeleton 5/6 proofs that still
 verify (for PostPrint's 5.0.4 lock, its version 2 entries) and Skeleton 7 entries
 unchanged, and every other paper needs a normal review.
-Skeleton 9 removed stored proof altogether: a change to a declared dependency must update
-its document in the same commit, which pre-commit enforces and pull-request validation warns about.
-The reproduction script exercises Skeleton 5–8 review proof (`--fix=doc-meta`) and is not
-expected to run against Skeleton 9.
 
 ## Remaining uncertainty and completion boundary
 

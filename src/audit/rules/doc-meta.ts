@@ -3,22 +3,11 @@ import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
 import { lastCommitDay } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { DOC_META_RE, hasLegacyReviewDate } from "../core/shared.ts";
+import { DOC_META_RE } from "../core/shared.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
 	if (DOC_META_RE.test(content)) return null;
 	return issue("doc-meta", relPath, "missing doc-meta comment (<!-- doc-meta: owner=<team> -->)");
-}
-
-function checkLegacyReviewDate(relPath: string, content: string): Issue | null {
-	if (!hasLegacyReviewDate(content)) return null;
-	return issue("doc-meta", relPath, {
-		code: "legacy-review-date",
-		message: "doc-meta still carries a last-reviewed date; review dates are no longer stored",
-		severity: "warning",
-		remediation:
-			"Delete the `| last-reviewed=…` part; the re-read cadence uses the document's last commit.",
-	});
 }
 
 /** Age of the document's last commit: nothing records reviews, so an edit is the last review. */
@@ -55,8 +44,6 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 			issues.push(banner);
 			continue;
 		}
-		const legacy = checkLegacyReviewDate(relPath, content);
-		if (legacy) issues.push(legacy);
 		const stale = checkStaleReview({ ctx, relPath, today });
 		if (stale) issues.push(stale);
 	}

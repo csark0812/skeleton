@@ -31,7 +31,7 @@ When a change touches a file a document declares in `review-deps`, re-read the d
 - `validate changed --staged` (pre-commit) fails with `review-dependency-changed` when the dependency changed and the document did not;
 - `validate changed --base` (pull request CI) and `review prepare` only warn and list the document.
 
-A `package.json` release `version`, keys outside a `#key` selector, and doc-meta-only edits do not count. If the document is still correct, commit once without that hook (`SKIP=<hook id> git commit …`). Upgrading from Skeleton 8 or earlier: delete `.skeleton/review-lock.toml` and the `[reviewProof]` table; `attest`, `--fix=doc-meta`, and `--fix=review-proof` were removed.
+A `package.json` release `version`, keys outside a `#key` selector, and doc-meta-only edits do not count. If the document is still correct, commit once without that hook (`SKIP=<hook id> git commit …`).
 
 Bare `--fix` changes anchors and legacy SSOT markers; it never edits document prose.
 

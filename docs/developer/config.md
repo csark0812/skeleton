@@ -8,7 +8,7 @@
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
 
-Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewProofConfig`, `ReviewCoverageConfig`).
+Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewCoverageConfig`).
 
 Preferred path: **`skeleton.toml` at the repo root**. Legacy `.skeleton/config.yaml` still loads when no TOML is present. If both exist, TOML wins and the CLI warns that YAML is ignored.
 
@@ -32,7 +32,6 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
 | `review`                  | Human-review globs and an optional reviewer command for `review prepare` ([code review](review.md)) |
-| `reviewProof`             | Deprecated and ignored; Skeleton 9 stores no review proof (see below)                                    |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -62,11 +61,9 @@ paths = ["apps/**/*_ANALYSIS.md"]
 
 `review-deps`: opt-in HTML comment markers with comma-separated `paths=`. Docs may declare exact repo-relative files or globs. Exact missing files error; empty globs warn (or error under `--strict`). A whole `package.json` dependency warns `review-dependency-broad`, and documents that depend on each other warn `review-dependency-cycle`. See [doc system](doc-system.md#doc-meta).
 
-## `reviewProof`
+## `review-deps` comparisons
 
-Deprecated. Skeleton 9 stores no review proof, so the table is accepted and ignored; delete it and `.skeleton/review-lock.toml`. Documents stay current through the change itself ([keeping documents current](doc-system.md#keeping-documents-current)).
-
-`review-deps` can narrow a JSON dependency to key paths, for example `package.json#scripts,package.json#bin`. Only those keys are compared (a missing key counts too); impact discovery still treats any change to the file as touching the document. Selectors work only on one `.json` file, not on a glob. A dependency named `package.json` is compared as parsed JSON without its top-level `version` field, so a release version bump or a whitespace-only edit does not count; any other manifest change does. A manifest that is not a JSON object is compared byte for byte. A Markdown dependency is compared without its doc-meta comment.
+Documents stay current through the change itself ([keeping documents current](doc-system.md#keeping-documents-current)). `review-deps` can narrow a JSON dependency to key paths, for example `package.json#scripts,package.json#bin`. Only those keys are compared (a missing key counts too); impact discovery still treats any change to the file as touching the document. Selectors work only on one `.json` file, not on a glob. A dependency named `package.json` is compared as parsed JSON without its top-level `version` field, so a release version bump or a whitespace-only edit does not count; any other manifest change does. A manifest that is not a JSON object is compared byte for byte. A Markdown dependency is compared without its doc-meta comment.
 
 ## `review`
 

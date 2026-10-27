@@ -31,17 +31,6 @@ export interface ReviewCoverageConfig {
 	exclude?: string[];
 }
 
-/**
- * Deprecated: Skeleton 9 stores no review proof. The key still loads so older configs keep
- * working, and nothing reads it.
- */
-export interface ReviewProofConfig {
-	mode?: "hash";
-	file?: string;
-	dir?: string;
-	lockfile?: string;
-}
-
 /** Harness-neutral review settings for `skeleton review prepare`. */
 export interface ReviewConfig {
 	/** Globs for high-consequence paths; a change there needs a person, not an agent. */
@@ -72,7 +61,6 @@ export interface SkeletonConfig {
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;
-	reviewProof?: ReviewProofConfig;
 	review?: ReviewConfig;
 	reviewCoverage?: ReviewCoverageConfig;
 	docsLint?: DocsLintConfig;

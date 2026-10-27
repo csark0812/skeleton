@@ -7,29 +7,8 @@ export const REGISTRY_DIR_REL = ".skeleton";
 export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;
 export const SOURCE_OF_TRUTH_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*/m;
-/**
- * The doc-meta comment: `<!-- doc-meta: owner=eng -->`.
- * A legacy `| last-reviewed=<date>` suffix is still recognized so migration can remove it.
- */
-export const DOC_META_RE =
-	/<!--\s*doc-meta:\s*owner=[^|\s][^|]*?\s*(?:\|\s*last-reviewed=\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?\s*)?-->/;
-const LEGACY_REVIEW_DATE_RE =
-	/\s*\|\s*last-reviewed=\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}Z)?\s*(?=-->)/;
-
-/** True when the doc-meta comment still carries a legacy `last-reviewed` date. */
-export function hasLegacyReviewDate(content: string): boolean {
-	const meta = DOC_META_RE.exec(content);
-	return meta?.[0] !== undefined && LEGACY_REVIEW_DATE_RE.test(meta[0]);
-}
-
-/** Remove a legacy `last-reviewed` date from the doc-meta comment only. Returns null if none. */
-export function stripLegacyReviewDate(content: string): string | null {
-	const meta = DOC_META_RE.exec(content);
-	if (!meta?.[0] || meta.index === undefined) return null;
-	const updatedComment = meta[0].replace(LEGACY_REVIEW_DATE_RE, " ");
-	if (updatedComment === meta[0]) return null;
-	return content.slice(0, meta.index) + updatedComment + content.slice(meta.index + meta[0].length);
-}
+/** The doc-meta comment: `<!-- doc-meta: owner=eng -->`. */
+export const DOC_META_RE = /<!--\s*doc-meta:\s*owner=[^|\s][^|]*?\s*-->/;
 
 /** Replace the doc-meta comment with a fixed token, so review digests ignore metadata edits. */
 export function normalizeDocMetaForReview(content: string): string {

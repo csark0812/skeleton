@@ -18,7 +18,7 @@ skeleton audit self     # config + all rules (scan corpus; excluded owned skill 
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type and reports a document whose dependency changed while it did not ([doc system](doc-system.md#keeping-documents-current)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register`, `customize`, and `attest` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -27,8 +27,6 @@ skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
 ```
-
-`--fix=doc-meta`, `--fix=review-proof`, `--confirm-reviewed`, and `--reason` were removed in Skeleton 9, which stores no review proof; they fail with migration text.
 
 ## Global vs path-scoped
 
@@ -43,7 +41,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewProof`, optional `reviewCoverage`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewCoverage`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
 
 ## Machine-readable results
 
