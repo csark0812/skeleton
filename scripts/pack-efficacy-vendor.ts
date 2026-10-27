@@ -19,6 +19,7 @@ const TREATMENTS = [
 	"drift/skeleton",
 	"efficiency/package-head",
 	"postprint-applications/package-head",
+	"doc-reference/skeleton",
 	"conflict/unmarked",
 	"conflict/single-marker",
 	"conflict/duplicate-markers",
@@ -47,11 +48,19 @@ function copyDependency(name: string, root: string, copied: Set<string>): void {
 		copyDependency(dependency, root, copied);
 }
 
+/** Runtime dependencies the build leaves out of dist/cli.js, which npm installs beside it. */
+function unbundledDependencies(): string[] {
+	const build = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).scripts.build;
+	return [...build.matchAll(/--external (\S+)/g)].map((match) => match[1]);
+}
+
 function installArtifact(tarball: string, root: string): void {
 	const target = join(root, "node_modules/@csark0812/skeleton");
 	rmSync(target, { recursive: true, force: true });
 	mkdirSync(target, { recursive: true });
 	run("tar", ["-xzf", tarball, "--strip-components=1", "-C", target]);
+	const copied = new Set<string>();
+	for (const name of unbundledDependencies()) copyDependency(name, root, copied);
 	mkdirSync(join(root, "node_modules/.bin"), { recursive: true });
 	// A real launcher avoids symlinks escaping or changing snapshot permissions.
 	writeFileSync(

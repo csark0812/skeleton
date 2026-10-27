@@ -26,6 +26,36 @@ for (const [responses, expected, calls] of [[[true], true, 1], [[false, true], t
 }
 `;
 
+const RENAMED_REMINDER_TEST = `import { expect, test } from "bun:test";
+import * as invoices from "./src/invoices.ts";
+test("only the renamed reminder is exported", () => {
+ expect("sendInvoiceReminder" in invoices).toBe(false);
+ expect(typeof invoices.remindInvoiceRecipient).toBe("function");
+});
+test("the renamed reminder sends the formatted number once", async () => {
+ const sent = [];
+ await invoices.remindInvoiceRecipient(async (invoiceNumber) => { sent.push(invoiceNumber); }, 42);
+ expect(sent).toEqual(["INV-00042"]);
+});
+`;
+
+const SIX_DIGIT_INVOICE_TEST = `import { expect, test } from "bun:test";
+import { formatInvoiceNumber, sendInvoiceReminder } from "./src/invoices.ts";
+test("pads invoice numbers to six digits", () => expect(formatInvoiceNumber(42)).toBe("INV-000042"));
+test("the reminder keeps its name and sends the new number", async () => {
+ const sent = [];
+ await sendInvoiceReminder(async (invoiceNumber) => { sent.push(invoiceNumber); }, 42);
+ expect(sent).toEqual(["INV-000042"]);
+});
+`;
+
+/** Trusted behavior tests for synthetic tasks, written beside a copy of the final src/. */
+const SYNTHETIC_TESTS: Record<string, string> = {
+	"change-code-without-doc-reminder": RETRY_TEST,
+	"stale-doc-reference": RENAMED_REMINDER_TEST,
+	"stale-doc-reference-friction": SIX_DIGIT_INVOICE_TEST,
+};
+
 const DELETED_FILE_COVERAGE_TEST = `import { expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -67,7 +97,8 @@ export function verifyCode(
 	workspace: string,
 ): { passed: boolean; output: string; error?: string } | undefined {
 	const history = HISTORY_TASKS.find((task) => taskName === task.scenario);
-	if (!history && taskName !== "change-code-without-doc-reminder") return;
+	const synthetic = SYNTHETIC_TESTS[taskName];
+	if (!(history || synthetic)) return;
 	if (!existsSync(workspace))
 		return {
 			passed: false,
@@ -81,7 +112,7 @@ export function verifyCode(
 		cpSync(join(workspace, "src"), join(temp, "src"), { recursive: true });
 		let paths = ["acceptance.test.ts"];
 		if (history) paths = prepareHistoricalCheck(history, temp);
-		else writeFileSync(join(temp, paths[0]), RETRY_TEST);
+		else writeFileSync(join(temp, paths[0]), synthetic!);
 		const result = spawnSync("bun", ["test", ...paths], {
 			cwd: temp,
 			encoding: "utf8",
