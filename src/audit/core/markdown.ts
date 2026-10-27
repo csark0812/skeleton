@@ -307,20 +307,60 @@ function phrasingText(nodes: PhrasingNode[] | undefined): string {
 	return out;
 }
 
-export function extractHeadingSlugs(content: string, _filePath?: string): Set<string> {
+interface MarkdownSection {
+	slug: string;
+	/** From the heading to the next heading of the same or a higher level. */
+	text: string;
+}
+
+export function markdownSections(content: string): MarkdownSection[] {
 	const body = stripYamlFrontmatter(content);
 	const slugger = new GithubSlugger();
-	const slugs = new Set<string>();
-	const tree = processor.parse(body) as MarkdownRoot;
+	const headings: { slug: string; depth: number; start: number }[] = [];
 
-	visit(tree, (node) => {
-		if (node.type === "heading" && "children" in node) {
-			const text = phrasingText(node.children as PhrasingNode[]);
-			if (text) slugs.add(slugger.slug(text));
-		}
+	visit(processor.parse(body) as MarkdownRoot, (node) => {
+		if (node.type !== "heading" || !("children" in node)) return;
+		const text = phrasingText(node.children as PhrasingNode[]);
+		const start = node.position?.start?.offset;
+		if (!text || start === undefined) return;
+		const depth = "depth" in node && typeof node.depth === "number" ? node.depth : 1;
+		headings.push({ slug: slugger.slug(text), depth, start });
 	});
 
-	return slugs;
+	return headings.map((heading, index) => {
+		const next = headings.slice(index + 1).find((later) => later.depth <= heading.depth);
+		return { slug: heading.slug, text: body.slice(heading.start, next?.start ?? body.length) };
+	});
+}
+
+export function extractHeadingSlugs(content: string, _filePath?: string): Set<string> {
+	return new Set(markdownSections(content).map((section) => section.slug));
+}
+
+interface CodeSnippet {
+	value: string;
+	/** Line of the value's first character; a fence's value starts below its opening line. */
+	line: number;
+	/** Fence language; null for inline code and unlabelled fences. */
+	lang: string | null;
+	fenced: boolean;
+}
+
+/** Inline code spans and fenced blocks, in document order. */
+export function codeSnippets(content: string): CodeSnippet[] {
+	const snippets: CodeSnippet[] = [];
+	visit(processor.parse(content) as MarkdownRoot, (node) => {
+		if ((node.type !== "inlineCode" && node.type !== "code") || !("value" in node)) return;
+		const lang = "lang" in node && typeof node.lang === "string" ? node.lang : null;
+		const start = node.position?.start?.line ?? 1;
+		snippets.push({
+			value: String(node.value),
+			line: node.type === "code" ? start + 1 : start,
+			lang,
+			fenced: node.type === "code",
+		});
+	});
+	return snippets;
 }
 
 export function slugifyAnchor(anchor: string): string {

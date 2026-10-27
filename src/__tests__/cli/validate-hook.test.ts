@@ -265,12 +265,104 @@ describe("validate changed hook gates", () => {
 			]);
 		});
 
+		it("narrows a symbol selector to that declaration", async () => {
+			const root = setupRepo("src/example.ts#runThing");
+			writeFileSync(
+				join(root, "src/example.ts"),
+				"export const runThing = 1;\nexport const other = 2;\n",
+			);
+			git(root, "add", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(
+				join(root, "src/example.ts"),
+				"export const runThing = 3;\nexport const other = 2;\n",
+			);
+			git(root, "add", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "src/example.ts", "error"],
+			]);
+		});
+
+		it("narrows a heading selector to that section", async () => {
+			const root = setupRepo("docs/guide.md#install");
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nA.\n\n## Usage\n\nB.\n");
+			commitAll(root, "guide");
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nA.\n\n## Usage\n\nC.\n");
+			git(root, "add", "docs/guide.md");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nZ.\n\n## Usage\n\nC.\n");
+			git(root, "add", "docs/guide.md");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "docs/guide.md", "error"],
+			]);
+		});
+
 		it("reports a deleted file that a dependency glob matched", async () => {
 			const root = setupRepo("src/**/*.ts");
 			git(root, "rm", "-q", "src/example.ts");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
 				["docs/example.md", "src/example.ts", "error"],
 			]);
+		});
+	});
+
+	describe("a change that breaks a reference in an untouched document", () => {
+		function setupRepo(): string {
+			const root = makeRoot();
+			writeToml(root);
+			mkdirSync(join(root, "docs"), { recursive: true });
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(join(root, "src/run.ts"), "export function parseArgs() {}\n");
+			writeFileSync(join(root, "src/other.ts"), "export const other = 1;\n");
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ packageManager: "pnpm@10.12.4", scripts: { lint: "x", build: "y" } })}\n`,
+			);
+			writeFileSync(
+				join(root, "docs/guide.md"),
+				"# Guide\n\n<!-- doc-meta: owner=eng -->\n\nSee [parseArgs](../src/run.ts#parseArgs). Run `pnpm lint`.\n",
+			);
+			commitAll(root, "init");
+			return root;
+		}
+
+		function referenceErrors(result: Awaited<ReturnType<typeof evaluateValidateChanged>>) {
+			return result.audits
+				.flatMap((audit) => audit.diagnostics)
+				.filter((item) => item.rule === "links" || item.rule === "package-references")
+				.map((item) => [item.file, item.message]);
+		}
+
+		it("fails when a linked symbol is renamed", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/run.ts"), "export function parseArgv() {}\n");
+			git(root, "add", "src/run.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(referenceErrors(result)).toEqual([
+				["docs/guide.md", "broken anchor → #parseArgs in src/run.ts: no symbol parseArgs"],
+			]);
+			expect(result.exitCode).toBe(1);
+		});
+
+		it("fails when a script a document runs is removed", async () => {
+			const root = setupRepo();
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ packageManager: "pnpm@10.12.4", scripts: { build: "y" } })}\n`,
+			);
+			git(root, "add", "package.json");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(referenceErrors(result)).toEqual([
+				["docs/guide.md", "`pnpm lint` names no script in package.json"],
+			]);
+		});
+
+		it("does not audit documents an unrelated change cannot break", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/other.ts"), "export const other = 2;\n");
+			git(root, "add", "src/other.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(result.audits.flatMap((audit) => audit.scope.paths)).not.toContain("docs/guide.md");
 		});
 	});
 });

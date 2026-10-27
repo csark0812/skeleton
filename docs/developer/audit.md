@@ -11,12 +11,32 @@ When to run which command: [validation](validation.md). Common failures: [troubl
 ## Suites
 
 ```bash
-skeleton audit docs     # links, doc-meta, review-deps, review-coverage, ssot, near-duplicate, ssot-summary, prose-policy
+skeleton audit docs     # links, package-references, doc-meta, review-deps, review-coverage, ssot, near-duplicate, ssot-summary, prose-policy
 skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
 `review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type and reports a document whose dependency changed while it did not ([doc system](doc-system.md#keeping-documents-current)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
+
+## References
+
+A document's reference to another file must still resolve. The part after `#` is read by the target's type, in links and in `review-deps` alike:
+
+| Target | Selector | Example |
+| ------ | -------- | ------- |
+| `.json` | dotted key path | `[test](../package.json#scripts.test)` |
+| `.md`, `.mdx` | heading slug | `[install](getting-started.md#install)` |
+| any other file | symbol, whole word; `Class.member` for members | `[parseAuditArgs](../../src/audit/run.ts#parseAuditArgs)` |
+| any other file | line range, links only | `[cli](../../src/cli.ts#L15-L30)` |
+
+`links` reports a selector that names nothing as `broken anchor`; `--fix` repairs near-miss heading slugs only. A bare name with no file (`` `parseAuditArgs` ``) is not checked: name the file in a link.
+
+`package-references` treats a package-manager command in inline code or a shell fence as a reference to `package.json#scripts.<name>`. The manager comes from `packageManager` in the nearest `package.json`; the manager's own commands (`pnpm install`, `bun test`), file paths, placeholders, and workspace flags (`--filter`, `-C`, `-r`) are skipped. Codes:
+
+- `unknown-script`: any scanned document runs a script that package.json does not define.
+- `missing-toolchain-fact`: the `AGENTS.md` beside a package.json does not quote its exact `packageManager` or `engines.node` value in backticks.
+
+`validate changed` audits documents the diff never touched when a change can break one of their references: a link to a changed file, or a command whose package.json changed.
 
 CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
@@ -34,7 +54,7 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
-| links, doc-meta, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
+| links, package-references, doc-meta, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
 \* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.

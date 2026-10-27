@@ -63,7 +63,7 @@ paths = ["apps/**/*_ANALYSIS.md"]
 
 ## `review-deps` comparisons
 
-Documents stay current through the change itself ([keeping documents current](doc-system.md#keeping-documents-current)). `review-deps` can narrow a JSON dependency to key paths, for example `package.json#scripts,package.json#bin`. Only those keys are compared (a missing key counts too); impact discovery still treats any change to the file as touching the document. Selectors work only on one `.json` file, not on a glob. A dependency named `package.json` is compared as parsed JSON without its top-level `version` field, so a release version bump or a whitespace-only edit does not count; any other manifest change does. A manifest that is not a JSON object is compared byte for byte. A Markdown dependency is compared without its doc-meta comment.
+Documents stay current through the change itself ([keeping documents current](doc-system.md#keeping-documents-current)). `review-deps` can narrow a dependency with a selector: a JSON key path (`package.json#scripts,package.json#bin`), a Markdown heading (`docs/guide.md#install`), or a JS/TS symbol (`src/run.ts#parseArgs`). Only the selected region is compared, and a selector that names nothing is an error ([review dependencies](doc-system.md#review-dependencies)); impact discovery still treats any change to the file as touching the document. Selectors work only on one file, not on a glob. A dependency named `package.json` is compared as parsed JSON without its top-level `version` field, so a release version bump or a whitespace-only edit does not count; any other manifest change does. A manifest that is not a JSON object is compared byte for byte. A Markdown dependency is compared without its doc-meta comment.
 
 ## `review`
 

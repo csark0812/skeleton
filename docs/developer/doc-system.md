@@ -63,7 +63,15 @@ Opt-in markers declare the repository state a doc depends on:
 
 Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). In a glob, `*` and `?` stay within one path segment, `**` spans segments, and `**/` also matches zero directories, so `src/**/*.ts` covers `src/a.ts`. Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes ([keeping documents current](#keeping-documents-current)).
 
-A dependency may name one key path in one `.json` file, for example `package.json#scripts` or `config/app.json#server.port`. Only the selected values are compared, as key-sorted JSON, and a missing key counts as evidence. Selectors are not allowed on globs. Any change to the file still pulls the document into `validate changed`. Markdown dependencies are compared without their doc-meta comment.
+A dependency may narrow one file with a selector after `#`, read by the file's type:
+
+| Dependency | Compared |
+| ---------- | -------- |
+| `package.json#scripts`, `config/app.json#server.port` | the selected value, as key-sorted JSON |
+| `docs/guide.md#install` | that heading's section, down to the next heading of the same or a higher level |
+| `src/audit/run.ts#parseAuditArgs`, `src/run.ts#Runner.stop` | that declaration, JSDoc included, in `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts` |
+
+A symbol in any other language, or one TypeScript does not find as a declaration (a re-export, a name only in a comment), is compared as the whole file, so the narrowing can only ask for more re-reads, never fewer. Skeleton parses with TypeScript 6, the last release with a JavaScript parser API; it is a runtime dependency. A selector that names nothing is the error `unresolved-selector`. Selectors are not allowed on globs, and line ranges (`#L10`) are not allowed at all, since they move whenever lines above them change. Any change to the file still pulls the document into `validate changed`. Markdown dependencies are compared without their doc-meta comment.
 
 Keep dependencies narrow. The `review-deps` rule warns `review-dependency-broad` when a document depends on a whole `package.json` (every dependency bump would ask for a re-read; name the keys it describes instead) and `review-dependency-cycle` when documents depend on each other (editing one asks for a re-read of the other; link them instead).
 
@@ -87,7 +95,7 @@ Nothing records reviews: no lock file, no proof lines, no dates. The change itse
 | `--base <ref>` (pull request CI) | Warning. `review prepare` lists the document under "Documents the author must re-read and update". |
 | No flags (working tree) | Warning. |
 
-The comparison ignores a `package.json` top-level release `version`, keys outside a `#key` selector, and doc-meta-only edits to a Markdown dependency. Deleting a file a dependency glob matched counts as a change. With no commit to compare against (a new repository), nothing is reported.
+The comparison ignores a `package.json` top-level release `version`, everything outside a `#` selector's region, and doc-meta-only edits to a Markdown dependency. Deleting a file a dependency glob matched counts as a change. With no commit to compare against (a new repository), nothing is reported.
 
 Fix it by re-reading the document against the changed files and updating it in the same commit. If the document is still correct, commit once without the hook (pre-commit framework: `SKIP=<hook id> git commit …`). Because nothing is stored, two branches that edit the same document merge exactly as git merges the text.
 

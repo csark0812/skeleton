@@ -1,4 +1,4 @@
-import { relative } from "node:path";
+import { join, relative } from "node:path";
 import { collectScanFiles, readFileContent } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import { type Issue, issue } from "../core/report.ts";
@@ -9,6 +9,7 @@ import {
 	parseReviewDepsMarkers,
 	resolveReviewDependencies,
 } from "../core/review-deps.ts";
+import { resolveSelector, selectorKind } from "../core/selectors.ts";
 import { normalizeRelPath } from "../core/shared.ts";
 
 /** Validate opt-in repository dependencies for every scanned document. */
@@ -49,12 +50,28 @@ function broadManifestIssue(path: string, dependency: string): Issue | null {
 	});
 }
 
+/** A selector that names nothing never changes, so the document would never be asked for a re-read. */
+function unresolvedSelectorIssue(root: string, path: string, dependency: string): Issue | null {
+	const ref = parseReviewDependency(dependency);
+	if (ref.selector === null) return null;
+	const content = readFileContent(join(root, ref.path));
+	const resolution = resolveSelector(ref.path, content, ref.selector);
+	if (resolution.ok) return null;
+	return issue("review-deps", path, {
+		code: "unresolved-selector",
+		message: `review dependency ${dependency} names nothing: ${resolution.reason}`,
+		remediation: `Name a ${selectorKind(ref.path, ref.selector)} that exists in ${ref.path}, or drop the selector.`,
+	});
+}
+
 function validateDependency(root: string, path: string, dependency: string): Issue[] {
 	if (!isSafeReviewDependencyPath(dependency)) {
 		return [issue("review-deps", path, `invalid review dependency path: ${dependency}`)];
 	}
 	try {
 		const resolved = resolveReviewDependencies(root, [dependency]);
+		const unresolved = unresolvedSelectorIssue(root, path, dependency);
+		if (unresolved) return [unresolved];
 		const broad = broadManifestIssue(path, dependency);
 		if (!isReviewDependencyGlob(dependency) || resolved.targets.length > 0) {
 			return broad ? [broad] : [];

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { globSync } from "tinyglobby";
+import { selectorKind } from "./selectors.ts";
 import { matchesGlobScope, normalizeRelPath } from "./shared.ts";
 
 const REVIEW_DEPS_RE = /<!--\s*review-deps:\s*([^>]*?)-->/gi;
@@ -15,13 +16,16 @@ interface ResolvedReviewDependencies {
 	/** Repo-relative files, without selectors. */
 	targets: string[];
 	/**
-	 * JSON key paths per target that is declared only through selectors
+	 * Selectors per target that is declared only through selectors
 	 * (`package.json#scripts`). A target declared as a whole file has no entry here.
 	 */
 	selectors: Record<string, string[]>;
 }
 
-/** A declared dependency: a path or glob, optionally narrowed to one JSON key path (`file.json#a.b`). */
+/**
+ * A declared dependency: a path or glob, optionally narrowed by a selector to one JSON key path
+ * (`file.json#a.b`), one Markdown section (`doc.md#install`), or one symbol (`src/run.ts#parseArgs`).
+ */
 interface ReviewDependencyRef {
 	path: string;
 	selector: string | null;
@@ -37,11 +41,16 @@ export function parseReviewDependency(pattern: string): ReviewDependencyRef {
 
 function assertValidSelector(pattern: string, ref: ReviewDependencyRef): void {
 	if (ref.selector === null) return;
-	if (isReviewDependencyGlob(ref.path) || !ref.path.endsWith(".json")) {
-		throw new Error(`Review dependency selector needs one .json file: ${pattern}`);
+	if (isReviewDependencyGlob(ref.path)) {
+		throw new Error(`Review dependency selector needs one file, not a glob: ${pattern}`);
 	}
 	if (!SELECTOR_RE.test(ref.selector)) {
 		throw new Error(`Invalid review dependency selector: ${pattern}`);
+	}
+	if (selectorKind(ref.path, ref.selector) === "line") {
+		throw new Error(
+			`Review dependency selector cannot name lines; they move on every edit above them: ${pattern}`,
+		);
 	}
 }
 
