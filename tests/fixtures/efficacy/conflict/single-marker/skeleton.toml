@@ -4,9 +4,6 @@ daysUntilStale = 365
 include = ["docs/**", "README.md", "AGENTS.md"]
 exclude = []
 
-[reviewProof]
-mode = "hash"
-
 [reviewCoverage]
 include = []
 exclude = ["tests/**"]

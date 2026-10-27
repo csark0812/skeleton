@@ -1,16 +1,14 @@
 import { refreshLocalCatalog } from "../catalog.ts";
 import { loadPlugins } from "../plugins/load.ts";
-import type { AuditResult, CatalogStatus, ReviewProofResult } from "../result-types.ts";
-import type { SkeletonConfig } from "./config/types.ts";
+import type { AuditResult, CatalogStatus } from "../result-types.ts";
 import { createContext } from "./core/context.ts";
 import { applyFixes, fixKindsForOnly, parseFixKinds } from "./core/fix.ts";
 import type { FileSource } from "./core/repo-files.ts";
 import { finalizeIssues, issue, printReport } from "./core/report.ts";
-import { attestDocuments, repairReviewProof, reviewProofFile } from "./core/review-proof.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
-export interface AuditCliOptions {
+interface AuditCliOptions {
 	suite: string;
 	strict: boolean;
 	json: boolean;
@@ -21,19 +19,14 @@ export interface AuditCliOptions {
 	pathScopedOnly?: boolean;
 	fix?: string | true | null;
 	dryRun?: boolean;
-	confirmReviewed?: boolean;
-	/** What the reviewer checked; required to re-attest a document whose text did not change. */
-	reason?: string;
 	fileSource?: FileSource;
 }
 
 function parseFixArg(argv: string[], index: number): { fix: string | true; nextIndex: number } {
 	const next = argv[index + 1];
 	if (next && !next.startsWith("-")) {
-		if (!["doc-meta", "review-proof", "anchors", "ssot"].includes(next)) {
-			throw new Error(
-				`Unknown --fix kind: ${next}. Use --fix, --fix=doc-meta, --fix=review-proof, --fix=anchors, or --fix=ssot.`,
-			);
+		if (!["anchors", "ssot"].includes(next)) {
+			throw new Error(`Unknown --fix kind: ${next}. Use --fix, --fix=anchors, or --fix=ssot.`);
 		}
 		return { fix: next, nextIndex: index + 1 };
 	}
@@ -67,20 +60,6 @@ function applyAuditFlag(input: ApplyAuditFlagInput): number {
 	if (arg === "--dry-run") {
 		state.dryRun = true;
 		return index;
-	}
-	if (arg === "--confirm-reviewed") {
-		state.confirmReviewed = true;
-		return index;
-	}
-	if (arg.startsWith("--reason=")) {
-		state.reason = arg.slice("--reason=".length);
-		return index;
-	}
-	if (arg === "--reason") {
-		const value = argv[index + 1];
-		if (value === undefined) throw new Error("audit: --reason needs text");
-		state.reason = value;
-		return index + 1;
 	}
 	if (arg.startsWith("--dry-run=")) {
 		throw new Error("audit: use --dry-run (boolean flag), not --dry-run=<value>");
@@ -123,7 +102,6 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 		strict: false,
 		json: false,
 		dryRun: false,
-		confirmReviewed: false,
 		paths: [],
 		only: null,
 		fix: null,
@@ -131,17 +109,6 @@ export function parseAuditArgs(argv: string[]): AuditCliOptions {
 
 	for (let i = 0; i < argv.length; i++) {
 		i = applyAuditFlag({ state, arg: argv[i] ?? "", argv, index: i });
-	}
-	if (state.fix === "doc-meta" && !state.confirmReviewed) {
-		throw new Error(
-			"audit: --fix=doc-meta requires --confirm-reviewed after a complete document review",
-		);
-	}
-	if (state.confirmReviewed && state.fix !== "doc-meta") {
-		throw new Error("audit: --confirm-reviewed is valid only with --fix=doc-meta");
-	}
-	if (state.confirmReviewed && state.paths.length === 0) {
-		throw new Error("audit: --fix=doc-meta requires explicit --paths for reviewed documents");
 	}
 
 	return state;
@@ -171,7 +138,6 @@ function buildAuditResult(input: {
 	executed: string[];
 	fileCount?: number;
 	catalogStatus: CatalogStatus;
-	reviewProof: ReviewProofResult;
 	successSuffix?: string;
 }): AuditResult {
 	const diagnostics = finalizeIssues(input.issues, input.options.strict);
@@ -196,7 +162,6 @@ function buildAuditResult(input: {
 		counts: { errors, warnings },
 		diagnostics,
 		catalog: { status: input.catalogStatus },
-		reviewProof: input.reviewProof,
 		...(input.successSuffix ? { successSuffix: input.successSuffix } : {}),
 	};
 }
@@ -205,31 +170,14 @@ function selectionFailure(input: {
 	options: AuditCliOptions;
 	message: string;
 	catalogStatus: CatalogStatus;
-	config: SkeletonConfig;
 }): AuditResult {
-	const { options, message, catalogStatus, config } = input;
+	const { options, message, catalogStatus } = input;
 	return buildAuditResult({
 		options,
 		issues: [issue("cli-selection", ".", { message, severity: "error" })],
 		executed: [],
 		catalogStatus,
-		reviewProof: reviewProofStatus(config, [], []),
 	});
-}
-
-function reviewProofStatus(
-	config: SkeletonConfig,
-	diagnostics: ReturnType<typeof finalizeIssues>,
-	executed: string[],
-): ReviewProofResult {
-	const proofFile = reviewProofFile(config);
-	if (!executed.includes("review-proof")) {
-		return { mode: "hash", status: "not-checked", proofFile };
-	}
-	const invalid = diagnostics.some(
-		(item) => item.rule === "review-proof" && item.severity === "error",
-	);
-	return { mode: "hash", status: invalid ? "invalid" : "valid", proofFile };
 }
 
 function shouldRunRule(
@@ -241,22 +189,6 @@ function shouldRunRule(
 	if (options.pathScopedOnly) return !rule.global || Boolean(rule.alwaysRun);
 	if (pathScoped && rule.global && !rule.alwaysRun) return false;
 	return true;
-}
-
-export function migrateAndReport(root: string, dryRun: boolean | undefined): void {
-	const result = repairReviewProof({ root, dryRun });
-	const parts = [
-		`migrated ${result.migrated.length}`,
-		`resolved ${result.resolved.length} from a conflict`,
-		`moved ${result.moved.length} renamed`,
-		`removed ${result.removed.length} orphaned`,
-	];
-	console.error(`review proof: ${parts.join(", ")}`);
-	if (result.unverified.length > 0) {
-		console.error(
-			`review proof: ${result.unverified.length} legacy review(s) no longer verify and need a fresh review: ${result.unverified.join(", ")}`,
-		);
-	}
 }
 
 async function runAuditFixes(
@@ -271,24 +203,10 @@ async function runAuditFixes(
 	}
 	const kinds = fixKindsForOnly(parseFixKinds(options.fix), options.only);
 	if (kinds.length === 0) {
-		console.error(
-			"--fix has no overlapping rules with --only (doc-meta → doc-meta, anchors → links, ssot → ssot).",
-		);
+		console.error("--fix has no overlapping rules with --only (anchors → links, ssot → ssot).");
 		return 1;
 	}
-	if (kinds.includes("doc-meta")) {
-		attestDocuments({
-			root: ctx.root,
-			paths: options.paths,
-			dryRun: options.dryRun,
-			reason: options.reason,
-		});
-	}
-	if (kinds.includes("review-proof")) migrateAndReport(ctx.root, options.dryRun);
-	const mechanicalKinds = kinds.filter((kind) => kind !== "doc-meta" && kind !== "review-proof");
-	if (mechanicalKinds.length > 0) {
-		applyFixes(ctx, { kinds: mechanicalKinds, dryRun: options.dryRun });
-	}
+	applyFixes(ctx, { kinds, dryRun: options.dryRun });
 	if (!options.dryRun) {
 		const refreshed = createContext({
 			root: options.root,
@@ -319,7 +237,6 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 			options,
 			message: "requested autofix could not run",
 			catalogStatus,
-			config: ctx.config,
 		});
 	}
 
@@ -332,7 +249,6 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 				options,
 				message: `unknown --only rule(s): ${unknown.join(", ")}. Available: ${[...availableIds].sort().join(", ")}`,
 				catalogStatus,
-				config: ctx.config,
 			});
 		}
 	}
@@ -345,7 +261,6 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 			options,
 			message: "selected scope executes zero rules; widen the scope or select another rule",
 			catalogStatus,
-			config: ctx.config,
 		});
 	}
 	const issues = [];
@@ -360,7 +275,6 @@ export async function evaluateAudit(options: AuditCliOptions): Promise<AuditResu
 		executed,
 		fileCount: options.suite === "docs" || options.suite === "self" ? ctx.files.length : undefined,
 		catalogStatus,
-		reviewProof: reviewProofStatus(ctx.config, issues, executed),
 		successSuffix: options.suite === "skills" ? skillAuditSuffix(ctx) : undefined,
 	});
 }

@@ -1,7 +1,7 @@
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { formatReviewBundle, prepareReview, runReviewCommand } from "./prepare.ts";
 
-export interface ReviewPrepareOptions {
+interface ReviewPrepareOptions {
 	staged: boolean;
 	base?: string;
 	json: boolean;

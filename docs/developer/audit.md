@@ -4,21 +4,21 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts,src/attest/** -->
+<!-- review-deps: paths=src/cli.ts,src/audit/core/**,src/audit/rules/**,src/audit/config/**,src/audit/fix/**,src/audit/policies/**,src/audit/run.ts,src/result-types.ts -->
 
 When to run which command: [validation](validation.md). Common failures: [troubleshooting](troubleshooting.md). Config keys: [config](config.md).
 
 ## Suites
 
 ```bash
-skeleton audit docs     # links, doc-meta, review-proof, review-deps, review-coverage, ssot, near-duplicate, ssot-summary, prose-policy
+skeleton audit docs     # links, doc-meta, review-deps, review-coverage, ssot, near-duplicate, ssot-summary, prose-policy
 skeleton audit skills   # skill-index, multi-root detection, prose-policy (owned skill trees under scan.exclude too; foreign lock skills skipped)
 skeleton audit self     # config + all rules (scan corpus; excluded owned skill trees → use audit skills)
 ```
 
-`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type; hash review proof invalidates the document when a resolved dependency byte or set changes. A `package.json` dependency ignores its top-level release `version` ([config](config.md#reviewproof)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
+`review-deps` is an opt-in dependency graph from documents to exact repo-relative paths or globs. `validate changed` uses it for any changed file type and reports a document whose dependency changed while it did not ([doc system](doc-system.md#keeping-documents-current)). Local `audit docs` and `audit self` write `.skeleton/catalog.md` on each run. The write is skipped when `CI=true`.
 
-CLI dispatch in `src/cli.ts` covers `attest`, `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
+CLI dispatch in `src/cli.ts` covers `audit`, `build-plugin`, `catalog`, `context`, `init`, `review`, `route`, and `validate`. `register` and `customize` error with migration text. The audit runner exports `runAudit`, `parseAuditArgs`, and `AuditCliOptions` for suites `docs`, `skills`, and `self`.
 
 Autofix (docs only):
 
@@ -26,11 +26,7 @@ Autofix (docs only):
 skeleton audit docs --fix                 # anchors + legacy SSOT rewrite
 skeleton audit docs --fix=ssot
 skeleton audit docs --fix --dry-run
-skeleton attest docs/a.md
-skeleton attest --repair    # migrate Skeleton 5–7 proof, resolve a conflict, move renamed entries, remove orphans; never attests
 ```
-
-`skeleton attest <doc…>` records a full re-read. It is the same as the older `audit docs --paths=<doc> --fix=doc-meta --confirm-reviewed`, which still works and takes `--reason=<text>`. Attestation writes the document's line in `<reviewProof.file>` (default `.skeleton/review-lock.toml`); other entries are unchanged. It edits the document only to remove a legacy `last-reviewed` date, and it fails if the document has no doc-meta comment. When a document's text is unchanged since its last review but its dependencies changed, attestation requires `--reason "<what you checked>"` and stores it as the entry's `note`, so a dependency change is not answered with a bare stamp. One call can attest several documents. When one attested document depends on another, its evidence records the dependency bytes that this call writes, so the documents do not need separate runs.
 
 ## Global vs path-scoped
 
@@ -38,18 +34,18 @@ When `--paths` is set (including `validate changed`), global rules are skipped u
 
 | Rule                                                                           | Global |
 | ------------------------------------------------------------------------------ | ------ |
-| links, doc-meta, review-proof, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
+| links, doc-meta, prose-policy (path-scoped); review-deps (`alwaysRun`) | no* |
 | ssot, near-duplicate, ssot-summary, coverage-gaps, review-coverage, scan-roots, skill-index, banned (`deny.paths`) | yes    |
 
-\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change. `review-proof` reports `review-proof-orphan` only on runs without `--paths`.
+\* `review-deps` is not `global`, but still runs under `--paths` and scans the full perimeter for markers so dependency drift is not skipped when other files change.
 
 ## Config
 
-Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewProof`, optional `reviewCoverage`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
+Consumer config is thin: `scan.include`, `scan.exclude`, optional `deny.paths`, optional `scan.nonPublicSkills` (taxonomy exemptions), `daysUntilStale`, optional `docsLint`, optional `reviewCoverage`, optional `plugins`, optional `draftPathPrefixes`, optional `skillOwnership`. Full reference: [config](config.md). Schema: `schemas/config.schema.json`.
 
 ## Machine-readable results
 
-`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, catalog state, and review-proof status (`not-checked`, `valid`, or `invalid`) with its proof file (`reviewProof.proofFile`). Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
+`audit … --json` prints exactly one result object. It reports requested and executed rules, diagnostic codes and remediation, and catalog state. Its public contract is `schemas/result.schema.json` plus `@csark0812/skeleton/result-types`. `validate changed` is intentionally plain text only.
 
 Plugins: [plugins.md](plugins.md).
 

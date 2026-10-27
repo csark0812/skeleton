@@ -1,7 +1,0 @@
-# Skeleton review lock. Written by `skeleton audit docs --fix=doc-meta --confirm-reviewed`.
-# One entry per document. Do not edit by hand; keep the blank line between entries.
-version = 4
-
-"docs/clean.md" = { doc = "sha256:6fd95f2ae5922839" }
-
-"docs/hit.md" = { doc = "sha256:a043c0a5a6133a1f" }

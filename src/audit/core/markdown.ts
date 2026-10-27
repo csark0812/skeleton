@@ -6,7 +6,7 @@ import { visit } from "unist-util-visit";
 type MarkdownRoot = ReturnType<typeof remark.prototype.parse>;
 type HeadingInline = { type: string; value?: unknown };
 
-export interface ExtractedLink {
+interface ExtractedLink {
 	target: string;
 	line?: number;
 	/** Inclusive start offset of the URL in the source (when known). */
@@ -33,7 +33,7 @@ function lineFromOffset(content: string, offset: number | undefined): number | u
  * Strip leading YAML frontmatter so a closing `---` is not parsed as a setext
  * underline (which yields false heading slugs like `title-getting-started`).
  */
-export function stripYamlFrontmatter(content: string): string {
+function stripYamlFrontmatter(content: string): string {
 	const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(content);
 	if (match) return content.slice(match[0].length);
 	const eof = /^---\r?\n([\s\S]*?)\r?\n---\s*$/.exec(content);

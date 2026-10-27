@@ -5,8 +5,7 @@ import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
 import { rewriteLegacySsotToComment } from "./ssot.ts";
 
-/** `doc-meta` attests reviewed documents; `review-proof` migrates version 2 proof. */
-export type FixKind = "doc-meta" | "review-proof" | "anchors" | "ssot";
+type FixKind = "anchors" | "ssot";
 
 export interface FixEdit {
 	file: string;
@@ -14,12 +13,12 @@ export interface FixEdit {
 	content: string;
 }
 
-export interface ApplyFixesOptions {
+interface ApplyFixesOptions {
 	kinds: FixKind[];
 	dryRun?: boolean;
 }
 
-export interface ApplyFixesResult {
+interface ApplyFixesResult {
 	edits: FixEdit[];
 	modifiedFiles: string[];
 }
@@ -122,23 +121,17 @@ export function applyFixes(ctx: AuditContext, options: ApplyFixesOptions): Apply
 export function parseFixKinds(raw: string | true): FixKind[] {
 	if (raw === true) return ["anchors", "ssot"];
 	switch (raw) {
-		case "doc-meta":
-			return ["doc-meta"];
-		case "review-proof":
-			return ["review-proof"];
 		case "anchors":
 			return ["anchors"];
 		case "ssot":
 			return ["ssot"];
 		default:
-			throw new Error(`Unknown --fix kind: ${raw}. Use doc-meta, review-proof, anchors, or ssot.`);
+			throw new Error(`Unknown --fix kind: ${raw}. Use anchors or ssot.`);
 	}
 }
 
 /** Owning audit rule id for each fix kind (used to scope `--fix` under `--only`). */
-export const FIX_KIND_RULE: Record<FixKind, string> = {
-	"doc-meta": "doc-meta",
-	"review-proof": "review-proof",
+const FIX_KIND_RULE: Record<FixKind, string> = {
 	anchors: "links",
 	ssot: "ssot",
 };

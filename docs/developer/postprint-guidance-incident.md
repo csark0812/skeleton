@@ -4,7 +4,7 @@
 
 <!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=scripts/reproduce-postprint-guidance-incident.py,src/context.ts,src/validate/changed.ts,src/audit/rules/index.ts,src/audit/core/review-coverage.ts -->
+<!-- review-deps: paths=src/context.ts,src/validate/changed.ts,src/audit/rules/index.ts,src/audit/core/review-coverage.ts -->
 
 **Finding:** PostPrint combined missing product-to-implementation dependencies,
 disabled owner coverage, date-only review evidence, and scoped invocation paths.
@@ -136,33 +136,14 @@ We have not established how that September signal was handled historically.
 
 ## Focused reproduction and controls
 
-[Executable reproduction](../../scripts/reproduce-postprint-guidance-incident.py)
-creates three small fixture papers: active model, historical alternatives, and
-future aspirations, plus a Python model file. Fixtures use current metadata and
-isolated Git histories, removing date noise without altering PostPrint history.
-The stale and reconciled cases differ only in active prose; both retain the
-history and aspiration controls. This is a deterministic CLI boundary test, not
-a live-agent efficacy claim.
-
-```bash
-# Exact consumer artifact; supply its absolute path.
-python3 scripts/reproduce-postprint-guidance-incident.py \
-  --cli /path/to/postprint/node_modules/@csark0812/skeleton/dist/cli.js \
-  --postprint /path/to/postprint \
-  --output /private/tmp/skeleton-guidance-installed
-
-# Current source, independently of the installed executable.
-python3 scripts/reproduce-postprint-guidance-incident.py \
-  --runtime bun --cli src/cli.ts --expect-prevention \
-  --output /private/tmp/skeleton-guidance-source
-```
-
-`--postprint` is optional. It requires local Git objects for the pinned revisions;
-the minimal reproduction needs only Python, Git, and the supplied CLI/runtime.
-The runner writes command receipts, stdout/stderr, CLI digest, and `summary.json`.
-It removes its fixtures/clones on exit, including assertion failure. Large stdout
-goes to file sinks so a Node buffered pipe followed by process exit cannot truncate
-expanded retrieval evidence. It never reads credentials or app environments.
+An executable reproduction created three small fixture papers: active model, historical
+alternatives, and future aspirations, plus a Python model file. Fixtures used current
+metadata and isolated Git histories, removing date noise without altering PostPrint
+history. The stale and reconciled cases differed only in active prose; both retained the
+history and aspiration controls. It was a deterministic CLI boundary test, not a
+live-agent efficacy claim. The script exercised Skeleton 5–8 review proof and was removed
+with it; it remains in git history at
+`5621649:scripts/reproduce-postprint-guidance-incident.py`.
 
 | Case | Installed 5.0.4 | Baseline source at `411e07d` |
 | --- | --- | --- |
@@ -247,15 +228,6 @@ covered by a declared glob invalidates the recorded review. The Node CLI now
 lets stdout drain before exiting; a large piped packet is checked against the Bun
 source output. Packaged skill and init guidance treat review gaps as incomplete
 evidence and preserve history and future intent.
-
-Run the candidate with explicit prevention expectations:
-
-```bash
-python3 scripts/reproduce-postprint-guidance-incident.py \
-  --cli dist/cli.js --expect-prevention \
-  --postprint /path/to/postprint \
-  --output /private/tmp/skeleton-guidance-prevention
-```
 
 In the minimal stale and reconciled cases, the only strict audit errors are missing
 review proof (with 5.0.4 they passed a strict structural audit outright);

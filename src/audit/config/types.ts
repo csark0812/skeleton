@@ -1,11 +1,11 @@
-export interface ScanConfig {
+interface ScanConfig {
 	include: string[];
 	exclude: string[];
 	/** Slugs present on disk but excluded from README Taxonomy (internal skills). */
 	nonPublicSkills?: string[];
 }
 
-export interface DenyConfig {
+interface DenyConfig {
 	/** Repo-wide globs that must not exist — audit fails if matched. */
 	paths?: string[];
 }
@@ -24,27 +24,15 @@ export interface SkillOwnershipConfig {
 }
 
 /** Files that must appear in at least one scanned document's review-deps. */
-export interface ReviewCoverageConfig {
+interface ReviewCoverageConfig {
 	/** Repo-relative globs that require an owning paper. Empty include disables the gate. */
 	include?: string[];
 	/** Globs removed from the coverage set. */
 	exclude?: string[];
 }
 
-/** Where review proof lives. Proof is always hash-based: one line per reviewed document in one file. */
-export interface ReviewProofConfig {
-	/** Accepted for older configs; hash is the only mode. */
-	mode?: "hash";
-	/** Repo-relative review lock (default: .skeleton/review-lock.toml). */
-	file?: string;
-	/** Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews). */
-	dir?: string;
-	/** Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json). */
-	lockfile?: string;
-}
-
 /** Harness-neutral review settings for `skeleton review prepare`. */
-export interface ReviewConfig {
+interface ReviewConfig {
 	/** Globs for high-consequence paths; a change there needs a person, not an agent. */
 	humanPaths?: string[];
 	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
@@ -52,7 +40,7 @@ export interface ReviewConfig {
 }
 
 /** Tunables for near-duplicate and SSOT-summary docs lint. */
-export interface DocsLintConfig {
+interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
 	nearDuplicateThreshold?: number;
 	/** Min fraction of SSOT tokens that must appear in evidence (default 0.35). */
@@ -69,11 +57,10 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
-	/** Re-read cadence (days), measured from the commit that recorded a document's review. */
+	/** Re-read cadence (days), measured from the document's last commit. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;
-	reviewProof?: ReviewProofConfig;
 	review?: ReviewConfig;
 	reviewCoverage?: ReviewCoverageConfig;
 	docsLint?: DocsLintConfig;

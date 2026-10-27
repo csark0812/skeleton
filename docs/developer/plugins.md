@@ -115,10 +115,9 @@ entries:
 skeleton audit docs --fix
 skeleton audit docs --fix=anchors
 skeleton audit docs --fix --dry-run
-skeleton attest docs/a.md
 ```
 
-Bare `--fix` applies safe mechanical anchor and legacy-SSOT repairs. Review attestation is a separate explicit operation, `skeleton attest <documents>`, and never runs from `--fix`.
+Bare `--fix` applies safe mechanical anchor and legacy-SSOT repairs. It never edits document prose.
 
 ## Example layout
 

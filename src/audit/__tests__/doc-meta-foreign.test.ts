@@ -70,7 +70,7 @@ describe("foreign skill doc-meta scope", () => {
 			const paths = collectDocMetaPaths({
 				config,
 				root,
-				registryPaths: [foreignRef, "docs/README.md"],
+				ssotPaths: [foreignRef, "docs/README.md"],
 				skillIndex,
 			});
 			expect(paths).not.toContain(foreignRef);
@@ -118,7 +118,7 @@ describe("foreign skill doc-meta scope", () => {
 			);
 			writeFileSync(
 				join(root, ".claude/skills/local-skill/references/bar.md"),
-				"<!-- source-of-truth: local skill reference -->\n\n<!-- doc-meta: owner=eng | last-reviewed=2000-01-01 -->\n\n# Bar\n",
+				"<!-- source-of-truth: local skill reference -->\n\n# Bar\n",
 			);
 			// Include owned skill tree in scan for this case
 			writeFileSync(
@@ -141,7 +141,7 @@ describe("foreign skill doc-meta scope", () => {
 			expect(issues).toContainEqual(
 				expect.objectContaining({
 					file: ".claude/skills/local-skill/references/bar.md",
-					code: "legacy-review-date",
+					rule: "doc-meta",
 				}),
 			);
 		} finally {

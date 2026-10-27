@@ -18,8 +18,6 @@ import { parseAuditArgs } from "../run.ts";
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
 		expect(parseFixKinds(true)).toEqual(["anchors", "ssot"]);
-		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
-		expect(parseFixKinds("review-proof")).toEqual(["review-proof"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
@@ -29,12 +27,7 @@ describe("parseFixKinds", () => {
 describe("parseAuditArgs --fix", () => {
 	it("accepts --fix=kind and space-separated kind", () => {
 		expect(parseAuditArgs(["--fix"]).fix).toBe(true);
-		expect(parseAuditArgs(["--paths=docs/a.md", "--fix=doc-meta", "--confirm-reviewed"]).fix).toBe(
-			"doc-meta",
-		);
-		expect(
-			parseAuditArgs(["--paths=docs/a.md", "--fix", "doc-meta", "--confirm-reviewed"]).fix,
-		).toBe("doc-meta");
+		expect(parseAuditArgs(["--fix=ssot"]).fix).toBe("ssot");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).fix).toBe("anchors");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).dryRun).toBe(true);
 	});
@@ -58,15 +51,15 @@ describe("parseAuditArgs --fix", () => {
 
 describe("fixKindsForOnly", () => {
 	it("keeps all kinds when --only is unset", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], null)).toEqual(["doc-meta", "anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], null)).toEqual(["ssot", "anchors"]);
 	});
 
 	it("maps --only=links to anchors only", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
 	});
 
 	it("returns empty when --only has no fix-owning rules", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["banned"]))).toEqual([]);
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["banned"]))).toEqual([]);
 	});
 });
 
@@ -220,10 +213,6 @@ describe("applyFixes dry-run", () => {
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** fix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/target.md"),
 			`# Target\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
 		);
@@ -254,10 +243,6 @@ describe("applyFixes dry-run", () => {
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** prefix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Source | [../docs/source.md](../docs/source.md) |\n| Target | [../docs/target.md](../docs/target.md) |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/target.md"),
@@ -610,10 +595,6 @@ describe("applyFixes dry-run", () => {
 		writeFileSync(
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
-		);
-		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** stderr fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/target.md"),

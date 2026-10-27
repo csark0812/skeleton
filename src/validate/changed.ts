@@ -22,13 +22,13 @@ import {
 	listSkillMarkdownPaths,
 	type SkillIndex,
 } from "../audit/core/skill-roots.ts";
+import { staleDocumentDiagnostics } from "../audit/core/stale-documents.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { evaluateAudit, printAuditResult } from "../audit/run.ts";
 import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
 import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
-import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
 const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
@@ -36,7 +36,7 @@ const SHELL_EXTENSIONS = new Set([".sh", ".bash", ".zsh"]);
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
 const COMMAND_CONFIG_NAMES = new Set(["package.json", "project.json"]);
 
-export interface ValidateChangedOptions {
+interface ValidateChangedOptions {
 	paths?: string[];
 	staged?: boolean;
 	base?: string;
@@ -759,13 +759,10 @@ export async function evaluateValidateChanged(
 			coverageCandidateCount,
 		}),
 		...uncoveredChangedPathDiagnostics(livePaths, config, ownerPatterns),
-		...stageRequiredDiagnostics({
-			staged: options.staged ?? false,
-			stagedPaths: relPaths,
-			impactedDocuments: impactedDocuments.map((item) => item.path),
-			config,
-			root,
-		}),
+		...staleDocumentDiagnostics(
+			{ root, staged: options.staged, base: options.base },
+			impactedDocuments,
+		),
 	];
 
 	const evaluated = await evaluateBucketAudits({
@@ -785,14 +782,8 @@ export async function evaluateValidateChanged(
 	});
 }
 
-function hasReviewProofErrors(result: ValidateChangedResult): boolean {
-	return result.audits.some((audit) =>
-		audit.diagnostics.some((item) => item.rule === "review-proof" && item.severity === "error"),
-	);
-}
-
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
-export function printValidateChangedResult(result: ValidateChangedResult): number {
+function printValidateChangedResult(result: ValidateChangedResult): number {
 	if (result.input.paths.length === 0) {
 		console.log("validate changed: no changed files.");
 		return result.exitCode;
@@ -817,12 +808,6 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 	for (const diagnostic of otherDiagnostics) {
 		const path = diagnostic.file === "." ? "" : `${diagnostic.file}: `;
 		console.error(`validate changed: ${path}${diagnostic.message}`);
-	}
-	if (result.input.staged && hasReviewProofErrors(result)) {
-		// pre-commit stashes unstaged changes, so an attested but unstaged lock looks unattested.
-		console.log(
-			"If you already attested, stage the review lock too: git add .skeleton/review-lock.toml",
-		);
 	}
 	if (result.ok) {
 		const notes: string[] = [];

@@ -4,7 +4,6 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { formatReviewBundle, prepareReview, runReviewCommand } from "../prepare.ts";
 
 let roots: string[] = [];
@@ -85,18 +84,21 @@ describe("review prepare", () => {
 		expect(text).toContain("+export const retries = 2;");
 	});
 
-	it("drops a document from the re-read list once its review is attested", async () => {
+	it("lists a document whose dependency changed in the range until the range updates it", async () => {
 		const root = makeRepo();
+		git(root, ["checkout", "-q", "-b", "feature"]);
 		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
-		attestDocuments({ root, paths: ["docs/billing.md"] });
-		expect((await prepareReview({ root })).documentsToReread).toEqual([]);
-	});
-
-	it("stops when the review proof file has a merge conflict", async () => {
-		const root = makeRepo();
-		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
-		write(root, ".skeleton/review-lock.toml", "<<<<<<< ours\n=======\n>>>>>>> theirs\n");
-		await expect(prepareReview({ root })).rejects.toThrow(/merge conflict/);
+		git(root, ["commit", "-q", "-am", "retry twice"]);
+		expect((await prepareReview({ root, base: "main" })).documentsToReread).toEqual([
+			{ path: "docs/billing.md", changed: ["src/billing/charge.ts"] },
+		]);
+		write(
+			root,
+			"docs/billing.md",
+			"# Billing\n\n<!-- source-of-truth: billing retries -->\n\n<!-- doc-meta: owner=billing -->\n\n<!-- review-deps: paths=src/billing/charge.ts -->\n\nBilling retries twice.\n",
+		);
+		git(root, ["commit", "-q", "-am", "document two retries"]);
+		expect((await prepareReview({ root, base: "main" })).documentsToReread).toEqual([]);
 	});
 
 	it("names high-consequence paths from [review] humanPaths", async () => {

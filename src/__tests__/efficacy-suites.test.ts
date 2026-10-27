@@ -112,9 +112,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				"Complete every `action` line and verify it against the final files",
 			);
 			expect(treatmentGuide).toContain("Preserve existing work");
-			expect(treatmentGuide).toContain(
-				"Do not run Skeleton audits, validation, or review-proof commands",
-			);
+			expect(treatmentGuide).toContain("Do not run Skeleton audits or validation");
 			expect(treatmentGuide).toContain("--staged");
 			expect(
 				treatmentGuide.replace(/\n<!-- skeleton: context-guide -->[\s\S]*$/, "").trimEnd(),

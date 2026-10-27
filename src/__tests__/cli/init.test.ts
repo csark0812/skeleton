@@ -53,7 +53,6 @@ describe("skeleton init", () => {
 		expect(result.scaffold).toBe("created");
 		expect(existsSync(join(cwd, "skeleton.toml"))).toBe(true);
 		expect(existsSync(join(cwd, ".skeleton/config.yaml"))).toBe(false);
-		expect(existsSync(join(cwd, ".skeleton/registry.md"))).toBe(false);
 		expect(existsSync(join(cwd, ".skeleton/customize"))).toBe(false);
 		expect(existsSync(join(cwd, ".cursor/hooks.json"))).toBe(false);
 		const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
@@ -62,7 +61,7 @@ describe("skeleton init", () => {
 		const hook = readFileSync(join(cwd, ".pre-commit-config.yaml"), "utf8");
 		expect(hook).toContain("validate changed --staged");
 		expect(hook).not.toContain("bun test");
-		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain("Review proof is always on");
+		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain("Nothing records reviews");
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			'npx --no-install skeleton context "<topic>"',
 		);
@@ -79,7 +78,7 @@ describe("skeleton init", () => {
 			"Rerun the exact context request",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"Do not run Skeleton audits, validation, or review-proof commands",
+			"Do not run Skeleton audits or validation",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			"Never combine a topic with `--path`",

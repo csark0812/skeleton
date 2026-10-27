@@ -1,6 +1,6 @@
 const SKELETON_INIT_FLAGS = new Set(["--skills", "--no-skills"]);
 
-export interface ParsedInitArgs {
+interface ParsedInitArgs {
 	skills: boolean;
 	noSkills: boolean;
 	skillsFlags: string[];

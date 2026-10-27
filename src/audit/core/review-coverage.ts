@@ -6,7 +6,7 @@ import { reviewDependencyMatchesPath, reviewDependencyPatterns } from "./review-
 import { matchesGlobScope, normalizeRelPath } from "./shared.ts";
 import type { SkillIndex } from "./skill-roots.ts";
 
-export const DEFAULT_REVIEW_COVERAGE_INCLUDE = [
+const DEFAULT_REVIEW_COVERAGE_INCLUDE = [
 	"**/*.{ts,tsx,js,jsx,mjs,cjs,py}",
 	"package.json",
 	"project.json",

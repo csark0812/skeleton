@@ -144,32 +144,6 @@
 				}
 			}
 		},
-		"reviewProof": {
-			"type": "object",
-			"additionalProperties": false,
-			"description": "Where review proof lives. Proof is always hash-based: one line per reviewed document in one file",
-			"properties": {
-				"mode": {
-					"const": "hash",
-					"description": "Accepted for older configs; hash is the only mode"
-				},
-				"file": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Repo-relative review lock (default: .skeleton/review-lock.toml)"
-				},
-				"dir": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Skeleton 6 per-document proof directory, read only to migrate it (default: .skeleton/reviews)"
-				},
-				"lockfile": {
-					"type": "string",
-					"minLength": 1,
-					"description": "Skeleton 5 shared lockfile, read only to migrate it (default: .skeleton/review-lock.json)"
-				}
-			}
-		},
 		"plugins": {
 			"type": "array",
 			"items": { "type": "string", "minLength": 1 },

@@ -7,7 +7,7 @@ export interface SsotFileEntry extends SsotEntry {
 	path: string;
 }
 
-export interface CollectSsotResult {
+interface CollectSsotResult {
 	entries: SsotFileEntry[];
 	/** Path → dual forms or malformed detail for the ssot rule. */
 	errors: Array<{ path: string; kind: "dual" | "malformed"; detail: string; forms?: SsotForm[] }>;

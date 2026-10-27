@@ -5,7 +5,7 @@ const ROOT = join(import.meta.dir, "../../tests/fixtures/efficacy/tradeoffs");
 const guidance =
 	"# Agent entry\n\nInspect the repository. Keep behavior, tests, and related documentation accurate. Verify changes.\n";
 const config =
-	'daysUntilStale = 365\n[scan]\ninclude = ["docs/**", "README.md", "AGENTS.md"]\nexclude = []\n[reviewProof]\nmode = "hash"\n';
+	'daysUntilStale = 365\n[scan]\ninclude = ["docs/**", "README.md", "AGENTS.md"]\nexclude = []\n';
 const policy = "export function orderLimit(kind: string): number { return LIMITS[kind] ?? 20; }\n";
 const limits = "const LIMITS: Record<string, number> = { standard: 20, regulated: 5 };\n";
 const tests =
