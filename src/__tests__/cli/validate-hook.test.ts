@@ -266,7 +266,7 @@ describe("validate changed hook gates", () => {
 		});
 
 		it("reports a deleted file that a dependency glob matched", async () => {
-			const root = setupRepo("src/*.ts");
+			const root = setupRepo("src/**/*.ts");
 			git(root, "rm", "-q", "src/example.ts");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
 				["docs/example.md", "src/example.ts", "error"],

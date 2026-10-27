@@ -1,6 +1,6 @@
 export const CATALOG_REL_PATH = ".skeleton/catalog.md";
 
-export const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
+const EXTERNAL_LINK_RE = /^(https?:|mailto:|#)/;
 export const SOURCE_OF_TRUTH_BANNER_RE = /\*\*Source of truth for\*\*/;
 export const SOURCE_OF_TRUTH_BANNER_LINE_RE = /^\s*\*\*Source of truth for\*\*/m;
 /** The doc-meta comment: `<!-- doc-meta: owner=eng -->`. */
@@ -41,18 +41,58 @@ function escapeRegexLiteral(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * Compile a path glob: `*` and `?` stay within one segment, `**` spans segments, and `**\/`
+ * also matches zero directories (as tinyglobby does). `{a,b}` lists literals; `[...]` passes
+ * through as a character class; every other character is literal.
+ */
 function globToRegex(glob: string): RegExp {
-	let pattern = glob.replace(/\\/g, "/");
-	pattern = pattern.replace(/\{([^}]+)\}/g, (_, inner: string) => {
-		const parts = inner.split(",").map((p) => escapeRegexLiteral(p.trim()));
-		return `(${parts.join("|")})`;
-	});
-	pattern = pattern
-		.replace(/\*\*/g, "§§")
-		.replace(/\*/g, "[^/]*")
-		.replace(/§§/g, ".*")
-		.replace(/\?/g, "[^/]");
+	const source = glob.replace(/\\/g, "/");
+	let pattern = "";
+	for (let i = 0; i < source.length; ) {
+		const token = globToken(source, i);
+		pattern += token.regex;
+		i = token.next;
+	}
 	return new RegExp(`^${pattern}$`);
+}
+
+interface GlobToken {
+	regex: string;
+	next: number;
+}
+
+/** The regex for the glob token at `i`, and the index after it. */
+function globToken(source: string, i: number): GlobToken {
+	return (
+		wildcardToken(source, i) ??
+		groupToken(source, i) ?? {
+			regex: escapeRegexLiteral(source[i] ?? ""),
+			next: i + 1,
+		}
+	);
+}
+
+function wildcardToken(source: string, i: number): GlobToken | null {
+	if (source.startsWith("**/", i)) return { regex: "(?:.*/)?", next: i + 3 };
+	if (source.startsWith("**", i)) return { regex: ".*", next: i + 2 };
+	if (source[i] === "*") return { regex: "[^/]*", next: i + 1 };
+	if (source[i] === "?") return { regex: "[^/]", next: i + 1 };
+	return null;
+}
+
+/** `{a,b}` lists literals; `[...]` passes through as a character class. */
+function groupToken(source: string, i: number): GlobToken | null {
+	const open = source[i];
+	if (open !== "{" && open !== "[") return null;
+	const close = source.indexOf(open === "{" ? "}" : "]", i);
+	if (close <= i) return null;
+	if (open === "[") return { regex: source.slice(i, close + 1), next: close + 1 };
+	const parts = source.slice(i + 1, close).split(",");
+	return {
+		regex: `(${parts.map((part) => escapeRegexLiteral(part.trim())).join("|")})`,
+		next: close + 1,
+	};
 }
 
 export function matchesGlobScope(relPath: string, scope: string | undefined): boolean {

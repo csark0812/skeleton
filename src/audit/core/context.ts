@@ -40,7 +40,7 @@ export interface AuditContext {
 	pathScoped?: boolean;
 }
 
-export interface AuditOptions {
+interface AuditOptions {
 	root?: string;
 	changed?: boolean;
 	paths?: string[];

@@ -12,7 +12,7 @@ import { dependencyDigest } from "./review-digest.ts";
  */
 
 /** Which change is checked: the index, a branch range, or the working tree against HEAD. */
-export interface ChangeScope {
+interface ChangeScope {
 	root: string;
 	staged?: boolean;
 	base?: string;
@@ -28,7 +28,7 @@ export interface DocumentImpact {
 	}>;
 }
 
-export interface StaleDocument {
+interface StaleDocument {
 	path: string;
 	/** Changed dependencies, in the order they were found. */
 	changed: string[];

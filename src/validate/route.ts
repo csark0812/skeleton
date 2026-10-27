@@ -4,13 +4,13 @@ import {
 	type ValidateClassificationResult,
 } from "./changed.ts";
 
-export interface RouteLine {
+interface RouteLine {
 	lane: string;
 	path: string;
 	action: string;
 }
 
-export interface RouteResult {
+interface RouteResult {
 	ok: boolean;
 	exitCode: 0 | 1;
 	lines: RouteLine[];
@@ -22,7 +22,7 @@ const AUDIT_SKILLS = "skeleton audit skills";
 const REVIEW = "skeleton review prepare --base <base>";
 
 /** Static lane card. No path. No plugin load. */
-export const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
+const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
 	["docs", VALIDATE],
 	["skills", AUDIT_SKILLS],
 	["code", VALIDATE],
@@ -80,7 +80,7 @@ function linesForClassification(
 	return lines;
 }
 
-export function formatRouteLines(lines: RouteLine[]): string {
+function formatRouteLines(lines: RouteLine[]): string {
 	return lines.map((line) => `${line.lane}\t${line.path}\t${line.action}`).join("\n");
 }
 

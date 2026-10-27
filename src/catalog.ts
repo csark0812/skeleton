@@ -7,13 +7,13 @@ import { CATALOG_REL_PATH, normalizeRelPath } from "./audit/core/shared.ts";
 import { buildSkillIndex } from "./audit/core/skill-roots.ts";
 import { collectSsotEntries, type SsotFileEntry } from "./audit/core/ssot-collect.ts";
 
-export interface CatalogOptions {
+interface CatalogOptions {
 	root?: string;
 	check?: boolean;
 	strict?: boolean;
 }
 
-export interface CatalogCheckResult {
+interface CatalogCheckResult {
 	ok: boolean;
 	missing: boolean;
 	stale: boolean;

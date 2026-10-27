@@ -5,7 +5,7 @@ export interface SsotEntry {
 	form: SsotForm;
 }
 
-export type SsotParseResult =
+type SsotParseResult =
 	| { status: "ok"; entry: SsotEntry }
 	| { status: "none" }
 	| { status: "dual"; forms: SsotForm[] }

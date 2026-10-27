@@ -8,11 +8,11 @@ export function sha256(content: string): string {
 }
 
 /** Digest of a reviewed document. Doc-meta is metadata, so editing it never invalidates a review. */
-export function fullDocumentDigest(content: string): string {
+function fullDocumentDigest(content: string): string {
 	return sha256(normalizeDocMetaForReview(content));
 }
 
-export function isPackageManifest(target: string): boolean {
+function isPackageManifest(target: string): boolean {
 	return posix.basename(normalizeRelPath(target)) === "package.json";
 }
 
@@ -29,7 +29,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Release tooling rewrites the top-level `version` field, which no reviewed claim can depend on.
  * Returns null when the manifest is not a JSON object, so the caller binds the raw bytes.
  */
-export function manifestWithoutReleaseVersion(content: string): string | null {
+function manifestWithoutReleaseVersion(content: string): string | null {
 	try {
 		const parsed: unknown = JSON.parse(content);
 		if (!isRecord(parsed)) return null;

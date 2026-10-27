@@ -1,11 +1,11 @@
-export interface ScanConfig {
+interface ScanConfig {
 	include: string[];
 	exclude: string[];
 	/** Slugs present on disk but excluded from README Taxonomy (internal skills). */
 	nonPublicSkills?: string[];
 }
 
-export interface DenyConfig {
+interface DenyConfig {
 	/** Repo-wide globs that must not exist — audit fails if matched. */
 	paths?: string[];
 }
@@ -24,7 +24,7 @@ export interface SkillOwnershipConfig {
 }
 
 /** Files that must appear in at least one scanned document's review-deps. */
-export interface ReviewCoverageConfig {
+interface ReviewCoverageConfig {
 	/** Repo-relative globs that require an owning paper. Empty include disables the gate. */
 	include?: string[];
 	/** Globs removed from the coverage set. */
@@ -32,7 +32,7 @@ export interface ReviewCoverageConfig {
 }
 
 /** Harness-neutral review settings for `skeleton review prepare`. */
-export interface ReviewConfig {
+interface ReviewConfig {
 	/** Globs for high-consequence paths; a change there needs a person, not an agent. */
 	humanPaths?: string[];
 	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
@@ -40,7 +40,7 @@ export interface ReviewConfig {
 }
 
 /** Tunables for near-duplicate and SSOT-summary docs lint. */
-export interface DocsLintConfig {
+interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
 	nearDuplicateThreshold?: number;
 	/** Min fraction of SSOT tokens that must appear in evidence (default 0.35). */

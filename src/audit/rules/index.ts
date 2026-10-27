@@ -28,7 +28,7 @@ export interface AuditRule {
 	run: (ctx: AuditContext) => Issue[];
 }
 
-export const docsRules: AuditRule[] = [
+const docsRules: AuditRule[] = [
 	{ ...scanRootsRule, global: true },
 	{ ...ssotRule, global: true },
 	{ ...nearDuplicateRule, global: true },
@@ -42,13 +42,13 @@ export const docsRules: AuditRule[] = [
 	prosePolicyRule,
 ];
 
-export const skillsRules: AuditRule[] = [
+const skillsRules: AuditRule[] = [
 	{ ...skillIndexRule, global: true },
 	// Path-scoped: bare audit skills unions excluded skill trees into the corpus.
 	prosePolicyRule,
 ];
 
-export const allRules: AuditRule[] = [...docsRules, ...skillsRules];
+const allRules: AuditRule[] = [...docsRules, ...skillsRules];
 
 /**
  * Merge core + plugin rules. Fails on duplicate rule ids across core and plugins.

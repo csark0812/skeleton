@@ -5,12 +5,12 @@ import { matchesGlobScope, normalizeRelPath } from "./shared.ts";
 const REVIEW_DEPS_RE = /<!--\s*review-deps:\s*([^>]*?)-->/gi;
 const GLOB_MAGIC_RE = /[*?{[]/;
 
-export interface ReviewDepsMarker {
+interface ReviewDepsMarker {
 	paths: string[];
 	raw: string;
 }
 
-export interface ResolvedReviewDependencies {
+interface ResolvedReviewDependencies {
 	patterns: string[];
 	/** Repo-relative files, without selectors. */
 	targets: string[];
@@ -22,7 +22,7 @@ export interface ResolvedReviewDependencies {
 }
 
 /** A declared dependency: a path or glob, optionally narrowed to one JSON key path (`file.json#a.b`). */
-export interface ReviewDependencyRef {
+interface ReviewDependencyRef {
 	path: string;
 	selector: string | null;
 }

@@ -36,7 +36,7 @@ const SHELL_EXTENSIONS = new Set([".sh", ".bash", ".zsh"]);
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
 const COMMAND_CONFIG_NAMES = new Set(["package.json", "project.json"]);
 
-export interface ValidateChangedOptions {
+interface ValidateChangedOptions {
 	paths?: string[];
 	staged?: boolean;
 	base?: string;
@@ -783,7 +783,7 @@ export async function evaluateValidateChanged(
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
-export function printValidateChangedResult(result: ValidateChangedResult): number {
+function printValidateChangedResult(result: ValidateChangedResult): number {
 	if (result.input.paths.length === 0) {
 		console.log("validate changed: no changed files.");
 		return result.exitCode;

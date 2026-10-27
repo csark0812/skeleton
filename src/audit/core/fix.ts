@@ -5,7 +5,7 @@ import { collectSsotFixes } from "../fix/ssot.ts";
 import type { AuditContext } from "./context.ts";
 import { rewriteLegacySsotToComment } from "./ssot.ts";
 
-export type FixKind = "anchors" | "ssot";
+type FixKind = "anchors" | "ssot";
 
 export interface FixEdit {
 	file: string;
@@ -13,12 +13,12 @@ export interface FixEdit {
 	content: string;
 }
 
-export interface ApplyFixesOptions {
+interface ApplyFixesOptions {
 	kinds: FixKind[];
 	dryRun?: boolean;
 }
 
-export interface ApplyFixesResult {
+interface ApplyFixesResult {
 	edits: FixEdit[];
 	modifiedFiles: string[];
 }
@@ -131,7 +131,7 @@ export function parseFixKinds(raw: string | true): FixKind[] {
 }
 
 /** Owning audit rule id for each fix kind (used to scope `--fix` under `--only`). */
-export const FIX_KIND_RULE: Record<FixKind, string> = {
+const FIX_KIND_RULE: Record<FixKind, string> = {
 	anchors: "links",
 	ssot: "ssot",
 };

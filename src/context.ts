@@ -44,15 +44,15 @@ const QUERY_STOP_TERMS = new Set([
  * last commit is older than the re-read cadence. `unreviewed`: no declared sources, so nothing
  * ties its implementation claims to code.
  */
-export type ContextReview = "current" | "changed-since-review" | "review-required" | "unreviewed";
+type ContextReview = "current" | "changed-since-review" | "review-required" | "unreviewed";
 
-export interface ContextSource {
+interface ContextSource {
 	path: string;
 	excerpt: string;
 	command?: string;
 }
 
-export interface ContextDocument {
+interface ContextDocument {
 	path: string;
 	summary: string;
 	excerpt: string;
@@ -63,12 +63,12 @@ export interface ContextDocument {
 	omittedSources?: string[];
 }
 
-export interface ContextResult {
+interface ContextResult {
 	documents: ContextDocument[];
 	omitted: string[];
 }
 
-export interface ContextOptions {
+interface ContextOptions {
 	root: string;
 	query?: string;
 	path?: string;

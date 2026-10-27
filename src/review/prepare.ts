@@ -14,20 +14,20 @@ import { evaluateRouteClassification } from "../validate/changed.ts";
 import { gitDiffChangedFiles } from "../validate/git-diff.ts";
 
 /** Which change a review covers: the index, a branch range, or the working tree against HEAD. */
-export interface ReviewScope {
+interface ReviewScope {
 	root: string;
 	staged?: boolean;
 	base?: string;
 }
 
 /** A per-area review guide whose `review-deps` match the change (or that has none). */
-export interface ReviewGuide {
+interface ReviewGuide {
 	path: string;
 	content: string;
 }
 
 /** A document whose declared dependencies changed while it did not, so the author must re-read it. */
-export interface DocumentToReread {
+interface DocumentToReread {
 	path: string;
 	changed: string[];
 }
@@ -36,7 +36,7 @@ export interface DocumentToReread {
  * Everything a fresh-context reviewer needs, as plain data.
  * Skeleton prepares it; any agent harness, CI step, or person runs the review.
  */
-export interface ReviewBundle {
+interface ReviewBundle {
 	scope: { staged: boolean; base: string | null };
 	changedPaths: string[];
 	humanReviewRequired: string[];
@@ -48,7 +48,7 @@ export interface ReviewBundle {
 
 const REVIEW_GUIDE = "REVIEW.md";
 
-export const REVIEWER_CONTRACT = `You are reviewing a change you did not write. Use only this bundle and the repository.
+const REVIEWER_CONTRACT = `You are reviewing a change you did not write. Use only this bundle and the repository.
 
 Report each finding on its own line:
 <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>
@@ -102,7 +102,7 @@ function fenceFor(text: string): string {
 }
 
 /** Changed paths that `[review] humanPaths` marks as high consequence. */
-export function humanReviewPaths(config: SkeletonConfig, changedPaths: string[]): string[] {
+function humanReviewPaths(config: SkeletonConfig, changedPaths: string[]): string[] {
 	const patterns = config.review?.humanPaths ?? [];
 	return changedPaths.filter((path) => patterns.some((pattern) => matchesGlobScope(path, pattern)));
 }

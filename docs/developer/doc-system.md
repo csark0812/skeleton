@@ -61,7 +61,7 @@ Opt-in markers declare the repository state a doc depends on:
 <!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
 ```
 
-Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes ([keeping documents current](#keeping-documents-current)).
+Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). In a glob, `*` and `?` stay within one path segment, `**` spans segments, and `**/` also matches zero directories, so `src/**/*.ts` covers `src/a.ts`. Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes ([keeping documents current](#keeping-documents-current)).
 
 A dependency may name one key path in one `.json` file, for example `package.json#scripts` or `config/app.json#server.port`. Only the selected values are compared, as key-sorted JSON, and a missing key counts as evidence. Selectors are not allowed on globs. Any change to the file still pulls the document into `validate changed`. Markdown dependencies are compared without their doc-meta comment.
 

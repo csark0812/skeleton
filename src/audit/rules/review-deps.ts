@@ -12,7 +12,7 @@ import {
 import { normalizeRelPath } from "../core/shared.ts";
 
 /** Validate opt-in repository dependencies for every scanned document. */
-export function runReviewDepsRule(ctx: AuditContext): Issue[] {
+function runReviewDepsRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
 	const documentDependencies = new Map<string, string[]>();
 	for (const abs of collectScanFiles(ctx.config, ctx.root, ctx.skillIndex)) {

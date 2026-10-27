@@ -56,14 +56,14 @@ Every canonical doc carries a source-of-truth marker. Use skeleton catalog.
 		expect(overlap).toBeGreaterThanOrEqual(0.35);
 	});
 
-	it("fails registry SSOT on catalog-only body", () => {
+	it("fails an SSOT on a catalog-only body", () => {
 		const content = `# Catalog
 
-**Source of truth for** registry topic routing.
+**Source of truth for** catalog topic routing.
 
 The agent catalog is generated. Run skeleton catalog.
 `;
-		const overlap = ssotEvidenceOverlap("registry topic routing", buildEvidenceText(content));
+		const overlap = ssotEvidenceOverlap("catalog topic routing", buildEvidenceText(content));
 		expect(overlap).toBeLessThan(0.35);
 	});
 });

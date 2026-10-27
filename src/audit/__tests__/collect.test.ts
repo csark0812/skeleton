@@ -41,6 +41,21 @@ describe("matchesGlobScope", () => {
 			true,
 		);
 	});
+
+	it("lets **/ match zero directories, as file globbing does", () => {
+		expect(matchesGlobScope("src/example.ts", "src/**/*.ts")).toBe(true);
+		expect(matchesGlobScope("src/a/b/example.ts", "src/**/*.ts")).toBe(true);
+		expect(matchesGlobScope("DEPLOYMENT.md", "**/DEPLOYMENT.md")).toBe(true);
+		expect(matchesGlobScope("__tests__/a.ts", "**/__tests__/**")).toBe(true);
+		expect(matchesGlobScope("docs", "docs/**")).toBe(false);
+	});
+
+	it("treats dots and other characters literally", () => {
+		expect(matchesGlobScope("docs/a.md", "docs/*.md")).toBe(true);
+		expect(matchesGlobScope("docs/aXmd", "docs/*.md")).toBe(false);
+		expect(matchesGlobScope("src/b.ts", "src/[ab].ts")).toBe(true);
+		expect(matchesGlobScope("src/c.ts", "src/[ab].ts")).toBe(false);
+	});
 });
 
 describe("collectScanFiles", () => {

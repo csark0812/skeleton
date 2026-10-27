@@ -10,7 +10,7 @@ export interface Issue {
 	severity: Severity;
 }
 
-export interface ReportOptions {
+interface ReportOptions {
 	strict?: boolean;
 	json?: boolean;
 	label?: string;
@@ -18,14 +18,14 @@ export interface ReportOptions {
 	successSuffix?: string;
 }
 
-export interface IssueOptions {
+interface IssueOptions {
 	link?: string;
 	severity?: Severity;
 	code?: string;
 	remediation?: string;
 }
 
-export interface IssueDetails extends IssueOptions {
+interface IssueDetails extends IssueOptions {
 	message: string;
 }
 

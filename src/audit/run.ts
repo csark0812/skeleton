@@ -8,7 +8,7 @@ import { finalizeIssues, issue, printReport } from "./core/report.ts";
 import { rulesForSuite } from "./rules/index.ts";
 import { skillAuditSuffix } from "./rules/skill-index.ts";
 
-export interface AuditCliOptions {
+interface AuditCliOptions {
 	suite: string;
 	strict: boolean;
 	json: boolean;
