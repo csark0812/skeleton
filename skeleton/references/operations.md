@@ -15,7 +15,7 @@ npx skeleton init --skills
 
 Init adds a bounded `skeleton context` guide to `AGENTS.md` and adds `.skeleton/catalog.md` to `.gitignore`. A `no-context` result includes a recovery action to inspect code, tests, and nearby docs; repair an existing owner or document durable behavior; and repeat the same request until it finds the owner. Read-only tasks report the gap without editing. `--skills` copies this skill from the installed package so its guidance matches the CLI version. Edit `skeleton.toml` scan trees for the repository shape. Legacy `.skeleton/config.yaml` loads only when `skeleton.toml` is absent.
 
-For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner, and the guide stops after that command passes. It does not ask the agent to run repository audits or validation unless the user requested them or the focused test fails. Before a pull request it tells agents to run `skeleton review prepare --base <base branch>` and stop on any human-review path.
+For ordinary source tasks, context includes `test-command` when it can derive the repository-native focused runner, and the guide stops after that command passes. It marks an excerpt that is the entire file `whole-file`, and adds a `reference` line for each tracked file and line that names a code identifier from the request, so a rename edits that list instead of searching. It does not ask the agent to run repository audits or validation unless the user requested them or the focused test fails. Before a pull request it tells agents to run `skeleton review prepare --base <base branch>` and stop on any human-review path.
 
 ## Documentation workflow
 

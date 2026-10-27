@@ -62,6 +62,39 @@ describe("context", () => {
 		}
 	});
 
+	it("marks whole-file excerpts and lists every reference to a requested identifier", () => {
+		const root = makeRepo();
+		try {
+			const packet = formatContext(
+				evaluateContext({ root, query: "rename the billing retry MAX_RETRIES to retryLimit" }),
+			);
+			expect(packet).toContain("source\tsrc/billing/delivery.ts\twhole-file");
+			expect(packet).toContain("test\ttests/billing.test.ts\twhole-file");
+			expect(packet).toContain("reference\tMAX_RETRIES\tsrc/billing/delivery.ts\t1");
+			expect(packet).toContain("reference\tMAX_RETRIES\ttests/billing.test.ts\t1,2");
+			expect(packet).not.toContain("reference\trename");
+			expect(packet).not.toContain("reference\tretryLimit");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not mark a truncated excerpt as the whole file", () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(
+				join(root, "src/billing/delivery.ts"),
+				`export const MAX_RETRIES = 1;\n${"// filler line for a long source file\n".repeat(400)}`,
+			);
+			commitAll(root, "long source");
+			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
+			expect(packet).toContain("source\tsrc/billing/delivery.ts\n");
+			expect(packet).not.toContain("source\tsrc/billing/delivery.ts\twhole-file");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it("treats a document edited with its changed sources as current", () => {
 		const root = makeRepo();
 		try {
