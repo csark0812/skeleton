@@ -14,7 +14,7 @@ Run `bun src/cli.ts route` for the lane card.
 Run `bun src/cli.ts route <path>` to classify one path.
 Then run the printed command. Do not open developer docs to pick a lane.
 
-When you change a file that a document lists in `review-deps`, re-read that document and update it in the same commit. Pre-commit blocks a commit that changes the dependency but not the document; nothing records reviews. If the document is still correct, commit once without that hook (`SKIP=<hook id> git commit …`).
+When you change a file that a document lists in `review-deps`, re-read that document and update it in the same commit if it is out of date. Pre-commit warns when the dependency changed and the document did not; it does not block, and nothing records reviews.
 
 ## First hour
 

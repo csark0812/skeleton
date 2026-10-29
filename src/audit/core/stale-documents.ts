@@ -8,7 +8,7 @@ import { dependencyDigest } from "./review-digest.ts";
 /**
  * A document goes stale when a change alters one of its declared `review-deps` but leaves the
  * document itself alone. Nothing records reviews: the change under check is the only evidence,
- * so a document that is still correct needs an edit or a skipped hook, never a stored stamp.
+ * so the result is a warning to re-read the document, never a blocked commit or a stored stamp.
  */
 
 /** Which change is checked: the index, a branch range, or the working tree against HEAD. */
@@ -94,28 +94,23 @@ function changedTargets(document: DocumentImpact, sides: ScopeSides): string[] {
 	return [...changed];
 }
 
-function remediation(document: string, staged: boolean): string {
-	const fix = `Re-read ${document} in full against the changed files and update it in the same change.`;
-	return staged
-		? `${fix} If it is still correct, commit once without this hook (pre-commit: SKIP=<hook id> git commit …).`
-		: fix;
+function remediation(document: string): string {
+	return `Re-read ${document} in full against the changed files and update it in the same change if it is out of date.`;
 }
 
 /**
- * One issue per changed dependency, so the report prints a "changed:" line for each. A commit is
- * blocked (`--staged`); a branch range or the working tree is only warned, since nothing can
- * record that an unchanged document was checked.
+ * One warning per changed dependency, naming it. Every scope only warns: an unchanged document may still be correct, and nothing can record that it
+ * was checked.
  */
 export function staleDocumentDiagnostics(scope: ChangeScope, impacted: DocumentImpact[]): Issue[] {
-	const severity = scope.staged ? "error" : "warning";
 	return staleDocuments(scope, impacted).flatMap((document) =>
 		document.changed.map((target) =>
 			issue("validate-changed", document.path, {
 				code: "review-dependency-changed",
 				message: `declared dependency changed but the document did not: ${target}`,
 				link: target,
-				severity,
-				remediation: remediation(document.path, scope.staged ?? false),
+				severity: "warning",
+				remediation: remediation(document.path),
 			}),
 		),
 	);

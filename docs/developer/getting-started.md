@@ -69,7 +69,7 @@ see [config](config.md#skillownership).
 
 Plugin-enabled example and more keys: [config](config.md).
 
-A change to a file a document declares in `review-deps` must update that document in the same commit; pre-commit blocks it otherwise, and nothing records reviews ([keeping documents current](doc-system.md#keeping-documents-current)). Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
+A change to a file a document declares in `review-deps` means re-reading that document and updating it in the same commit if it is out of date; pre-commit warns when the document is unchanged, never blocks, and nothing records reviews ([keeping documents current](doc-system.md#keeping-documents-current)). Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
 
 ## 3. Write a canonical doc
 

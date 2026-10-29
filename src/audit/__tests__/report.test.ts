@@ -16,45 +16,28 @@ function printedReport(
 }
 
 describe("audit text report", () => {
-	it("prints a diagnostic per failed document with its changed files", () => {
+	it("lists each changed dependency as a warning with one re-read hint", () => {
 		const text = printedReport([
-			issue("review-proof", "docs/b.md", {
+			issue("validate-changed", "docs/a.md", {
 				code: "review-dependency-changed",
-				message: "review dependency changed after the recorded review: src/cli.ts",
+				message: "declared dependency changed but the document did not: src/cli.ts",
 				link: "src/cli.ts",
+				severity: "warning",
 			}),
-			issue("review-proof", "docs/a.md", {
+			issue("validate-changed", "docs/b.md", {
 				code: "review-dependency-changed",
-				message: "review dependency changed after the recorded review: src/cli.ts",
+				message: "declared dependency changed but the document did not: src/cli.ts",
 				link: "src/cli.ts",
+				severity: "warning",
 			}),
 		]);
-		expect(text).toContain("Doc audit failed:");
-		expect(text).toContain("docs/a.md: error: review required\n  changed: src/cli.ts");
-		expect(text).toContain("docs/b.md: error: review required\n  changed: src/cli.ts");
-		expect(text).not.toContain("review dependency changed after the recorded review");
-	});
-
-	it("keeps triggers on the same failed document", () => {
-		const text = printedReport([
-			issue("review-proof", "AGENTS.md", {
-				code: "review-document-changed",
-				message: "document bytes changed after the recorded review",
-			}),
-			issue("review-proof", "AGENTS.md", {
-				code: "review-dependency-changed",
-				message: "review dependency changed after the recorded review: src/cli.ts",
-				link: "src/cli.ts",
-			}),
-			issue("review-proof", "README.md", {
-				code: "review-dependency-changed",
-				message: "review dependency changed after the recorded review: src/cli.ts",
-				link: "src/cli.ts",
-			}),
-			issue("links", "docs/other.md", "missing link target"),
-		]);
-		expect(text).toContain("AGENTS.md: error: review required\n  changed: AGENTS.md, src/cli.ts");
-		expect(text).toContain("README.md: error: review required\n  changed: src/cli.ts");
-		expect(text).toContain("docs/other.md: error: missing link target");
+		expect(text).toContain(
+			"docs/a.md: warning: declared dependency changed but the document did not: src/cli.ts",
+		);
+		expect(text).toContain(
+			"docs/b.md: warning: declared dependency changed but the document did not: src/cli.ts",
+		);
+		expect(text.match(/Re-read each listed document/g)).toHaveLength(1);
+		expect(text).toContain("Doc audit passed");
 	});
 });

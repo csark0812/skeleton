@@ -212,13 +212,13 @@ describe("validate changed hook gates", () => {
 				.map((item) => [item.file, item.link, item.severity]);
 		}
 
-		it("blocks a commit that changes the dependency but not the document", async () => {
+		it("warns without blocking a commit that changes the dependency but not the document", async () => {
 			const root = setupRepo();
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 			git(root, "add", "src/example.ts");
 			const result = await evaluateValidateChanged({ root, staged: true });
-			expect(result.exitCode).toBe(1);
-			expect(staleDiagnostics(result)).toEqual([["docs/example.md", "src/example.ts", "error"]]);
+			expect(result.exitCode).toBe(0);
+			expect(staleDiagnostics(result)).toEqual([["docs/example.md", "src/example.ts", "warning"]]);
 		});
 
 		it("passes once the same commit updates the document", async () => {
@@ -234,7 +234,7 @@ describe("validate changed hook gates", () => {
 			expect(staleDiagnostics(result)).toEqual([]);
 		});
 
-		it("only warns on a branch range and in the working tree", async () => {
+		it("also only warns on a branch range and in the working tree", async () => {
 			const root = setupRepo();
 			git(root, "checkout", "-q", "-b", "feature");
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
@@ -261,7 +261,7 @@ describe("validate changed hook gates", () => {
 			);
 			git(root, "add", "package.json");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
-				["docs/example.md", "package.json", "error"],
+				["docs/example.md", "package.json", "warning"],
 			]);
 		});
 
@@ -279,7 +279,7 @@ describe("validate changed hook gates", () => {
 			);
 			git(root, "add", "src/example.ts");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
-				["docs/example.md", "src/example.ts", "error"],
+				["docs/example.md", "src/example.ts", "warning"],
 			]);
 		});
 
@@ -293,7 +293,7 @@ describe("validate changed hook gates", () => {
 			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nZ.\n\n## Usage\n\nC.\n");
 			git(root, "add", "docs/guide.md");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
-				["docs/example.md", "docs/guide.md", "error"],
+				["docs/example.md", "docs/guide.md", "warning"],
 			]);
 		});
 
@@ -301,7 +301,7 @@ describe("validate changed hook gates", () => {
 			const root = setupRepo("src/**/*.ts");
 			git(root, "rm", "-q", "src/example.ts");
 			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
-				["docs/example.md", "src/example.ts", "error"],
+				["docs/example.md", "src/example.ts", "warning"],
 			]);
 		});
 	});
