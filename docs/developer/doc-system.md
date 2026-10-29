@@ -91,13 +91,13 @@ Nothing records reviews: no lock file, no proof lines, no dates. The change itse
 
 | Run | Result |
 | --- | ------ |
-| `--staged` (pre-commit) | **Error.** The commit is blocked. |
+| `--staged` (pre-commit) | Warning. The commit goes through. |
 | `--base <ref>` (pull request CI) | Warning. `review prepare` lists the document under "Documents the author must re-read and update". |
 | No flags (working tree) | Warning. |
 
 The comparison ignores a `package.json` top-level release `version`, everything outside a `#` selector's region, and doc-meta-only edits to a Markdown dependency. Deleting a file a dependency glob matched counts as a change. With no commit to compare against (a new repository), nothing is reported.
 
-Fix it by re-reading the document against the changed files and updating it in the same commit. If the document is still correct, commit once without the hook (pre-commit framework: `SKIP=<hook id> git commit …`). Because nothing is stored, two branches that edit the same document merge exactly as git merges the text.
+Re-read the document against the changed files and update it in the same commit if it is out of date. If it is still correct, there is nothing to do. No run blocks on this: an unchanged document may be correct, and nothing could record that it was checked. Because nothing is stored, two branches that edit the same document merge exactly as git merges the text.
 
 The re-read cadence is separate: `review-cadence-exceeded` warns (error under `--strict`) when a document's last commit is older than `daysUntilStale` days. It is process hygiene, not a sign the text drifted; re-read the document and commit any correction.
 

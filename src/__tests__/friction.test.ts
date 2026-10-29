@@ -48,8 +48,8 @@ afterEach(() => {
 	roots = [];
 });
 
-describe("re-read guidance in error output", () => {
-	it("tells the author to update the document when a dependency changes", async () => {
+describe("re-read guidance in warning output", () => {
+	it("tells the author to re-read the document without blocking the commit", async () => {
 		const root = makeRepo();
 		commitAll(root, "base");
 		write(root, "src/a.ts", "export const a = 2;\n");
@@ -57,14 +57,16 @@ describe("re-read guidance in error output", () => {
 		const lines: string[] = [];
 		const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
 		try {
-			expect(await runValidateChanged({ root, staged: true })).toBe(1);
+			expect(await runValidateChanged({ root, staged: true })).toBe(0);
 		} finally {
 			log.mockRestore();
 		}
 		const output = lines.join("\n");
-		expect(output).toContain("docs/a.md: error: review required\n  changed: src/a.ts");
+		expect(output).toContain(
+			"docs/a.md: warning: declared dependency changed but the document did not: src/a.ts",
+		);
 		expect(output).toContain("update it in the same change");
-		expect(output).toContain("SKIP=<hook id> git commit");
+		expect(output).not.toContain("SKIP=");
 		expect(output).not.toContain("skeleton attest");
 	});
 });

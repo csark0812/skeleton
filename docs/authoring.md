@@ -18,4 +18,4 @@ Index docs and SSOT-bearing files require a doc-meta comment:
 <!-- doc-meta: owner=eng -->
 ```
 
-When a change touches a file a paper declares in `review-deps`, re-read the entire paper and update it in the same commit; pre-commit blocks the commit otherwise. Nothing records reviews and the paper carries no review date. Details: [keeping documents current](developer/doc-system.md#keeping-documents-current).
+When a change touches a file a paper declares in `review-deps`, re-read the entire paper and update it in the same commit if it is out of date; pre-commit warns, but does not block, when the paper is unchanged. Nothing records reviews and the paper carries no review date. Details: [keeping documents current](developer/doc-system.md#keeping-documents-current).

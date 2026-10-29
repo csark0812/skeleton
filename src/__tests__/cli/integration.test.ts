@@ -220,7 +220,7 @@ The runThing export provides the example behavior.
 				},
 			]);
 			expect(result.classification.docs).toContain("docs/example.md");
-			// Outside --staged the stale document is a warning, not a failure.
+			// A stale document is a warning, not a failure.
 			expect(result.exitCode).toBe(0);
 			expect(result.diagnostics).toContainEqual(
 				expect.objectContaining({

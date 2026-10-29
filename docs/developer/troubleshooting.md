@@ -83,9 +83,9 @@ See [keeping documents current](doc-system.md#keeping-documents-current).
 
 **Dependency changed, document did not** — code `review-dependency-changed`.
 
-**Cause:** The change alters a file the document lists in `review-deps`, and the document itself is unchanged. It is an error under `--staged` (pre-commit) and a warning for `--base` and working-tree runs. Plain-text output prints `review required` per document with a `changed:` line for each file that triggered it.
+**Cause:** The change alters a file the document lists in `review-deps`, and the document itself is unchanged. It is a warning in every run (`--staged`, `--base`, and the working tree) and never fails the command. Plain-text output prints one warning per changed file, naming it.
 
-**Fix:** Re-read the entire document against the changed files and update it in the same commit. If it is still correct, commit once without the hook (pre-commit framework: `SKIP=<hook id> git commit …`).
+**Fix:** Re-read the entire document against the changed files and update it in the same commit if it is out of date. If it is still correct, no action is needed.
 
 **Selector names nothing** — code `unresolved-selector`. A `review-deps` entry such as `package.json#scrpts` or `src/run.ts#oldName` selects nothing, so the document would never be asked for a re-read. Name a key, heading, or symbol that exists, or drop the selector.
 

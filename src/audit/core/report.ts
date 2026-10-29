@@ -100,6 +100,11 @@ function printWarnings(label: string, warnings: Issue[]): void {
 	for (const item of warnings) {
 		console.log(`${item.file}: warning: ${item.message}`);
 	}
+	if (warnings.some(isRereadIssue)) {
+		console.log(
+			"\nRe-read each listed document in full against the changed files and update it in the same change if it is out of date.",
+		);
+	}
 	console.log("");
 }
 
@@ -112,73 +117,15 @@ function printSuccess(label: string, options: ReportOptions, warnings: Issue[]):
 	return 0;
 }
 
-const REREAD_CODES = new Set(["review-dependency-changed", "review-document-changed"]);
-
+/** A document to re-read because a file it declares in `review-deps` changed. */
 export function isRereadIssue(item: Issue): boolean {
-	return Boolean(item.code && REREAD_CODES.has(item.code));
-}
-
-function rereadTrigger(item: Issue): string | null {
-	if (item.code === "review-document-changed") return item.file;
-	if (item.code === "review-dependency-changed") return item.link ?? null;
-	return null;
-}
-
-function orderTriggers(file: string, triggers: Set<string>): string[] {
-	const rest = [...triggers].filter((path) => path !== file).sort();
-	return triggers.has(file) ? [file, ...rest] : rest;
-}
-
-function collectRereadTriggers(errors: Issue[]): {
-	triggers: Map<string, Set<string>>;
-	rest: Issue[];
-} {
-	const triggers = new Map<string, Set<string>>();
-	const rest: Issue[] = [];
-	for (const item of errors) {
-		if (!isRereadIssue(item)) {
-			rest.push(item);
-			continue;
-		}
-		const current = triggers.get(item.file) ?? new Set<string>();
-		const trigger = rereadTrigger(item);
-		if (trigger) current.add(trigger);
-		triggers.set(item.file, current);
-	}
-	return { triggers, rest };
-}
-
-function printRereadDiagnostic(file: string, triggers: Set<string>): void {
-	console.log(`${file}: error: review required`);
-	const changed = orderTriggers(file, triggers);
-	if (changed.length > 0) {
-		console.log(`  changed: ${changed.join(", ")}`);
-		return;
-	}
-	console.log("  changed: review dependency set");
-}
-
-function printRereadLists(errors: Issue[]): Issue[] {
-	const { triggers, rest } = collectRereadTriggers(errors);
-	for (const file of [...triggers.keys()].sort()) {
-		printRereadDiagnostic(file, triggers.get(file) ?? new Set());
-	}
-	return rest;
+	return item.code === "review-dependency-changed";
 }
 
 function printErrors(label: string, errors: Issue[]): number {
 	console.log(`${label} failed:\n`);
-	const rest = printRereadLists(errors);
-	for (const item of rest) {
+	for (const item of errors) {
 		console.log(`${item.file}: error: ${item.message}`);
-	}
-	if (errors.some(isRereadIssue)) {
-		console.log(
-			"\nTo fix: re-read each listed document in full against the changed files and update it in the same change.",
-		);
-		console.log(
-			"If a document is still correct, commit once without the hook (pre-commit: SKIP=<hook id> git commit …).",
-		);
 	}
 	return 1;
 }

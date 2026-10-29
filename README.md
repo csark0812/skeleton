@@ -59,7 +59,7 @@ Flag details: [install](docs/developer/install.md).
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
 - **Doc meta** — an owner on indexes and SSOT-bearing files
-- **Stale documents** — a change to a file a document declares in `review-deps` must update that document too: pre-commit blocks it, pull-request validation warns. Nothing records reviews, so documents merge exactly as git merges them; a `package.json` release `version`, changes outside a `#` selector (a JSON key, a Markdown section, a JS/TS declaration), and doc-meta-only edits do not count
+- **Stale documents** — a change to a file a document declares in `review-deps` warns, in pre-commit and pull-request validation, when the document did not change too. Nothing records reviews, so documents merge exactly as git merges them; a `package.json` release `version`, changes outside a `#` selector (a JSON key, a Markdown section, a JS/TS declaration), and doc-meta-only edits do not count
 - **Dependency routing** — changed repository files automatically pull matching documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
