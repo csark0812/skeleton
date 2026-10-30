@@ -139,7 +139,7 @@ skeleton review prepare [--staged | --base <ref>] [--json] [--run]
 | Other `.json`                                                                       | JSONC-tolerant syntax check                   |
 | Any repository file                                                                 | native gates where applicable + audit documents whose `review-deps` path or glob matched |
 
-Pre-commit: `skeleton validate changed --staged` (index bytes, coverage, owning papers; a dependency change without its document fails).
+Pre-commit: `skeleton validate changed --staged` (index bytes, coverage, owning papers; a dependency change without its document warns and does not block).
 
 CI: `skeleton validate changed --base origin/main` (global rules first, then changed files, same coverage fail).
 
