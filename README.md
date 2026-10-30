@@ -66,7 +66,7 @@ Flag details: [install](docs/developer/install.md).
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
-For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. An excerpt that is the entire file is marked `whole-file`, and a `reference` line lists each tracked file and line that names a code identifier from the request (camelCase, PascalCase, or snake_case), so a rename needs no further search. It is read-only and reports whether recorded review evidence still matches:
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. An excerpt that is the entire file is marked `whole-file`, and a `reference` line lists each tracked file and line that names a code identifier from the request (camelCase, PascalCase, or snake_case), so a rename needs no further search. It is read-only and reports whether declared sources changed while the document did not:
 
 ```bash
 skeleton context "billing webhook retry"
@@ -74,7 +74,7 @@ skeleton context --path src/billing/delivery.ts
 skeleton context "billing webhook URL" --staged
 ```
 
-When a dependency changed since review, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing. When context returns `no-context`, its action asks the agent to inspect nearby code, tests, and docs, repair or create canonical ownership for durable behavior, then repeat the same request until the owner is returned. Read-only tasks report the gap without editing.
+When a declared source changed and the document did not, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing. When context returns `no-context`, its action asks the agent to inspect nearby code, tests, and docs, repair or create canonical ownership for durable behavior, then repeat the same request until the owner is returned. Read-only tasks report the gap without editing.
 
 Context emits review actions for a document with no declared `review-deps` (`unreviewed`), a declared source that changed in the working tree or index while the document did not (`changed-since-review`), and a document whose last commit is older than the configured cadence (`review-required`). Without declared sources, compare active implementation claims with source; historical alternatives and future aspirations remain qualified intent. `current` means the declared sources read as committed, not that the document agrees with them.
 
