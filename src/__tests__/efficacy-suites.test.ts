@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
 	cpSync,
 	existsSync,
@@ -112,9 +112,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				"Complete every `action` line and verify it against the final files",
 			);
 			expect(treatmentGuide).toContain("Preserve existing work");
-			expect(treatmentGuide).toContain(
-				"Do not run Skeleton audits, validation, or review-proof commands",
-			);
+			expect(treatmentGuide).toContain("Do not run Skeleton audits or validation");
 			expect(treatmentGuide).toContain("--staged");
 			expect(
 				treatmentGuide.replace(/\n<!-- skeleton: context-guide -->[\s\S]*$/, "").trimEnd(),
@@ -167,6 +165,58 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		expect(treatmentDocument).toContain("apps/client/src/websocket/projectUpdates.ts");
 		expect(treatmentDocument).toContain("tspackages/websocket/src/realtime/realtime.gen.ts");
 	});
+
+	it("blocks a rename that breaks a linked symbol but not an edit beside the narrowed dependency", () => {
+		const fixture = join(ROOT, "tests/fixtures/efficacy/doc-reference");
+		const document = "docs/invoice-reminders.md";
+		expect(plain(readFileSync(join(fixture, "control", document), "utf8"))).toBe(
+			plain(readFileSync(join(fixture, "skeleton", document), "utf8")),
+		);
+		const temp = mkdtempSync(join(tmpdir(), "skeleton-doc-reference-"));
+		const git = (...args: string[]) =>
+			execFileSync("git", ["-c", "user.name=Test", "-c", "user.email=test@example.com", ...args], {
+				cwd: temp,
+			});
+		const replace = (path: string, from: string, to: string) => {
+			const absolute = join(temp, path);
+			writeFileSync(absolute, readFileSync(absolute, "utf8").replaceAll(from, to));
+		};
+		// The packed CLI, so a missing runtime dependency cannot silently widen the selector.
+		const validateStaged = (change: () => void) => {
+			git("reset", "--hard", "--quiet");
+			change();
+			git("add", "-A");
+			const result = spawnSync(
+				"node",
+				["node_modules/@csark0812/skeleton/dist/cli.js", "validate", "changed", "--staged"],
+				{ cwd: temp, encoding: "utf8" },
+			);
+			return { passed: result.status === 0, output: `${result.stdout}${result.stderr}` };
+		};
+		const renameIn = (path: string) =>
+			replace(path, "sendInvoiceReminder", "remindInvoiceRecipient");
+		try {
+			cpSync(join(fixture, "skeleton"), temp, { recursive: true });
+			git("init", "--quiet", "-b", "main");
+			git("add", "-A");
+			git("commit", "--quiet", "-m", "fixture");
+			const stale = validateStaged(() => renameIn("src/invoices.ts"));
+			expect(stale.passed).toBe(false);
+			expect(stale.output).toContain("no symbol sendInvoiceReminder");
+			const repaired = validateStaged(() => {
+				renameIn("src/invoices.ts");
+				renameIn(document);
+			});
+			expect(repaired.passed).toBe(true);
+			const unrelated = validateStaged(() =>
+				replace("src/invoices.ts", "padStart(5", "padStart(6"),
+			);
+			expect(unrelated.output).not.toContain("review required");
+			expect(unrelated.passed).toBe(true);
+		} finally {
+			rmSync(temp, { recursive: true, force: true });
+		}
+	}, 60_000);
 
 	it("checks historical acceptance tests against broken and fixed implementations", () => {
 		for (const task of HISTORY_TASKS) {

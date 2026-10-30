@@ -8,6 +8,7 @@ import { evaluateContext, formatContext } from "./context.ts";
 import { runInit } from "./init/init.ts";
 import { parseInitArgs } from "./init/parse-args.ts";
 import { parseBuildPluginArgs, runBuildPlugin } from "./plugins/build.ts";
+import { parseReviewPrepareArgs, runReviewPrepare } from "./review/cli.ts";
 import { runValidateChanged } from "./validate/changed.ts";
 import { runRoute } from "./validate/route.ts";
 
@@ -17,10 +18,11 @@ function usage(): void {
 Commands:
   init [--skills] [--no-skills] [skills add flags…]
   audit docs|self|skills [--strict] [--json] [--paths=a,b] [--only=rule]
-                         [--fix[=doc-meta|anchors|ssot]] [--dry-run]
-                         [--confirm-reviewed (doc-meta only; requires --paths)]
+                         [--fix[=anchors|ssot]] [--dry-run]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
+  review prepare [--staged | --base <ref>] [--json] [--run]
+                                print a fresh-context review bundle; --run pipes it to [review] command
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)
   context <query> | --path <path> [--staged] [--max-chars=N]
@@ -143,9 +145,21 @@ function handleInit(argv: string[]): number {
 	return 0;
 }
 
+/** `skeleton <command> --help` or `skeleton <command> <sub> --help`; later args may be values. */
+function wantsHelp(rest: string[]): boolean {
+	return rest.slice(0, 2).some((arg) => arg === "--help" || arg === "-h");
+}
+
+function printHelp(): number {
+	usage();
+	return 0;
+}
+
 async function dispatchCommand(argv: string[]): Promise<number | null> {
 	const command = argv[0];
 	const rest = argv.slice(1);
+
+	if (wantsHelp(rest)) return printHelp();
 
 	switch (command) {
 		case "audit":
@@ -154,6 +168,8 @@ async function dispatchCommand(argv: string[]): Promise<number | null> {
 			return handleBuildPlugin(rest);
 		case "validate":
 			return rest[0] === "changed" ? handleValidateChanged(rest.slice(1)) : null;
+		case "review":
+			return rest[0] === "prepare" ? runReviewPrepare(parseReviewPrepareArgs(rest.slice(1))) : null;
 		case "route":
 			if (rest.some((arg) => arg.startsWith("-"))) {
 				throw new Error("route: unknown flag");
@@ -180,19 +196,22 @@ async function main(): Promise<void> {
 
 	if (!command || command === "--help" || command === "-h") {
 		usage();
-		process.exit(command ? 0 : 1);
+		process.exitCode = command ? 0 : 1;
+		return;
 	}
 
 	try {
 		const exitCode = await dispatchCommand(argv);
 		if (exitCode === null) {
 			usage();
-			process.exit(1);
+			process.exitCode = 1;
+			return;
 		}
-		process.exit(exitCode);
+		// Let stdout/stderr drain: expanded context packets can exceed a pipe buffer.
+		process.exitCode = exitCode;
 	} catch (error) {
 		console.error(String(error));
-		process.exit(1);
+		process.exitCode = 1;
 	}
 }
 

@@ -1,6 +1,6 @@
 {
 	"name": "@csark0812/skeleton",
-	"version": "5.0.4",
+	"version": "10.2.1",
 	"description": "SSOT audit CLI for agent harness repos",
 	"type": "module",
 	"bin": {
@@ -35,7 +35,7 @@
 	},
 	"packageManager": "bun@1.2.21",
 	"scripts": {
-		"build": "bun build src/cli.ts --target=node --outfile=dist/cli.js && bun build src/plugin-types.ts --target=node --format=esm --outfile=dist/plugin-types.js --packages=external && bun build src/result-types.ts --target=node --format=esm --outfile=dist/result-types.js --packages=external && tsc -p tsconfig.types.json",
+		"build": "bun build src/cli.ts --target=node --external typescript --outfile=dist/cli.js && bun build src/plugin-types.ts --target=node --format=esm --outfile=dist/plugin-types.js --packages=external && bun build src/result-types.ts --target=node --format=esm --outfile=dist/result-types.js --packages=external && tsc -p tsconfig.types.json",
 		"test": "bun run agent:test:prepare && bun test ./src",
 		"test:audit": "bun test ./src/audit/__tests__",
 		"test:cli": "bun test ./src/__tests__/cli",
@@ -63,26 +63,26 @@
 		"agent:test:offline": "agent-test test --config=agent-test.offline.config.ts"
 	},
 	"dependencies": {
+		"typescript": "6.0.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.3",
+		"@cursor/sdk": "^1.0.40",
+		"@post-print/agent-harness": "2.3.5",
+		"@post-print/agent-test": "2.3.5",
+		"@types/bun": "1.3.8",
+		"@types/github-slugger": "2.0.0",
 		"ajv": "8.20.0",
 		"github-slugger": "2.0.0",
 		"remark": "15.0.1",
 		"remark-gfm": "4.0.1",
-		"smol-toml": "1.8.0",
+		"smol-toml": "1.9.0",
 		"tinyglobby": "0.2.14",
 		"unist-util-visit": "5.0.0",
 		"yaml": "2.9.0"
 	},
-	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
-		"@cursor/sdk": "^1.0.27",
-		"@post-print/agent-harness": "2.0.7",
-		"@post-print/agent-test": "2.0.7",
-		"@types/bun": "1.3.8",
-		"@types/github-slugger": "2.0.0",
-		"typescript": "~7.0.2"
-	},
 	"overrides": {
-		"fast-uri": "3.1.6",
-		"undici": "6.28.0"
+		"fast-uri": "3.1.9",
+		"undici": "6.29.1"
 	}
 }

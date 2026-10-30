@@ -1,11 +1,13 @@
-import { describe, expect, it } from "bun:test";
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { attestDocuments } from "../audit/core/review-proof.ts";
+import process from "node:process";
 import { evaluateContext, formatContext } from "../context.ts";
+import { commitAll } from "./support/git-repo.ts";
 
-function makeRepo(): string {
+function makeRepo(committed = true): string {
 	const root = mkdtempSync(join(tmpdir(), "skel-context-"));
 	mkdirSync(join(root, "docs"), { recursive: true });
 	mkdirSync(join(root, "src/billing"), { recursive: true });
@@ -16,8 +18,6 @@ function makeRepo(): string {
 [scan]
 include = ["docs/**"]
 exclude = []
-[reviewProof]
-mode = "hash"
 `,
 	);
 	writeFileSync(join(root, "src/billing/delivery.ts"), "export const MAX_RETRIES = 1;\n");
@@ -31,18 +31,177 @@ mode = "hash"
 
 <!-- source-of-truth: Billing webhook retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=2026-09-16 -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing/delivery.ts -->
 
 Billing webhooks retry once after a failed delivery.
 `,
 	);
-	attestDocuments({ root, paths: ["docs/billing.md"], reviewedAt: "2026-09-16" });
+	if (committed) commitAll(root, "baseline");
 	return root;
 }
 
+afterEach(() => {
+	setSystemTime();
+});
+
 describe("context", () => {
+	it("requires source comparison for claims with no declared sources while preserving historical intent", () => {
+		const root = makeRepo();
+		try {
+			const doc = join(root, "docs/billing.md");
+			writeFileSync(doc, readFileSync(doc, "utf8").replace(/<!-- review-deps:.*-->\n/, ""));
+			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
+			expect(packet).toContain("document\tdocs/billing.md\tunreviewed");
+			expect(packet).toContain("action\tdocs/billing.md\tNo declared review-deps");
+			expect(packet).toContain("active implementation claims");
+			expect(packet).toContain("historical alternatives and future aspirations");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("marks whole-file excerpts and lists every reference to a requested identifier", () => {
+		const root = makeRepo();
+		try {
+			const packet = formatContext(
+				evaluateContext({ root, query: "rename the billing retry MAX_RETRIES to retryLimit" }),
+			);
+			expect(packet).toContain("source\tsrc/billing/delivery.ts\twhole-file");
+			expect(packet).toContain("test\ttests/billing.test.ts\twhole-file");
+			expect(packet).toContain("reference\tMAX_RETRIES\tsrc/billing/delivery.ts\t1");
+			expect(packet).toContain("reference\tMAX_RETRIES\ttests/billing.test.ts\t1,2");
+			expect(packet).not.toContain("reference\trename");
+			expect(packet).not.toContain("reference\tretryLimit");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not mark a truncated excerpt as the whole file", () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(
+				join(root, "src/billing/delivery.ts"),
+				`export const MAX_RETRIES = 1;\n${"// filler line for a long source file\n".repeat(400)}`,
+			);
+			commitAll(root, "long source");
+			const packet = formatContext(evaluateContext({ root, query: "billing retry" }));
+			expect(packet).toContain("source\tsrc/billing/delivery.ts\n");
+			expect(packet).not.toContain("source\tsrc/billing/delivery.ts\twhole-file");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("treats a document edited with its changed sources as current", () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(join(root, "src/billing/delivery.ts"), "export const MAX_RETRIES = 2;\n");
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				readFileSync(join(root, "docs/billing.md"), "utf8").replace("once", "twice"),
+			);
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.review).toBe("current");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("measures re-read cadence from the document's last commit", () => {
+		const root = makeRepo(false);
+		try {
+			for (const args of [
+				["init", "-q"],
+				["add", "."],
+				[
+					"-c",
+					"user.name=Fixture",
+					"-c",
+					"user.email=fixture@example.invalid",
+					"-c",
+					"core.hooksPath=/dev/null",
+					"commit",
+					"-q",
+					"-m",
+					"baseline",
+				],
+			]) {
+				const result = spawnSync("git", args, {
+					cwd: root,
+					env: {
+						...process.env,
+						TZ: "UTC",
+						GIT_AUTHOR_DATE: "2026-09-16T12:00:00Z",
+						GIT_COMMITTER_DATE: "2026-09-16T12:00:00Z",
+					},
+				});
+				expect(result.status).toBe(0);
+			}
+			setSystemTime(new Date("2027-09-16T00:00:00Z"));
+			expect(evaluateContext({ root, query: "billing retry" }).documents[0]?.review).toBe(
+				"current",
+			);
+			setSystemTime(new Date("2027-09-16T00:00:01Z"));
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.reviewReasons).toEqual([
+				"last changed 2026-09-16, beyond the re-read cadence (>365 days)",
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("retains other matched papers when a broad owner has many source dependencies", () => {
+		const root = makeRepo();
+		try {
+			const dependencies = Array.from(
+				{ length: 10 },
+				(_, index) => `src/billing/source-${index}.ts`,
+			);
+			for (const path of dependencies)
+				writeFileSync(join(root, path), "// billing retry source\n".repeat(300));
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				`<!-- source-of-truth: Billing retry policy -->\n<!-- review-deps: paths=${dependencies.join(",")} -->\nBilling retry implementation.\n`,
+			);
+			writeFileSync(
+				join(root, "docs/product.md"),
+				"<!-- source-of-truth: Billing product policy -->\nBilling retry active ownership must agree with implementation.\n",
+			);
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents.map((item) => item.path)).toContain("docs/product.md");
+			expect(formatContext(result)).toContain("omitted-source\t");
+			expect(formatContext(result)).toContain("action\tomitted\t");
+			const excerpts = result.documents.flatMap((item) => [
+				item.excerpt,
+				...item.sources.map((source) => source.excerpt),
+				...item.tests.map((test) => test.excerpt),
+			]);
+			expect(excerpts.reduce((sum, value) => sum + value.length, 0)).toBeLessThanOrEqual(12_000);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("invalidates review evidence when a declared glob loses a source file", () => {
+		const root = makeRepo();
+		try {
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				"<!-- source-of-truth: Billing retry policy -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/billing/*.ts -->\nBilling retries once.\n",
+			);
+			writeFileSync(join(root, "src/billing/retired.ts"), "export const retired = true;\n");
+			commitAll(root, "add retired source");
+			rmSync(join(root, "src/billing/retired.ts"));
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.review).toBe("changed-since-review");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
 	it("loads a clean copy of the packaged skill in a consumer repository", () => {
 		const root = mkdtempSync(join(tmpdir(), "skel-context-consumer-"));
 		try {
@@ -71,7 +230,7 @@ describe("context", () => {
 			expect(result.documents).toEqual([
 				expect.objectContaining({
 					path: "docs/billing.md",
-					review: "matches-recorded-review",
+					review: "current",
 					sources: [expect.objectContaining({ path: "src/billing/delivery.ts" })],
 				}),
 			]);
@@ -81,6 +240,34 @@ describe("context", () => {
 				expect.objectContaining({ path: "tests/billing.test.ts" }),
 			]);
 			expect(formatContext(result)).toContain("test\ttests/billing.test.ts");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("keeps review evidence when only the package.json release version changes", () => {
+		const root = makeRepo();
+		try {
+			const manifest = (version: string) =>
+				`${JSON.stringify({ name: "billing", version, scripts: { test: "bun test" } }, null, "\t")}\n`;
+			writeFileSync(join(root, "package.json"), manifest("1.0.0"));
+			writeFileSync(
+				join(root, "docs/billing.md"),
+				`# Billing delivery
+
+<!-- source-of-truth: Billing webhook retry policy -->
+
+<!-- doc-meta: owner=billing -->
+
+<!-- review-deps: paths=src/billing/delivery.ts,package.json -->
+
+Billing webhooks retry once after a failed delivery.
+`,
+			);
+			commitAll(root, "declare package.json");
+			writeFileSync(join(root, "package.json"), manifest("1.0.1"));
+			const result = evaluateContext({ root, query: "billing webhook retry" });
+			expect(result.documents[0]?.review).toBe("current");
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

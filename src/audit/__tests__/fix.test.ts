@@ -12,14 +12,12 @@ import {
 	resolveWritePath,
 } from "../core/fix.ts";
 import { collectAnchorFixes, replaceExactLinkTarget } from "../fix/anchors.ts";
-import { bumpDocMetaLastReviewed } from "../fix/doc-meta.ts";
 import { findBestAnchorMatch } from "../fix/match-anchor.ts";
 import { parseAuditArgs } from "../run.ts";
 
 describe("parseFixKinds", () => {
 	it("parses --fix and subsets", () => {
 		expect(parseFixKinds(true)).toEqual(["anchors", "ssot"]);
-		expect(parseFixKinds("doc-meta")).toEqual(["doc-meta"]);
 		expect(parseFixKinds("anchors")).toEqual(["anchors"]);
 		expect(parseFixKinds("ssot")).toEqual(["ssot"]);
 		expect(() => parseFixKinds("nope")).toThrow(/Unknown/);
@@ -29,12 +27,7 @@ describe("parseFixKinds", () => {
 describe("parseAuditArgs --fix", () => {
 	it("accepts --fix=kind and space-separated kind", () => {
 		expect(parseAuditArgs(["--fix"]).fix).toBe(true);
-		expect(parseAuditArgs(["--paths=docs/a.md", "--fix=doc-meta", "--confirm-reviewed"]).fix).toBe(
-			"doc-meta",
-		);
-		expect(
-			parseAuditArgs(["--paths=docs/a.md", "--fix", "doc-meta", "--confirm-reviewed"]).fix,
-		).toBe("doc-meta");
+		expect(parseAuditArgs(["--fix=ssot"]).fix).toBe("ssot");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).fix).toBe("anchors");
 		expect(parseAuditArgs(["--fix", "anchors", "--dry-run"]).dryRun).toBe(true);
 	});
@@ -58,36 +51,15 @@ describe("parseAuditArgs --fix", () => {
 
 describe("fixKindsForOnly", () => {
 	it("keeps all kinds when --only is unset", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], null)).toEqual(["doc-meta", "anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], null)).toEqual(["ssot", "anchors"]);
 	});
 
 	it("maps --only=links to anchors only", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["links"]))).toEqual(["anchors"]);
 	});
 
 	it("returns empty when --only has no fix-owning rules", () => {
-		expect(fixKindsForOnly(["doc-meta", "anchors"], new Set(["banned"]))).toEqual([]);
-	});
-});
-
-describe("bumpDocMetaLastReviewed", () => {
-	it("bumps when git date is newer", () => {
-		const content = "<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n";
-		const updated = bumpDocMetaLastReviewed(content, "2024-06-01");
-		expect(updated).toContain("last-reviewed=2024-06-01");
-	});
-
-	it("returns null when already current", () => {
-		const content = "<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\n";
-		expect(bumpDocMetaLastReviewed(content, "2024-06-01")).toBeNull();
-	});
-
-	it("does not rewrite prose last-reviewed before the doc-meta comment", () => {
-		const content =
-			"Write last-reviewed=2020-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n";
-		const updated = bumpDocMetaLastReviewed(content, "2024-06-01");
-		expect(updated).toContain("Write last-reviewed=2020-01-01 in prose.");
-		expect(updated).toContain("<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->");
+		expect(fixKindsForOnly(["ssot", "anchors"], new Set(["banned"]))).toEqual([]);
 	});
 });
 
@@ -124,14 +96,9 @@ describe("findBestAnchorMatch", () => {
 });
 
 describe("coalesceFixEdits", () => {
-	it("preserves doc-meta, anchor, and SSOT changes on the same file", () => {
+	it("preserves anchor and SSOT changes on the same file", () => {
 		const original =
-			"# Source\n\n**Source of truth for** source.\n\n<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n\nSee [target](./target.md#old).\n";
-		const meta: FixEdit = {
-			file: "docs/source.md",
-			description: "reviewed",
-			content: original.replace("2020-01-01", "2026-08-19"),
-		};
+			"# Source\n\n**Source of truth for** source.\n\n<!-- doc-meta: owner=eng -->\n\nSee [target](./target.md#old).\n";
 		const anchors: FixEdit = {
 			file: "docs/source.md",
 			description: "anchor",
@@ -146,54 +113,10 @@ describe("coalesceFixEdits", () => {
 			),
 		};
 
-		const [merged] = coalesceFixEdits([meta], [anchors], [ssot]);
-		expect(merged?.content).toContain("last-reviewed=2026-08-19");
+		const [merged] = coalesceFixEdits([anchors], [ssot]);
 		expect(merged?.content).toContain("./target.md#new");
 		expect(merged?.content).toContain("<!-- source-of-truth: source -->");
-	});
-
-	it("overlays last-reviewed onto anchor content for the same file", () => {
-		const meta: FixEdit = {
-			file: "docs/source.md",
-			description: "last-reviewed 2020-01-01 → 2024-06-01",
-			content:
-				"# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\n\nSee [t](./t.md#a).\n",
-		};
-		const anchors: FixEdit = {
-			file: "docs/source.md",
-			description: "docs/source.md:5 #a → #alpha",
-			content:
-				"# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\n\nSee [t](./t.md#alpha).\n",
-		};
-		const merged = coalesceFixEdits([meta], [anchors]);
-		expect(merged).toHaveLength(1);
-		expect(merged[0]?.content).toContain("last-reviewed=2024-06-01");
-		expect(merged[0]?.content).toContain("#alpha");
-		expect(merged[0]?.description).toContain("last-reviewed");
-		expect(merged[0]?.description).toContain("#alpha");
-	});
-
-	it("prefers doc-meta date over prose last-reviewed when coalescing", () => {
-		const meta: FixEdit = {
-			file: "docs/source.md",
-			description: "last-reviewed 2024-06-01 → 2026-07-13",
-			content:
-				"Write last-reviewed=2099-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->\n",
-		};
-		const anchors: FixEdit = {
-			file: "docs/source.md",
-			description: "docs/source.md:4 #a → #alpha",
-			content:
-				"Write last-reviewed=2099-01-01 in prose.\n\n<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\n\nSee [t](./t.md#alpha).\n",
-		};
-		const merged = coalesceFixEdits([meta], [anchors]);
-		expect(merged).toHaveLength(1);
-		expect(merged[0]?.content).toContain("Write last-reviewed=2099-01-01 in prose.");
-		expect(merged[0]?.content).toContain("<!-- doc-meta: owner=eng | last-reviewed=2026-07-13 -->");
-		expect(merged[0]?.content).not.toContain(
-			"<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->",
-		);
-		expect(merged[0]?.content).toContain("#alpha");
+		expect(merged?.description).toBe("anchor; ssot");
 	});
 });
 
@@ -290,16 +213,12 @@ describe("applyFixes dry-run", () => {
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng | last-reviewed=2026-01-01 -->\n\n**Source of truth for** fix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/target.md"),
-			`# Target\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
+			`# Target\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/source.md"),
-			`# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started).\n`,
+			`# Source\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started).\n`,
 		);
 
 		try {
@@ -326,16 +245,12 @@ describe("applyFixes dry-run", () => {
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** prefix fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Source | [../docs/source.md](../docs/source.md) |\n| Target | [../docs/target.md](../docs/target.md) |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/target.md"),
-			`# Target\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
+			`# Target\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/source.md"),
-			`# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started) and [ok](./target.md#getting-started-guide).\n`,
+			`# Source\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started) and [ok](./target.md#getting-started-guide).\n`,
 		);
 
 		try {
@@ -348,38 +263,6 @@ describe("applyFixes dry-run", () => {
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
-	});
-
-	it("writes coalesced meta+anchor content for the same file", () => {
-		const dir = join(tmpdir(), `fix-coalesce-write-${Date.now()}`);
-		mkdirSync(join(dir, "docs"), { recursive: true });
-		const abs = join(dir, "docs/source.md");
-		writeFileSync(abs, "original\n");
-		const merged = coalesceFixEdits(
-			[
-				{
-					file: "docs/source.md",
-					description: "last-reviewed 2020-01-01 → 2024-06-01",
-					content: "<!-- doc-meta: owner=eng | last-reviewed=2024-06-01 -->\nSee [t](./t.md#a).\n",
-				},
-			],
-			[
-				{
-					file: "docs/source.md",
-					description: "#a → #alpha",
-					content:
-						"<!-- doc-meta: owner=eng | last-reviewed=2020-01-01 -->\nSee [t](./t.md#alpha).\n",
-				},
-			],
-		);
-		expect(merged).toHaveLength(1);
-		const edit = merged[0];
-		if (!edit) throw new Error("expected coalesced edit");
-		writeFileSync(resolveWritePath(dir, edit.file), edit.content);
-		const content = readFileSync(abs, "utf8");
-		expect(content).toContain("last-reviewed=2024-06-01");
-		expect(content).toContain("#alpha");
-		rmSync(dir, { recursive: true, force: true });
 	});
 
 	it("collectAnchorFixes finds match", () => {
@@ -714,16 +597,12 @@ describe("applyFixes dry-run", () => {
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`# Registry\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** stderr fixture.\n\n## Documentation\n\n| Topic | Canonical file |\n|-------|----------------|\n| Target | [../docs/target.md](../docs/target.md) |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/target.md"),
-			`# Target\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
+			`# Target\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** target.\n\n## Getting Started Guide\n\nHi.\n`,
 		);
 		writeFileSync(
 			join(dir, "docs/source.md"),
-			`# Source\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started).\n`,
+			`# Source\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** source.\n\nSee [target](./target.md#getting-started).\n`,
 		);
 
 		const logSpy = spyOn(console, "log").mockImplementation(() => {});

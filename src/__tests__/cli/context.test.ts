@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
+import { commitAll } from "../support/git-repo.ts";
 
 const CLI = join(import.meta.dir, "../../cli.ts");
 let roots: string[] = [];
@@ -49,10 +49,43 @@ afterEach(() => {
 });
 
 describe("context CLI", () => {
+	it("drains a large Node context packet through a pipe before exiting", () => {
+		const root = makeRoot();
+		for (let index = 0; index < 90; index++) {
+			writeFileSync(
+				join(root, `docs/policy-${String(index).padStart(3, "0")}.md`),
+				`<!-- source-of-truth: Billing policy ${index} -->\n${"Billing policy evidence.\n".repeat(60)}`,
+			);
+		}
+		mkdirSync(join(root, "dist"));
+		cpSync(join(import.meta.dir, "../../../templates"), join(root, "templates"), {
+			recursive: true,
+		});
+		cpSync(join(import.meta.dir, "../../../schemas"), join(root, "schemas"), { recursive: true });
+		const bundledCli = join(root, "dist/cli.mjs");
+		const build = spawnSync("bun", ["build", CLI, "--target=node", `--outfile=${bundledCli}`], {
+			cwd: root,
+			encoding: "utf8",
+		});
+		expect(build.status).toBe(0);
+		const result = spawnSync(
+			"node",
+			[bundledCli, "context", "billing policy", "--max-chars=200000"],
+			{ cwd: root, encoding: "utf8", maxBuffer: 1_000_000 },
+		);
+		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
+		expect(result.stdout.length).toBeGreaterThan(65_536);
+		expect(result.stdout).toContain("document\tdocs/policy-089.md\tunreviewed");
+		const reference = run(root, ["billing policy", "--max-chars=200000"]);
+		expect(reference.status).toBe(0);
+		expect(result.stdout).toBe(reference.stdout);
+	});
+
 	it("prints an owning document and source for a source path", () => {
 		const result = run(makeRoot(), ["--path", "src/billing.ts"]);
 		expect(result.status).toBe(0);
-		expect(result.stdout).toContain("document\tdocs/billing.md\tunreviewed");
+		expect(result.stdout).toContain("document\tdocs/billing.md\tcurrent");
 		expect(result.stdout).toContain("source\tsrc/billing.ts");
 		expect(result.stdout).toContain("test\ttests/billing.test.ts");
 		expect(result.stdout).toContain("test-command\tbun test tests/billing.test.ts");
@@ -84,26 +117,14 @@ describe("context CLI", () => {
 	it("keeps successful context output free of the no-context action", () => {
 		const result = run(makeRoot(), ["billing retry"]);
 		expect(result.status).toBe(0);
-		expect(result.stdout).toContain("document\tdocs/billing.md\tunreviewed");
+		expect(result.stdout).toContain("document\tdocs/billing.md\tcurrent");
 		expect(result.stdout).not.toContain("action\tno-context");
 	});
 
 	it("makes changed source values authoritative over stale document claims", () => {
 		const root = makeRoot();
-		const document =
-			"<!-- source-of-truth: Billing retry policy -->\n\n<!-- review-deps: paths=src/billing.ts -->\n\nBilling retries once.\n";
-		mkdirSync(join(root, ".skeleton"), { recursive: true });
-		writeFileSync(
-			join(root, ".skeleton/review-lock.json"),
-			JSON.stringify({
-				documents: {
-					"docs/billing.md": {
-						documentHash: `sha256:${createHash("sha256").update(document).digest("hex")}`,
-						reviewDependencies: { "src/billing.ts": "sha256:stale" },
-					},
-				},
-			}),
-		);
+		commitAll(root, "baseline");
+		writeFileSync(join(root, "src/billing.ts"), "export const RETRIES = 2;\n");
 		const result = run(root, ["billing retry"]);
 		expect(result.status).toBe(0);
 		expect(result.stdout).toContain(

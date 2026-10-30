@@ -28,11 +28,21 @@ export function readRepoText(
 	return readFileSync(abs, "utf8");
 }
 
-/** True when worktree bytes differ from HEAD, including new untracked files. */
-export function pathDiffersFromHead(root: string, relPath: string): boolean {
+/** True when the worktree (or index) bytes differ from HEAD, including new untracked files. */
+export function pathDiffersFromHead(
+	root: string,
+	relPath: string,
+	source: FileSource = "worktree",
+): boolean {
 	const normalized = normalizeRelPath(relPath);
 	const head = gitShow(root, `HEAD:${normalized}`);
-	const worktree = readRepoText(root, normalized, "worktree");
-	if (worktree === null) return head !== null;
-	return worktree !== (head ?? "");
+	const current = readRepoText(root, normalized, source);
+	if (current === null) return head !== null;
+	return current !== (head ?? "");
+}
+
+/** Paths in the git index; empty outside a repository. */
+export function trackedPaths(root: string): string[] {
+	const proc = spawnSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" });
+	return proc.status === 0 ? proc.stdout.split("\0").filter(Boolean) : [];
 }

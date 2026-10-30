@@ -8,14 +8,14 @@ import { resolvePackageRoot, resolveTemplatesDir } from "./package-paths.ts";
 import { skillsAddArgs } from "./skills-args.ts";
 
 const TEMPLATES_DIR = resolveTemplatesDir();
-export const SKELETON_AGENT_GUIDE = `\n<!-- skeleton: context-guide -->\n## Skeleton context\n\nMake \`npx --no-install skeleton context "<topic>"\` the first repository command. Use \`--path\` only for a known implementation path and \`--staged\` for staged-code questions. Never combine a topic with \`--path\`. Returned document, source, and test excerpts are already read; do not read those files again. Do not rerun context or search, list, or read returned paths when the packet contains a document, source, and test; edit directly from that packet. Complete every \`action\` line and verify it against the final files. Preserve existing work. For read-only work, answer immediately when the returned evidence fully answers a read-only request. Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result. For changes: If a test is returned, make the edits and run only the returned \`test-command\` once without progress narration between the edits and test. Stop when it passes. Inspect again only when that test fails, and inspect only the failure-specific region. Otherwise use one combined command to find and read the focused test. Do not run Skeleton audits, validation, or review-proof commands unless the user requested them or the focused test fails.\n\nWhen context returns \`no-context\`, inspect code, tests, and nearby docs to find the canonical owner. Repair an existing owner's summary, content, or \`review-deps\`; create an owner only for durable features, policies, workflows, or architectural contracts. Include a \`source-of-truth\` summary and appropriate \`review-deps\`; a \`--path\` miss needs an owning document. For read-only tasks, report the gap and proposed follow-up without editing. Skip one-off debugging details and transient implementation facts. Rerun the exact context request until it returns the owner.\n`;
+const SKELETON_AGENT_GUIDE = `\n<!-- skeleton: context-guide -->\n## Skeleton context\n\nMake \`npx --no-install skeleton context "<topic>"\` the first repository command. Use \`--path\` only for a known implementation path and \`--staged\` for staged-code questions. Never combine a topic with \`--path\`. Returned document, source, and test excerpts are already read; do not read those files again unless an action requires a complete review. A \`whole-file\` excerpt is the entire file. \`reference\` lines list every tracked file and line naming an identifier from the request; for a rename or removal, change exactly those lines without searching again. Do not rerun context or search, list, or read returned paths when the packet contains a document, source, and test and has no relevant review gap or omitted evidence; edit directly from that packet. Complete every \`action\` line and verify it against the final files. Preserve existing work. For read-only work, answer immediately when the returned evidence fully answers a read-only request. Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result. For changes: If a test is returned, make the edits and run only the returned \`test-command\` once without progress narration between the edits and test. Stop when it passes. Inspect again only when that test fails, and inspect only the failure-specific region. Otherwise use one combined command to find and read the focused test. Do not run Skeleton audits or validation unless the user requested them or the focused test fails.\n\nA packet with review actions or omitted evidence is incomplete. Resolve relevant gaps before relying on active implementation claims. Preserve historical alternatives and future aspirations as qualified intent. A \`current\` status means the declared sources are unchanged, not that the document agrees with them. Source changes need declared \`review-deps\` and source-triggered validation in the consumer.\n\nWhen context returns \`no-context\`, inspect code, tests, and nearby docs to find the canonical owner. Repair an existing owner's summary, content, or \`review-deps\`; create an owner only for durable features, policies, workflows, or architectural contracts. Include a \`source-of-truth\` summary and appropriate \`review-deps\`; a \`--path\` miss needs an owning document. For read-only tasks, report the gap and proposed follow-up without editing. Skip one-off debugging details and transient implementation facts. Rerun the exact context request until it returns the owner.\n\nBefore opening a pull request, run \`npx --no-install skeleton review prepare --base <base branch>\` and follow its reviewer contract; stop on any human-review path.\n`;
 
-export function withSkeletonAgentGuide(contents: string): string {
+function withSkeletonAgentGuide(contents: string): string {
 	if (contents.includes("<!-- skeleton: context-guide -->")) return contents;
 	return `${contents.trimEnd()}\n${SKELETON_AGENT_GUIDE}`;
 }
 
-export interface InitOptions {
+interface InitOptions {
 	cwd?: string;
 	skills?: boolean;
 	noSkills?: boolean;
@@ -23,12 +23,25 @@ export interface InitOptions {
 	runSkillsCommand?: (args: string[], cwd: string) => number;
 }
 
-export interface InitResult {
+interface InitResult {
 	scaffold: "created" | "skipped";
 	scripts: MergeAction;
 	skills: "installed" | "skipped";
 	precommit: MergeAction;
 	agentGuide: "added" | "skipped";
+	gitignore: "added" | "skipped";
+}
+
+const CATALOG_IGNORE = ".skeleton/catalog.md";
+
+/** The catalog is regenerated on every local audit, so committing it only adds diff churn. */
+function ignoreCatalog(cwd: string): "added" | "skipped" {
+	const path = join(cwd, ".gitignore");
+	const current = existsSync(path) ? readFileSync(path, "utf8") : "";
+	if (current.split(/\r?\n/).some((line) => line.trim() === CATALOG_IGNORE)) return "skipped";
+	const separator = current === "" || current.endsWith("\n") ? "" : "\n";
+	writeFileSync(path, `${current}${separator}${CATALOG_IGNORE}\n`);
+	return "added";
 }
 
 function writeScaffold(cwd: string): "created" | "skipped" {
@@ -106,6 +119,7 @@ export function runInit(options: InitOptions = {}): InitResult {
 	const scripts = mergePackageJsonScripts(cwd);
 	const precommit = mergePrecommitConfig(cwd);
 	const agentGuide = mergeAgentGuide(cwd);
+	const gitignore = ignoreCatalog(cwd);
 
 	if (scaffold === "created") {
 		console.log("init: wrote skeleton.toml");
@@ -123,7 +137,8 @@ export function runInit(options: InitOptions = {}): InitResult {
 		console.log("init: added skeleton validate hook to .pre-commit-config.yaml");
 	}
 	if (agentGuide === "added") console.log("init: added Skeleton context guidance to AGENTS.md");
+	if (gitignore === "added") console.log(`init: added ${CATALOG_IGNORE} to .gitignore`);
 
 	const skills = installSkillsIfRequested(options, cwd);
-	return { scaffold, scripts, skills, precommit, agentGuide };
+	return { scaffold, scripts, skills, precommit, agentGuide, gitignore };
 }

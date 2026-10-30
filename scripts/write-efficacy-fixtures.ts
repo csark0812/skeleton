@@ -1,11 +1,9 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../src/audit/core/review-proof.ts";
 import { buildCatalogContent } from "../src/catalog.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/efficacy");
-const REVIEWED_AT = "2026-09-14";
 
 rmSync(FIXTURES, { recursive: true, force: true });
 
@@ -26,9 +24,6 @@ function skeletonConfig(includeCode = true): string {
 include = ["docs/**", "README.md", "AGENTS.md"]
 exclude = []
 
-[reviewProof]
-mode = "hash"
-
 [reviewCoverage]
 include = ${includeCode ? '["src/**/*.ts"]' : "[]"}
 exclude = ["tests/**"]
@@ -38,11 +33,8 @@ paths = []
 `;
 }
 
-function addSkeletonArtifacts(root: string, docsToAttest: string[]): void {
+function addSkeletonArtifacts(root: string): void {
 	const abs = join(ROOT, root);
-	for (const doc of docsToAttest) {
-		attestDocuments({ root: abs, paths: [doc], reviewedAt: REVIEWED_AT });
-	}
 	const { content } = buildCatalogContent(abs);
 	write(join(root, ".skeleton/catalog.md"), content);
 }
@@ -97,7 +89,7 @@ const billingDocSkeleton = `# Billing webhook delivery
 
 <!-- source-of-truth: Billing webhook endpoint and retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing.ts -->
 
@@ -130,7 +122,7 @@ writeTree("tests/fixtures/efficacy/drift/skeleton", {
 	"docs/billing-webhooks.md": billingDocSkeleton,
 	"skeleton.toml": skeletonConfig(),
 });
-addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton", ["docs/billing-webhooks.md"]);
+addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton");
 
 const conflictReadme = `# Billing repository
 
@@ -146,7 +138,7 @@ function authorityPaper(options: { label: "A" | "B"; url: string; marked: boolea
 	const marker = options.marked ? "<!-- source-of-truth: Billing webhook endpoint -->\n\n" : "";
 	return `# Billing webhook reference ${options.label}
 
-${marker}<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+${marker}<!-- doc-meta: owner=billing -->
 
 New integrations send webhooks to ${options.url}.
 `;
@@ -173,7 +165,7 @@ function writeConflictFixture(
 		}),
 		"skeleton.toml": skeletonConfig(false),
 	});
-	addSkeletonArtifacts(fixtureRoot, ["docs/billing-webhook-a.md", "docs/billing-webhook-b.md"]);
+	addSkeletonArtifacts(fixtureRoot);
 }
 
 writeConflictFixture("unmarked", { a: false, b: false });
@@ -255,7 +247,7 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 	};
 	for (const [path, fact] of Object.entries(efficiencyFacts)) {
 		files[path] = skeleton
-			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng | last-reviewed=${REVIEWED_AT} -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
+			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
 			: `# ${fact.summary}\n\n${fact.body}\n`;
 	}
 	for (const [slug, title, body] of noiseTopics)
@@ -266,10 +258,7 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 
 writeTree("tests/fixtures/efficacy/efficiency/control", efficiencyFiles("control"));
 writeTree("tests/fixtures/efficacy/efficiency/package-head", efficiencyFiles("package"));
-addSkeletonArtifacts(
-	"tests/fixtures/efficacy/efficiency/package-head",
-	Object.keys(efficiencyFacts),
-);
+addSkeletonArtifacts("tests/fixtures/efficacy/efficiency/package-head");
 
 const postPrintRealtimeDoc = `# Workspace document realtime
 
@@ -422,7 +411,7 @@ function postPrintFixtureFiles(treatment: EfficiencyTreatment): Record<string, s
 
 <!-- source-of-truth: Workspace document realtime protocol, generated client, and cache invalidation boundaries -->
 
-<!-- doc-meta: owner=eng | last-reviewed=${REVIEWED_AT} -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=${Object.keys(postPrintRealtimeSources).join(",")} -->
 
@@ -458,9 +447,6 @@ ${postPrintRealtimeDoc.replace(/^# Workspace document realtime\n+/, "")}`
 include = ["docs/**", "README.md", "AGENTS.md"]
 exclude = []
 
-[reviewProof]
-mode = "hash"
-
 [reviewCoverage]
 include = ["apps/**/*.py", "apps/**/*.ts", "apps/**/*.tsx", "tspackages/**/*.ts"]
 exclude = ["**/tests/**", "**/*.test.ts"]
@@ -479,9 +465,59 @@ writeTree(
 	"tests/fixtures/efficacy/postprint-applications/package-head",
 	postPrintFixtureFiles("package"),
 );
-addSkeletonArtifacts("tests/fixtures/efficacy/postprint-applications/package-head", [
-	"docs/developer/websocket.md",
-]);
+addSkeletonArtifacts("tests/fixtures/efficacy/postprint-applications/package-head");
+
+const invoiceSource = `export const INVOICE_PREFIX = "INV";
+
+export function formatInvoiceNumber(sequence: number): string {
+	return \`\${INVOICE_PREFIX}-\${String(sequence).padStart(5, "0")}\`;
+}
+
+export async function sendInvoiceReminder(
+	send: (invoiceNumber: string) => Promise<void>,
+	sequence: number,
+): Promise<void> {
+	await send(formatInvoiceNumber(sequence));
+}
+`;
+
+const invoiceTest = `import { expect, test } from "bun:test";
+import { formatInvoiceNumber, sendInvoiceReminder } from "../src/invoices";
+
+test("formats invoice numbers", () => {
+	expect(formatInvoiceNumber(42)).toBe("INV-00042");
+});
+
+test("sends one reminder with the invoice number", async () => {
+	const sent: string[] = [];
+	await sendInvoiceReminder(async (invoiceNumber) => {
+		sent.push(invoiceNumber);
+	}, 42);
+	expect(sent).toEqual(["INV-00042"]);
+});
+`;
+
+const invoiceDocBody = `Overdue invoices get one reminder. [\`sendInvoiceReminder\`](../src/invoices.ts#sendInvoiceReminder) sends it with the formatted invoice number.
+`;
+
+function docReferenceFiles(skeleton: boolean): Record<string, string> {
+	return {
+		"AGENTS.md": controlAgents,
+		"README.md":
+			"# Invoicing service\n\nInvoice numbering and reminders live in src/invoices.ts.\n",
+		"package.json": packageJson.replace("billing-service-fixture", "invoicing-service-fixture"),
+		"src/invoices.ts": invoiceSource,
+		"tests/invoices.test.ts": invoiceTest,
+		"docs/invoice-reminders.md": skeleton
+			? `# Invoice reminders\n\n<!-- source-of-truth: Invoice reminder delivery -->\n\n<!-- doc-meta: owner=billing -->\n\n<!-- review-deps: paths=src/invoices.ts#sendInvoiceReminder -->\n\n${invoiceDocBody}`
+			: `# Invoice reminders\n\n${invoiceDocBody}`,
+		...(skeleton ? { "skeleton.toml": skeletonConfig() } : {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/doc-reference/control", docReferenceFiles(false));
+writeTree("tests/fixtures/efficacy/doc-reference/skeleton", docReferenceFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/doc-reference/skeleton");
 
 writeTree("tests/fixtures/efficacy/product-smoke/adopt-consumer", {
 	"AGENTS.md": `# Agent entry\n\nInstall @csark0812/skeleton with npm, then initialize it in this repository. Stay inside this repository.\n`,
@@ -509,6 +545,7 @@ Generated by \`bun scripts/write-efficacy-fixtures.ts\`.
 | \`conflict/duplicate-markers\` | The same papers with both authority markers. |
 | \`efficiency/control\` and \`efficiency/package-head\` | Matched repository question; package-head uses the current package. |
 | \`postprint-applications/control\` and \`postprint-applications/package-head\` | Matched PostPrint-shaped monorepo question spanning backend, client, shared packages, and docs. |
+| \`doc-reference/control\` and \`doc-reference/skeleton\` | Invoicing service whose document links to a function by \`path#symbol\`; the treatment narrows \`review-deps\` to that function. |
 | \`product-smoke/adopt-consumer\` | Separate npm install and init smoke. |
 
 The drift and package-head treatments receive the exact packed development package and the context guide produced by default initialization. Optional host skills are not installed. Product smoke enables sandbox network access and installs from npm. Generated vendor trees stay out of Git.

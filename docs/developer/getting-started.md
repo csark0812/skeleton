@@ -2,13 +2,13 @@
 
 <!-- source-of-truth: day-one Skeleton setup in a consumer repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/init/**,src/cli.ts,src/context.ts -->
 
 Add Skeleton to a repo in six steps. Flag details: [install](install.md). Every config key: [config](config.md).
 
-Day-one CLI: `init`, then `audit` / `validate` / `route` / `catalog`. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts`.
+Day-one CLI: `init`, then `audit` / `validate` / `route` / `catalog`; `review prepare` before a pull request. Init implementation: `runInit` (`InitOptions` → `InitResult`) in `src/init/init.ts`; optional `skillsAddArgs` for `--skills`. Dispatch lives in `src/cli.ts`.
 
 ## 1. Install and init
 
@@ -17,7 +17,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide also tells agents to complete structured context actions, preserve existing work, and run the returned test command once without rereading returned files. It does not route ordinary source tasks through audits, validation, or review-proof commands unless the user requested them or the focused test fails. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version. Hash review proof is on by default.
+Init writes `skeleton.toml`, writes `.pre-commit-config.yaml`, adds `.skeleton/catalog.md` to `.gitignore`, adds `validate:changed` / `validate:ci` scripts to `package.json`, and appends an idempotent `skeleton context` guide to `AGENTS.md`. Context returns the owning document, its declared source, and the nearest focused test when one matches; when it can derive the repository-native runner, it also returns `test-command`. Whole-file excerpts are marked `whole-file`, and `reference` lines list every tracked file and line that names a code identifier from the request. A `no-context` result includes a recovery action: inspect nearby code, tests, and docs; repair an existing owner or create canonical docs for durable behavior; then rerun the same request until it finds the owner. Read-only tasks report the gap without editing. The guide also tells agents to complete structured context actions, preserve existing work, and run the returned test command once without rereading returned files. It does not route ordinary source tasks through audits or validation unless the user requested them or the focused test fails. Before a pull request it tells agents to run `skeleton review prepare --base <base branch>` and stop on any human-review path. With `--skills`, init also copies the Skeleton skill bundled with the installed package so agent guidance matches that package version.
 
 ## 2. Set the scan perimeter
 
@@ -69,14 +69,7 @@ see [config](config.md#skillownership).
 
 Plugin-enabled example and more keys: [config](config.md).
 
-Init enables hash-backed review evidence:
-
-```toml
-[reviewProof]
-mode = "hash"
-```
-
-Commit `.skeleton/review-lock.json` after the first explicit review. Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
+A change to a file a document declares in `review-deps` means re-reading that document and updating it in the same commit if it is out of date; pre-commit warns when the document is unchanged, never blocks, and nothing records reviews ([keeping documents current](doc-system.md#keeping-documents-current)). Optional `[reviewCoverage]` sets which code paths must have an owning paper. Omit it to use the built-in code defaults. Set `include = []` to disable that gate.
 
 ## 3. Write a canonical doc
 
@@ -87,7 +80,7 @@ Create a file with a source-of-truth marker and (for indexes / SSOT docs) doc-me
 
 <!-- source-of-truth: Backend API conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 
 Keep request and response shapes consistent across services.
 ```
@@ -109,16 +102,16 @@ npx skeleton audit docs
 npx skeleton validate changed --staged
 ```
 
-Audits pass → you're set. A foreign-only skill change can pass because synced
+A foreign-only skill change can pass because synced
 skill bodies are validated in their owning repo; `validate changed` prints each
-skip. Any changed repository file also pulls in documents whose `review-deps` marker matches it. Review failures require a complete re-read, followed by explicit attestation:
-
-```bash
-npx skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
-```
-
-Changing the date alone is not a review. Re-read-cadence warnings remain advisory unless `--strict`. Failures →
+skip. Any changed repository file also pulls in documents whose `review-deps` marker matches it. When the change leaves such a document untouched, re-read it and update it in the same commit. Re-read-cadence warnings remain advisory unless `--strict`. Failures →
 [troubleshooting](troubleshooting.md).
+
+Context emits review actions for a document with no declared `review-deps` (`unreviewed`), a declared source that changed in the working tree or index while the document did not (`changed-since-review`), and a document whose last commit is older than the configured cadence (`review-required`). Without declared sources, compare active implementation claims with source; historical alternatives and future aspirations remain qualified intent. `current` means the declared sources read as committed, not that the document agrees with them.
+
+Each matching paper receives a share of the excerpt budget so one broad owner cannot consume it all. `omitted` and `omitted-source` list excluded papers and declared sources, with an action to narrow the query, increase `--max-chars`, or report the remaining evidence limit. Review status compares the full declared dependency set, including files removed from a glob, even when excerpts are omitted. Complete the relevant review and omission actions before treating the packet as sufficient evidence.
+
+Consumer prevention also requires `review-deps` for active implementation claims and running `validate changed` on source changes. Use a scoped `[reviewCoverage]` policy to reject unowned paths where ownership is required. A doc-only hook or `include = []` leaves those source changes outside the ownership gate. Skeleton does not infer semantic conflicts from prose.
 
 ## 6. Install the git hook
 

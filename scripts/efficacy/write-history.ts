@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../../src/audit/core/review-proof.ts";
 import { HISTORY_TASKS, SHARED_GUIDANCE } from "./history.ts";
 
 const ROOT = join(import.meta.dir, "../..");
@@ -36,7 +35,7 @@ function copyHistory(
 				"",
 			);
 			if (options.skeleton && path === task.doc)
-				contents = `<!-- source-of-truth: ${task.name} behavior -->\n<!-- doc-meta: owner=eng | last-reviewed=2026-09-16 -->\n<!-- review-deps: paths=${task.source} -->\n\n${contents}`;
+				contents = `<!-- source-of-truth: ${task.name} behavior -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=${task.source} -->\n\n${contents}`;
 		}
 		write(root, path, contents);
 	}
@@ -74,9 +73,8 @@ function prepare(task: (typeof HISTORY_TASKS)[number], side: string, archived: s
 	write(
 		root,
 		"skeleton.toml",
-		`daysUntilStale = 365\n[scan]\ninclude = ["${task.doc}"]\nexclude = []\n[reviewProof]\nmode = "hash"\n[reviewCoverage]\ninclude = ["${task.source}"]\n[deny]\npaths = []\n`,
+		`daysUntilStale = 365\n[scan]\ninclude = ["${task.doc}"]\nexclude = []\n[reviewCoverage]\ninclude = ["${task.source}"]\n[deny]\npaths = []\n`,
 	);
-	attestDocuments({ root, paths: [task.doc], reviewedAt: "2026-09-16" });
 }
 
 const archives = join(ROOT, "agent-suites/history");

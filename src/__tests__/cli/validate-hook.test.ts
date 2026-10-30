@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { evaluateValidateChanged } from "../../validate/changed.ts";
+import { commitAll, git } from "../support/git-repo.ts";
 
 let tempDirs: string[] = [];
 
@@ -35,7 +35,7 @@ function writeOwnedDoc(root: string, extra = ""): void {
 
 <!-- source-of-truth: example runThing behavior -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-01 -->
+<!-- doc-meta: owner=eng -->
 
 ${extra}
 The runThing export provides the example behavior.
@@ -43,12 +43,13 @@ The runThing export provides the example behavior.
 	);
 }
 
-function runGit(root: string, args: string[]): void {
+function runGit(root: string, args: string[], env: Record<string, string> = {}): void {
 	const result = spawnSync("git", args, {
 		cwd: root,
 		encoding: "utf8",
 		env: {
 			...process.env,
+			...env,
 			GIT_AUTHOR_NAME: "Test",
 			GIT_AUTHOR_EMAIL: "test@example.com",
 			GIT_COMMITTER_NAME: "Test",
@@ -61,6 +62,7 @@ function runGit(root: string, args: string[]): void {
 }
 
 afterEach(() => {
+	setSystemTime();
 	for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
 	tempDirs = [];
 });
@@ -166,9 +168,7 @@ describe("validate changed hook gates", () => {
 			paths: ["src/example.ts"],
 		});
 		expect(result.diagnostics.some((item) => item.code === "uncovered-changed-path")).toBe(false);
-		expect(result.diagnostics).toContainEqual(
-			expect.objectContaining({ code: "impacted-document-review-required" }),
-		);
+		expect(result.impactedDocuments.map((item) => item.path)).toEqual(["docs/example.md"]);
 	});
 
 	it("does not flag deleted coverage files as uncovered", async () => {
@@ -191,33 +191,178 @@ describe("validate changed hook gates", () => {
 		expect(result.diagnostics.some((item) => item.file === "src/gone.ts")).toBe(false);
 	});
 
-	it("fails --staged when attested lockfile and document stay unstaged", async () => {
-		const root = makeRoot();
-		writeToml(
-			root,
-			`[reviewProof]
-mode = "hash"
-`,
-		);
-		writeOwnedDoc(root, "<!-- review-deps: paths=src/example.ts -->\n");
-		mkdirSync(join(root, "src"), { recursive: true });
-		writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
-		attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-01" });
-		runGit(root, ["init"]);
-		runGit(root, ["add", "-A"]);
-		runGit(root, ["commit", "-m", "init"]);
+	describe("a changed declared dependency", () => {
+		function setupRepo(deps = "src/example.ts"): string {
+			const root = makeRoot();
+			writeToml(root);
+			writeOwnedDoc(root, `<!-- review-deps: paths=${deps} -->\n`);
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.0", scripts: { test: "bun test" } })}\n`,
+			);
+			commitAll(root, "init");
+			return root;
+		}
 
-		writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-		runGit(root, ["add", "src/example.ts"]);
-		attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-09-13" });
+		function staleDiagnostics(result: Awaited<ReturnType<typeof evaluateValidateChanged>>) {
+			return result.diagnostics
+				.filter((item) => item.code === "review-dependency-changed")
+				.map((item) => [item.file, item.link, item.severity]);
+		}
 
-		const result = await evaluateValidateChanged({ root, staged: true });
-		expect(result.exitCode).toBe(1);
-		expect(result.diagnostics.some((item) => item.code === "stage-required")).toBe(true);
-		expect(
-			result.audits
+		it("warns without blocking a commit that changes the dependency but not the document", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			git(root, "add", "src/example.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(result.exitCode).toBe(0);
+			expect(staleDiagnostics(result)).toEqual([["docs/example.md", "src/example.ts", "warning"]]);
+		});
+
+		it("passes once the same commit updates the document", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			const doc = join(root, "docs/example.md");
+			writeFileSync(
+				doc,
+				readFileSync(doc, "utf8").replace("example behavior.", "example behavior, now 2."),
+			);
+			git(root, "add", "-A");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(staleDiagnostics(result)).toEqual([]);
+		});
+
+		it("also only warns on a branch range and in the working tree", async () => {
+			const root = setupRepo();
+			git(root, "checkout", "-q", "-b", "feature");
+			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root }))).toEqual([
+				["docs/example.md", "src/example.ts", "warning"],
+			]);
+			commitAll(root, "change source");
+			const range = await evaluateValidateChanged({ root, base: "main" });
+			expect(staleDiagnostics(range)).toEqual([["docs/example.md", "src/example.ts", "warning"]]);
+			expect(range.diagnostics.some((item) => item.severity === "error")).toBe(false);
+		});
+
+		it("ignores a package version bump and keys outside a selector", async () => {
+			const root = setupRepo("src/example.ts,package.json#scripts");
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.1", scripts: { test: "bun test" } })}\n`,
+			);
+			git(root, "add", "package.json");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ name: "x", version: "1.0.1", scripts: { test: "vitest" } })}\n`,
+			);
+			git(root, "add", "package.json");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "package.json", "warning"],
+			]);
+		});
+
+		it("narrows a symbol selector to that declaration", async () => {
+			const root = setupRepo("src/example.ts#runThing");
+			writeFileSync(
+				join(root, "src/example.ts"),
+				"export const runThing = 1;\nexport const other = 2;\n",
+			);
+			git(root, "add", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(
+				join(root, "src/example.ts"),
+				"export const runThing = 3;\nexport const other = 2;\n",
+			);
+			git(root, "add", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "src/example.ts", "warning"],
+			]);
+		});
+
+		it("narrows a heading selector to that section", async () => {
+			const root = setupRepo("docs/guide.md#install");
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nA.\n\n## Usage\n\nB.\n");
+			commitAll(root, "guide");
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nA.\n\n## Usage\n\nC.\n");
+			git(root, "add", "docs/guide.md");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([]);
+			writeFileSync(join(root, "docs/guide.md"), "# Guide\n\n## Install\n\nZ.\n\n## Usage\n\nC.\n");
+			git(root, "add", "docs/guide.md");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "docs/guide.md", "warning"],
+			]);
+		});
+
+		it("reports a deleted file that a dependency glob matched", async () => {
+			const root = setupRepo("src/**/*.ts");
+			git(root, "rm", "-q", "src/example.ts");
+			expect(staleDiagnostics(await evaluateValidateChanged({ root, staged: true }))).toEqual([
+				["docs/example.md", "src/example.ts", "warning"],
+			]);
+		});
+	});
+
+	describe("a change that breaks a reference in an untouched document", () => {
+		function setupRepo(): string {
+			const root = makeRoot();
+			writeToml(root);
+			mkdirSync(join(root, "docs"), { recursive: true });
+			mkdirSync(join(root, "src"), { recursive: true });
+			writeFileSync(join(root, "src/run.ts"), "export function parseArgs() {}\n");
+			writeFileSync(join(root, "src/other.ts"), "export const other = 1;\n");
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ packageManager: "pnpm@10.12.4", scripts: { lint: "x", build: "y" } })}\n`,
+			);
+			writeFileSync(
+				join(root, "docs/guide.md"),
+				"# Guide\n\n<!-- doc-meta: owner=eng -->\n\nSee [parseArgs](../src/run.ts#parseArgs). Run `pnpm lint`.\n",
+			);
+			commitAll(root, "init");
+			return root;
+		}
+
+		function referenceErrors(result: Awaited<ReturnType<typeof evaluateValidateChanged>>) {
+			return result.audits
 				.flatMap((audit) => audit.diagnostics)
-				.some((item) => item.code === "review-dependency-changed"),
-		).toBe(true);
+				.filter((item) => item.rule === "links" || item.rule === "package-references")
+				.map((item) => [item.file, item.message]);
+		}
+
+		it("fails when a linked symbol is renamed", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/run.ts"), "export function parseArgv() {}\n");
+			git(root, "add", "src/run.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(referenceErrors(result)).toEqual([
+				["docs/guide.md", "broken anchor → #parseArgs in src/run.ts: no symbol parseArgs"],
+			]);
+			expect(result.exitCode).toBe(1);
+		});
+
+		it("fails when a script a document runs is removed", async () => {
+			const root = setupRepo();
+			writeFileSync(
+				join(root, "package.json"),
+				`${JSON.stringify({ packageManager: "pnpm@10.12.4", scripts: { build: "y" } })}\n`,
+			);
+			git(root, "add", "package.json");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(referenceErrors(result)).toEqual([
+				["docs/guide.md", "`pnpm lint` names no script in package.json"],
+			]);
+		});
+
+		it("does not audit documents an unrelated change cannot break", async () => {
+			const root = setupRepo();
+			writeFileSync(join(root, "src/other.ts"), "export const other = 2;\n");
+			git(root, "add", "src/other.ts");
+			const result = await evaluateValidateChanged({ root, staged: true });
+			expect(result.audits.flatMap((audit) => audit.scope.paths)).not.toContain("docs/guide.md");
+		});
 	});
 });

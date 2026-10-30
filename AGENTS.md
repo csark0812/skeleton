@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: agent cold-start in this repo -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,package.json#scripts,package.json#bin,package.json#engines,package.json#packageManager,package.json#name -->
 
 SSOT audit CLI (`@csark0812/skeleton`). Not an app. Prefer `bun src/cli.ts`.
 
@@ -14,15 +14,11 @@ Run `bun src/cli.ts route` for the lane card.
 Run `bun src/cli.ts route <path>` to classify one path.
 Then run the printed command. Do not open developer docs to pick a lane.
 
-After a full re-read, attest only that path:
-
-```bash
-bun src/cli.ts audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
-```
+When you change a file that a document lists in `review-deps`, re-read that document and update it in the same commit if it is out of date. Pre-commit warns when the dependency changed and the document did not; it does not block, and nothing records reviews.
 
 ## First hour
 
-Bun `1.2.x`. Node ≥ 22. No runtime env vars.
+Bun (`bun@1.2.21`). Node `>=22`. No runtime env vars.
 
 ```bash
 bun install
@@ -40,5 +36,6 @@ bun run check
 | Failures | [docs/developer/troubleshooting.md](docs/developer/troubleshooting.md) |
 | Day-one setup | [docs/developer/getting-started.md](docs/developer/getting-started.md) |
 | Audit rules | [docs/developer/audit.md](docs/developer/audit.md) |
+| Code review bundle | [docs/developer/review.md](docs/developer/review.md) |
 
 Pre-commit runs `bun src/cli.ts validate changed --staged`.

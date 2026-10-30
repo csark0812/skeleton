@@ -2,7 +2,6 @@ import { afterEach, beforeAll, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../../audit/core/review-proof.ts";
 import { runAudit } from "../../audit/run.ts";
 import { checkCatalog, runCatalogCli, writeCatalog } from "../../catalog.ts";
 import { runBuildPlugin } from "../../plugins/build.ts";
@@ -11,6 +10,7 @@ import {
 	evaluateValidateChanged,
 	runValidateChanged,
 } from "../../validate/changed.ts";
+import { commitAll } from "../support/git-repo.ts";
 
 const FIXTURES = join(import.meta.dir, "../../audit/__tests__/fixtures");
 const NESTED_SKILLS_CUSTOMIZE = join(FIXTURES, "nested-skills-customize");
@@ -185,8 +185,6 @@ describe("validate changed routing", () => {
 [scan]
 include = ["docs/**"]
 exclude = []
-[reviewProof]
-mode = "hash"
 `,
 			);
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 1;\n");
@@ -196,14 +194,14 @@ mode = "hash"
 
 <!-- source-of-truth: example runThing behavior -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-19 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/example.ts -->
 
 The runThing export provides the example behavior.
 `,
 			);
-			attestDocuments({ root, paths: ["docs/example.md"], reviewedAt: "2026-08-19" });
+			commitAll(root, "baseline");
 			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
 
 			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
@@ -222,12 +220,15 @@ The runThing export provides the example behavior.
 				},
 			]);
 			expect(result.classification.docs).toContain("docs/example.md");
-			expect(result.exitCode).toBe(1);
-			expect(
-				result.audits
-					.flatMap((audit) => audit.diagnostics)
-					.some((item) => item.code === "review-dependency-changed"),
-			).toBe(true);
+			// A stale document is a warning, not a failure.
+			expect(result.exitCode).toBe(0);
+			expect(result.diagnostics).toContainEqual(
+				expect.objectContaining({
+					code: "review-dependency-changed",
+					file: "docs/example.md",
+					severity: "warning",
+				}),
+			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -247,12 +248,14 @@ The runThing export provides the example behavior.
 				`# Commands
 
 <!-- source-of-truth: project command documentation -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-24 -->
+<!-- doc-meta: owner=eng -->
 <!-- review-deps: paths=package.json -->
 
 Run the project commands through the package scripts.
 `,
 			);
+			commitAll(root, "baseline");
+			writeFileSync(join(root, "package.json"), '{"scripts":{"commands":"new"}}\n');
 
 			const result = await evaluateValidateChanged({ root, paths: ["package.json"] });
 			expect(result.impactedDocuments).toEqual([
@@ -272,45 +275,13 @@ Run the project commands through the package scripts.
 			const lines: string[] = [];
 			const log = spyOn(console, "log").mockImplementation((line) => lines.push(String(line)));
 			try {
-				expect(await runValidateChanged({ root, paths: ["package.json"] })).toBe(1);
+				expect(await runValidateChanged({ root, paths: ["package.json"] })).toBe(0);
 				expect(lines.join("\n")).toContain(
-					"docs/commands.md: error: review required\n  changed: package.json",
+					"docs/commands.md: warning: declared dependency changed but the document did not: package.json",
 				);
 			} finally {
 				log.mockRestore();
 			}
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-
-	it("fails closed on changed dependencies when hash review proof is not enabled", async () => {
-		const root = mkdtempSync(join(tmpdir(), "skel-date-impact-"));
-		try {
-			mkdirSync(join(root, "docs"), { recursive: true });
-			mkdirSync(join(root, "src"), { recursive: true });
-			writeFileSync(
-				join(root, "skeleton.toml"),
-				'daysUntilStale = 365\n[scan]\ninclude = ["docs/**"]\nexclude = []\n',
-			);
-			writeFileSync(join(root, "src/example.ts"), "export const runThing = 2;\n");
-			writeFileSync(
-				join(root, "docs/example.md"),
-				`# Example
-
-<!-- source-of-truth: example runThing behavior -->
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-01 -->
-<!-- review-deps: paths=src/example.ts -->
-
-The runThing export provides the example behavior.
-`,
-			);
-
-			const result = await evaluateValidateChanged({ root, paths: ["src/example.ts"] });
-			expect(result.exitCode).toBe(1);
-			expect(result.diagnostics).toContainEqual(
-				expect.objectContaining({ code: "impacted-document-review-required" }),
-			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
@@ -498,7 +469,6 @@ The runThing export provides the example behavior.
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
-		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
 			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,
@@ -541,12 +511,8 @@ The runThing export provides the example behavior.
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
-			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
@@ -590,12 +556,8 @@ The runThing export provides the example behavior.
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
-			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
@@ -639,12 +601,8 @@ The runThing export provides the example behavior.
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/demo/demo.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
-			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/demo/demo.ts"),
@@ -678,7 +636,6 @@ The runThing export provides the example behavior.
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\n`,
 		);
-		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
 			join(dir, ".claude/skills/foreign/SKILL.md"),
 			"---\nname: foreign\ndescription: x\n---\n\nHUB_BANNED_TOKEN\n",
@@ -720,12 +677,8 @@ The runThing export provides the example behavior.
 			`scan:\n  include: ["docs/**"]\n  exclude: [".claude/**"]\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
 		writeFileSync(
-			join(dir, ".skeleton/registry.md"),
-			`<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n| Topic | Path | Owner |\n| --- | --- | --- |\n| A | [a](../docs/a.md) | eng |\n`,
-		);
-		writeFileSync(
 			join(dir, "docs/a.md"),
-			`# A\n\n<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->\n\n**Source of truth for** A.\n`,
+			`# A\n\n<!-- doc-meta: owner=eng -->\n\n**Source of truth for** A.\n`,
 		);
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),

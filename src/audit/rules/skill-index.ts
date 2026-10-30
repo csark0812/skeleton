@@ -170,10 +170,6 @@ export function runSkillIndexRule(ctx: AuditContext): Issue[] {
 
 export const skillIndexRule = { id: "skill-index", run: runSkillIndexRule };
 
-export function skillCountOnDisk(ctx: AuditContext): number {
-	return listOwnedSkillSlugs(ctx.skillIndex).length;
-}
-
 /** Success-suffix detail: owned audited vs foreign ignored. */
 export function skillAuditSuffix(ctx: AuditContext): string {
 	const owned = listOwnedSkillSlugs(ctx.skillIndex).length;

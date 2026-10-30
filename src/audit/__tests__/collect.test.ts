@@ -41,6 +41,21 @@ describe("matchesGlobScope", () => {
 			true,
 		);
 	});
+
+	it("lets **/ match zero directories, as file globbing does", () => {
+		expect(matchesGlobScope("src/example.ts", "src/**/*.ts")).toBe(true);
+		expect(matchesGlobScope("src/a/b/example.ts", "src/**/*.ts")).toBe(true);
+		expect(matchesGlobScope("DEPLOYMENT.md", "**/DEPLOYMENT.md")).toBe(true);
+		expect(matchesGlobScope("__tests__/a.ts", "**/__tests__/**")).toBe(true);
+		expect(matchesGlobScope("docs", "docs/**")).toBe(false);
+	});
+
+	it("treats dots and other characters literally", () => {
+		expect(matchesGlobScope("docs/a.md", "docs/*.md")).toBe(true);
+		expect(matchesGlobScope("docs/aXmd", "docs/*.md")).toBe(false);
+		expect(matchesGlobScope("src/b.ts", "src/[ab].ts")).toBe(true);
+		expect(matchesGlobScope("src/c.ts", "src/[ab].ts")).toBe(false);
+	});
 });
 
 describe("collectScanFiles", () => {
@@ -199,12 +214,12 @@ describe("validateScanRoots", () => {
 
 describe("filterDocMetaPaths", () => {
 	it("keeps only doc-meta paths matching explicit --paths", () => {
-		const all = ["docs/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
+		const all = ["docs/a.md", "docs/dev/b.md", "README.md"];
 		expect(filterDocMetaPaths(all, ["docs/dev/b.md"])).toEqual(["docs/dev/b.md"]);
 	});
 
 	it("keeps doc-meta paths under a directory path", () => {
-		const all = ["docs/dev/a.md", "docs/dev/b.md", ".skeleton/registry.md"];
+		const all = ["docs/dev/a.md", "docs/dev/b.md", "README.md"];
 		expect(filterDocMetaPaths(all, ["docs/dev"])).toEqual(["docs/dev/a.md", "docs/dev/b.md"]);
 	});
 });

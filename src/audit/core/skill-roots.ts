@@ -10,10 +10,10 @@ import {
 	type SkillProvenanceMap,
 } from "./skill-provenance.ts";
 
-export const NESTED_SKILL_ROOTS = [".claude/skills", ".agents/skills"] as const;
+const NESTED_SKILL_ROOTS = [".claude/skills", ".agents/skills"] as const;
 
 /** Directories at repo root that must not be treated as flat skill slugs. */
-export const FLAT_SKILL_DENYLIST = new Set([
+const FLAT_SKILL_DENYLIST = new Set([
 	".git",
 	".github",
 	".skeleton",
@@ -32,7 +32,7 @@ export const FLAT_SKILL_DENYLIST = new Set([
 	"schemas",
 ]);
 
-export type SkillRootKind = "nested" | "flat";
+type SkillRootKind = "nested" | "flat";
 
 export interface SkillRoot {
 	kind: SkillRootKind;
@@ -171,11 +171,7 @@ export function buildSkillIndex(root: string, ownership?: SkillOwnershipConfig):
 	return { roots, slugs, flatSlugs, ownedSlugs, foreignSlugs, provenance };
 }
 
-export function isOwnedSkillSlug(index: SkillIndex, slug: string): boolean {
-	return index.ownedSlugs.includes(slug);
-}
-
-export function isForeignSkillSlug(index: SkillIndex, slug: string): boolean {
+function isForeignSkillSlug(index: SkillIndex, slug: string): boolean {
 	return index.foreignSlugs.includes(slug);
 }
 
@@ -221,7 +217,7 @@ function flatSlugForPath(normalized: string, index: SkillIndex): string | null {
 	return first && flat.has(first) ? first : null;
 }
 
-export function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
+function skillSlugForPath(relPath: string, index: SkillIndex): string | null {
 	const normalized = normalizeRelPath(relPath);
 	for (const skillRoot of index.roots) {
 		if (skillRoot.kind === "nested") {
@@ -248,7 +244,7 @@ export function isForeignSkillPath(relPath: string, index: SkillIndex): boolean 
 const NESTED_SKILL_SLUG_RE = /(?:^|\/)\.(?:claude|agents)\/skills\/([a-z0-9-]+)\//;
 const FLAT_SKILL_REFERENCES_RE = /(?:^|\/)([a-z0-9-]+)\/references(?:\/|$)/;
 
-export function slugFromSkillPath(relPath: string): string | null {
+function slugFromSkillPath(relPath: string): string | null {
 	const normalized = normalizeRelPath(relPath);
 	const nested = normalized.match(NESTED_SKILL_SLUG_RE);
 	if (nested?.[1]) return nested[1];

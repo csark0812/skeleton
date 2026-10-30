@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Check the merged result: two PRs can each pass yet leave a shared review dependency stale.
+  merge_group:
 
 jobs:
   test:
@@ -19,7 +21,7 @@ jobs:
 
       - run: bun install --frozen-lockfile
       - run: bun run lint
-      - run: bun test
+      - run: bun run test
       - run: bun run typecheck
       - run: bun run build
       - run: bun scripts/verify-package.ts

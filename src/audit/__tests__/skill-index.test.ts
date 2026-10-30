@@ -17,7 +17,6 @@ function writeMinimalConfig(root: string): void {
 daysUntilStale: 180
 `,
 	);
-	writeFileSync(join(root, ".skeleton", "registry.md"), "# Registry\n");
 }
 
 describe("skill-index rule", () => {
@@ -58,8 +57,6 @@ describe("skill-index rule", () => {
 				docMetaPaths: [],
 				ssotEntries: [],
 				ssotErrors: [],
-				registryPaths: [],
-				registryHasTableHeader: false,
 				skillIndex,
 				lockedSkillSlugs: new Set<string>(),
 				policies: [],
@@ -93,8 +90,6 @@ describe("skill-index rule", () => {
 				docMetaPaths: [],
 				ssotEntries: [],
 				ssotErrors: [],
-				registryPaths: [],
-				registryHasTableHeader: false,
 				skillIndex,
 				lockedSkillSlugs: new Set(["foreign"]),
 				policies: [],

@@ -1,69 +1,32 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AuditContext } from "../core/context.ts";
-import { lastGitCommitDate } from "../core/git-meta.ts";
+import { lastCommitDay } from "../core/git-meta.ts";
 import { type Issue, issue } from "../core/report.ts";
-import { DOC_META_RE, docMetaLastReviewed } from "../core/shared.ts";
-import { slugFromPath } from "../core/skill-roots.ts";
+import { DOC_META_RE } from "../core/shared.ts";
 
 function checkDocMetaBanner(relPath: string, content: string): Issue | null {
 	if (DOC_META_RE.test(content)) return null;
-	return issue("doc-meta", relPath, "missing doc-meta comment (owner + last-reviewed)");
+	return issue("doc-meta", relPath, "missing doc-meta comment (<!-- doc-meta: owner=<team> -->)");
 }
 
-interface StaleReviewInput {
+/** Age of the document's last commit: nothing records reviews, so an edit is the last review. */
+function checkStaleReview(input: {
+	ctx: AuditContext;
 	relPath: string;
-	content: string;
 	today: Date;
-	staleDays: number;
-}
-
-function checkStaleReview(input: StaleReviewInput): Issue | null {
-	const { relPath, content, today, staleDays } = input;
-	const reviewedStr = docMetaLastReviewed(content);
-	if (!reviewedStr) return null;
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime())) return null;
-	const ageDays = (today.getTime() - reviewed.getTime()) / 86_400_000;
-	if (ageDays <= staleDays) return null;
+}): Issue | null {
+	const { ctx, relPath, today } = input;
+	const committed = lastCommitDay(ctx.root, relPath);
+	if (!committed) return null;
+	const ageDays = (today.getTime() - Date.parse(`${committed}T00:00:00Z`)) / 86_400_000;
+	if (!(ageDays > ctx.config.daysUntilStale)) return null;
 	return issue("doc-meta", relPath, {
-		message: `doc-meta last-reviewed ${reviewedStr} exceeds re-read cadence (>${staleDays} days) — re-affirm the paper or bump after review`,
+		code: "review-cadence-exceeded",
+		message: `last changed ${committed}, beyond the re-read cadence (>${ctx.config.daysUntilStale} days)`,
 		severity: "warning",
-	});
-}
-
-interface GitFreshnessInput {
-	relPath: string;
-	content: string;
-	root: string;
-	lockedSkillSlugs: Set<string>;
-}
-
-export function gitFreshnessMessage(reviewedStr: string, gitDate: string): string {
-	return `content changed after last-reviewed ${reviewedStr} (git: ${gitDate}) — REQUIRED: re-read the entire document, then bump last-reviewed only if the content is still correct; do not change the date alone`;
-}
-
-function checkGitFreshness(input: GitFreshnessInput): Issue | null {
-	const { relPath, content, root, lockedSkillSlugs } = input;
-	const reviewedStr = docMetaLastReviewed(content);
-	if (!reviewedStr) return null;
-	const reviewed = new Date(`${reviewedStr}T00:00:00Z`);
-	if (Number.isNaN(reviewed.getTime())) return null;
-
-	const slug = slugFromPath(relPath, root);
-	if (slug !== null && lockedSkillSlugs.has(slug)) return null;
-
-	const gitDate = lastGitCommitDate(relPath, root);
-	if (!gitDate) return null;
-	const committed = new Date(`${gitDate}T00:00:00Z`);
-	if (Number.isNaN(committed.getTime())) return null;
-	if (committed.getTime() <= reviewed.getTime()) return null;
-
-	return issue("doc-meta", relPath, {
-		code: "review-behind-git-edit",
-		message: gitFreshnessMessage(reviewedStr, gitDate),
-		severity: "error",
-		remediation: "Re-read the entire document, then use explicit review attestation for that path.",
+		remediation:
+			"Re-read the entire document against its sources and commit any correction; raise daysUntilStale if the cadence is too tight.",
 	});
 }
 
@@ -81,22 +44,8 @@ export function runDocMetaRule(ctx: AuditContext): Issue[] {
 			issues.push(banner);
 			continue;
 		}
-
-		const stale = checkStaleReview({
-			relPath,
-			content,
-			today,
-			staleDays: ctx.config.daysUntilStale,
-		});
+		const stale = checkStaleReview({ ctx, relPath, today });
 		if (stale) issues.push(stale);
-
-		const git = checkGitFreshness({
-			relPath,
-			content,
-			root: ctx.root,
-			lockedSkillSlugs: ctx.lockedSkillSlugs,
-		});
-		if (git) issues.push(git);
 	}
 
 	return issues;

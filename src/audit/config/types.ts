@@ -1,11 +1,11 @@
-export interface ScanConfig {
+interface ScanConfig {
 	include: string[];
 	exclude: string[];
 	/** Slugs present on disk but excluded from README Taxonomy (internal skills). */
 	nonPublicSkills?: string[];
 }
 
-export interface DenyConfig {
+interface DenyConfig {
 	/** Repo-wide globs that must not exist — audit fails if matched. */
 	paths?: string[];
 }
@@ -24,23 +24,23 @@ export interface SkillOwnershipConfig {
 }
 
 /** Files that must appear in at least one scanned document's review-deps. */
-export interface ReviewCoverageConfig {
+interface ReviewCoverageConfig {
 	/** Repo-relative globs that require an owning paper. Empty include disables the gate. */
 	include?: string[];
 	/** Globs removed from the coverage set. */
 	exclude?: string[];
 }
 
-/** Verifiable evidence that a human review covered exact document and code bytes. */
-export interface ReviewProofConfig {
-	/** Hash mode stores reviewed document and code-target digests in a lockfile. */
-	mode: "hash";
-	/** Repo-relative proof lockfile (default: .skeleton/review-lock.json). */
-	lockfile?: string;
+/** Harness-neutral review settings for `skeleton review prepare`. */
+interface ReviewConfig {
+	/** Globs for high-consequence paths; a change there needs a person, not an agent. */
+	humanPaths?: string[];
+	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
+	command?: string;
 }
 
 /** Tunables for near-duplicate and SSOT-summary docs lint. */
-export interface DocsLintConfig {
+interface DocsLintConfig {
 	/** Jaccard threshold on word shingles (0–1). Default 0.72. */
 	nearDuplicateThreshold?: number;
 	/** Min fraction of SSOT tokens that must appear in evidence (default 0.35). */
@@ -57,11 +57,11 @@ export interface DocsLintConfig {
 
 export interface SkeletonConfig {
 	scan: ScanConfig;
-	/** Re-read cadence (days) for doc-meta last-reviewed; separate from git edit-behind-review. */
+	/** Re-read cadence (days), measured from the document's last commit. */
 	daysUntilStale: number;
 	deny?: DenyConfig;
 	skillOwnership?: SkillOwnershipConfig;
-	reviewProof?: ReviewProofConfig;
+	review?: ReviewConfig;
 	reviewCoverage?: ReviewCoverageConfig;
 	docsLint?: DocsLintConfig;
 	/**

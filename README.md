@@ -2,17 +2,17 @@
 
 <!-- source-of-truth: Package overview -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-26 -->
+<!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json -->
+<!-- review-deps: paths=src/cli.ts,src/context.ts,package.json#scripts,package.json#bin,package.json#engines,package.json#packageManager,package.json#name -->
 
 Agent repos get messy fast. Skills get copied around, docs disagree, links go stale, and nobody remembers which file is actually canonical.
 
 Skeleton is an SSOT linter for that layer. Define the contract once; Skeleton checks it locally and in CI. If a canonical doc disappears, SSOT markers drift, a skill index stops matching disk, or a local link breaks, the audit fails before merge.
 
-Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
+Think ESLint — for the docs and skills your agents rely on. Primary CLI from `src/cli.ts`: `audit`, `validate`, `route`, `context`, `review`, `catalog`, `init`, and `build-plugin`. Commands dispatch through that entry file.
 
-Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, or manage memory. It checks whether the repo around those systems still holds together.
+Skeleton is **not** a runtime agent harness. It doesn't execute tools, enforce permissions, manage memory, run a reviewer model, post or resolve PR comments, or replace CODEOWNERS, branch protection, merge queues, or rollout tooling. It checks whether the repo around those systems still holds together.
 
 ## Why this matters
 
@@ -37,7 +37,7 @@ npm install -D @csark0812/skeleton
 npx skeleton init --skills
 ```
 
-That writes `skeleton.toml`, adds validation scripts, writes `.pre-commit-config.yaml`, adds a bounded `skeleton context` guide to `AGENTS.md`, and copies the Skeleton skill bundled with the installed package.
+That writes `skeleton.toml`, adds validation scripts, writes `.pre-commit-config.yaml`, adds a bounded `skeleton context` guide to `AGENTS.md`, adds `.skeleton/catalog.md` to `.gitignore`, and copies the Skeleton skill bundled with the installed package.
 
 Edit `skeleton.toml` for your repo layout, then verify:
 
@@ -53,19 +53,20 @@ Flag details: [install](docs/developer/install.md).
 - **SSOT markers** — opt-in `source-of-truth` (comment or visible); dual/malformed forms fail; legacy banners accepted
 - **Near-duplicate docs** — shingle overlap + duplicate SSOT summaries (warn / `--strict`)
 - **SSOT summary fit** — heuristic overlap between the one-liner and the body (warn / `--strict`)
-- **Link audit** — broken refs, skill links, anchors in scanned markdown
+- **Link audit** — broken refs, skill links, and anchors in scanned markdown; an anchor on a code or JSON file must name a symbol or key that exists (`src/run.ts#parseArgs`, `package.json#scripts.test`)
+- **Package references** — a `pnpm <script>`-style command in any doc must name a script in the nearest `package.json`; the `AGENTS.md` beside it must quote the exact `packageManager` and `engines.node`
 - **Skill index** — disk matches taxonomy READMEs in detected skill roots
 - **deny.paths** — globs for files that must not exist (often outside `scan.include`)
 - **Coverage gaps** — markdown outside the scan perimeter (warn-only)
-- **Doc meta + stale dates** — owner and `last-reviewed` on indexes and SSOT-bearing files
-- **Review proof** — optional hashes bind a human review to exact document and `review-deps` bytes
+- **Doc meta** — an owner on indexes and SSOT-bearing files
+- **Stale documents** — a change to a file a document declares in `review-deps` warns, in pre-commit and pull-request validation, when the document did not change too. Nothing records reviews, so documents merge exactly as git merges them; a `package.json` release `version`, changes outside a `#` selector (a JSON key, a Markdown section, a JS/TS declaration), and doc-meta-only edits do not count
 - **Dependency routing** — changed repository files automatically pull matching documents into validation
 - **Prose policy** (optional plugins) — YAML pattern rules; idle with no plugins
 - **Shell / JSON syntax** — lightweight checks on changed `.sh` and `.json` files
 
 Agents skim `.skeleton/catalog.md` (generated, gitignored) before opening full papers.
 
-For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. It is read-only and reports whether recorded review evidence still matches:
+For a bounded evidence bundle that joins canonical documentation to its declared source owners and nearest focused test, use `skeleton context`. When Skeleton can derive the repository-native focused command, the bundle includes `test-command`. An excerpt that is the entire file is marked `whole-file`, and a `reference` line lists each tracked file and line that names a code identifier from the request (camelCase, PascalCase, or snake_case), so a rename needs no further search. It is read-only and reports whether declared sources changed while the document did not:
 
 ```bash
 skeleton context "billing webhook retry"
@@ -73,7 +74,13 @@ skeleton context --path src/billing/delivery.ts
 skeleton context "billing webhook URL" --staged
 ```
 
-When a dependency changed since review, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing. When context returns `no-context`, its action asks the agent to inspect nearby code, tests, and docs, repair or create canonical ownership for durable behavior, then repeat the same request until the owner is returned. Read-only tasks report the gap without editing.
+When a declared source changed and the document did not, context prints an `action` line requiring the final owning document to be checked against the returned source and every mismatch to be corrected before finishing. When context returns `no-context`, its action asks the agent to inspect nearby code, tests, and docs, repair or create canonical ownership for durable behavior, then repeat the same request until the owner is returned. Read-only tasks report the gap without editing.
+
+Context emits review actions for a document with no declared `review-deps` (`unreviewed`), a declared source that changed in the working tree or index while the document did not (`changed-since-review`), and a document whose last commit is older than the configured cadence (`review-required`). Without declared sources, compare active implementation claims with source; historical alternatives and future aspirations remain qualified intent. `current` means the declared sources read as committed, not that the document agrees with them.
+
+Each matching paper receives a share of the excerpt budget so one broad owner cannot consume it all. `omitted` and `omitted-source` list excluded papers and declared sources, with an action to narrow the query, increase `--max-chars`, or report the remaining evidence limit. Review status compares the full declared dependency set, including files removed from a glob, even when excerpts are omitted. Complete the relevant review and omission actions before treating the packet as sufficient evidence.
+
+Consumer prevention also requires `review-deps` for active implementation claims and running `validate changed` on source changes. Use a scoped `[reviewCoverage]` policy to reject unowned paths where ownership is required. A doc-only hook or `include = []` leaves those source changes outside the ownership gate. Skeleton does not infer semantic conflicts from prose.
 
 Shared reference files can live in any scanned path. Public repositories can link skills directly to GitHub-hosted references; Skeleton leaves those external links unchanged and does not check their remote reachability.
 
@@ -87,7 +94,6 @@ Config lives in **`skeleton.toml`** at the repo root (preferred). Optional under
 skeleton.toml          # scan perimeter, deny.paths, docsLint, …
 .skeleton/
 ├── catalog.md         # generated by `skeleton catalog` (gitignored)
-├── review-lock.json   # generated review evidence when reviewProof.mode = "hash"
 └── plugins/           # optional consumer audit plugins (.ts + built .mjs)
 ```
 
@@ -112,13 +118,15 @@ Edit synced skills in the owning toolbox repo. Consumer copies stay read-only.
 ```bash
 skeleton init [--skills]
 skeleton catalog [--check] [--strict]
-skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=doc-meta|anchors|ssot]] [--dry-run]
-skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
+skeleton audit docs|skills|self [--strict] [--json] [--paths=a,b] [--fix[=anchors|ssot]] [--dry-run]
 skeleton build-plugin [path] [--check]
 skeleton route [path…]
 skeleton context <query> | --path <path> [--staged] [--max-chars=N]
 skeleton validate changed [--staged | --base <ref>] [paths…]
+skeleton review prepare [--staged | --base <ref>] [--json] [--run]
 ```
+
+**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
 
 **Validate changed** routes git diffs to the right audit:
 
@@ -131,7 +139,7 @@ skeleton validate changed [--staged | --base <ref>] [paths…]
 | Other `.json`                                                                       | JSONC-tolerant syntax check                   |
 | Any repository file                                                                 | native gates where applicable + audit documents whose `review-deps` path or glob matched |
 
-Pre-commit: `skeleton validate changed --staged` (index bytes, coverage, owning papers).
+Pre-commit: `skeleton validate changed --staged` (index bytes, coverage, owning papers; a dependency change without its document warns and does not block).
 
 CI: `skeleton validate changed --base origin/main` (global rules first, then changed files, same coverage fail).
 
@@ -159,7 +167,7 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 
 ## Agent efficacy
 
-Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Two additional core tasks measure correctness and reliability without a savings gate, and four package-tradeoff comparisons measure adoption, recovery, and simple-task overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
+Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Three additional core tasks measure correctness and reliability without a savings gate, and five package-tradeoff comparisons measure adoption, recovery, and simple-task and hook overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
 
 Method: [Agent efficacy](docs/developer/efficacy.md).
 

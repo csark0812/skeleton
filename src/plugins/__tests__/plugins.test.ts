@@ -394,7 +394,6 @@ describe("plugin load + build", () => {
 			join(dir, ".skeleton/config.yaml"),
 			`scan:\n  include: ["docs/**"]\n  exclude: []\ndaysUntilStale: 180\nplugins:\n  - plugins/example/example.ts\n`,
 		);
-		writeFileSync(join(dir, ".skeleton/registry.md"), "# Registry\n");
 		writeFileSync(
 			join(dir, ".skeleton/plugins/example/example.ts"),
 			`export default { rules: [], policies: ["plugins/example/policies/*.yaml"] };\n`,

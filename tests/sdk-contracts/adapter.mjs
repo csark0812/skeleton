@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -74,6 +74,67 @@ export default defineAgent({
 					return;
 				}
 				if (options.executionFailure) throw new Error("Offline provider failure");
+				if (existsSync(join(workspace.path, "src/invoices.ts"))) {
+					const skeleton = existsSync(join(workspace.path, "skeleton.toml"));
+					const rename = prompt.includes("Rename sendInvoiceReminder");
+					const edit = async (path, from, to) => {
+						const absolute = join(workspace.path, path);
+						await writeFile(absolute, (await readFile(absolute, "utf8")).replaceAll(from, to));
+					};
+					const commit = () => {
+						execFileSync("git", ["add", "-A"], { cwd: workspace.path });
+						const result = spawnSync("git", ["commit", "-m", "Offline invoice change"], {
+							cwd: workspace.path,
+							encoding: "utf8",
+						});
+						return {
+							type: "tool",
+							name: "Shell",
+							args: { command: "git commit" },
+							result: `${result.stdout}${result.stderr}`,
+							succeeded: result.status === 0,
+						};
+					};
+					if (rename) {
+						for (const path of ["src/invoices.ts", "tests/invoices.test.ts"])
+							await edit(path, "sendInvoiceReminder", "remindInvoiceRecipient");
+					} else {
+						await edit("src/invoices.ts", "padStart(5", "padStart(6");
+						await edit("tests/invoices.test.ts", "INV-00042", "INV-000042");
+					}
+					const first = commit();
+					yield first;
+					if (rename && skeleton) {
+						// The Skeleton hook must refuse the stale link; the scripted agent then repairs it.
+						if (first.succeeded) throw new Error("Pre-commit hook accepted a stale link");
+						await edit(
+							"docs/invoice-reminders.md",
+							"sendInvoiceReminder",
+							"remindInvoiceRecipient",
+						);
+						const retry = commit();
+						yield retry;
+						if (!retry.succeeded) throw new Error(`Repaired commit failed: ${retry.result}`);
+					} else if (!first.succeeded) throw new Error(`Commit failed: ${first.result}`);
+					else if (rename) {
+						// Without the hook, the scripted baseline finds the stale link only on a second pass.
+						await edit(
+							"docs/invoice-reminders.md",
+							"sendInvoiceReminder",
+							"remindInvoiceRecipient",
+						);
+						const followUp = commit();
+						yield followUp;
+						if (!followUp.succeeded) throw new Error(`Follow-up commit failed: ${followUp.result}`);
+					}
+					yield { type: "text", text: "Offline invoice change committed." };
+					// Scripted totals that exercise the no-more-tokens gate; they are not measurements.
+					yield {
+						type: "usage",
+						usage: { totalTokens: rename ? (skeleton ? 120 : 130) : 100 },
+					};
+					return;
+				}
 				if (existsSync(join(workspace.path, "src/limits.ts"))) {
 					if (prompt.includes('"delviery"')) {
 						const path = join(workspace.path, "README.md");

@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Skeleton framework authoring conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/catalog.ts -->
 
@@ -15,7 +15,7 @@ Full day-one flow: [getting started](developer/getting-started.md). Banner / cat
 Index docs and SSOT-bearing files require a doc-meta comment:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 ```
 
-After editing a paper, re-read the entire document and bump `last-reviewed` only when the content is still correct. Do not change the date alone: git is the last-edit signal, and there is no separate authored edit date. Cadence vs edit-behind-review: [doc system](developer/doc-system.md#doc-meta).
+When a change touches a file a paper declares in `review-deps`, re-read the entire paper and update it in the same commit if it is out of date; pre-commit warns, but does not block, when the paper is unchanged. Nothing records reviews and the paper carries no review date. Details: [keeping documents current](developer/doc-system.md#keeping-documents-current).

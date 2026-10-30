@@ -2,13 +2,13 @@
 
 <!-- source-of-truth: keys and examples -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/audit/config/** -->
 
 Machine schema: [`schemas/config.schema.json`](../../schemas/config.schema.json) (validates the loaded object). Init template: `templates/skeleton-init/skeleton.toml`. Day-one walkthrough: [getting started](getting-started.md).
 
-Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewProofConfig`, `ReviewCoverageConfig`).
+Loader: `loadConfig` / `loadConfigDetailed` / `findRepoRoot` / `mergedExcludes` in `src/audit/config/load.ts`. Typed shape: `SkeletonConfig` (`ScanConfig`, `DocsLintConfig`, `DenyConfig`, `SkillOwnershipConfig`, `ReviewCoverageConfig`).
 
 Preferred path: **`skeleton.toml` at the repo root**. Legacy `.skeleton/config.yaml` still loads when no TOML is present. If both exist, TOML wins and the CLI warns that YAML is ignored.
 
@@ -20,7 +20,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | ---------------- | -------------------------------------------------------------------------------------------- |
 | `scan.include`   | Glob patterns for markdown/docs/skills in the audit perimeter (links, doc-meta, SSOT)        |
 | `scan.exclude`   | Removed from the perimeter (drafts, refs, local install trees)                               |
-| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when `last-reviewed` is older than N days — not the same as “edited after review” (that uses git; see [doc system](doc-system.md#doc-meta)) |
+| `daysUntilStale` | Re-read **cadence**: warn (error under `--strict`) when a document's last commit is older than N days — not the same as a changed dependency (see [doc system](doc-system.md#keeping-documents-current)) |
 
 ## Optional
 
@@ -31,7 +31,7 @@ Top-level required keys: `scan` and `daysUntilStale`. Inside `scan`, required: `
 | `plugins`                 | Plugin entry paths relative to `.skeleton/` (each needs a built sibling `.mjs`) — [plugins](plugins.md) |
 | `draftPathPrefixes`       | Allow-list prefixes for draft-marker prose policy (plus `_draft-*.md`). Not `scan.exclude`              |
 | `skillOwnership`          | Provenance-aware skill body linting (see below)                                                         |
-| `reviewProof`             | Hash-backed evidence for exact reviewed document and `review-deps` bytes (see below)                   |
+| `review`                  | Human-review globs and an optional reviewer command for `review prepare` ([code review](review.md)) |
 | `reviewCoverage`          | Globs that must appear in at least one scanned paper's `review-deps` (see below)                       |
 | `docsLint`                | Near-duplicate / SSOT-summary thresholds and ignore pairs (see below)                                  |
 
@@ -59,19 +59,21 @@ paths = ["apps/**/*_ANALYSIS.md"]
 
 `ssot-summary` scores stemmed unigrams against H1 + lead + body (SSOT line stripped). Exact phrase match only explains a failed overlap — abstract titles can pass without verbatim phrasing. Better-match warns only when own overlap is weak and another SSOT paper fits better; the message lists rewrite / retarget / consider-combine options.
 
-`review-deps`: opt-in HTML comment markers with comma-separated `paths=`. Docs may declare exact repo-relative files or globs. Exact missing files error; empty globs warn (or error under `--strict`). See [doc system](doc-system.md#doc-meta).
+`review-deps`: opt-in HTML comment markers with comma-separated `paths=`. Docs may declare exact repo-relative files or globs. Exact missing files error; empty globs warn (or error under `--strict`). A whole `package.json` dependency warns `review-dependency-broad`, and documents that depend on each other warn `review-dependency-cycle`. See [doc system](doc-system.md#doc-meta).
 
-## `reviewProof`
+## `review-deps` comparisons
+
+Documents stay current through the change itself ([keeping documents current](doc-system.md#keeping-documents-current)). `review-deps` can narrow a dependency with a selector: a JSON key path (`package.json#scripts,package.json#bin`), a Markdown heading (`docs/guide.md#install`), or a JS/TS symbol (`src/run.ts#parseArgs`). Only the selected region is compared, and a selector that names nothing is an error ([review dependencies](doc-system.md#review-dependencies)); impact discovery still treats any change to the file as touching the document. Selectors work only on one file, not on a glob. A dependency named `package.json` is compared as parsed JSON without its top-level `version` field, so a release version bump or a whitespace-only edit does not count; any other manifest change does. A manifest that is not a JSON object is compared byte for byte. A Markdown dependency is compared without its doc-meta comment.
+
+## `review`
 
 ```toml
-[reviewProof]
-mode = "hash"
-# lockfile = ".skeleton/review-lock.json"
+[review]
+humanPaths = [".github/workflows/**", "src/auth/**"]
+command = "./scripts/review-agent.sh"
 ```
 
-Hash mode makes `last-reviewed` verifiable. Explicit attestation stores SHA-256 digests for the complete document and every resolved `review-deps` dependency. Any byte or resolved-set change invalidates the review until a human re-reads and attests the document again. Commit the lockfile. Init enables this section by default.
-
-Without this section, Skeleton uses compatibility date mode. Changed review dependencies still pull linked documents into `validate changed`; the document must co-change with a current explicit review date.
+Both keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. See [code review](review.md).
 
 ## `reviewCoverage`
 

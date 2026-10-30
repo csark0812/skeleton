@@ -15,8 +15,8 @@ const SCHEMA_CANDIDATES = [
 	join(dirname(fileURLToPath(import.meta.url)), "../schemas/config.schema.json"),
 ];
 
-export const ROOT_CONFIG_TOML = "skeleton.toml";
-export const LEGACY_CONFIG_YAML = join(".skeleton", "config.yaml");
+const ROOT_CONFIG_TOML = "skeleton.toml";
+const LEGACY_CONFIG_YAML = join(".skeleton", "config.yaml");
 
 function resolveSchemaPath(): string {
 	for (const candidate of SCHEMA_CANDIDATES) {
@@ -26,7 +26,7 @@ function resolveSchemaPath(): string {
 }
 
 /** Built-in exclude patterns applied to scan and deny.paths passes. */
-export const BUILTIN_EXCLUDES = ["node_modules/**", ".git/**", "dist/**", "refs/**", "_agent/**"];
+const BUILTIN_EXCLUDES = ["node_modules/**", ".git/**", "dist/**", "refs/**", "_agent/**"];
 
 /** Built-in excludes for coverage-gaps candidate discovery. */
 export const COVERAGE_BUILTIN_EXCLUDES = [
@@ -67,13 +67,13 @@ function validateConfig(raw: unknown, sourceLabel: string): SkeletonConfig {
 	return config;
 }
 
-export interface LoadConfigResult {
+interface LoadConfigResult {
 	config: SkeletonConfig;
 	source: "toml" | "yaml";
 	warnedDual?: boolean;
 }
 
-export function loadConfigDetailed(root: string): LoadConfigResult {
+function loadConfigDetailed(root: string): LoadConfigResult {
 	const tomlPath = join(root, ROOT_CONFIG_TOML);
 	const yamlPath = join(root, LEGACY_CONFIG_YAML);
 	const hasToml = existsSync(tomlPath);
@@ -111,10 +111,6 @@ export function loadConfig(root: string): SkeletonConfig {
 
 export function mergedExcludes(config: SkeletonConfig): string[] {
 	return [...new Set([...BUILTIN_EXCLUDES, ...config.scan.exclude])];
-}
-
-export function denyPaths(config: SkeletonConfig): string[] {
-	return config.deny?.paths ?? [];
 }
 
 export function nonPublicSkills(config: SkeletonConfig): string[] {

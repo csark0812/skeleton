@@ -1,7 +1,7 @@
-export const ANCHOR_MATCH_MIN_SCORE = 2 / 3;
-export const ANCHOR_MATCH_MIN_MARGIN = 0.15;
+const ANCHOR_MATCH_MIN_SCORE = 2 / 3;
+const ANCHOR_MATCH_MIN_MARGIN = 0.15;
 
-export interface AnchorMatch {
+interface AnchorMatch {
 	slug: string;
 	score: number;
 }
@@ -20,7 +20,7 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 	return union === 0 ? 0 : intersection / union;
 }
 
-export function scoreAnchorMatch(brokenSlug: string, candidateSlug: string): number {
+function scoreAnchorMatch(brokenSlug: string, candidateSlug: string): number {
 	if (brokenSlug === candidateSlug) return 1;
 	// Hyphen-bounded extensions only (`getting-started` → `getting-started-guide`).
 	// Raw string prefixes (`cli` → `client`) must not score perfect.
