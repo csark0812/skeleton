@@ -14,6 +14,7 @@ skeleton review prepare --staged           # the index
 skeleton review prepare --base origin/main # a branch range
 skeleton review prepare --base origin/main --json
 skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command
+skeleton review prepare --base origin/main --paths=src/billing/**   # review one area
 ```
 
 ## The bundle
@@ -30,6 +31,8 @@ The bundle has these sections, in order:
 8. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
 
 `--json` prints the same data as one object (`ReviewBundle` in `src/review/prepare.ts`). `--run` cannot be combined with `--json`.
+
+`--paths=a,b` narrows the diff and the review guides to matching changed paths, and the bundle's title says so. Human-review paths and documents to re-read still cover the whole scope, so reviewing one area cannot hide a required person. A glob list that matches no changed path is an error. When a bundle is larger than 200,000 characters, stderr shows its size and the largest areas with a `--paths` value for each. Nothing is truncated, and 200,000 is a starting value that has not been measured.
 
 ## Review guides
 

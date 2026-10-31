@@ -4,7 +4,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { formatReviewBundle, prepareReview, runReviewCommand } from "../prepare.ts";
+import { parseReviewPrepareArgs } from "../cli.ts";
+import {
+	formatReviewBundle,
+	largeBundleWarning,
+	prepareReview,
+	runReviewCommand,
+} from "../prepare.ts";
 
 let roots: string[] = [];
 
@@ -280,6 +286,61 @@ describe("review prepare", () => {
 			{ path: "bun.lockb", reason: "lockfile", added: null, removed: null },
 		]);
 		expect(formatReviewBundle(bundle)).toContain("- bun.lockb (lockfile, binary)");
+	});
+
+	it("narrows the diff and guides but never human paths or documents", async () => {
+		const root = makeRepo('[review]\nhumanPaths = ["src/auth/**"]\n');
+		write(root, "src/auth/session.ts", "export const ttl = 0;\n");
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		write(root, "src/notes.ts", "export const notes = 1;\n");
+		const bundle = await prepareReview({ root, paths: ["src/notes.ts"] });
+		expect(bundle.diff).toContain("+export const notes = 1;");
+		expect(bundle.diff).not.toContain("retries = 2");
+		expect(bundle.diff).not.toContain("ttl = 0");
+		expect(bundle.reviewGuides).toEqual([]);
+		expect(bundle.humanReviewRequired).toEqual(["src/auth/session.ts"]);
+		expect(bundle.documentsToReread.map((document) => document.path)).toEqual(["docs/billing.md"]);
+		expect(formatReviewBundle(bundle)).toStartWith(
+			"# Review bundle (working tree against HEAD, including untracked files; narrowed to src/notes.ts)",
+		);
+	});
+
+	it("stops when --paths matches no changed path", async () => {
+		const root = makeRepo();
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		await expect(prepareReview({ root, paths: ["src/missing/**"] })).rejects.toThrow(
+			"--paths matched no changed path: src/missing/**",
+		);
+	});
+
+	it("parses --paths and rejects an empty list", () => {
+		expect(parseReviewPrepareArgs(["--paths=src/a/**,src/b.ts"]).paths).toEqual([
+			"src/a/**",
+			"src/b.ts",
+		]);
+		expect(() => parseReviewPrepareArgs(["--paths="])).toThrow("--paths cannot be empty");
+	});
+
+	it("warns on stderr for a large bundle and leaves stdout intact", () => {
+		const root = makeRepo();
+		write(root, "src/big/module/data.ts", `export const data = "${"x".repeat(210_000)}";\n`);
+		const result = spawnSync("bun", [join(import.meta.dir, "../../cli.ts"), "review", "prepare"], {
+			cwd: root,
+			encoding: "utf8",
+			maxBuffer: 16 * 1024 * 1024,
+		});
+		expect(result.status).toBe(0);
+		expect(result.stdout).toStartWith("# Review bundle");
+		expect(result.stdout).not.toContain("consider reviewing one area");
+		expect(result.stderr).toContain("consider reviewing one area at a time");
+		expect(result.stderr).toContain("(--paths=src/big/**)");
+	});
+
+	it("does not warn about a small bundle", async () => {
+		const root = makeRepo();
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		const bundle = await prepareReview({ root });
+		expect(largeBundleWarning(bundle, formatReviewBundle(bundle))).toBeNull();
 	});
 
 	it("fences the diff so changed Markdown cannot close it", async () => {

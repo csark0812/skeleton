@@ -18,6 +18,8 @@ interface ReviewScope {
 	root: string;
 	staged?: boolean;
 	base?: string;
+	/** Globs that narrow the diff and guides. Human paths and documents always use the whole scope. */
+	paths?: string[];
 }
 
 /** A per-area review guide whose `review-deps` match the change (or that has none). */
@@ -54,7 +56,7 @@ interface OmittedPath {
  * Skeleton prepares it; any agent harness, CI step, or person runs the review.
  */
 interface ReviewBundle {
-	scope: { staged: boolean; base: string | null };
+	scope: { staged: boolean; base: string | null; paths: string[] | null };
 	changedPaths: string[];
 	humanReviewRequired: string[];
 	documentsToReread: DocumentToReread[];
@@ -66,6 +68,10 @@ interface ReviewBundle {
 }
 
 const REVIEW_GUIDE = "REVIEW.md";
+
+/** Starting value, not measured: roughly 50k tokens. Above it the CLI suggests narrowing. */
+const LARGE_BUNDLE_CHARS = 200_000;
+const LARGE_BUNDLE_AREAS = 5;
 
 const LOCKFILES = new Set([
 	"bun.lock",
@@ -254,6 +260,17 @@ function humanReviewPaths(config: SkeletonConfig, changedPaths: string[]): strin
 	return changedPaths.filter((path) => patterns.some((pattern) => matchesGlobScope(path, pattern)));
 }
 
+/** The changed paths `--paths` keeps; a glob that keeps nothing is a mistake worth stopping for. */
+function pathsInFocus(scope: ReviewScope, paths: string[]): string[] {
+	if (!scope.paths) return paths;
+	const patterns = scope.paths;
+	const kept = paths.filter((path) => patterns.some((pattern) => matchesGlobScope(path, pattern)));
+	if (kept.length === 0) {
+		throw new Error(`review prepare: --paths matched no changed path: ${patterns.join(", ")}`);
+	}
+	return kept;
+}
+
 function formatOmittedPath(item: OmittedPath): string {
 	const lines = item.added === null ? "binary" : `+${item.added} -${item.removed}`;
 	return `- ${item.path} (${item.reason}, ${lines})`;
@@ -316,22 +333,22 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 	const routed = await evaluateRouteClassification({ root: scope.root, paths: changedPaths });
 	if (routed.pluginError) throw new Error(`review prepare: ${routed.pluginError}`);
 	const impactedDocuments = routed.impactedDocuments;
+	const focusPaths = pathsInFocus(scope, allPaths);
 	const humanPaths = humanReviewPaths(config, allPaths);
-	const omittedFromDiff = pathsToOmit({ scope, config, paths: allPaths, humanPaths, untracked });
+	const omittedFromDiff = pathsToOmit({ scope, config, paths: focusPaths, humanPaths, untracked });
 	return {
-		scope: { staged: scope.staged ?? false, base: scope.base ?? null },
+		scope: { staged: scope.staged ?? false, base: scope.base ?? null, paths: scope.paths ?? null },
 		changedPaths,
 		humanReviewRequired: humanPaths,
 		documentsToReread: documentsToReread(scope, impactedDocuments),
 		commits: statedCommits(scope),
-		reviewGuides: reviewGuides({ root: scope.root, config, paths: allPaths, source }),
+		reviewGuides: reviewGuides({ root: scope.root, config, paths: focusPaths, source }),
 		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
 		omittedFromDiff,
-		diff: gitDiffText(
-			scope,
-			untracked,
-			omittedFromDiff.map((item) => item.path),
-		),
+		diff: gitDiffText(scope, untracked, [
+			...omittedFromDiff.map((item) => item.path),
+			...allPaths.filter((path) => !focusPaths.includes(path)),
+		]),
 	};
 }
 
@@ -346,7 +363,11 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 		: bundle.scope.base
 			? `${bundle.scope.base}...HEAD`
 			: "working tree against HEAD, including untracked files";
-	const parts = [`# Review bundle (${range})\n`, section("Reviewer contract", REVIEWER_CONTRACT)];
+	const focus = bundle.scope.paths ? `; narrowed to ${bundle.scope.paths.join(", ")}` : "";
+	const parts = [
+		`# Review bundle (${range}${focus})\n`,
+		section("Reviewer contract", REVIEWER_CONTRACT),
+	];
 	if (bundle.humanReviewRequired.length > 0) {
 		parts.push(
 			section(
@@ -381,6 +402,31 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 	const fence = fenceFor(bundle.diff);
 	parts.push(section("Diff", `${fence}diff\n${bundle.diff.trimEnd()}\n${fence}`));
 	return parts.join("\n");
+}
+
+/** Diff characters per two-segment directory, largest first. */
+function diffSizeByArea(diff: string): [string, number][] {
+	const sizes = new Map<string, number>();
+	for (const file of diff.split(/^(?=diff --git )/m)) {
+		const path = /^diff --git .* b\/(.+)$/m.exec(file)?.[1];
+		if (!path) continue;
+		const area = path.split("/").slice(0, -1).slice(0, 2).join("/") || ".";
+		sizes.set(area, (sizes.get(area) ?? 0) + file.length);
+	}
+	return [...sizes].sort((a, b) => b[1] - a[1]);
+}
+
+/** Advice for a bundle too large to review well, or null. It never changes the bundle itself. */
+export function largeBundleWarning(bundle: ReviewBundle, text: string): string | null {
+	if (text.length <= LARGE_BUNDLE_CHARS) return null;
+	const areas = diffSizeByArea(bundle.diff).slice(0, LARGE_BUNDLE_AREAS);
+	return [
+		`review prepare: the bundle is ${text.length} characters; consider reviewing one area at a time.`,
+		...areas.map(
+			([area, size]) =>
+				`  ${area}: ${size} characters (--paths=${area === "." ? "*" : `${area}/**`})`,
+		),
+	].join("\n");
 }
 
 /**

@@ -34,6 +34,28 @@ On 2026-10-27 the two stale-doc-reference tests ran three paired attempts per ho
 
 Claude edited directly from the context packet in three to six calls. With the same packet, `gpt-5.6-luna` still searched with `rg` and re-read the returned whole files, so on this three-file repository the context call was extra cost. Live runs on agent-harness 2.3.0 through 2.3.3, and Claude runs on 2.3.4, are not valid Skeleton evidence. In those runs, sealed shells could not start a bin-symlinked `npx`, so `skeleton context` crashed (post-print/agent-spec#67, #68).
 
+### Seeded-defect review
+
+On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five, reproduced with `bun scripts/efficacy/review-rounds.ts <execution>`.
+
+| Check | Baseline v0 | Skeleton v0 | Baseline v1 | Skeleton v1 | Baseline v2 | Skeleton v2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Dropped order line | 5 | 5 | 5 | 5 | 4 | 5 |
+| Rule stated in a review guide | 5 | 5 | 5 | 5 | 4 | 5 |
+| Stale retry document | 2 | 5 | 3 | 5 | 0 | 4 |
+| Deleted payout hold | 5 | 5 | 5 | 5 | 4 | 5 |
+| Change the commit message denies | 0 | 0 | 0 | 3 | 0 | 2 |
+| Decoy not called important | 5 | 5 | 5 | 5 | 5 | 5 |
+| Median tokens, all runs | 167,138 | 128,302 | 140,048 | 110,748 | 138,551 | 97,198 |
+
+Executions: v0 `59e4b11d-4141-421e-a58a-f851d6d795e6`, v1 `abf98611-73c3-4c07-bed5-00a5f58173ec`, v2 `d8d51fb2-f31c-4edf-a6cd-e824ae2f02a6`.
+
+v2 failed its gates. One baseline judge call produced no verdict, which is an evaluation error and explains the baseline's 4 of 5 rows; the event log does not record why. One Skeleton report mentioned the documented retry policy without naming `docs/billing.md`, so the stale-document gate would also have failed. The test was not rerun.
+
+What this supports: on this task the bundle found the stale document more often than a bare diff, and stated intent let reviewers report a contradiction that neither side reported before. What it does not support: guides for deleted paths show no gain, because both sides already found the deleted hold in the diff in every evaluated run. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise. This is one small synthetic fixture on one host.
+
+v1 first reported the decoy as 3 of 5 on the Skeleton side. A judge answered that negated field false for two reports that never mention the file, while its own reasons said the decoy was not flagged. The test now reads the report directly, and the table uses that check for every round.
+
 ## The tasks
 
 | Task | Repository problem | Correct work | Possible benefit |
@@ -138,7 +160,7 @@ bunx agent-test test
 bun run agent:test:matrix
 ```
 
-JSON reliability reports and per-pair outcomes, text regression results, and SDK artifacts are written under `test-results/agent-test-matrix/` by the wrapper. Direct default-config runs use `test-results/agent-test/`. Playwright replaces that config's previous output on a new run; copy artifacts before another run if they must be retained. Both entrypoints execute the same test assertions. Use `agent-test test --reporter=html` for the standard HTML report.
+agent-test 2.3.5 writes each execution's event log and agent-run artifacts under `.agent-test/executions/<id>/`, whichever entrypoint runs it. Passing runs do not keep test attachments such as the reliability report on disk there; request a Playwright reporter that records them, or rebuild counts from the event log. Both entrypoints execute the same test assertions. Use `agent-test test --reporter=html` for the standard HTML report.
 
 Live runs consume host model usage and remain manual. CI and local package checks use deterministic tests and suite validation; those checks are not evidence of agent efficacy. Bun test discovery is limited to `src/` so the intentionally broken historical task repositories are not run as package tests.
 

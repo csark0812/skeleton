@@ -45,7 +45,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it never edits document pr
 | `context <query> \| --path <path> [--staged] [--max-chars=N]` | Read-only canonical-document, source-owner, and focused-test evidence. |
 | `build-plugin [--check]` | Build or verify plugin `.mjs` siblings. |
 | `validate changed [--staged] [--base <ref>]` | Validate changed paths and their owning papers. |
-| `review prepare [--staged \| --base <ref>] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
+| `review prepare [--staged \| --base <ref>] [--paths=a,b] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.
 
