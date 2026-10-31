@@ -11,10 +11,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Workspace } from "@post-print/agent-test";
 import { checkBillingDocument } from "../../scripts/efficacy/billing-document.ts";
 import { HISTORY_TASKS } from "../../scripts/efficacy/history.ts";
 import { median } from "../../scripts/efficacy/median.ts";
+import { summarizeDetection } from "../../scripts/efficacy/review-detection.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
+import { seedReviewChange } from "../../scripts/efficacy/workspace.ts";
 
 const ROOT = join(import.meta.dir, "../..");
 const plain = (value: string) => value.replace(/<!--[\s\S]*?-->\s*/g, "").trim();
@@ -138,6 +141,83 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(plain(readFileSync(join(root, "control", task.doc), "utf8"))).toBe(
 				plain(readFileSync(join(root, "skeleton", task.doc), "utf8")),
 			);
+		}
+	});
+
+	it("counts review detection per check and keeps tokens from incorrect runs", () => {
+		const checks = (found: boolean) => ({
+			generic: true,
+			guideRule: found,
+			staleDoc: found,
+			deletionGuide: false,
+			intentMismatch: false,
+			decoyNotImportant: true,
+		});
+		const summary = summarizeDetection([
+			{
+				baseline: { status: "incorrect", reason: "", checks: checks(false), tokens: 100 },
+				withSkeleton: { status: "incorrect", reason: "", checks: checks(true), tokens: 80 },
+			},
+			{
+				baseline: { status: "execution-error", reason: "provider failure" },
+				withSkeleton: { status: "incorrect", reason: "", checks: checks(false), tokens: 60 },
+			},
+		]);
+		expect(summary.baseline).toMatchObject({
+			attempted: 2,
+			evaluated: 1,
+			hits: { generic: 1, guideRule: 0 },
+			medianTokens: 100,
+		});
+		expect(summary.withSkeleton).toMatchObject({
+			attempted: 2,
+			evaluated: 2,
+			hits: { generic: 2, guideRule: 1, decoyNotImportant: 2 },
+			medianTokens: 70,
+		});
+	});
+
+	it("gives both review sides the same change and bundles the seeded evidence", () => {
+		const root = join(ROOT, "tests/fixtures/efficacy/review-change");
+		for (const path of [
+			"src/billing/charge.ts",
+			"src/billing/refund.ts",
+			"src/orders/total.ts",
+			"src/orders/format.ts",
+			"src/payouts/hold.ts",
+			"src/api/payout-route.ts",
+		])
+			expect(readFileSync(join(root, "control", path), "utf8")).toBe(
+				readFileSync(join(root, "skeleton", path), "utf8"),
+			);
+		for (const path of ["docs/billing.md", "docs/billing/REVIEW.md", "docs/payouts/REVIEW.md"])
+			expect(plain(readFileSync(join(root, "control", path), "utf8"))).toBe(
+				plain(readFileSync(join(root, "skeleton", path), "utf8")),
+			);
+		expect(existsSync(join(root, "control/skeleton.toml"))).toBe(false);
+
+		const temp = mkdtempSync(join(tmpdir(), "skeleton-review-change-"));
+		const git = (...args: string[]) => execFileSync("git", args, { cwd: temp, encoding: "utf8" });
+		try {
+			cpSync(join(root, "skeleton"), temp, { recursive: true });
+			git("init", "--quiet", "-b", "main");
+			git("config", "user.email", "fixture@example.com");
+			git("config", "user.name", "Fixture");
+			git("add", "-A");
+			git("commit", "--quiet", "-m", "fixture");
+			seedReviewChange({ path: temp } as Workspace);
+			expect(git("log", "-1", "--format=%B")).toContain("Refund behavior is unchanged.");
+			const result = spawnSync(
+				"node",
+				["node_modules/@csark0812/skeleton/dist/cli.js", "review", "prepare", "--base", "main"],
+				{ cwd: temp, encoding: "utf8" },
+			);
+			expect(result.status).toBe(0);
+			expect(result.stdout).toContain("## Review guide: docs/billing/REVIEW.md");
+			expect(result.stdout).toContain("- docs/billing.md (changed: src/billing/charge.ts)");
+			expect(result.stdout).toContain("-export const MAX_RETRIES = 1;");
+		} finally {
+			rmSync(temp, { recursive: true, force: true });
 		}
 	});
 

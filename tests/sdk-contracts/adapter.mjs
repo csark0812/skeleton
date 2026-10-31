@@ -21,6 +21,25 @@ export default defineAgent({
 						return;
 					}
 					const input = JSON.parse(prompt.slice(prompt.lastIndexOf("\nInput:\n") + 8));
+					if (input.report !== undefined) {
+						if (!input.report.includes("src/orders/total.ts"))
+							throw new Error("Missing review report");
+						yield {
+							type: "text",
+							text: JSON.stringify({
+								generic: true,
+								guideRule: input.report.includes("REVIEW.md"),
+								staleDoc: input.report.includes("docs/billing.md"),
+								deletionGuide: false,
+								intentMismatch: false,
+								decoyNotImportant: true,
+								otherImportant: 0,
+								reason: "Offline review report contract.",
+							}),
+						};
+						yield { type: "usage", usage: { totalTokens: 999999 } };
+						return;
+					}
 					if (input.document) {
 						if (Object.keys(input).sort().join(",") !== "document,transcript")
 							throw new Error("Unexpected judge evidence");
@@ -74,6 +93,39 @@ export default defineAgent({
 					return;
 				}
 				if (options.executionFailure) throw new Error("Offline provider failure");
+				if (existsSync(join(workspace.path, "src/billing/refund.ts"))) {
+					const skeleton = existsSync(join(workspace.path, "skeleton.toml"));
+					const branch = execFileSync("git", ["branch", "--show-current"], {
+						cwd: workspace.path,
+						encoding: "utf8",
+					}).trim();
+					if (branch !== "feature") throw new Error("Setup did not create the feature branch");
+					// The shipped command, through the launcher a consumer's npx resolves.
+					const [command, args] = skeleton
+						? ["npx", ["--no-install", "skeleton", "review", "prepare", "--base", "main"]]
+						: ["git", ["diff", "main...HEAD"]];
+					const result = execFileSync(command, args, { cwd: workspace.path, encoding: "utf8" });
+					if (!result.includes("src/orders/total.ts")) throw new Error("Missing seeded diff");
+					yield {
+						type: "tool",
+						name: "Shell",
+						args: { command: `${command} ${args.join(" ")}` },
+						result,
+						succeeded: true,
+					};
+					const findings = [
+						"important\tsrc/orders/total.ts:3\toff by one\tThe last line is dropped.",
+					];
+					if (result.includes("## Review guide: docs/billing/REVIEW.md"))
+						findings.push(
+							"important\tsrc/billing/charge.ts:18\tguide rule\tREVIEW.md requires approval.",
+						);
+					if (result.includes("- docs/billing.md (changed: src/billing/charge.ts)"))
+						findings.push("important\tdocs/billing.md:1\tstale document\tRetries are now 3.");
+					yield { type: "text", text: findings.join("\n") };
+					yield { type: "usage", usage: { totalTokens: skeleton ? 90 : 100 } };
+					return;
+				}
 				if (existsSync(join(workspace.path, "src/invoices.ts"))) {
 					const skeleton = existsSync(join(workspace.path, "skeleton.toml"));
 					const rename = prompt.includes("Rename sendInvoiceReminder");

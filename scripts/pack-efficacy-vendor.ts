@@ -21,6 +21,7 @@ const TREATMENTS = [
 	"efficiency/package-head",
 	"postprint-applications/package-head",
 	"doc-reference/skeleton",
+	"review-change/skeleton",
 	"conflict/unmarked",
 	"conflict/single-marker",
 	"conflict/duplicate-markers",
