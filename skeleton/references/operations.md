@@ -45,7 +45,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it never edits document pr
 | `context <query> \| --path <path> [--staged] [--max-chars=N]` | Read-only canonical-document, source-owner, and focused-test evidence. |
 | `build-plugin [--check]` | Build or verify plugin `.mjs` siblings. |
 | `validate changed [--staged] [--base <ref>]` | Validate changed paths and their owning papers. |
-| `review prepare [--staged \| --base <ref>] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
+| `review prepare [--staged \| --base <ref>] [--paths=a,b] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command`. |
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.
 
@@ -59,7 +59,7 @@ Consumer prevention also requires `review-deps` for active implementation claims
 
 ## Review before a PR
 
-`review prepare` stdout is the whole reviewer prompt: contract, human-review paths, documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Configure it in `skeleton.toml`:
+`review prepare` stdout is the whole reviewer prompt: contract, human-review paths, documents to re-read and update, commit messages as stated intent (with `--base`), matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff, which lists lockfiles and generated files by name instead of including them. Configure it in `skeleton.toml`:
 
 ```toml
 [review]

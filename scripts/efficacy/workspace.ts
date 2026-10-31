@@ -12,6 +12,23 @@ export function stageBillingChange(workspace: Workspace): void {
 	execFileSync("git", ["apply", "--index", patch], { cwd: workspace.path });
 }
 
+/** The author's claim for the seeded review change; it denies the refund change the patch makes. */
+export const REVIEW_CHANGE_MESSAGE = `Retry charges three times and add saved-card charging
+
+Retries failed charges up to three times, adds chargeSavedCard, tidies the order
+helpers, and simplifies the payout route. Refund behavior is unchanged.`;
+
+/** Commit the seeded defects on a feature branch in each fresh task, before its initial snapshot. */
+export function seedReviewChange(workspace: Workspace): void {
+	const patch = fileURLToPath(
+		new URL("../../agent-suites/seeds/review-change.patch", import.meta.url),
+	);
+	const git = (...args: string[]) => execFileSync("git", args, { cwd: workspace.path });
+	git("checkout", "-q", "-b", "feature");
+	git("apply", "--index", patch);
+	git("commit", "-q", "-m", REVIEW_CHANGE_MESSAGE);
+}
+
 /** Install the hook that `skeleton init` asks consumers to enable with `pre-commit install`. */
 export function installSkeletonPreCommitHook(workspace: Workspace): void {
 	const hooks = execFileSync("git", ["rev-parse", "--git-path", "hooks"], {

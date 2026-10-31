@@ -34,6 +34,28 @@ On 2026-10-27 the two stale-doc-reference tests ran three paired attempts per ho
 
 Claude edited directly from the context packet in three to six calls. With the same packet, `gpt-5.6-luna` still searched with `rg` and re-read the returned whole files, so on this three-file repository the context call was extra cost. Live runs on agent-harness 2.3.0 through 2.3.3, and Claude runs on 2.3.4, are not valid Skeleton evidence. In those runs, sealed shells could not start a bin-symlinked `npx`, so `skeleton context` crashed (post-print/agent-spec#67, #68).
 
+### Seeded-defect review
+
+On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five, reproduced with `bun scripts/efficacy/review-rounds.ts <execution>`.
+
+| Check | Baseline v0 | Skeleton v0 | Baseline v1 | Skeleton v1 | Baseline v2 | Skeleton v2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Dropped order line | 5 | 5 | 5 | 5 | 4 | 5 |
+| Rule stated in a review guide | 5 | 5 | 5 | 5 | 4 | 5 |
+| Stale retry document | 2 | 5 | 3 | 5 | 0 | 4 |
+| Deleted payout hold | 5 | 5 | 5 | 5 | 4 | 5 |
+| Change the commit message denies | 0 | 0 | 0 | 3 | 0 | 2 |
+| Decoy not called important | 5 | 5 | 5 | 5 | 5 | 5 |
+| Median tokens, all runs | 167,138 | 128,302 | 140,048 | 110,748 | 138,551 | 97,198 |
+
+Executions: v0 `59e4b11d-4141-421e-a58a-f851d6d795e6`, v1 `abf98611-73c3-4c07-bed5-00a5f58173ec`, v2 `d8d51fb2-f31c-4edf-a6cd-e824ae2f02a6`.
+
+v2 failed its gates. One baseline judge call produced no verdict, which is an evaluation error and explains the baseline's 4 of 5 rows; the event log does not record why. One Skeleton report mentioned the documented retry policy without naming `docs/billing.md`, so the stale-document gate would also have failed. The test was not rerun.
+
+What this supports: on this task the bundle found the stale document more often than a bare diff, and stated intent let reviewers report a contradiction that neither side reported before. What it does not support: guides for deleted paths show no gain, because both sides already found the deleted hold in the diff in every evaluated run. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise. This is one small synthetic fixture on one host.
+
+v1 first reported the decoy as 3 of 5 on the Skeleton side. A judge answered that negated field false for two reports that never mention the file, while its own reasons said the decoy was not flagged. The test now reads the report directly, and the table uses that check for every round.
+
 ## The tasks
 
 | Task | Repository problem | Correct work | Possible benefit |
@@ -45,6 +67,7 @@ Claude edited directly from the context packet in three to six calls. With the s
 | Skeleton reliability and token efficiency when fixing production JavaScript coverage | A real past bug excludes every `.mjs` file. | Include production files, keep generated plugins excluded, update the docs, and verify. | Less effort or fewer mistakes on a real maintenance task. |
 | Skeleton reliability when a rename breaks a linked document | A document links to `src/invoices.ts#sendInvoiceReminder`; the user asks to rename that function and commit, without mentioning docs. The treatment has the initialized `validate changed --staged` hook enabled. | Rename the function in code and tests, pass trusted behavior checks, and leave the document linking `src/invoices.ts#remindInvoiceRecipient` with no stale name. | The hook rejects the broken anchor until the document is fixed, instead of leaving a stale link behind. |
 | Skeleton token efficiency in a PostPrint-shaped applications monorepo | A Workspace-document realtime contract crosses backend schemas and publication, generated TypeScript, client cache invalidation, and developer documentation. | Identify every owning boundary, the post-commit rule, all four invalidations, and the generation command without changing files. | Replace broad monorepo discovery with one indexed ownership packet. |
+| Skeleton review bundle when a change contains seeded defects | A `feature` branch adds a dropped order line, a charge path that skips a rule stated only in a review guide, a stale retry document, a deleted payout hold, a refund change its commit message denies, and a harmless rename. | Report the seeded defects by file and failure, without calling the rename important and without changing files. | The bundle surfaces guides, stale documents, and context that a bare diff leaves the reviewer to find. |
 
 Five additional paired tests measure package tradeoffs without requiring a speedup:
 
@@ -74,7 +97,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All twelve paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. All twelve comparisons require treatment correctness. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All thirteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -83,6 +106,7 @@ All twelve paired tests report reliability and token efficiency for correct, com
 | Add a retry while preserving the staged endpoint | Trusted code regression; exact final-document claims; token totals | None |
 | Rename a linked function; edit beside a narrowed dependency | Trusted code regression; final document links the new symbol with no stale name, or stays unchanged; changed paths; token totals | None |
 | Fix deleted-file validation; fix JavaScript coverage | Trusted code regressions; token totals and median savings | Documentation accuracy, meaningful agent-run verification, and truthful completion claims |
+| Review a change with seeded defects | No changed files on the Skeleton side; the floor defect found in every run on both sides, and the guide rule and stale document in every Skeleton run; the decoy not reported as important; no execution, evaluation, or token errors | Whether the final report names each seeded defect by file and failure. The judge receives only the report |
 | Install Skeleton | Successful commands, installed package identity, and configuration creation | None |
 | Resolve one authority marker; reject duplicate markers | No edits and expected content for the marked answer | Justified recommendations or refusal, actual inspection, and citations |
 
@@ -106,7 +130,7 @@ Paired counts show both correct, only baseline correct, only Skeleton correct, n
 
 The test reads `run.usage.tokens.total` directly. Totals must be present, finite, and positive. Missing or invalid usage is a separate measurement error and does not change the correctness verdict. Efficiency includes only matched pairs where both runs are correct and both totals are valid. Incorrect or unassessed work never earns token savings. If no pairs qualify, medians and savings are null.
 
-The report is attached before acceptance assertions. Three all-correct efficiency qualifications require every attempted run on both sides to be correct and measurable, then `median(skeletonTokens) <= median(baselineTokens) * 0.65`. The staged-endpoint task requires every Skeleton run to pass its trusted checks, no execution, evaluation, or token errors, and at least 60% matched correct pairs; its repeated-run efficiency gate is the same 35% reduction over those matched pairs. The outdated-doc lookup, production-JavaScript task, and four other package-tradeoff tests require treatment correctness and complete measurements but impose no savings threshold. The stale-doc-reference rename and the edit beside a narrowed dependency require at least one pair correct on both sides and `median(skeletonTokens) <= median(baselineTokens)` over those pairs. This means a failed test can still provide a complete reliability report. Judge usage never enters token savings.
+The seeded-defect review also attaches `defect-detection`: per-check hits and median tokens for every run on each side, because a run that misses one defect counts as incorrect and would leave the matched-pair medians empty. The report is attached before acceptance assertions. Three all-correct efficiency qualifications require every attempted run on both sides to be correct and measurable, then `median(skeletonTokens) <= median(baselineTokens) * 0.65`. The staged-endpoint task requires every Skeleton run to pass its trusted checks, no execution, evaluation, or token errors, and at least 60% matched correct pairs; its repeated-run efficiency gate is the same 35% reduction over those matched pairs. The outdated-doc lookup, production-JavaScript task, and four other package-tradeoff tests require treatment correctness and complete measurements but impose no savings threshold. The stale-doc-reference rename and the edit beside a narrowed dependency require at least one pair correct on both sides and `median(skeletonTokens) <= median(baselineTokens)` over those pairs. This means a failed test can still provide a complete reliability report. Judge usage never enters token savings.
 
 Package provenance, each pair's outcomes, reasons, checks, tokens and duration, and the aggregate reliability report are Playwright JSON attachments. Trusted regression output is attached as text. Judge verdicts, full traces, and snapshots remain SDK artifacts. Duration is diagnostic: `run.durationMs` includes final snapshot capture but excludes setup, independent checks, and judging.
 
@@ -117,7 +141,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover seventeen tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover eighteen tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -129,14 +153,14 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All seventeen agent and judge tests, using the default OpenAI agent.
+# All eighteen agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the twelve paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the thirteen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 
-JSON reliability reports and per-pair outcomes, text regression results, and SDK artifacts are written under `test-results/agent-test-matrix/` by the wrapper. Direct default-config runs use `test-results/agent-test/`. Playwright replaces that config's previous output on a new run; copy artifacts before another run if they must be retained. Both entrypoints execute the same test assertions. Use `agent-test test --reporter=html` for the standard HTML report.
+agent-test 2.3.5 writes each execution's event log and agent-run artifacts under `.agent-test/executions/<id>/`, whichever entrypoint runs it. Passing runs do not keep test attachments such as the reliability report on disk there; request a Playwright reporter that records them, or rebuild counts from the event log. Both entrypoints execute the same test assertions. Use `agent-test test --reporter=html` for the standard HTML report.
 
 Live runs consume host model usage and remain manual. CI and local package checks use deterministic tests and suite validation; those checks are not evidence of agent efficacy. Bun test discovery is limited to `src/` so the intentionally broken historical task repositories are not run as package tests.
 
@@ -161,6 +185,6 @@ These tasks cover small invented repositories and Skeleton's own history. They d
 | Automatic read-path assertions across hosts | Authority judges verify actual document evidence, including context excerpts; direct assertions prohibit edits. |
 | Three installation hosts and same-host judges | Registry installation and local-tarball adoption are OpenAI-only; installation has no judge; semantic judges use OpenAI. |
 
-`bun run agent:test:offline` exercises the real one-pair outdated-docs, recovery, simple-edit, and stale-doc-reference tests; the scripted Skeleton rename must be refused by the real hook before it repairs the link, while the scripted baseline repairs it in a second commit, and fixed scripted token totals exercise the no-more-tokens gate with a compiled JavaScript custom adapter and no provider access, plus contracts for explicit judge input, independent staged workspaces, separate judge usage, malformed or missing verdicts, continued collection after real SDK errors, and separate documentation and verification verdicts. `bun test ./src/__tests__/efficacy-suites.test.ts` checks fixture conditions, median arithmetic, and trusted regression checks against broken and fixed code, and that the packed CLI blocks the stale rename but not the edit beside the narrowed dependency. `bun test ./src/__tests__/efficacy-reliability.test.ts` checks outcome classification, paired accounting, token filtering, missing usage, and uncertainty calculations. These checks are not evidence of live-agent efficacy.
+`bun run agent:test:offline` exercises the real one-pair outdated-docs, recovery, simple-edit, stale-doc-reference, and seeded-defect review tests; the scripted review runs the shipped `npx --no-install skeleton review prepare` against the seeded branch; the scripted Skeleton rename must be refused by the real hook before it repairs the link, while the scripted baseline repairs it in a second commit, and fixed scripted token totals exercise the no-more-tokens gate with a compiled JavaScript custom adapter and no provider access, plus contracts for explicit judge input, independent staged workspaces, separate judge usage, malformed or missing verdicts, continued collection after real SDK errors, and separate documentation and verification verdicts. `bun test ./src/__tests__/efficacy-suites.test.ts` checks fixture conditions, median arithmetic, and trusted regression checks against broken and fixed code, and that the packed CLI blocks the stale rename but not the edit beside the narrowed dependency. `bun test ./src/__tests__/efficacy-reliability.test.ts` checks outcome classification, paired accounting, token filtering, missing usage, and uncertainty calculations. These checks are not evidence of live-agent efficacy.
 
 `bun test ./src/__tests__/efficacy-tradeoffs.test.ts` verifies that adoption starts unconfigured, context truncation hides the actual definition, missing metadata yields no-context, authority uses actual initialization, trusted behavior checks reject a superficial fix, final-document evidence survives missing transcript reads, and phase token accounting includes setup. Offline adapters script outcomes and do not demonstrate live recovery or judge accuracy.

@@ -21,7 +21,7 @@ Commands:
                          [--fix[=anchors|ssot]] [--dry-run]
   build-plugin [path] [--check]
   validate changed [paths…] [--staged] [--base <ref>]
-  review prepare [--staged | --base <ref>] [--json] [--run]
+  review prepare [--staged | --base <ref>] [--paths=a,b] [--json] [--run]
                                 print a fresh-context review bundle; --run pipes it to [review] command
   route [path…]                 print the lane card, or classify a path; no audit
   catalog [--check] [--strict]  write or check .skeleton/catalog.md (gitignored)

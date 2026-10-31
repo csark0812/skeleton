@@ -14,6 +14,7 @@ skeleton review prepare --staged           # the index
 skeleton review prepare --base origin/main # a branch range
 skeleton review prepare --base origin/main --json
 skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command
+skeleton review prepare --base origin/main --paths=src/billing/**   # review one area
 ```
 
 ## The bundle
@@ -23,11 +24,15 @@ The bundle has these sections, in order:
 1. **Reviewer contract.** The output format and rules. Each finding is one line: `<severity>\t<file>:<line>\t<bug class>\t<what breaks and why>`. The severities are `important` (must be fixed before merge), `nit` (optional), and `pre-existing` (not introduced by this diff; never blocks the author). The reviewer cites exact lines, names the bug class so the author can fix every instance, reports style only when a review guide asks for it, and does not re-report resolved findings. It ends with a count line, or `no issues`.
 2. **Human review required.** Shown only when a changed path, including a deleted one, matches `[review] humanPaths`. An agent review does not count for them. The same list is printed on stderr.
 3. **Documents the author must re-read and update.** Impacted documents (other than `REVIEW.md` guides) whose declared dependencies changed in the scope while they did not, with the changed paths ([keeping documents current](doc-system.md#keeping-documents-current)). Deleted paths are not considered.
-4. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, plus every `REVIEW.md` that declares no `review-deps`.
-5. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
-6. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
+4. **Stated intent.** Shown only with `--base`: the subject and body of each non-merge commit in `<base>..HEAD`, oldest first. The reviewer treats them as the author's claim, not as evidence, and reports a diff that contradicts them. The index and the working tree have no commit message to state.
+5. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, including a deleted one, plus every `REVIEW.md` that declares no `review-deps`.
+6. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
+7. **Omitted from the diff.** Changed paths left out of the diff text, with the reason and line counts: known lockfiles, paths with the `linguist-generated` Git attribute, and matches for `[review] omitFromDiff`. A path that matches `humanPaths` is never omitted. Guides, human-review paths, and documents to re-read still use every changed path.
+8. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
 
 `--json` prints the same data as one object (`ReviewBundle` in `src/review/prepare.ts`). `--run` cannot be combined with `--json`.
+
+`--paths=a,b` narrows the diff and the review guides to matching changed paths, and the bundle's title says so. Human-review paths and documents to re-read still cover the whole scope, so reviewing one area cannot hide a required person. A glob list that matches no changed path is an error. When a bundle is larger than 200,000 characters, stderr shows its size and the largest areas with a `--paths` value for each. Nothing is truncated, and 200,000 is a starting value that has not been measured.
 
 ## Review guides
 
@@ -51,6 +56,7 @@ Keep a guide short: what failure means in this area, paths to ignore, and what n
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**", "src/billing/**", "scripts/release/**"]
 command = "./scripts/review-agent.sh"   # optional: any command that reads the bundle on stdin
+omitFromDiff = ["src/api/schema/**"]    # optional: more paths to list by name instead of in the diff
 ```
 
 The risk tier comes from the changed paths, never from who wrote the change. A change that touches no human path can merge with an agent review and green checks. A change that touches one needs a person. `review prepare` names those paths; enforce the requirement with CODEOWNERS and branch protection, because only the forge can tell whether a person approved.

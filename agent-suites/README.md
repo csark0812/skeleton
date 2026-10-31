@@ -6,7 +6,7 @@
 
 | Suite | Question |
 | --- | --- |
-| `does-skeleton-help` | Four efficiency qualifications and eight measurements of correctness, adoption, recovery, stale references, and overhead. |
+| `does-skeleton-help` | Four efficiency qualifications and nine measurements of correctness, adoption, recovery, stale references, review detection, and overhead. |
 | `source-of-truth-conflict` | Can an agent apply the authority policy when documents disagree? |
 | `judge-calibration` | Does documentation judging follow final files rather than completion claims? |
 | `product-smoke` | Can an agent install and initialize the published package? |
@@ -23,12 +23,14 @@ bun run agent:test       # one paired Codex comparison per main task
 bun run agent:test:matrix # explicit optional host matrix
 ```
 
+A seeded-defect review compares `review prepare` with a bare diff on a branch with known defects. It reports detection per check and gates only on a floor defect, no errors, and no changed files.
+
 Five additional paired tests measure: installing and configuring the exact local tarball before a maintenance change; recovering from a truncated source excerpt; recovering from missing ownership metadata; a one-word edit where context lookup can be overhead; and an edit beside a `review-deps` selector narrowed to one function, which the hook must not block and which fails when Skeleton's median tokens exceed the baseline's. The missing-metadata Skeleton treatment must observe the structured no-context action, repair the existing document's ownership metadata, retry the same query, and pass an independent packed-CLI check against its final workspace. The other four require correctness but do not require savings. Adoption records setup and maintenance tokens separately and includes both in total treatment cost. These are small synthetic fixtures, not an external held-out benchmark.
 
 Prepared treatments now run the packed CLI's real initializer. The authority fixtures use that shipped guidance without a custom authority decision algorithm. Existing curated fixtures still exclude curation costs; the adoption test is the separate path that includes them.
 
 Two live judge calibration tests cover stale final text with a misleading completion claim and correct final text without a transcript reread. Offline tests validate the evidence plumbing, not the quality of a provider judge.
 
-The wrapper and direct `agent-test test does-skeleton-help` runs both include the independent checks and repeated gate. Playwright attachments retain package provenance, per-run outcomes, the reliability and efficiency report, and trusted regression output. SDK artifacts retain judge verdicts. Wrapper output is under `test-results/agent-test-matrix/`; default-config output is under `test-results/agent-test/`. Discovery and the custom-adapter contracts use no live providers. The matrix configuration supports the suites on three hosts with OpenAI judging; the wrapper selects the twelve paired tasks. Use `bunx agent-test test` for all seventeen tests on the default host; registry installation and local-package adoption run only on OpenAI because v2 rejects the explicit network option on other hosts.
+The wrapper and direct `agent-test test does-skeleton-help` runs both include the independent checks and repeated gate. Playwright attachments retain package provenance, per-run outcomes, the reliability and efficiency report, and trusted regression output. SDK artifacts retain judge verdicts. Each execution writes its event log and agent-run artifacts under `.agent-test/executions/<id>/`. Discovery and the custom-adapter contracts use no live providers. The matrix configuration supports the suites on three hosts with OpenAI judging; the wrapper selects the thirteen paired tasks. Use `bunx agent-test test` for all eighteen tests on the default host; registry installation and local-package adoption run only on OpenAI because v2 rejects the explicit network option on other hosts.
 
 Live commands consume host model usage. The default one-pair run is a diagnostic smoke test, not a reliability sample; it records efficiency without asserting the repeated-sample 35% qualification. Use `--runs N` for repeated comparisons. See [the method and scoring rules](../docs/developer/efficacy.md).

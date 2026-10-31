@@ -123,7 +123,7 @@ skeleton build-plugin [path] [--check]
 skeleton route [path…]
 skeleton context <query> | --path <path> [--staged] [--max-chars=N]
 skeleton validate changed [--staged | --base <ref>] [paths…]
-skeleton review prepare [--staged | --base <ref>] [--json] [--run]
+skeleton review prepare [--staged | --base <ref>] [--paths=a,b] [--json] [--run]
 ```
 
 **Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
