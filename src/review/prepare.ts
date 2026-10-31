@@ -32,6 +32,12 @@ interface DocumentToReread {
 	changed: string[];
 }
 
+/** One commit in the reviewed range: the author's own statement of what the change does. */
+interface StatedCommit {
+	subject: string;
+	body: string;
+}
+
 /**
  * Everything a fresh-context reviewer needs, as plain data.
  * Skeleton prepares it; any agent harness, CI step, or person runs the review.
@@ -41,6 +47,7 @@ interface ReviewBundle {
 	changedPaths: string[];
 	humanReviewRequired: string[];
 	documentsToReread: DocumentToReread[];
+	commits: StatedCommit[];
 	reviewGuides: ReviewGuide[];
 	agentGuide: string | null;
 	diff: string;
@@ -63,6 +70,7 @@ Rules:
 - Name the bug class so the author can fix every instance, not one line.
 - Do not report style unless a review guide asks for it.
 - Do not re-report a finding the author already fixed or resolved with a reason.
+- Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding.
 - End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
 
 function diffArgs(scope: ReviewScope): string[] {
@@ -95,6 +103,29 @@ function gitDiffText(scope: ReviewScope, untracked: string[]): string {
 	return [tracked, ...added].join("");
 }
 
+/** Commits in a branch range, oldest first. The index and the working tree have no commit message yet. */
+function statedCommits(scope: ReviewScope): StatedCommit[] {
+	if (!scope.base) return [];
+	return git(scope.root, [
+		"log",
+		"--no-merges",
+		"--reverse",
+		"--format=%s%x00%b%x1e",
+		`${scope.base}..HEAD`,
+	])
+		.split("\x1e")
+		.map((entry) => entry.trim())
+		.filter(Boolean)
+		.map((entry) => {
+			const [subject = "", body = ""] = entry.split("\0");
+			return { subject, body: body.trim() };
+		});
+}
+
+function formatCommit(commit: StatedCommit): string {
+	return commit.body ? `${commit.subject}\n\n${commit.body}` : commit.subject;
+}
+
 /** A Markdown fence longer than any backtick run inside the text, so the text cannot close it. */
 function fenceFor(text: string): string {
 	const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
@@ -110,7 +141,7 @@ function humanReviewPaths(config: SkeletonConfig, changedPaths: string[]): strin
 function reviewGuides(input: {
 	root: string;
 	config: SkeletonConfig;
-	changedPaths: string[];
+	paths: string[];
 	source: FileSource;
 }): ReviewGuide[] {
 	const guides: ReviewGuide[] = [];
@@ -122,8 +153,8 @@ function reviewGuides(input: {
 		const patterns = reviewDependencyPatterns(content);
 		const applies =
 			patterns.length === 0 ||
-			input.changedPaths.some((changed) =>
-				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, changed)),
+			input.paths.some((path) =>
+				patterns.some((pattern) => reviewDependencyMatchesPath(pattern, path)),
 			);
 		if (applies) guides.push({ path, content });
 	}
@@ -159,7 +190,7 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 		a.localeCompare(b),
 	);
 	const deleted = new Set(changed.filter((item) => item.deleted).map((item) => item.path));
-	// Deleting a high-consequence file still needs a person; deleted paths have no guides or docs.
+	// Deleting a file still needs its person and its area's guide; only documents ignore deleted paths.
 	const changedPaths = allPaths.filter((path) => !deleted.has(path));
 	const routed = await evaluateRouteClassification({ root: scope.root, paths: changedPaths });
 	if (routed.pluginError) throw new Error(`review prepare: ${routed.pluginError}`);
@@ -169,7 +200,8 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 		changedPaths,
 		humanReviewRequired: humanReviewPaths(config, allPaths),
 		documentsToReread: documentsToReread(scope, impactedDocuments),
-		reviewGuides: reviewGuides({ root: scope.root, config, changedPaths, source }),
+		commits: statedCommits(scope),
+		reviewGuides: reviewGuides({ root: scope.root, config, paths: allPaths, source }),
 		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
 		diff: gitDiffText(scope, untracked),
 	};
@@ -204,6 +236,11 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 					.join("\n"),
 			),
 		);
+	}
+	if (bundle.commits.length > 0) {
+		const stated = bundle.commits.map(formatCommit).join("\n\n");
+		const statedFence = fenceFor(stated);
+		parts.push(section("Stated intent", `${statedFence}text\n${stated}\n${statedFence}`));
 	}
 	for (const guide of bundle.reviewGuides)
 		parts.push(section(`Review guide: ${guide.path}`, guide.content));

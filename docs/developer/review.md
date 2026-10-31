@@ -23,9 +23,10 @@ The bundle has these sections, in order:
 1. **Reviewer contract.** The output format and rules. Each finding is one line: `<severity>\t<file>:<line>\t<bug class>\t<what breaks and why>`. The severities are `important` (must be fixed before merge), `nit` (optional), and `pre-existing` (not introduced by this diff; never blocks the author). The reviewer cites exact lines, names the bug class so the author can fix every instance, reports style only when a review guide asks for it, and does not re-report resolved findings. It ends with a count line, or `no issues`.
 2. **Human review required.** Shown only when a changed path, including a deleted one, matches `[review] humanPaths`. An agent review does not count for them. The same list is printed on stderr.
 3. **Documents the author must re-read and update.** Impacted documents (other than `REVIEW.md` guides) whose declared dependencies changed in the scope while they did not, with the changed paths ([keeping documents current](doc-system.md#keeping-documents-current)). Deleted paths are not considered.
-4. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, plus every `REVIEW.md` that declares no `review-deps`.
-5. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
-6. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
+4. **Stated intent.** Shown only with `--base`: the subject and body of each non-merge commit in `<base>..HEAD`, oldest first. The reviewer treats them as the author's claim, not as evidence, and reports a diff that contradicts them. The index and the working tree have no commit message to state.
+5. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, including a deleted one, plus every `REVIEW.md` that declares no `review-deps`.
+6. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
+7. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
 
 `--json` prints the same data as one object (`ReviewBundle` in `src/review/prepare.ts`). `--run` cannot be combined with `--json`.
 

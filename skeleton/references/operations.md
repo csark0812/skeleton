@@ -59,7 +59,7 @@ Consumer prevention also requires `review-deps` for active implementation claims
 
 ## Review before a PR
 
-`review prepare` stdout is the whole reviewer prompt: contract, human-review paths, documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Configure it in `skeleton.toml`:
+`review prepare` stdout is the whole reviewer prompt: contract, human-review paths, documents to re-read and update, commit messages as stated intent (with `--base`), matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Configure it in `skeleton.toml`:
 
 ```toml
 [review]
