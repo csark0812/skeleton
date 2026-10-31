@@ -195,6 +195,93 @@ describe("review prepare", () => {
 		expect(text).toContain("## Stated intent\n\n````text\nretry twice");
 	});
 
+	it("lists lockfiles, generated files, and configured paths instead of diffing them", async () => {
+		const root = makeRepo('[review]\nomitFromDiff = ["src/schema/**"]\n');
+		write(root, ".gitattributes", "src/generated/** linguist-generated\n");
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "attributes"]);
+		write(root, "bun.lock", "lock line one\nlock line two\n");
+		write(root, "src/generated/client.ts", "export const generatedClient = 1;\n");
+		write(root, "src/schema/types.ts", "export const schemaType = 1;\n");
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "change"]);
+		write(root, "src/billing/charge.ts", "export const retries = 3;\n");
+		const bundle = await prepareReview({ root, base: "HEAD~1" });
+		expect(bundle.omittedFromDiff).toEqual([
+			{ path: "bun.lock", reason: "lockfile", added: 2, removed: 0 },
+			{ path: "src/generated/client.ts", reason: "generated", added: 1, removed: 0 },
+			{ path: "src/schema/types.ts", reason: "configured", added: 1, removed: 0 },
+		]);
+		expect(bundle.diff).not.toContain("lock line one");
+		expect(bundle.diff).not.toContain("generatedClient");
+		expect(bundle.diff).not.toContain("schemaType");
+		expect(bundle.diff).toContain("+export const retries = 2;");
+		expect(bundle.changedPaths).toContain("bun.lock");
+		expect(formatReviewBundle(bundle)).toContain(
+			"## Omitted from the diff\n\n- bun.lock (lockfile, +2 -0)",
+		);
+	});
+
+	it("keeps a lockfile in the diff when it needs a person", async () => {
+		const root = makeRepo('[review]\nhumanPaths = ["bun.lock"]\n');
+		write(root, "bun.lock", "lock line one\n");
+		git(root, ["add", "-A"]);
+		const bundle = await prepareReview({ root, staged: true });
+		expect(bundle.humanReviewRequired).toEqual(["bun.lock"]);
+		expect(bundle.omittedFromDiff).toEqual([]);
+		expect(bundle.diff).toContain("+lock line one");
+	});
+
+	it("still applies guides and human review to omitted paths", async () => {
+		const root = makeRepo(
+			'[review]\nomitFromDiff = ["src/billing/**"]\nhumanPaths = ["src/auth/**"]\n',
+		);
+		write(root, "src/billing/charge.ts", "export const retries = 2;\n");
+		const bundle = await prepareReview({ root });
+		expect(bundle.omittedFromDiff.map((item) => item.path)).toEqual(["src/billing/charge.ts"]);
+		expect(bundle.reviewGuides.map((guide) => guide.path)).toEqual(["docs/billing/REVIEW.md"]);
+		expect(bundle.documentsToReread.map((document) => document.path)).toEqual(["docs/billing.md"]);
+		expect(bundle.diff).toBe("");
+	});
+
+	it("omits an untracked generated file and counts its lines", async () => {
+		const root = makeRepo();
+		write(root, ".gitattributes", "src/generated/** linguist-generated\n");
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "attributes"]);
+		write(root, "src/generated/client.ts", "export const generatedClient = 1;\n");
+		write(root, "src/billing/refund.ts", "export const refunds = true;\n");
+		const bundle = await prepareReview({ root });
+		expect(bundle.omittedFromDiff).toEqual([
+			{ path: "src/generated/client.ts", reason: "generated", added: 1, removed: 0 },
+		]);
+		expect(bundle.diff).not.toContain("generatedClient");
+		expect(bundle.diff).toContain("+export const refunds = true;");
+	});
+
+	it("keeps rename detection when another path is omitted", async () => {
+		const root = makeRepo();
+		write(root, "bun.lock", "lock line one\n");
+		git(root, ["add", "-A"]);
+		git(root, ["mv", "src/auth/session.ts", "src/session.ts"]);
+		const bundle = await prepareReview({ root, staged: true });
+		expect(bundle.omittedFromDiff.map((item) => item.path)).toEqual(["bun.lock"]);
+		expect(bundle.diff).toContain("rename from src/auth/session.ts");
+		expect(bundle.diff).not.toContain("lock line one");
+	});
+
+	it("treats a binary lockfile as having no line counts", async () => {
+		const root = makeRepo();
+		writeFileSync(join(root, "bun.lockb"), Buffer.from([0, 1, 2, 0, 3]));
+		git(root, ["add", "-A"]);
+		const bundle = await prepareReview({ root, staged: true });
+		expect(bundle.omittedFromDiff).toEqual([
+			{ path: "bun.lockb", reason: "lockfile", added: null, removed: null },
+		]);
+		expect(formatReviewBundle(bundle)).toContain("- bun.lockb (lockfile, binary)");
+	});
+
 	it("fences the diff so changed Markdown cannot close it", async () => {
 		const root = makeRepo();
 		write(root, "docs/notes.md", "```bash\necho hi\n```\n");

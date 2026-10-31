@@ -26,7 +26,8 @@ The bundle has these sections, in order:
 4. **Stated intent.** Shown only with `--base`: the subject and body of each non-merge commit in `<base>..HEAD`, oldest first. The reviewer treats them as the author's claim, not as evidence, and reports a diff that contradicts them. The index and the working tree have no commit message to state.
 5. **Review guides.** Every scanned `REVIEW.md` whose `review-deps` match a changed path, including a deleted one, plus every `REVIEW.md` that declares no `review-deps`.
 6. **AGENTS.md** from the repository root, without the agent-facing Skeleton context guide.
-7. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
+7. **Omitted from the diff.** Changed paths left out of the diff text, with the reason and line counts: known lockfiles, paths with the `linguist-generated` Git attribute, and matches for `[review] omitFromDiff`. A path that matches `humanPaths` is never omitted. Guides, human-review paths, and documents to re-read still use every changed path.
+8. **The diff** for the selected scope, in a fence longer than any backtick run it contains. A plugin that fails to load stops `review prepare` with an error rather than producing an incomplete bundle.
 
 `--json` prints the same data as one object (`ReviewBundle` in `src/review/prepare.ts`). `--run` cannot be combined with `--json`.
 
@@ -52,6 +53,7 @@ Keep a guide short: what failure means in this area, paths to ignore, and what n
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**", "src/billing/**", "scripts/release/**"]
 command = "./scripts/review-agent.sh"   # optional: any command that reads the bundle on stdin
+omitFromDiff = ["src/api/schema/**"]    # optional: more paths to list by name instead of in the diff
 ```
 
 The risk tier comes from the changed paths, never from who wrote the change. A change that touches no human path can merge with an agent review and green checks. A change that touches one needs a person. `review prepare` names those paths; enforce the requirement with CODEOWNERS and branch protection, because only the forge can tell whether a person approved.
