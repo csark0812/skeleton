@@ -15,7 +15,7 @@ import type { Workspace } from "@post-print/agent-test";
 import { checkBillingDocument } from "../../scripts/efficacy/billing-document.ts";
 import { HISTORY_TASKS } from "../../scripts/efficacy/history.ts";
 import { median } from "../../scripts/efficacy/median.ts";
-import { summarizeDetection } from "../../scripts/efficacy/review-detection.ts";
+import { decoyNotImportant, summarizeDetection } from "../../scripts/efficacy/review-detection.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
 import { seedReviewChange } from "../../scripts/efficacy/workspace.ts";
 
@@ -175,6 +175,14 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			hits: { generic: 2, guideRule: 1, decoyNotImportant: 2 },
 			medianTokens: 70,
 		});
+	});
+
+	it("fails the decoy only when a report calls the rename important", () => {
+		expect(decoyNotImportant("important\tsrc/orders/total.ts:3\toff by one\tDrops a line.")).toBe(
+			true,
+		);
+		expect(decoyNotImportant("nit\tsrc/orders/format.ts:2\tnaming\tRenamed.")).toBe(true);
+		expect(decoyNotImportant("important\tsrc/orders/format.ts:2\tnaming\tRenamed.")).toBe(false);
 	});
 
 	it("gives both review sides the same change and bundles the seeded evidence", () => {

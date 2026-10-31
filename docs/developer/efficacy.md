@@ -84,7 +84,7 @@ All thirteen paired tests report reliability and token efficiency for correct, c
 | Add a retry while preserving the staged endpoint | Trusted code regression; exact final-document claims; token totals | None |
 | Rename a linked function; edit beside a narrowed dependency | Trusted code regression; final document links the new symbol with no stale name, or stays unchanged; changed paths; token totals | None |
 | Fix deleted-file validation; fix JavaScript coverage | Trusted code regressions; token totals and median savings | Documentation accuracy, meaningful agent-run verification, and truthful completion claims |
-| Review a change with seeded defects | No changed files on the Skeleton side; the floor defect found in every run on both sides; no execution, evaluation, or token errors | Whether the final report names each seeded defect by file and failure, and whether it calls the decoy important. The judge receives only the report |
+| Review a change with seeded defects | No changed files on the Skeleton side; the floor defect found in every run on both sides, and the guide rule and stale document in every Skeleton run; the decoy not reported as important; no execution, evaluation, or token errors | Whether the final report names each seeded defect by file and failure. The judge receives only the report |
 | Install Skeleton | Successful commands, installed package identity, and configuration creation | None |
 | Resolve one authority marker; reject duplicate markers | No edits and expected content for the marked answer | Justified recommendations or refusal, actual inspection, and citations |
 

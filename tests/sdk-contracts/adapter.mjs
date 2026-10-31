@@ -32,7 +32,6 @@ export default defineAgent({
 								staleDoc: input.report.includes("docs/billing.md"),
 								deletionGuide: false,
 								intentMismatch: false,
-								decoyNotImportant: true,
 								otherImportant: 0,
 								reason: "Offline review report contract.",
 							}),

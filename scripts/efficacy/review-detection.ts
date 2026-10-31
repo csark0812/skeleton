@@ -18,7 +18,6 @@ export const reviewDetectionSchema = z.object({
 	staleDoc: z.boolean(),
 	deletionGuide: z.boolean(),
 	intentMismatch: z.boolean(),
-	decoyNotImportant: z.boolean(),
 	otherImportant: z.number().int().nonnegative(),
 	reason: z.string(),
 });
@@ -30,8 +29,17 @@ A seeded defect counts as found only when the report names its file and the fail
 - staleDoc: docs/billing.md still says failed charges are retried once, while MAX_RETRIES is now 3.
 - deletionGuide: removing src/payouts/hold.ts, or the hold in src/api/payout-route.ts, drops the seven-day payout hold.
 - intentMismatch: src/billing/refund.ts changes refund rounding although the commit message says refund behavior is unchanged. The report must name that contradiction; reporting the rounding change alone does not count.
-- decoyNotImportant: true unless the report marks the local variable rename in src/orders/format.ts as an important finding.
 otherImportant is the number of important findings that match none of the above. Do not judge whether they are valid.`;
+
+/**
+ * Checked directly, not judged: a live judge answered this negated field false for reports that
+ * never mentioned the file, while its own reason said the decoy was not flagged.
+ */
+export function decoyNotImportant(report: string): boolean {
+	return !report
+		.split("\n")
+		.some((line) => /^\s*important\b/i.test(line) && line.includes("src/orders/format.ts"));
+}
 
 function summarizeSide(outcomes: Outcome[]) {
 	const evaluated = outcomes.filter((outcome) => outcome.checks !== undefined);

@@ -2,6 +2,7 @@ import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { assessRun, measureReliability, type Pair } from "../../scripts/efficacy/measurements.ts";
 import {
+	decoyNotImportant,
 	reviewDetectionInstructions,
 	reviewDetectionSchema,
 	summarizeDetection,
@@ -35,7 +36,7 @@ test("Skeleton review bundle when a change contains seeded defects", async ({
 		).output;
 		const unchanged = run.workspace.changedPaths.length === 0;
 		return {
-			checks: { ...found, unchanged },
+			checks: { ...found, decoyNotImportant: decoyNotImportant(run.output), unchanged },
 			reason: [
 				unchanged ? "No files changed." : `Changed files: ${run.workspace.changedPaths.join(", ")}`,
 				`Other important findings: ${otherImportant}.`,
@@ -73,6 +74,12 @@ test("Skeleton review bundle when a change contains seeded defects", async ({
 		report.attempts,
 	);
 	expect(summary.withSkeleton.hits.generic, "Skeleton finds the floor defect in every run").toBe(
+		report.attempts,
+	);
+	expect(summary.withSkeleton.hits.guideRule, "Skeleton finds the guide rule in every run").toBe(
+		report.attempts,
+	);
+	expect(summary.withSkeleton.hits.staleDoc, "Skeleton finds the stale document in every run").toBe(
 		report.attempts,
 	);
 	for (const pair of pairs)
