@@ -22,6 +22,8 @@ const TREATMENTS = [
 	"postprint-applications/package-head",
 	"doc-reference/skeleton",
 	"review-change/skeleton",
+	"review-notifications/skeleton",
+	"review-real/skeleton",
 	"conflict/unmarked",
 	"conflict/single-marker",
 	"conflict/duplicate-markers",

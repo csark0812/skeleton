@@ -34,9 +34,47 @@ On 2026-10-27 the two stale-doc-reference tests ran three paired attempts per ho
 
 Claude edited directly from the context packet in three to six calls. With the same packet, `gpt-5.6-luna` still searched with `rg` and re-read the returned whole files, so on this three-file repository the context call was extra cost. Live runs on agent-harness 2.3.0 through 2.3.3, and Claude runs on 2.3.4, are not valid Skeleton evidence. In those runs, sealed shells could not start a bin-symlinked `npx`, so `skeleton context` crashed (post-print/agent-spec#67, #68).
 
+### Reliable review comparison
+
+The rounds below this section are too small to decide whether the review bundle is worth using. This section defines the test that can. The bars were committed before any run they judge.
+
+**The test.** Three fixtures: `payments` and `notifications` seed known defects, and `real` reverts a real fix from this repository's history (`7a605f2`), so its answer key is a change nobody wrote for this test. Each fixture runs twenty pairs on one host. A null round runs the Skeleton side against itself on `payments` for twenty pairs. An independent reading of each report's text audits every judge verdict.
+
+**The instrument is reliable when all of these hold.** They do not depend on which side wins.
+
+| Bar | Requirement |
+| --- | --- |
+| Judge audit | Judge verdicts agree with the text reading on at least 95% of checks |
+| Assessed runs | At least 90% of pairs are assessed in every fixture |
+| Bundle use | At least 80% of Skeleton runs ran the bundle and did not run `skeleton context` |
+| Null round covers zero | The 95% interval of the recall difference includes 0 |
+| Null round is tight | That interval's half-width is at most 15 percentage points |
+| Split-half stability | Two random halves of the pairs both point the same way as the whole in at least 95% of 1,000 splits |
+| Fixture independence | The pooled direction survives leaving out any one fixture |
+
+If stability is unreachable because the true difference is near zero, the test reports that and the verdict rule below decides.
+
+**The feature verdict follows from the pooled result.** The primary measure is the recall difference: Skeleton minus bare diff, as the fraction of known defects found per run, with a bootstrap 95% interval that keeps pairs intact and weighs fixtures equally. Per-defect McNemar tests are descriptive.
+
+- `mixed`: a fixture's interval is entirely below zero.
+- `helps`: the pooled interval is entirely above zero, and the token ratio's upper bound is at most 1.25.
+- `no-meaningful-effect`: the pooled interval is within plus or minus 5 points.
+- `inconclusive`: anything else.
+
+A round's own test now fails only when the round is unusable: fewer than 90% of runs assessed, reviewers missing the floor defect in more than 20% of runs, or a review changing files. It no longer requires any defect to be found in every run, because five rounds showed that bar measures noise.
+
+**Judge check before the runs.** Three passes over the 50 stored reports (`agent-suites/review-instrument/judge-consistency.spec.ts`, execution `fc23550a-cc49-4b75-93c2-6f36857c1e4b`) were unanimous on 281 of 282 verdicts, and the majority matched the text reading on all 282. Three reports got no verdict set because of provider 403 errors. The judge now retries provider failures as well as non-verdict answers.
+
+```bash
+SKELETON_EFFICACY_RUNS=20 node_modules/.bin/agent-test test agent-suites/does-skeleton-help/review-real-regression.spec.ts --config=agent-test.config.ts
+bun scripts/efficacy/review-report.ts payments=<execution> notifications=<execution> real=<execution> null=<execution>
+```
+
+Set `SKELETON_REVIEW_NULL=1` on the `payments` command for the null round.
+
 ### Seeded-defect review
 
-On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five, reproduced with `bun scripts/efficacy/review-rounds.ts <execution>`.
+On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
 
 | Check | Baseline v0 | Skeleton v0 | Baseline v1 | Skeleton v1 | Baseline v2 | Skeleton v2 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -114,7 +152,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All thirteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All fifteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -158,7 +196,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover eighteen tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover twenty-one tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -170,10 +208,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All eighteen agent and judge tests, using the default OpenAI agent.
+# All twenty-one agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the thirteen paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the fifteen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 
