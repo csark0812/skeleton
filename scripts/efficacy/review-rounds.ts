@@ -12,18 +12,19 @@ type ExecutionEvent = {
 	data: ReviewRun & { input: { report: string }; output: string & Verdict };
 };
 
+function readExecutionEvents(id: string): ExecutionEvent[] {
+	return readFileSync(join(".agent-test/executions", id, "events.ndjson"), "utf8")
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => JSON.parse(line));
+}
+
 /**
  * Print per-check hits for seeded-defect review executions. Passing runs do not keep their test
  * attachments on disk, so this rebuilds the counts from each execution's event log.
  */
 function summarizeExecution(id: string): void {
-	const events: ExecutionEvent[] = readFileSync(
-		join(".agent-test/executions", id, "events.ndjson"),
-		"utf8",
-	)
-		.split("\n")
-		.filter(Boolean)
-		.map((line) => JSON.parse(line));
+	const events = readExecutionEvents(id);
 	const reports = new Map(
 		events
 			.filter((event) => event.type === "operation.evaluation-start")
@@ -49,7 +50,15 @@ function summarizeExecution(id: string): void {
 			]),
 		);
 		const tokens = median(runs.map((run) => run.usage.tokens.total));
-		console.log(id, side, `runs=${runs.length}`, `medianTokens=${tokens}`, JSON.stringify(hits));
+		const judged = runs.filter((run) => verdicts.has(run.output)).length;
+		console.log(
+			id,
+			side,
+			`runs=${runs.length}`,
+			`judged=${judged}`,
+			`medianTokens=${tokens}`,
+			JSON.stringify(hits),
+		);
 	}
 }
 

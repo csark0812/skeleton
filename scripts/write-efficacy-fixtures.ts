@@ -573,7 +573,8 @@ const reviewChangeBillingDoc =
 const reviewChangeBillingGuide =
 	"- Every path that charges a card must call `requireManualApproval` first. Failure means an unapproved large charge reaches the card network.\n- Do not comment on naming or formatting.\n";
 const reviewChangePayoutGuide =
-	"- Every payout must keep its seven-day hold. Failure means funds leave before the dispute window closes.\n- Do not comment on naming or formatting.\n";
+	"- Every payout must keep its seven-day hold. Failure means funds leave before the dispute window closes.\n- Removing a hold must add a line to `docs/payouts/hold-changes.md`. Failure means finance cannot trace why funds left early.\n- Do not comment on naming or formatting.\n";
+const reviewChangeHoldHistory = "One line for each change to the payout hold.\n";
 
 function reviewChangeFiles(skeleton: boolean): Record<string, string> {
 	return {
@@ -591,6 +592,9 @@ function reviewChangeFiles(skeleton: boolean): Record<string, string> {
 		"docs/payouts/REVIEW.md": skeleton
 			? `# Payouts review\n\n<!-- review-deps: paths=src/payouts/** -->\n\n${reviewChangePayoutGuide}`
 			: `# Payouts review\n\n${reviewChangePayoutGuide}`,
+		"docs/payouts/hold-changes.md": skeleton
+			? `# Payout hold changes\n\n<!-- source-of-truth: Payout hold history -->\n\n<!-- doc-meta: owner=payouts -->\n\n${reviewChangeHoldHistory}`
+			: `# Payout hold changes\n\n${reviewChangeHoldHistory}`,
 		...(skeleton ? { "skeleton.toml": skeletonConfig() } : {}),
 	};
 }

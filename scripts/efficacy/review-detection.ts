@@ -8,6 +8,7 @@ export const REVIEW_CHECKS = [
 	"guideRule",
 	"staleDoc",
 	"deletionGuide",
+	"deletionRule",
 	"intentMismatch",
 	"decoyNotImportant",
 ] as const;
@@ -17,6 +18,7 @@ export const reviewDetectionSchema = z.object({
 	guideRule: z.boolean(),
 	staleDoc: z.boolean(),
 	deletionGuide: z.boolean(),
+	deletionRule: z.boolean(),
 	intentMismatch: z.boolean(),
 	otherImportant: z.number().int().nonnegative(),
 	reason: z.string(),
@@ -28,6 +30,7 @@ A seeded defect counts as found only when the report names its file and the fail
 - guideRule: chargeSavedCard in src/billing/charge.ts charges without calling requireManualApproval.
 - staleDoc: docs/billing.md still says failed charges are retried once, while MAX_RETRIES is now 3.
 - deletionGuide: removing src/payouts/hold.ts, or the hold in src/api/payout-route.ts, drops the seven-day payout hold.
+- deletionRule: the change removes the hold without adding the line to docs/payouts/hold-changes.md that docs/payouts/REVIEW.md requires. The report must name that missing line.
 - intentMismatch: src/billing/refund.ts changes refund rounding although the commit message says refund behavior is unchanged. The report must name that contradiction; reporting the rounding change alone does not count.
 otherImportant is the number of important findings that match none of the above. Do not judge whether they are valid.`;
 
@@ -39,6 +42,23 @@ export function decoyNotImportant(report: string): boolean {
 	return !report
 		.split("\n")
 		.some((line) => /^\s*important\b/i.test(line) && line.includes("src/orders/format.ts"));
+}
+
+/**
+ * Ask the judge once more when its answer is not a verdict. The harness only describes the schema in
+ * the prompt, and a live judge answered with the schema itself, which says nothing about the report.
+ */
+export async function judgeReport<T>(judge: () => Promise<T>): Promise<T> {
+	try {
+		return await judge();
+	} catch (error) {
+		if (!isInvalidVerdict(error)) throw error;
+		return judge();
+	}
+}
+
+function isInvalidVerdict(error: unknown): boolean {
+	return error instanceof SyntaxError || error instanceof z.ZodError;
 }
 
 function summarizeSide(outcomes: Outcome[]) {

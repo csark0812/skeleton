@@ -101,7 +101,8 @@ Rules:
 - Name the bug class so the author can fix every instance, not one line.
 - Do not report style unless a review guide asks for it.
 - Do not re-report a finding the author already fixed or resolved with a reason.
-- Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding.
+- Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
+- A document listed under "Documents the author must re-read and update" that the diff makes wrong is an important finding. Open the document and cite its own path and line.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
 - End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
 

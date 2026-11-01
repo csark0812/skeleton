@@ -15,7 +15,12 @@ import type { Workspace } from "@post-print/agent-test";
 import { checkBillingDocument } from "../../scripts/efficacy/billing-document.ts";
 import { HISTORY_TASKS } from "../../scripts/efficacy/history.ts";
 import { median } from "../../scripts/efficacy/median.ts";
-import { decoyNotImportant, summarizeDetection } from "../../scripts/efficacy/review-detection.ts";
+import {
+	decoyNotImportant,
+	judgeReport,
+	reviewDetectionSchema,
+	summarizeDetection,
+} from "../../scripts/efficacy/review-detection.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
 import { seedReviewChange } from "../../scripts/efficacy/workspace.ts";
 
@@ -150,6 +155,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			guideRule: found,
 			staleDoc: found,
 			deletionGuide: false,
+			deletionRule: false,
 			intentMismatch: false,
 			decoyNotImportant: true,
 		});
@@ -185,6 +191,37 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		expect(decoyNotImportant("important\tsrc/orders/format.ts:2\tnaming\tRenamed.")).toBe(false);
 	});
 
+	it("asks the judge again only when its answer is not a verdict", async () => {
+		const answering = (...answers: string[]) => {
+			const judge = async () => reviewDetectionSchema.parse(JSON.parse(answers.shift() ?? ""));
+			return () => judge();
+		};
+		const verdict = JSON.stringify({
+			generic: true,
+			guideRule: true,
+			staleDoc: true,
+			deletionGuide: true,
+			deletionRule: false,
+			intentMismatch: true,
+			otherImportant: 0,
+			reason: "Found.",
+		});
+		const schemaEcho = JSON.stringify({ type: "object", properties: {} });
+
+		expect((await judgeReport(answering(schemaEcho, verdict))).reason).toBe("Found.");
+		expect((await judgeReport(answering("not JSON", verdict))).reason).toBe("Found.");
+		await expect(judgeReport(answering(schemaEcho, schemaEcho, verdict))).rejects.toThrow();
+
+		let calls = 0;
+		await expect(
+			judgeReport(async () => {
+				calls++;
+				throw new Error("provider failure");
+			}),
+		).rejects.toThrow("provider failure");
+		expect(calls).toBe(1);
+	});
+
 	it("gives both review sides the same change and bundles the seeded evidence", () => {
 		const root = join(ROOT, "tests/fixtures/efficacy/review-change");
 		for (const path of [
@@ -198,7 +235,12 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(readFileSync(join(root, "control", path), "utf8")).toBe(
 				readFileSync(join(root, "skeleton", path), "utf8"),
 			);
-		for (const path of ["docs/billing.md", "docs/billing/REVIEW.md", "docs/payouts/REVIEW.md"])
+		for (const path of [
+			"docs/billing.md",
+			"docs/billing/REVIEW.md",
+			"docs/payouts/REVIEW.md",
+			"docs/payouts/hold-changes.md",
+		])
 			expect(plain(readFileSync(join(root, "control", path), "utf8"))).toBe(
 				plain(readFileSync(join(root, "skeleton", path), "utf8")),
 			);
@@ -222,6 +264,9 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			);
 			expect(result.status).toBe(0);
 			expect(result.stdout).toContain("## Review guide: docs/billing/REVIEW.md");
+			expect(result.stdout).toContain("## Review guide: docs/payouts/REVIEW.md");
+			expect(result.stdout).toContain("docs/payouts/hold-changes.md");
+			expect(result.stdout).toContain("Open the document and cite its own path and line.");
 			expect(result.stdout).toContain("- docs/billing.md (changed: src/billing/charge.ts)");
 			expect(result.stdout).toContain("-export const MAX_RETRIES = 1;");
 		} finally {

@@ -31,6 +31,7 @@ export default defineAgent({
 								guideRule: input.report.includes("REVIEW.md"),
 								staleDoc: input.report.includes("docs/billing.md"),
 								deletionGuide: false,
+								deletionRule: false,
 								intentMismatch: false,
 								otherImportant: 0,
 								reason: "Offline review report contract.",

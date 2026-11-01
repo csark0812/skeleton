@@ -3,6 +3,7 @@ import { describe, expect } from "@post-print/agent-test";
 import { assessRun, measureReliability, type Pair } from "../../scripts/efficacy/measurements.ts";
 import {
 	decoyNotImportant,
+	judgeReport,
 	reviewDetectionInstructions,
 	reviewDetectionSchema,
 	summarizeDetection,
@@ -32,7 +33,7 @@ test("Skeleton review bundle when a change contains seeded defects", async ({
 }, info) => {
 	const evaluate = async (run: Run) => {
 		const { otherImportant, reason, ...found } = (
-			await detection.run({ input: { report: run.output } })
+			await judgeReport(() => detection.run({ input: { report: run.output } }))
 		).output;
 		const unchanged = run.workspace.changedPaths.length === 0;
 		return {
