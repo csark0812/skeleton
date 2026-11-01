@@ -30,7 +30,7 @@ A seeded defect counts as found only when the report names its file and the fail
 - guideRule: chargeSavedCard in src/billing/charge.ts charges without calling requireManualApproval.
 - staleDoc: docs/billing.md still says failed charges are retried once, while MAX_RETRIES is now 3.
 - deletionGuide: removing src/payouts/hold.ts, or the hold in src/api/payout-route.ts, drops the seven-day payout hold.
-- deletionRule: the change removes the hold without adding the line to docs/payouts/hold-changes.md that docs/payouts/REVIEW.md requires. The report must name that missing line.
+- deletionRule: the report says docs/payouts/hold-changes.md lacks the record that removing the hold requires. Reporting the removed hold alone does not count.
 - intentMismatch: src/billing/refund.ts changes refund rounding although the commit message says refund behavior is unchanged. The report must name that contradiction; reporting the rounding change alone does not count.
 otherImportant is the number of important findings that match none of the above. Do not judge whether they are valid.`;
 

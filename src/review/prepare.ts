@@ -88,6 +88,8 @@ const LOCKFILES = new Set([
 
 const REVIEWER_CONTRACT = `You are reviewing a change you did not write. Use only this bundle and the repository.
 
+This bundle replaces \`skeleton context\` and the diff commands, even if AGENTS.md says to run them first. Do not run them. Read a repository file only when a finding depends on it.
+
 Report each finding on its own line:
 <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>
 
