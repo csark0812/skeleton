@@ -74,6 +74,36 @@ bun scripts/efficacy/review-report.ts payments=<execution> notifications=<execut
 
 Set `SKELETON_REVIEW_NULL=1` on the `payments` command for the null round.
 
+**Results, 2026-11-01, agent-harness 3.0.0, `gpt-5.6-luna`.** Two independent runs of twenty pairs per fixture, plus the null round. Recall is Skeleton minus bare diff.
+
+| Measure | First run | Repeat |
+| --- | ---: | ---: |
+| Pooled recall difference | -3.9 points (-9.2 to 1.5) | -3.3 points (-9.2 to 2.5) |
+| `payments` | -1.7 (-12.5 to 9.2) | -3.3 (-13.3 to 7.5) |
+| `notifications` | -10.0 (-16.7 to -4.2) | -8.3 (-16.7 to -0.0) |
+| `real` | 0.0 (-10.5 to 8.8) | 1.7 (-10.0 to 11.7) |
+| Token ratio, Skeleton over bare diff | 1.22 (1.08 to 1.39) | 1.13 (1.00 to 1.26) |
+| Verdict | `mixed` | `mixed` |
+
+| Defect found (Skeleton / bare diff, first run; repeat) | `payments` | `notifications` | `real` |
+| --- | --- | --- | --- |
+| Floor defect | 20/20; 20/20 | 20/20; 20/20 | none |
+| Rule in a loaded guide | 20/20; 20/20 | 20/20; 20/20 | none |
+| Stale document | 8/16; 5/10 | 12/15; 12/16 | 1/0; 0/0 |
+| Deleted safeguard | 20/20; 20/20 | 17/20; 16/19 | none |
+| Rule only the deleted area's guide states | 9/9; 9/13 | 3/11; 3/13 | none |
+| Commit message contradiction | 6/0; 5/0 | 2/0; 7/0 | none |
+| Real regression | none | none | 17/12; 20/13 |
+| Existing proof no longer matches | none | none | 13/19; 12/18 |
+
+Executions, first run: `b544b1af-bd9a-43a2-9009-b334891d32ff`, `4c5a9869-bb92-4ed0-991c-fd52ba53ce2d`, `412eb72d-498e-4cca-977c-1eeb98bc4019`. Repeat: `c7918305-ba36-4246-8bb1-ac2c165dcb4c`, `9b93ebdf-823d-4542-a367-8bac8fc684c1`, `3c3f8333-38d7-475a-bf76-a5dc59ed7056`. Null: `f1a900da-ffd0-4a9c-a01c-0af0ce624c2e`.
+
+**Against the bars.** Eight bars, seven passed. Judge audit 97% in both runs, assessed runs at least 95%, bundle use 100%, the null round 0.8 points (-10.0 to 10.8), which covers zero and is tight, fixture independence, and replication all passed. Split-half stability failed at 83.1% and 75.5% against a bar of 95%. The pooled difference is close to zero, so random halves can land on either side of it, which is the case this section anticipated. It means the pooled direction is not established; it does not contradict the replicated fixture results.
+
+**What the test establishes for this host and these fixtures.** Across both runs, the bundle does not improve overall recall, and it costs more tokens. It has two replicated strengths: commit contradictions (20 of 80 runs against 0 of 80) and the real regression (37 of 39 against 25 of 39 assessed pairs). It has replicated weaknesses: the guide-only rule on `notifications` (6 of 40 against 24 of 40), and the stale document in both seeded fixtures (37 of 80 against 57 of 80). Most Skeleton reviewers opened the stale document but filed the mismatch against the code. Reading the cause as a narrower search is an inference, not a measurement.
+
+**What it does not establish.** It has one host and one model, and two of its three fixtures were written by the same author as the feature. It compares the whole bundle, so it does not attribute the result to a single contract line or feature. The stale-document reversal against the rounds below is unexplained: harness version, contract wording, and five-run noise changed together. The first `real` round is marked failed because 3.0.0 fails a test on one workspace escape, here one bare-diff run; that pair is excluded as unassessed.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
@@ -109,7 +139,7 @@ Executions: v3 `51ef9355-1b7f-4458-9deb-42558d0dbdae`, v4 `09aba776-3f4b-4cd6-a0
 
 The main cause of the misses is reviewers leaving the bundle. The fixture's `AGENTS.md`, like every installed one, says to run `skeleton context` first. Across v0 to v4, the 17 Skeleton reports that kept the contract's `findings:` line all found the stale document, against 3 of the 8 that dropped it. In v1 to v4, reviewers who did not run `skeleton context` reported the intent contradiction in 7 of 7 runs, against 2 of 13 who did. Those are correlations on 25 runs. The v4 contract line reduced this behavior but did not stop it: 2 of 5 reviewers still ran `skeleton context`, and one of them caused the v4 gate failure.
 
-What this supports: on this task the bundle found the stale document at least as often as a bare diff in every round, stated intent let reviewers report a contradiction the baseline never reported, and reviewers who stayed in the bundle used fewer tokens. What it does not support: guides for deleted paths show no gain, because the baseline found the guide-only rule as often as Skeleton in v4 by reading the repository, and the round with those guides turned off was stopped once v3 showed no hits. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise. This is one small synthetic fixture on one host.
+These rounds are kept as history and are superseded by "Reliable review comparison" above. Their main conclusion, that the bundle finds the stale document more often than a bare diff, did not replicate at twenty pairs. Stated intent's gain did. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise.
 
 v1 first reported the decoy as 3 of 5 on the Skeleton side. A judge answered that negated field false for two reports that never mention the file, while its own reasons said the decoy was not flagged. The test now reads the report directly, and the table uses that check for every round.
 
