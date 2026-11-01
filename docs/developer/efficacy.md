@@ -50,9 +50,26 @@ On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gp
 
 Executions: v0 `59e4b11d-4141-421e-a58a-f851d6d795e6`, v1 `abf98611-73c3-4c07-bed5-00a5f58173ec`, v2 `d8d51fb2-f31c-4edf-a6cd-e824ae2f02a6`.
 
-v2 failed its gates. One baseline judge call produced no verdict, which is an evaluation error and explains the baseline's 4 of 5 rows; the event log does not record why. One Skeleton report mentioned the documented retry policy without naming `docs/billing.md`, so the stale-document gate would also have failed. The test was not rerun.
+v2 failed its gates. One baseline judge answered with the JSON schema instead of a verdict (`response.json` in that execution), because the harness only describes the schema in the prompt. That is the evaluation error behind the baseline's 4 of 5 rows; its report did name `docs/billing.md`, as a nit, so the baseline's stale-document 0 may be an undercount. One Skeleton report mentioned the documented retry policy without naming `docs/billing.md`, so the stale-document gate would also have failed.
 
-What this supports: on this task the bundle found the stale document more often than a bare diff, and stated intent let reviewers report a contradiction that neither side reported before. What it does not support: guides for deleted paths show no gain, because both sides already found the deleted hold in the diff in every evaluated run. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise. This is one small synthetic fixture on one host.
+On 2026-10-31, after those causes were fixed, two more rounds ran. The judge is now asked once more when its answer is not a verdict. The contract tells reviewers to cite a stale listed document (v3), and that the bundle replaces `skeleton context` and the diff commands (v4). The fixture also gained a guide rule that a diff cannot reveal, so these rounds are not comparable with earlier ones on tokens.
+
+| Check | Baseline v3 | Skeleton v3 | Baseline v4 | Skeleton v4 |
+| --- | ---: | ---: | ---: | ---: |
+| Dropped order line | 5 | 5 | 5 | 5 |
+| Rule stated in a review guide | 5 | 4 | 5 | 5 |
+| Stale retry document | 1 | 2 | 3 | 4 |
+| Deleted payout hold | 5 | 5 | 5 | 5 |
+| Rule only the deleted area's guide states | 0 | 0 | 3 | 3 |
+| Change the commit message denies | 0 | 1 | 0 | 3 |
+| Decoy not called important | 5 | 5 | 5 | 5 |
+| Median tokens, all runs | 164,037 | 159,396 | 137,797 | 74,729 |
+
+Executions: v3 `51ef9355-1b7f-4458-9deb-42558d0dbdae`, v4 `09aba776-3f4b-4cd6-a0ac-6313ef58db5b`. Both failed their gates: v3 on the guide rule (4 of 5) and v4 on the stale document (4 of 5). The v3 judge used stricter wording for the guide-only rule and rejected a report that cited `docs/payouts/hold-changes.md`, so that row compares only within v4. Execution `d921c59c-2404-49a3-a41f-1a6cd56b27a6` is an aborted comparison round and has no results.
+
+The main cause of the misses is reviewers leaving the bundle. The fixture's `AGENTS.md`, like every installed one, says to run `skeleton context` first. Across v0 to v4, the 17 Skeleton reports that kept the contract's `findings:` line all found the stale document, against 3 of the 8 that dropped it. In v1 to v4, reviewers who did not run `skeleton context` reported the intent contradiction in 7 of 7 runs, against 2 of 13 who did. Those are correlations on 25 runs. The v4 contract line reduced this behavior but did not stop it: 2 of 5 reviewers still ran `skeleton context`, and one of them caused the v4 gate failure.
+
+What this supports: on this task the bundle found the stale document at least as often as a bare diff in every round, stated intent let reviewers report a contradiction the baseline never reported, and reviewers who stayed in the bundle used fewer tokens. What it does not support: guides for deleted paths show no gain, because the baseline found the guide-only rule as often as Skeleton in v4 by reading the repository, and the round with those guides turned off was stopped once v3 showed no hits. The token drop from v1 to v2 is about 12%, while the unchanged baseline moved about 17% between v0 and v1, so omission's saving is not distinguishable from noise. This is one small synthetic fixture on one host.
 
 v1 first reported the decoy as 3 of 5 on the Skeleton side. A judge answered that negated field false for two reports that never mention the file, while its own reasons said the decoy was not flagged. The test now reads the report directly, and the table uses that check for every round.
 
