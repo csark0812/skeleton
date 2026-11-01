@@ -121,6 +121,8 @@ export function defectComparison(fixture: FixtureResult) {
 
 /** How often two random halves of the pairs each point the same way as all of them. */
 export function splitHalfAgreement(fixtures: FixtureResult[]): number {
+	if (fixtures.some((fixture) => fixture.pairs.length < 2))
+		throw new Error("Split-half agreement needs at least two pairs in every fixture.");
 	const whole = recallDifference(fixtures).estimate;
 	const random = seededRandom(SEED + 1);
 	let agreeing = 0;
@@ -188,5 +190,30 @@ export function reliabilityChecks(fixtures: FixtureResult[], evidence: Instrumen
 		leaveOneOut: leaveOneFixtureOut(fixtures).every(
 			(result) => Math.sign(result.difference.estimate) === pooledSign,
 		),
+	};
+}
+
+/**
+ * A second, independent run of the whole test. Reliable means it lands inside the first run's
+ * uncertainty and reaches the same verdict, whichever verdict that is.
+ */
+export function replicationCheck(first: FixtureResult[], second: FixtureResult[]) {
+	const fixtures = first.map((fixture) => {
+		const repeat = second.find((item) => item.fixture === fixture.fixture);
+		if (!repeat) throw new Error(`Replication is missing ${fixture.fixture}.`);
+		const original = recallDifference([fixture]);
+		const estimate = recallDifference([repeat]).estimate;
+		return {
+			fixture: fixture.fixture,
+			original,
+			repeat: estimate,
+			withinInterval: estimate >= original.low && estimate <= original.high,
+		};
+	});
+	const verdicts = [featureVerdict(first), featureVerdict(second)];
+	return {
+		fixtures,
+		verdicts,
+		passed: fixtures.every((fixture) => fixture.withinInterval) && verdicts[0] === verdicts[1],
 	};
 }

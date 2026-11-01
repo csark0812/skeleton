@@ -11,6 +11,7 @@ import {
 	type ReviewRunResult,
 	recallDifference,
 	reliabilityChecks,
+	replicationCheck,
 	splitHalfAgreement,
 	tokenRatio,
 } from "./review-analysis.ts";
@@ -190,14 +191,22 @@ function printReport(report: ReturnType<typeof buildReport>): void {
 
 function main(): void {
 	const rounds = process.argv.slice(2).map((argument) => argument.split("="));
-	const loaded = rounds
-		.filter(([name]) => name !== "null")
-		.map(([name, execution]) => {
-			const scenario = REVIEW_SCENARIOS[name as keyof typeof REVIEW_SCENARIOS];
-			if (!(scenario && execution))
-				throw new Error("Use <payments|notifications|real>=<execution> and null=<execution>.");
-			return loadExecution(execution, scenario);
-		});
+	const loadRounds = (prefix: string) =>
+		rounds
+			.filter(
+				([name]) => name !== "null" && (name?.startsWith("again-") ?? false) === (prefix !== ""),
+			)
+			.map(([name, execution]) => {
+				const key = name?.slice(prefix.length) as keyof typeof REVIEW_SCENARIOS;
+				const scenario = REVIEW_SCENARIOS[key];
+				if (!(scenario && execution))
+					throw new Error(
+						"Use <payments|notifications|real>=<execution>, null=<execution>, and again-<fixture>=<execution>.",
+					);
+				return loadExecution(execution, scenario);
+			});
+	const loaded = loadRounds("");
+	const repeated = loadRounds("again-");
 	const nullExecution = rounds.find(([name]) => name === "null")?.[1];
 	const nullRound = nullExecution
 		? loadExecution(nullExecution, REVIEW_SCENARIOS.payments).fixture
@@ -206,6 +215,14 @@ function main(): void {
 	mkdirSync("test-results", { recursive: true });
 	writeFileSync("test-results/review-reliability.json", `${JSON.stringify(report, null, "\t")}\n`);
 	printReport(report);
+	if (repeated.length > 0) {
+		const replication = replicationCheck(
+			loaded.map((round) => round.fixture),
+			repeated.map((round) => round.fixture),
+		);
+		console.log(`\nReplication: ${JSON.stringify(replication)}`);
+		printReport(buildReport(repeated, nullRound));
+	}
 }
 
 main();

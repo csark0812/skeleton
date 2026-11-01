@@ -22,6 +22,7 @@ import {
 	mcnemarExact,
 	recallDifference,
 	reliabilityChecks,
+	replicationCheck,
 	splitHalfAgreement,
 	tokenRatio,
 } from "../../scripts/efficacy/review-analysis.ts";
@@ -337,6 +338,15 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(reliabilityChecks(fixtures, { ...evidence, nullRound: null }).nullCoversZero).toBe(
 				false,
 			);
+		});
+
+		it("passes replication only inside the first interval and with the same verdict", () => {
+			const first = [fixture("a", 8, 8, 4), fixture("b", 8, 8, 4)];
+			expect(replicationCheck(first, first).passed).toBe(true);
+			expect(replicationCheck(first, [fixture("a", 0, 0, 20), fixture("b", 8, 8, 4)]).passed).toBe(
+				false,
+			);
+			expect(() => replicationCheck(first, [fixture("a", 8, 8, 4)])).toThrow("missing b");
 		});
 
 		it("reports split-half agreement and per-defect counts", () => {

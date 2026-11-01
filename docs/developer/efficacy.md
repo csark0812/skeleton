@@ -54,6 +54,8 @@ The rounds below this section are too small to decide whether the review bundle 
 
 If stability is unreachable because the true difference is near zero, the test reports that and the verdict rule below decides.
 
+**Replication bar, added after the first full run and before its repeat.** A second, unchanged run of all three fixtures must land inside the first run's 95% interval on every fixture and reach the same verdict. This bar is stricter than the others and was added because the first verdict reversed the small rounds, so it needed a retest. The first run's other bars are unchanged.
+
 **The feature verdict follows from the pooled result.** The primary measure is the recall difference: Skeleton minus bare diff, as the fraction of known defects found per run, with a bootstrap 95% interval that keeps pairs intact and weighs fixtures equally. Per-defect McNemar tests are descriptive.
 
 - `mixed`: a fixture's interval is entirely below zero.
