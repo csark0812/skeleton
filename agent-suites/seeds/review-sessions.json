@@ -1,0 +1,26 @@
+[
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "b544b1af-bd9a-43a2-9009-b334891d32ff",
+		"notifications": "4c5a9869-bb92-4ed0-991c-fd52ba53ce2d",
+		"real": "412eb72d-498e-4cca-977c-1eeb98bc4019",
+		"null": "f1a900da-ffd0-4a9c-a01c-0af0ce624c2e"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "c7918305-ba36-4246-8bb1-ac2c165dcb4c",
+		"notifications": "9b93ebdf-823d-4542-a367-8bac8fc684c1",
+		"real": "3c3f8333-38d7-475a-bf76-a5dc59ed7056",
+		"null": "f1a900da-ffd0-4a9c-a01c-0af0ce624c2e"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "7a170264-cff9-4c27-9ea3-fb33b1f1cf22",
+		"notifications": "afa702d1-fb69-4d0a-8c89-d8d3cfcb5fd4",
+		"real": "51fa6c1d-52de-4089-b881-4380e9950a00",
+		"null": "eed55592-e4a7-4a07-a5c7-330313b76cf3"
+	}
+]

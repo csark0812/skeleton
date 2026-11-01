@@ -279,3 +279,104 @@ export function replicationCheck(first: FixtureResult[], second: FixtureResult[]
 		passed: fixtures.every((fixture) => fixture.withinInterval) && verdicts[0] === verdicts[1],
 	};
 }
+
+/** Two-sided 95% Student t quantiles by degrees of freedom. */
+const T_95 = [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262];
+export const SESSION_BARS = {
+	minSessions: 5,
+	minDays: 3,
+	maxHalfWidth: 0.06,
+} as const;
+
+/** Sessions, not pairs, are the unit: behavior drifted between sessions with unchanged inputs. */
+export function sessionInterval(estimates: number[]): Interval {
+	const degrees = estimates.length - 1;
+	const quantile = T_95[degrees - 1];
+	if (quantile === undefined) throw new Error("A session interval needs 2 to 10 sessions.");
+	const center = mean(estimates);
+	const variance = estimates.reduce((sum, value) => sum + (value - center) ** 2, 0) / degrees;
+	const margin = quantile * Math.sqrt(variance / estimates.length);
+	return { estimate: center, low: center - margin, high: center + margin };
+}
+
+export type SessionResult = { day: string; fixtures: FixtureResult[]; nullRound: FixtureResult };
+
+function fixtureNames(sessions: SessionResult[]): string[] {
+	return (sessions[0]?.fixtures ?? []).map((fixture) => fixture.fixture);
+}
+
+function sessionVerdictFor(
+	recall: Interval,
+	tokens: Interval,
+	fixtures: Interval[],
+): FeatureVerdict {
+	if (fixtures.some((interval) => interval.high < 0)) return "mixed";
+	if (recall.low > 0 && tokens.high <= MAX_TOKEN_RATIO) return "helps";
+	if (recall.low >= -NO_EFFECT_MARGIN && recall.high <= NO_EFFECT_MARGIN)
+		return "no-meaningful-effect";
+	return "inconclusive";
+}
+
+function summarizeSessions(sessions: SessionResult[]) {
+	const recall = sessionInterval(
+		sessions.map((session) => recallDifference(session.fixtures).estimate),
+	);
+	const logTokens = sessionInterval(
+		sessions.map((session) => Math.log(tokenRatio(session.fixtures).estimate)),
+	);
+	const tokens = {
+		estimate: Math.exp(logTokens.estimate),
+		low: Math.exp(logTokens.low),
+		high: Math.exp(logTokens.high),
+	};
+	const fixtures = fixtureNames(sessions).map((name) => ({
+		fixture: name,
+		recall: sessionInterval(
+			sessions.map((session) => {
+				const fixture = session.fixtures.find((item) => item.fixture === name);
+				if (!fixture) throw new Error(`A session is missing ${name}.`);
+				return recallDifference([fixture]).estimate;
+			}),
+		),
+	}));
+	return {
+		recall,
+		tokens,
+		fixtures,
+		verdict: sessionVerdictFor(
+			recall,
+			tokens,
+			fixtures.map((fixture) => fixture.recall),
+		),
+	};
+}
+
+/** The verdict and the bars for a design whose unit is the session. See docs/developer/efficacy.md. */
+export function sessionReport(sessions: SessionResult[]) {
+	const summary = summarizeSessions(sessions);
+	const nullInterval = sessionInterval(
+		sessions.map((session) => recallDifference([session.nullRound]).estimate),
+	);
+	const leaveOneOut = sessions.map((_, index) =>
+		sessions.length > 2
+			? summarizeSessions(sessions.filter((__, kept) => kept !== index)).verdict
+			: null,
+	);
+	return {
+		...summary,
+		perSession: sessions.map((session) => ({
+			day: session.day,
+			recall: recallDifference(session.fixtures).estimate,
+			tokens: tokenRatio(session.fixtures).estimate,
+		})),
+		nullInterval,
+		leaveOneOut,
+		bars: {
+			enoughSessions: sessions.length >= SESSION_BARS.minSessions,
+			enoughDays: new Set(sessions.map((session) => session.day)).size >= SESSION_BARS.minDays,
+			tight: (summary.recall.high - summary.recall.low) / 2 <= SESSION_BARS.maxHalfWidth,
+			nullCoversZero: nullInterval.low <= 0 && nullInterval.high >= 0,
+			verdictSurvivesAnySession: leaveOneOut.every((verdict) => verdict === summary.verdict),
+		},
+	};
+}

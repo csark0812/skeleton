@@ -13,7 +13,9 @@ import {
 	recallDifference,
 	reliabilityChecks,
 	replicationCheck,
+	type SessionResult,
 	sensitivity,
+	sessionReport,
 	splitHalfAgreement,
 	tokenRatio,
 } from "./review-analysis.ts";
@@ -206,7 +208,38 @@ function combineRounds(first: LoadedRound, second: LoadedRound): LoadedRound {
 	};
 }
 
-function main(): void {
+type SessionManifest = {
+	confirmatory: boolean;
+	day: string;
+	payments: string;
+	notifications: string;
+	real: string;
+	null: string;
+}[];
+
+function loadSession(entry: SessionManifest[number]): SessionResult {
+	return {
+		day: entry.day,
+		fixtures: [
+			loadExecution(entry.payments, REVIEW_SCENARIOS.payments).fixture,
+			loadExecution(entry.notifications, REVIEW_SCENARIOS.notifications).fixture,
+			loadExecution(entry.real, REVIEW_SCENARIOS.real).fixture,
+		],
+		nullRound: loadExecution(entry.null, REVIEW_SCENARIOS.payments).fixture,
+	};
+}
+
+function printSessions(path: string): void {
+	const manifest: SessionManifest = JSON.parse(readFileSync(path, "utf8"));
+	for (const confirmatory of [false, true]) {
+		const entries = manifest.filter((entry) => entry.confirmatory === confirmatory);
+		if (entries.length < 2) continue;
+		console.log(confirmatory ? "\nConfirmatory sessions:" : "\nExploratory sessions:");
+		console.log(JSON.stringify(sessionReport(entries.map(loadSession)), null, "\t"));
+	}
+}
+
+function compareRounds(): void {
 	const rounds = process.argv.slice(2).map((argument) => argument.split("="));
 	const loadRounds = (prefix: string) =>
 		rounds
@@ -247,6 +280,12 @@ function main(): void {
 			),
 		);
 	}
+}
+
+function main(): void {
+	if (process.argv[2] === "--sessions")
+		printSessions(process.argv[3] ?? "agent-suites/seeds/review-sessions.json");
+	else compareRounds();
 }
 
 main();

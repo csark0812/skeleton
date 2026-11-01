@@ -25,6 +25,8 @@ import {
 	reliabilityChecks,
 	replicationCheck,
 	sensitivity,
+	sessionInterval,
+	sessionReport,
 	splitHalfAgreement,
 	tokenRatio,
 } from "../../scripts/efficacy/review-analysis.ts";
@@ -358,6 +360,37 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				sensitivity([fixture("ordinary", 1, 38, 1), fixture("other", 1, 38, 1)]),
 			).toBeGreaterThan(0.9);
 			expect(sensitivity([fixture("wide", 3, 0, 3)])).toBeLessThan(0.9);
+		});
+
+		it("computes a t interval with the session as the unit", () => {
+			const interval = sessionInterval([-0.039, -0.033, 0.017]);
+			expect(interval.estimate).toBeCloseTo(-0.0183, 3);
+			expect(interval.low).toBeCloseTo(-0.0948, 3);
+			expect(interval.high).toBeCloseTo(0.0581, 3);
+			expect(() => sessionInterval([0.1])).toThrow();
+		});
+
+		it("fails session bars when sessions disagree, even if each session looks certain", () => {
+			const session = (day: string, wins: number, losses: number) => ({
+				day,
+				fixtures: [fixture("a", wins, 20 - wins - losses, losses)],
+				nullRound: fixture("null", 0, 20),
+			});
+			const agreeing = sessionReport(
+				["d1", "d1", "d2", "d2", "d3"].map((day, index) => session(day, 10 + (index % 2), 0)),
+			);
+			expect(agreeing.verdict).toBe("helps");
+			expect(Object.values(agreeing.bars).every(Boolean)).toBe(true);
+			const disagreeing = sessionReport(
+				["d1", "d1", "d2", "d2", "d3"].map((day, index) =>
+					index % 2 ? session(day, 16, 0) : session(day, 0, 16),
+				),
+			);
+			expect(disagreeing.verdict).toBe("inconclusive");
+			expect(disagreeing.bars.tight).toBe(false);
+			expect(sessionReport([session("d1", 10, 0), session("d1", 11, 0)]).bars.enoughSessions).toBe(
+				false,
+			);
 		});
 
 		it("passes replication only inside the first interval and with the same verdict", () => {

@@ -93,6 +93,14 @@ Skeleton reports that kept the contract's `findings:` line found 92% of `payment
 
 **What reliability still needs.** Several sessions spread across days, an interval that treats the session as the unit, and bars frozen before those sessions run.
 
+**Multi-session protocol, frozen before any of its sessions.** Each confirmatory session is `bun scripts/efficacy/run-review-session.ts`: ten pairs on each fixture plus ten null pairs, about 80 agent runs and 11 million tokens. Run at least five sessions on at least three different days, at least six hours apart, with this commit's code, fixtures, harness version, and model. Do not rerun, drop, or reorder a session. `bun scripts/efficacy/review-report.ts --sessions` scores them with the session as the unit: a Student t interval over each session's pooled recall difference.
+
+The instrument is reliable when all of these hold across the confirmatory sessions: at least five sessions on three days; the recall interval's half-width is at most 6 points; the null sessions' interval covers zero; removing any one session leaves the verdict unchanged; and the judge audit, assessed-run, and bundle-use bars from the table above hold. The verdict uses the same rule with session intervals: `mixed` if a fixture's interval is entirely below zero, `helps` if pooled recall is entirely above zero and the token ratio's upper bound is at most 1.25, `no-meaningful-effect` if pooled recall is within plus or minus 5 points, otherwise `inconclusive`. The three sessions above are exploratory and do not count.
+
+With the session as the unit, those three sessions give a recall difference of -1.9 points (-9.5 to 5.7) and a token ratio of 1.07 (0.72 to 1.60), which is `inconclusive`. The second of them reused the first null round, so their null interval means little. This replaces the `no-meaningful-effect` reading of the pooled pairs above, whose interval ignores session variation.
+
+Why the clock matters: across all fixtures, the share of Skeleton reports keeping the contract's format rose from about 15% to 93% between 05:30 and 07:00 UTC, while Skeleton tokens fell from about 140k to 61k. Bare-diff tokens and tool calls stayed flat. Rounds running at the same concurrency differed widely, and the harness keeps `~/.codex/config.toml` out of its runs. The cause is unknown.
+
 **Results, 2026-11-01, agent-harness 3.0.0, `gpt-5.6-luna`.** Two independent runs of twenty pairs per fixture, plus the null round. Recall is Skeleton minus bare diff.
 
 | Measure | First run | Repeat |
