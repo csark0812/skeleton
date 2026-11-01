@@ -75,6 +75,8 @@ bun scripts/efficacy/review-report.ts payments=<execution> notifications=<execut
 
 Set `SKELETON_REVIEW_NULL=1` on the `payments` command for the null round.
 
+**Confirmatory run, frozen before it started.** The bars, the verdict rule, the fixtures, and the code are unchanged from this commit. Thirty new pairs per fixture and a new twenty-pair null round. It confirms the instrument only if that run alone passes every bar in the table above, each fixture's estimate lands inside the first run's 95% interval, and the verdict is unchanged. The size was raised from twenty because the repeat missed stability by 0.1 points at twenty pairs. If it fails, it is recorded as failed and nothing below is revised to fit it.
+
 **Results, 2026-11-01, agent-harness 3.0.0, `gpt-5.6-luna`.** Two independent runs of twenty pairs per fixture, plus the null round. Recall is Skeleton minus bare diff.
 
 | Measure | First run | Repeat |
