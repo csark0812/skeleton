@@ -77,6 +77,22 @@ Set `SKELETON_REVIEW_NULL=1` on the `payments` command for the null round.
 
 **Confirmatory run, frozen before it started.** The bars, the verdict rule, the fixtures, and the code are unchanged from this commit. Thirty new pairs per fixture and a new twenty-pair null round. It confirms the instrument only if that run alone passes every bar in the table above, each fixture's estimate lands inside the first run's 95% interval, and the verdict is unchanged. The size was raised from twenty because the repeat missed stability by 0.1 points at twenty pairs. If it fails, it is recorded as failed and nothing below is revised to fit it.
 
+**Confirmatory result: failed.** The run passed every bar in the table on its own, but `notifications` landed at +4.4 points, outside the first run's interval of -16.7 to -4.2, and the verdict changed from `mixed` to `inconclusive`. Do not use one session's per-fixture interval or verdict as a finding. Executions: `7a170264-cff9-4c27-9ea3-fb33b1f1cf22`, `afa702d1-fb69-4d0a-8c89-d8d3cfcb5fd4`, `51fa6c1d-52de-4089-b881-4380e9950a00`; null `eed55592-e4a7-4a07-a5c7-330313b76cf3`.
+
+The cause measured so far is drift in the Skeleton side between sessions a few hours apart, with an identical package and an identical contract hash. Mean recall and tokens per session:
+
+| Fixture | Bare diff recall | Skeleton recall | Bare diff tokens | Skeleton tokens |
+| --- | --- | --- | --- | --- |
+| `payments` | 71, 69, 69 | 69, 66, 74 | 155k, 150k, 162k | 137k, 139k, 108k |
+| `notifications` | 72, 73, 73 | 62, 65, 77 | 81k, 82k, 84k | 120k, 100k, 79k |
+| `real` | 54, 52, 61 | 54, 53, 57 | 127k, 127k, 123k | 210k, 193k, 186k |
+
+Skeleton reports that kept the contract's `findings:` line found 92% of `payments` defects against 58% without it, and 81% of `notifications` defects against 60%. That line appeared in more reports each session on `notifications`: 2 of 20, 8 of 20, 21 of 30. The correlation does not show the format causes recall, and why behavior drifted with unchanged inputs is unknown. The bootstrap intervals treat pairs as independent, so they leave out this session-level variation and are too narrow.
+
+**What stands.** The judge audit (97% or better), the bare-diff side's stability, and both null rounds held. Across all three sessions, 209 pairs, the pooled recall difference is -1.4 points (-4.3 to 1.7), the token ratio is 1.05 (0.97 to 1.13), and the rule's verdict is `no-meaningful-effect`. That pooling was not frozen in advance, and its interval has the same independence problem. Commit contradictions replicated in all three sessions (54 of 140 against 2 of 140) and so did the real regression (66 of 69 against 51 of 69). Across all three sessions the stale document (80 of 140 against 100 of 140), the guide-only rule on `notifications` (15 of 70 against 39 of 70), and the existing-proof consequence on `real` (46 of 69 against 64 of 69) favor the bare diff, though the stale-document gap closed in the confirmatory session.
+
+**What reliability still needs.** Several sessions spread across days, an interval that treats the session as the unit, and bars frozen before those sessions run.
+
 **Results, 2026-11-01, agent-harness 3.0.0, `gpt-5.6-luna`.** Two independent runs of twenty pairs per fixture, plus the null round. Recall is Skeleton minus bare diff.
 
 | Measure | First run | Repeat |
