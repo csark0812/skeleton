@@ -4,6 +4,7 @@ import process from "node:process";
 import { median } from "./median.ts";
 import {
 	defectComparison,
+	directionalStability,
 	type FixtureResult,
 	featureVerdict,
 	type Interval,
@@ -12,6 +13,7 @@ import {
 	recallDifference,
 	reliabilityChecks,
 	replicationCheck,
+	sensitivity,
 	splitHalfAgreement,
 	tokenRatio,
 } from "./review-analysis.ts";
@@ -150,6 +152,8 @@ function buildReport(loaded: LoadedRound[], nullRound: FixtureResult | null) {
 		recallDifference: recallDifference(fixtures),
 		tokenRatio: tokenRatio(fixtures),
 		splitHalfAgreement: splitHalfAgreement(fixtures),
+		directionalStability: directionalStability(fixtures),
+		sensitivity: sensitivity(fixtures),
 		leaveOneOut: leaveOneFixtureOut(fixtures),
 		nullDifference: nullRound ? recallDifference([nullRound]) : null,
 		evidence: { ...evidence, nullRound: undefined },
@@ -181,12 +185,25 @@ function printReport(report: ReturnType<typeof buildReport>): void {
 	console.log(
 		`Null round: ${report.nullDifference ? interval(report.nullDifference, percent) : "not run"}`,
 	);
-	console.log(`Split-half agreement: ${percent(report.splitHalfAgreement)}`);
+	console.log(`Pooled split-half agreement, reported only: ${percent(report.splitHalfAgreement)}`);
+	console.log(
+		`Stability where a direction is claimed: ${JSON.stringify(report.directionalStability)}`,
+	);
+	console.log(`Sensitivity to a 10-point effect: ${percent(report.sensitivity)}`);
 	console.log(
 		`Leave one fixture out: ${report.leaveOneOut.map((item) => `${item.without} ${percent(item.difference.estimate)}`).join(", ")}`,
 	);
 	console.log(`Reliability: ${JSON.stringify(report.reliability)}`);
 	console.log(`Verdict: ${report.verdict}`);
+}
+
+function combineRounds(first: LoadedRound, second: LoadedRound): LoadedRound {
+	return {
+		fixture: { ...first.fixture, pairs: [...first.fixture.pairs, ...second.fixture.pairs] },
+		attempted: first.attempted + second.attempted,
+		judged: first.judged + second.judged,
+		agreeing: first.agreeing + second.agreeing,
+	};
 }
 
 function main(): void {
@@ -222,6 +239,13 @@ function main(): void {
 		);
 		console.log(`\nReplication: ${JSON.stringify(replication)}`);
 		printReport(buildReport(repeated, nullRound));
+		console.log("\nBoth runs combined:");
+		printReport(
+			buildReport(
+				loaded.map((round, index) => combineRounds(round, repeated[index] as LoadedRound)),
+				nullRound,
+			),
+		);
 	}
 }
 

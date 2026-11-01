@@ -16,7 +16,12 @@ export const RELIABILITY_BARS = {
 	minBundleUse: 0.8,
 	maxNullHalfWidth: 0.15,
 	minSplitHalfAgreement: 0.95,
+	minSensitivity: 0.9,
 } as const;
+/** A difference large enough to change whether the bundle is worth using. */
+const KNOWN_EFFECT = 0.1;
+const SENSITIVITY_TRIALS = 200;
+const SENSITIVITY_SPLITS = 200;
 const NO_EFFECT_MARGIN = 0.05;
 const MAX_TOKEN_RATIO = 1.25;
 const RESAMPLES = 10_000;
@@ -186,11 +191,68 @@ export function reliabilityChecks(fixtures: FixtureResult[], evidence: Instrumen
 		nullCoversZero: nullInterval !== null && nullInterval.low <= 0 && nullInterval.high >= 0,
 		nullIsTight:
 			nullInterval !== null && (nullInterval.high - nullInterval.low) / 2 <= bars.maxNullHalfWidth,
-		splitHalf: splitHalfAgreement(fixtures) >= bars.minSplitHalfAgreement,
+		directionalStability: directionalStability(fixtures).every(
+			(claim) => claim.agreement >= bars.minSplitHalfAgreement,
+		),
+		sensitivity: sensitivity(fixtures) >= bars.minSensitivity,
 		leaveOneOut: leaveOneFixtureOut(fixtures).every(
 			(result) => Math.sign(result.difference.estimate) === pooledSign,
 		),
 	};
+}
+
+function excludesZero(interval: Interval): boolean {
+	return interval.low > 0 || interval.high < 0;
+}
+
+/**
+ * Split-half stability wherever the result claims a direction. A true difference of zero splits
+ * either way however good the instrument is, so requiring stability there would fail every null round.
+ */
+export function directionalStability(fixtures: FixtureResult[]) {
+	const claims = [
+		...fixtures
+			.filter((fixture) => excludesZero(recallDifference([fixture])))
+			.map((fixture) => [fixture]),
+		...(excludesZero(recallDifference(fixtures)) ? [fixtures] : []),
+	];
+	return claims.map((claim) => ({
+		claim: claim.map((fixture) => fixture.fixture).join("+"),
+		agreement: splitHalfAgreement(claim),
+	}));
+}
+
+/**
+ * How often the instrument would be stable on a known effect, given the spread these pairs show.
+ * This is the check that the test can see a difference at all, so a null result means something.
+ */
+export function sensitivity(fixtures: FixtureResult[], effect = KNOWN_EFFECT): number {
+	const random = seededRandom(SEED + 2);
+	const differences = fixtures.flatMap(recallDifferences);
+	const center = mean(differences);
+	const spread = differences.map((value) => value - center);
+	let stable = 0;
+	for (let trial = 0; trial < SENSITIVITY_TRIALS; trial++) {
+		const values = differences.map(
+			() => effect + (spread[Math.floor(random() * spread.length)] as number),
+		);
+		const sign = Math.sign(mean(values));
+		let agreeing = 0;
+		for (let split = 0; split < SENSITIVITY_SPLITS; split++) {
+			const shuffled = values
+				.map((value) => ({ value, order: random() }))
+				.sort((a, b) => a.order - b.order)
+				.map((item) => item.value);
+			const middle = Math.floor(shuffled.length / 2);
+			if (
+				Math.sign(mean(shuffled.slice(0, middle))) === sign &&
+				Math.sign(mean(shuffled.slice(middle))) === sign
+			)
+				agreeing++;
+		}
+		if (agreeing / SENSITIVITY_SPLITS >= RELIABILITY_BARS.minSplitHalfAgreement) stable++;
+	}
+	return stable / SENSITIVITY_TRIALS;
 }
 
 /**

@@ -17,12 +17,14 @@ import { HISTORY_TASKS } from "../../scripts/efficacy/history.ts";
 import { median } from "../../scripts/efficacy/median.ts";
 import {
 	defectComparison,
+	directionalStability,
 	type FixtureResult,
 	featureVerdict,
 	mcnemarExact,
 	recallDifference,
 	reliabilityChecks,
 	replicationCheck,
+	sensitivity,
 	splitHalfAgreement,
 	tokenRatio,
 } from "../../scripts/efficacy/review-analysis.ts";
@@ -315,7 +317,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		});
 
 		it("fails the instrument on a noisy null round, whichever side wins", () => {
-			const fixtures = [fixture("a", 12, 8), fixture("b", 12, 8)];
+			const fixtures = [fixture("a", 20, 0), fixture("b", 20, 0)];
 			const evidence = {
 				assessedFraction: { a: 1, b: 1 },
 				judgeTextAgreement: 1,
@@ -323,6 +325,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				nullRound: fixture("null", 0, 40),
 			};
 			expect(Object.values(reliabilityChecks(fixtures, evidence)).every(Boolean)).toBe(true);
+			expect(reliabilityChecks(fixtures, evidence).sensitivity).toBe(true);
 			const noisy = reliabilityChecks(fixtures, {
 				...evidence,
 				nullRound: fixture("null", 6, 8, 6),
@@ -338,6 +341,23 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(reliabilityChecks(fixtures, { ...evidence, nullRound: null }).nullCoversZero).toBe(
 				false,
 			);
+		});
+
+		it("requires stability only where a direction is claimed", () => {
+			expect(directionalStability([fixture("none", 5, 10, 5)])).toEqual([]);
+			expect(
+				directionalStability([fixture("clear", 18, 2), fixture("none", 5, 10, 5)]),
+			).toContainEqual({
+				claim: "clear",
+				agreement: 1,
+			});
+		});
+
+		it("sees a known effect through ordinary spread, but not through a very wide one", () => {
+			expect(
+				sensitivity([fixture("ordinary", 1, 38, 1), fixture("other", 1, 38, 1)]),
+			).toBeGreaterThan(0.9);
+			expect(sensitivity([fixture("wide", 3, 0, 3)])).toBeLessThan(0.9);
 		});
 
 		it("passes replication only inside the first interval and with the same verdict", () => {
