@@ -201,13 +201,25 @@ The reports show why. Bundle reviewers do see the consequence: one wrote that by
 
 **Result, 2026-11-02: failed at the early stop, both edits reverted.** In the first `real` round (`7fd8dc12-bb38-4579-8123-44be1b132c0e`), Skeleton runs named the code regression in 0 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 2 of 10. Every Skeleton report mentioned the release-version consequence, but always in a documentation finding. Two reports had a code finding in `review-proof.ts` for the existing-proof mismatch, but not for the version bump.
 
-This also rules out the explanation given for `doc-vs-code`. All ten bare-diff reviewers ran `git log` or `git show` and saw the same commit message, and nine of the ten read the documents. They still reported the code as a regression in 8 of 10 runs. The stated intent is not what separates the sides. What remains is how the bundle presents the documents. Before either study, Skeleton runs named the regression in 11 of 49 runs. With two rules that each pointed harder at the listed documents, they named it in 0 of 20. The next step is to remove a section, not add a rule. Two cheap single-round tests would settle it: one with the documents section removed, one with stated intent removed, each on `real` only.
+This seemed to rule out the explanation given for `doc-vs-code`; the removal tests below show it did not. All ten bare-diff reviewers ran `git log` or `git show` and saw the same commit message, and nine of the ten read the documents. They still reported the code as a regression in 8 of 10 runs. The stated intent is not what separates the sides. What remains is how the bundle presents the documents. Before either study, Skeleton runs named the regression in 11 of 49 runs. With two rules that each pointed harder at the listed documents, they named it in 0 of 20. The next step is to remove a section, not add a rule. Two cheap single-round tests would settle it: one with the documents section removed, one with stated intent removed, each on `real` only.
 
 ### Removal tests (studies `remove-documents` and `remove-intent`)
 
 **Question.** Which bundle section turns the regression into a documentation finding? Each test runs one `real` round of ten pairs with the current contract. Only the Skeleton prompt changes: `SKELETON_REVIEW_REMOVE=documents` takes out "Documents the author must re-read and update", and `SKELETON_REVIEW_REMOVE=intent` takes out "Stated intent". The contract text, the workspace, and the bare-diff side do not change. A reviewer can still find the documents or run `git log` itself, as bare-diff reviewers do.
 
 **Frozen before either run.** With the full bundle and this contract, Skeleton runs named the regression in 11 of 49 runs (22%). A removal implicates its section if Skeleton runs name the regression in at least 5 of 10 runs. At 22%, that happens by chance about 7% of the time. Fewer than 5 does not clear the section, because one round of ten is too small to rule out a modest effect. Stale-document detection and tokens are reported, not gated. Neither result changes the product. A product change is its own study.
+
+**Result, 2026-11-02: stated intent is implicated; the documents section is not.**
+
+| `real`, one round each | Regression: Skeleton | Regression: bare diff | Stale document: Skeleton | Existing proof: Skeleton | Recall difference |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Full bundle, earlier sessions | 11/49 | 40/49 | 49/49 | 27/49 | +1.4 |
+| Without stated intent (`1bc24a63-d702-421c-a385-42f559e51c19`) | 7/10 | 9/10 | 9/10 | 9/10 | +23.3 |
+| Without documents section (`697fde06-a978-4fa7-b41e-712063d3b79d`) | 2/10 | 9/10 | 9/10 | 5/10 | -10.0 |
+
+Without stated intent, Skeleton runs found the regression about as often as the bare diff, kept the stale document, and found the existing-proof mismatch as often. Without the documents section, nothing recovered, and Skeleton runs still named the stale document in 9 of 10. That corrects the account under `consequence-first`. Bare-diff reviewers also read the commit message, but only as `git log` output. In the bundle it is a section, and the contract tells the reviewer to check the diff against it. A diff that does what its commit message says passes that check. Its consequence is then filed against the documents it contradicts.
+
+These are single rounds of ten, so they show a direction, not a size. Removing stated intent would also give up the seeded fixtures' largest win: the commit-message contradiction, 100 of 100 against 4 of 100. The next product study keeps the section and changes what the contract asks of it. Matching the stated intent shows only that the author did what they meant. It is not evidence that the change is safe.
 
 ### Seeded-defect review
 

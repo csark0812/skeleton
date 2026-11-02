@@ -106,5 +106,21 @@
 		"catalogBefore": "ccdd6dc524a0",
 		"catalogAfter": "ccdd6dc524a0",
 		"real": "7fd8dc12-bb38-4579-8123-44be1b132c0e"
+	},
+	{
+		"confirmatory": true,
+		"study": "remove-documents",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "697fde06-a978-4fa7-b41e-712063d3b79d"
+	},
+	{
+		"confirmatory": true,
+		"study": "remove-intent",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "1bc24a63-d702-421c-a385-42f559e51c19"
 	}
 ]
