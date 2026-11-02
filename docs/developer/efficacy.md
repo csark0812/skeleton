@@ -199,6 +199,10 @@ The reports show why. Bundle reviewers do see the consequence: one wrote that by
 
 **Early stop.** After each `real` round, the study stops if the regression gap so far is more than 50 points with at least ten pairs. With 30 pairs left, it could then pass only if the remaining rounds reversed the direction. A stop counts as a failure. If any bar fails, the result is recorded here and both edits are reverted.
 
+**Result, 2026-11-02: failed at the early stop, both edits reverted.** In the first `real` round (`7fd8dc12-bb38-4579-8123-44be1b132c0e`), Skeleton runs named the code regression in 0 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 2 of 10. Every Skeleton report mentioned the release-version consequence, but always in a documentation finding. Two reports had a code finding in `review-proof.ts` for the existing-proof mismatch, but not for the version bump.
+
+This also rules out the explanation given for `doc-vs-code`. All ten bare-diff reviewers ran `git log` or `git show` and saw the same commit message, and nine of the ten read the documents. They still reported the code as a regression in 8 of 10 runs. The stated intent is not what separates the sides. What remains is how the bundle presents the documents. Before either study, Skeleton runs named the regression in 11 of 49 runs. With two rules that each pointed harder at the listed documents, they named it in 0 of 20. The next step is to remove a section, not add a rule. Two cheap single-round tests would settle it: one with the documents section removed, one with stated intent removed, each on `real` only.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

@@ -84,11 +84,6 @@ describe("review prepare", () => {
 		expect(bundle.humanReviewRequired).toEqual([]);
 		const text = formatReviewBundle(bundle);
 		expect(text).toContain("## Reviewer contract");
-		// A document records what the code promised, so a broken promise points at the code first.
-		expect(text).toContain(
-			"## Documents that describe the changed code\n\n- docs/billing.md (changed: src/billing/charge.ts)",
-		);
-		expect(text).toContain("Judge each behavior change by what it breaks");
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");

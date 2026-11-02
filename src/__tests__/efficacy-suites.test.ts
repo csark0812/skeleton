@@ -616,9 +616,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(result.stdout).toContain("## Review guide: docs/billing/REVIEW.md");
 			expect(result.stdout).toContain("## Review guide: docs/payouts/REVIEW.md");
 			expect(result.stdout).toContain("docs/payouts/hold-changes.md");
-			expect(result.stdout).toContain(
-				"A promise the diff breaks is evidence for a code finding first.",
-			);
+			expect(result.stdout).toContain("Open the document and cite its own path and line.");
 			expect(result.stdout).toContain("This bundle replaces `skeleton context`");
 			expect(result.stdout).toContain("- docs/billing.md (changed: src/billing/charge.ts)");
 			expect(result.stdout).toContain("-export const MAX_RETRIES = 1;");

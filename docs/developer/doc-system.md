@@ -92,7 +92,7 @@ Nothing records reviews: no lock file, no proof lines, no dates. The change itse
 | Run | Result |
 | --- | ------ |
 | `--staged` (pre-commit) | Warning. The commit goes through. |
-| `--base <ref>` (pull request CI) | Warning. `review prepare` lists the document under "Documents that describe the changed code". |
+| `--base <ref>` (pull request CI) | Warning. `review prepare` lists the document under "Documents the author must re-read and update". |
 | No flags (working tree) | Warning. |
 
 The comparison ignores a `package.json` top-level release `version`, everything outside a `#` selector's region, and doc-meta-only edits to a Markdown dependency. Deleting a file a dependency glob matched counts as a change. With no commit to compare against (a new repository), nothing is reported.

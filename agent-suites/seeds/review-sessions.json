@@ -98,5 +98,13 @@
 		"catalogBefore": "ccdd6dc524a0",
 		"catalogAfter": "ccdd6dc524a0",
 		"real": "d88623b4-e7e5-4a07-b4ed-2c6a38be46f9"
+	},
+	{
+		"confirmatory": true,
+		"study": "consequence-first",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "7fd8dc12-bb38-4579-8123-44be1b132c0e"
 	}
 ]
