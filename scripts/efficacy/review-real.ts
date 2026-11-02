@@ -75,6 +75,23 @@ function removeOwnBin(root: string): void {
 	writeFileSync(path, `${JSON.stringify(manifest, null, "\t")}\n`);
 }
 
+/**
+ * Production .mjs stopped being dropped from review coverage. Held out from all contract tuning,
+ * chosen by the same rule after \`heldout\` helped shape the checklist.
+ */
+const MJS_COVERAGE_REGRESSION: RealRegression = {
+	fixCommit: "a202aad",
+	fixPaths: [
+		"src/audit/core/review-coverage.ts",
+		"src/audit/__tests__/review-coverage.test.ts",
+		"src/__tests__/cli/validate-hook.test.ts",
+	],
+	message: `Exclude .mjs files from default review coverage
+
+Adds **/*.mjs to the built-in review-coverage excludes, so ESM files do not need an
+owning document by default.`,
+};
+
 /** Extract the repository at a real fix, then commit that fix's reversal on a feature branch. */
 function seedRealRegression(regression: RealRegression) {
 	return (workspace: Workspace, arm: "control" | "skeleton"): void => {
@@ -103,3 +120,4 @@ function seedRealRegression(regression: RealRegression) {
 
 export const seedReviewReal = seedRealRegression(PACKAGE_VERSION_REGRESSION);
 export const seedReviewHeldOut = seedRealRegression(UTC_MIDNIGHT_REGRESSION);
+export const seedReviewHeldOutTwo = seedRealRegression(MJS_COVERAGE_REGRESSION);

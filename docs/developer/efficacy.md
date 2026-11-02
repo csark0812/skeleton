@@ -354,6 +354,17 @@ The three remaining misses listed the changed hashing and reported the version-b
 
 **Frozen before the run.** These are the same rounds and bars as `checklist`, under `checklist-tests`.
 
+**Result, 2026-11-02: failed by one defect.** Deleted tests on `heldout` went to 10/10, but the `real` regression fell to 6/10. It had been 10/10 in each of the three previous rounds. In all four misses, the one code-line finding at `review-proof.ts` went to the saved-fingerprint problem. The version-bump consequence went to `decision` findings at document lines, or into deleted-test findings. Two contract gaps explain it. "Report one decision finding" let two consequences of one change compete for the same line, and nothing kept `decision` findings off document lines. Recall differences: `payments` +28.3, `notifications` +20.0, `real` +23.3, `heldout` +66.7.
+
+**Second held-out fixture.** `heldout2` reverts `a202aad`, "Stop default review-coverage from dropping every .mjs file". It was chosen by the same fixed rule, which skipped `b05c1a7` because that commit touches `src/validate/changed.ts`, the code `heldout` used. It re-adds `**/*.mjs` to the default review-coverage excludes. Its stale document, `docs/developer/config.md`, is not among the bundle's listed documents. The answer key has three defects: the code-line regression at `review-coverage.ts`, `config.md` still saying production `.mjs` stays covered, and the deleted `.mjs` tests. No contract wording has been, or will be, tuned on it.
+
+### One finding per consequence (pilot `consequence-lines`)
+
+**Change.** A `decision` finding sits at the code line, never the document's line. Each distinct consequence of a change gets its own finding, even when several start at the same line.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under `consequence-lines`. `heldout2` is not run in pilots. It is reserved for the final confirmation.
+
+
 
 ### Seeded-defect review
 
@@ -435,7 +446,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All sixteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All seventeen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -479,7 +490,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover twenty-two tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover twenty-three tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -491,10 +502,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All twenty-two agent and judge tests, using the default OpenAI agent.
+# All twenty-three agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the sixteen paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the seventeen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 

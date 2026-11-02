@@ -1,6 +1,6 @@
 import type { Workspace } from "@post-print/agent-test";
 import { seedReviewNotifications } from "./review-notifications.ts";
-import { seedReviewHeldOut, seedReviewReal } from "./review-real.ts";
+import { seedReviewHeldOut, seedReviewHeldOutTwo, seedReviewReal } from "./review-real.ts";
 import { seedReviewChange } from "./workspace.ts";
 
 export type ReviewArm = "control" | "skeleton";
@@ -160,6 +160,32 @@ export const REVIEW_SCENARIOS = {
 				failure:
 					"src/__tests__/cli/validate-hook.test.ts loses the tests that pinned --base results across UTC midnight.",
 				foundInLine: (line) => line.includes("validate-hook.test.ts"),
+			},
+		},
+	},
+	/** A third real fix, held out from all tuning. Its answer key was written from the fix. */
+	heldout2: {
+		name: "heldout2",
+		fixture: "review-real",
+		seed: seedReviewHeldOutTwo,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"src/audit/core/review-coverage.ts adds **/*.mjs to the default review-coverage excludes, so every production .mjs file drops out of review coverage and an uncovered .mjs change passes validate changed. Count only a finding at src/audit/core/review-coverage.ts, as important or decision.",
+				foundInLine: (line) =>
+					line.includes("src/audit/core/review-coverage.ts") && /\.?mjs/i.test(line),
+			},
+			staleDoc: {
+				failure:
+					"docs/developer/config.md still says production .mjs stays in the coverage set and that the built-in excludes only drop tests, fixtures, templates, and .skeleton/plugins/**. The report must name the document.",
+				foundInLine: (line) => line.includes("docs/developer/config.md"),
+			},
+			testsRemoved: {
+				failure:
+					"the tests that kept production .mjs as a coverage candidate are deleted from src/audit/__tests__/review-coverage.test.ts or src/__tests__/cli/validate-hook.test.ts.",
+				foundInLine: (line) => /review-coverage\.test\.ts|validate-hook\.test\.ts/.test(line),
 			},
 		},
 	},
