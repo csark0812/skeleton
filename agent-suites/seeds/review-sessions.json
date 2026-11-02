@@ -38,5 +38,17 @@
 		"notifications": "91f14a7f-fbc7-4c04-a215-75060cd2045d",
 		"real": "99ab94c0-e936-4a64-99d4-7ac23b952945",
 		"null": "d0d7d444-8b79-4125-8990-b673db1bdb61"
+	},
+	{
+		"confirmatory": true,
+		"pilot": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "55e9aec7-1beb-48e2-89b5-184170578868",
+		"notifications": "ebcab8ef-714d-4d4d-945e-b37d2fc627ee",
+		"real": "2b97e953-f2d6-4e5f-a207-155d5dc571ac",
+		"null": "3c219678-5e60-4d03-824d-ab567d3ecc65",
+		"realSetupFailure": "43caec38-9b8d-4b2b-b012-74ee242dced0: temp cleanup raced git auto-gc before any agent ran; fixed in 64c76b7 and the real round ran once more alone"
 	}
 ]
