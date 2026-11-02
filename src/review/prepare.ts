@@ -113,7 +113,8 @@ Rules:
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
 - When the diff changes behavior that a document promises, report one decision finding at the code line that changes it. Name the consequence and cite the document's path and line. Do not say which side is wrong, and do not report the document separately. Check every document under "Documents the author must re-read and update".
-- Every checklist line that changes behavior needs a finding or a reason it is safe. That includes deleted or weakened tests, and data, records, or files saved under the old behavior that no longer match.
+- Every checklist line that changes behavior needs a finding or a reason it is safe. That includes data, records, or files saved under the old behavior that no longer match.
+- A test the diff deletes or weakens always gets its own finding. Name the behavior it protected, with the severity of that behavior's finding.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
 - End with one line: "findings: <n> important, <n> decision, <n> nit, <n> pre-existing", or "no issues".`;
 

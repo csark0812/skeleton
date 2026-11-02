@@ -94,6 +94,7 @@ describe("review prepare", () => {
 			"List every changed file once, including tests, and every rule in every review guide once.",
 		);
 		expect(text).toContain('Write one "saved before" line for each behavior change');
+		expect(text).toContain("A test the diff deletes or weakens always gets its own finding.");
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");

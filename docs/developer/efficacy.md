@@ -344,6 +344,17 @@ The three remaining misses listed the changed hashing and reported the version-b
 
 **Frozen before the run.** These are the same rounds and bars as `checklist`, under the study name `checklist-saved`. Every seeded defect must be found in at least 9 of 10 runs on every fixture, and every fixture's recall difference must be above zero. Tokens are reported.
 
+**Result, 2026-11-02: failed by one defect.** Every seeded defect reached 10 of 10 except deleted tests on `heldout`, at 8 of 10. The old saved fingerprints on `real` went to 10/10, from 7/10. Recall differences: `payments` +30.0, `notifications` +23.3, `real` +43.3, `heldout` +56.7. Token ratios: 0.36, 0.64, 1.05, and 1.23. Both misses listed the deleted tests in the checklist and never reported them. One wrote "safe only if replacement coverage exists" and left it there.
+
+**`heldout` is no longer held out.** The checklist and the next rule were shaped partly by its misses. A confirmation of the final contract needs a new held-out fixture, chosen by the same fixed rule.
+
+### Deleted tests always reported (pilot `checklist-tests`)
+
+**Change.** "A test the diff deletes or weakens always gets its own finding. Name the behavior it protected, with the severity of that behavior's finding." The sentence about saved data no longer mentions tests. Nothing else changes.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under `checklist-tests`.
+
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
