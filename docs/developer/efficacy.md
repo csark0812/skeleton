@@ -248,6 +248,10 @@ If any bar fails, the result is recorded here and the sentence is removed.
 
 If the pilot passes, the product change gets its own frozen study before it ships. If it fails, the result is recorded here and nothing ships.
 
+**Result, 2026-11-02: failed both bars.** On `real` (`5d376eb5`), Skeleton runs named the regression in 4 of 10 runs, against 9 of 10 for the bare diff, and the stale document in 10 of 10. On `payments` (`668153a9`), they found the refund contradiction in 1 of 10, the same as the bare diff, and kept every other seeded check. Every Skeleton reviewer ran `git log`, but most shortened it to `--oneline` or `--format='%h %s'`, which prints only the subject. The refund claim is in the commit body, so on `payments` only 1 of 11 `git log` calls showed it. Handing commit messages to the reviewer's own command loses the body. Reviewers that do read a claim still tend to pass a change that matches it.
+
+**Where this leaves stated intent.** On these fixtures it is a tradeoff the contract wording has not removed. With the section, Skeleton catches a commit message that contradicts the diff (100 of 100 against 4 of 100). It misfiles a deliberate but harmful change as stale documentation (11 of 49 against 40 of 49). Without it, the order reverses (7 of 10 on `real`, from one round). Choosing between them is a product decision, recorded here. It is not something these runs settled.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

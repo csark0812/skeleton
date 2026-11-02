@@ -130,5 +130,14 @@
 		"catalogBefore": "ccdd6dc524a0",
 		"catalogAfter": "ccdd6dc524a0",
 		"real": "89e67ca5-918b-4d71-8d95-b61219555a8b"
+	},
+	{
+		"confirmatory": true,
+		"study": "intent-git-log",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "668153a9-e327-494c-9537-57d844c0afe4",
+		"real": "5d376eb5-a319-4c61-a7b6-5c3ec72c9b67"
 	}
 ]
