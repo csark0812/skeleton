@@ -50,5 +50,45 @@
 		"real": "2b97e953-f2d6-4e5f-a207-155d5dc571ac",
 		"null": "3c219678-5e60-4d03-824d-ab567d3ecc65",
 		"realSetupFailure": "43caec38-9b8d-4b2b-b012-74ee242dced0: temp cleanup raced git auto-gc before any agent ran; fixed in 64c76b7 and the real round ran once more alone"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "8e6a41c2-859d-4511-9846-7dc8cba70dae",
+		"notifications": "e08766cc-b291-4025-9236-50aad2dbe197",
+		"real": "d060afa3-ff87-4ae8-94ea-2a8ce4854688",
+		"null": "8c5ca635-4b60-4690-a5db-0b9cbaffc4e8"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "0fde7564-011f-47f6-be2e-0f29722d58ff",
+		"notifications": "2d169a89-895b-4c03-a14e-f63ef2b8f05e",
+		"real": "0641816d-e10d-452e-b46c-2a565277e52e",
+		"null": "4a2adebf-199b-494f-8113-7339af9c289d"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "9ee78bb9-721b-4fd7-80a4-5a89ad11d13b",
+		"notifications": "bd163038-e930-4da3-be86-54bc783062a9",
+		"real": "857b681d-6ef5-42f8-b8da-8ba9bd9f3ed2",
+		"null": "d173991d-d475-42f6-a338-bd4dc1a1469e"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "729c716f-0d72-414c-8ec3-d1db291eb1f1",
+		"notifications": "868f841d-82ad-4f1a-accd-0dee75be5f34",
+		"real": "a9867557-d3cf-4a9c-8f64-5ad57088a789",
+		"null": "c3b7c766-b173-4bb1-b17c-029b053a4a60"
 	}
 ]

@@ -60,6 +60,18 @@ The mean is +1.8 points, with a session-level interval of plus or minus 12.2, tw
 
 **Pilot, 2026-11-02 (session 6 in the manifest): the split is gone in this session.** With the bundle as the prompt, Skeleton runs kept the `findings:` line in 10 of 10 runs on `payments`, `notifications`, and `real`, and 20 of 20 in the null round, using 1 to 6 tool calls. In this one session, recall was 17.2 points higher than the bare diff (8.3 to 26.7): `payments` +26.7, `notifications` +15.0, `real` +10.0 (-13.3 to 33.3). The token ratio was 0.50 (0.44 to 0.57), the null round was +1.7 (-6.7 to 10.0), and the judge agreed with the text audit 96% of the time. The first attempt at `real` crashed in setup before any agent ran. Removing its temp workspace raced git's background auto-gc. `64c76b7` disables auto-gc there, and the `real` round then ran once more on its own. The manifest records both executions. These are one session's figures. The interval treats runs as independent, so the session-level bars below have not been tested yet.
 
+**Five confirmatory sessions, 2026-11-02, with one protocol deviation.** After the pilot, the four remaining sessions ran back to back from 17:47 to 18:38 UTC, not on three days at least six hours apart. The owner chose this. With the spacing dropped, the five sessions show the result repeats. They do not show it holds when the model or its serving changes between days. In every session, Skeleton runs kept the format in every completed run (149 of 149), and one `real` run in session 7 did not complete.
+
+| Session | Recall difference | Token ratio |
+| --- | ---: | ---: |
+| 6 (pilot) | +17.2 | 0.50 |
+| 7 | +14.0 | 0.52 |
+| 8 | +11.1 | 0.56 |
+| 9 | +12.2 | 0.55 |
+| 10 | +9.4 | 0.49 |
+
+With the session as the unit, recall is 12.8 points higher than the bare diff (9.1 to 16.5) and the token ratio is 0.52 (0.49 to 0.56). By fixture: `payments` +21.0 (16.2 to 25.8), `notifications` +16.0 (12.2 to 19.8), and `real` +1.4 (-9.8 to 12.6), so on the real regression the bundle saves tokens without a detected change in recall. The null round is +1.7 (-1.6 to 4.9). The verdict is `helps`, and it holds with any one session left out. Bars: `enoughSessions`, `tight`, `nullCoversZero`, `verdictSurvivesAnySession`, `behaviorsTight`, and `bundleDelivered` pass. `enoughDays` fails, because of the deviation above. All five sessions ran on one host, model, and harness version.
+
 The instrument is reliable when all of these hold across those sessions, as printed by `review-report.ts --sessions`: `enoughSessions`, `enoughDays`, `nullCoversZero`, `bundleDelivered` (at least 80% of Skeleton runs received the bundle, in the prompt or a command's result, in every fixture of every session), and `behaviorsTight` (recall within a behavior has a half-width of at most 6 points, over sessions with at least ten such runs, with at least one behavior measured in at least two sessions). The judge-audit and assessed-run bars from the table below also hold.
 
 `tight` and `verdictSurvivesAnySession` no longer decide reliability. They decide whether one overall verdict may be stated: if either fails, the finding is the two behavior figures and the mix, not a single answer about the bundle. This changes the bars after seeing data, because the old `tight` bar could not separate a bad instrument from a real mix shift. The new bar has been checked only on the data that suggested it, so these new sessions are its first real test. If it fails, record that and do not revise it.
