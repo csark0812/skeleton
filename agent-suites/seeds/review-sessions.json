@@ -90,5 +90,13 @@
 		"notifications": "868f841d-82ad-4f1a-accd-0dee75be5f34",
 		"real": "a9867557-d3cf-4a9c-8f64-5ad57088a789",
 		"null": "c3b7c766-b173-4bb1-b17c-029b053a4a60"
+	},
+	{
+		"confirmatory": true,
+		"study": "doc-vs-code",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "d88623b4-e7e5-4a07-b4ed-2c6a38be46f9"
 	}
 ]

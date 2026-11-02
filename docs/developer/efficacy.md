@@ -182,6 +182,10 @@ Executions, first run: `b544b1af-bd9a-43a2-9009-b334891d32ff`, `4c5a9869-bb92-4e
 
 If any bar fails, the result is recorded here and the contract change is reverted.
 
+**Result, 2026-11-02: failed, stopped after one of four rounds, rule reverted.** In the first `real` round (`d88623b4-e7e5-4a07-b4ed-2c6a38be46f9`), Skeleton runs named the code regression in 0 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 2 of 10. The owner stopped the study, because the regression bar could pass only if the remaining rounds reversed the direction. The second round was cut off unrecorded.
+
+The reports show why. Bundle reviewers do see the consequence: one wrote that byte hashing makes release-version changes invalidate review proof. But they file it as stale documentation. The bundle's "Stated intent" section quotes a commit message that says the special handling was removed on purpose. Its "Documents the author must re-read and update" section frames each listed document as something the author must update. Asked to decide which side is wrong, reviewers believe the stated intent and blame the documents. Bare-diff reviewers see neither section. They read the same documents as the specification and report the code as a regression that contradicts the documented exemption. The next attempt should state that a deliberate change is still a defect when its consequence is harmful, and should stop presenting listed documents only as the author's to-do list.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
