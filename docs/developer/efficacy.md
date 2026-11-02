@@ -300,6 +300,18 @@ The reversal's commit message describes the change neutrally, as `real`'s does. 
 
 **Early stop.** After the first session, the study stops if the held-out regression gap is more than 50 points. A stop counts as a failure. If any bar fails, the result is recorded here and the `decision` change does not ship.
 
+**Result, 2026-11-02: every frozen bar passed.**
+
+| Fixture | Skeleton minus bare diff | Token ratio | Bar |
+| --- | ---: | ---: | --- |
+| `heldout`, 3 sessions | +33.3 (30.0 to 36.7) | 0.92 | Regression 29/30 against 30/30; stale document 30/30 against 0/30 |
+| `real`, 3 sessions | +21.1 (13.3 to 30.0) | 1.04 | Regression 29/30 against 24/30; stale document 29/30 against 0/30 |
+| `payments` | +28.3 (18.3 to 38.3) | 0.25 | Commit-message contradiction 10/10 against 0/10 |
+| `notifications` | +10.0 (0.0 to 20.0) | 0.51 | Commit-message contradiction 10/10 against 0/10 |
+| null round | +3.3 (-5.0 to 10.0) | 0.79 | Within 10 points of zero |
+
+**A loss the bars did not anticipate.** On `notifications`, Skeleton runs found the plain off-by-one in `src/notify/quiet_hours.py` in only 4 of 10 runs, against 10 of 10 for the bare diff. Before this change they found it in 45 of 50. Nothing documents quiet hours, and the commit message does not mention them. The misses report every other seeded defect, so the reviewer finished without this one. The harness marked the round failed on its floor check, and this study's bars do not use that check. The recall bar of +9.1 passed, at +10.0. One round cannot tell a new contract effect from a bad round. The stale-proof loss on `real` also persists: 13/30 against 28/30. Both are recorded here and are open before the change ships.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

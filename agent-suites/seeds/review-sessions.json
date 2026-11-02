@@ -148,5 +148,42 @@
 		"catalogAfter": "ccdd6dc524a0",
 		"payments": "3af57b6f-6122-4cb5-a585-a1c254fa320f",
 		"real": "ada81325-0668-4ec9-b8e4-e969404a6beb"
+	},
+	{
+		"confirmatory": true,
+		"study": "decision-confirm",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "8807d7ec-cb8f-41b0-a99d-338ee0cf9f3e",
+		"heldout": "678ef37d-a256-4beb-b9bb-10de1780ca04"
+	},
+	{
+		"confirmatory": true,
+		"study": "decision-confirm",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "17ecff1b-efde-43fb-9b80-bf5cd9a3d91b",
+		"heldout": "8f7feaf4-29c9-4a0c-8f39-c9b72a288d09"
+	},
+	{
+		"confirmatory": true,
+		"study": "decision-confirm",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "bf84cf84-b416-4faa-abff-0a5163d0e869",
+		"heldout": "f4f86098-b2f5-44fa-9d9b-c99ca88e4077"
+	},
+	{
+		"confirmatory": true,
+		"study": "decision-confirm",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "be567483-8473-4a54-8f49-92daef1b1f6f",
+		"notifications": "ae6af954-af1a-45a3-bcd9-27910ae2e160",
+		"null": "9e1ee2a4-67d2-4991-ac90-fbe9a2e509a4"
 	}
 ]
