@@ -95,6 +95,9 @@ describe("review prepare", () => {
 		);
 		expect(text).toContain('Write one "saved before" line for each behavior change');
 		expect(text).toContain("A test the diff deletes or weakens always gets its own finding.");
+		expect(text).toContain(
+			"This includes a change the stated intent announces: matching the stated intent does not settle a conflict with a document.",
+		);
 		expect(text).toContain("Give each distinct consequence of a change its own finding");
 		expect(text).toContain("Name each consequence as a before and after");
 		expect(text).toContain("A retry change must keep payments idempotent.");

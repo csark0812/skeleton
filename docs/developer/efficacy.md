@@ -423,6 +423,14 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Owner's scoring decision for `heldout2`, 2026-11-02, made after seeing data.** A code-line finding at `review-coverage.ts` counts as catching the regression if it makes clear that production or default `.mjs` files are now excluded from coverage. It does not also need to state that an uncovered `.mjs` change passes `validate changed`. A finding only about an explicit include no longer covering `.mjs` still does not count. The rule applies to both sides. It takes effect with `final2`. Earlier `heldout2` results, including the `before-after` pilot, were judged under the stricter key and are not rescored. `heldout3`'s answer key is unchanged.
 
+**`before-after` result, 2026-11-02: failed by one defect.** Every seeded defect reached at least 9 of 10, except `heldout2`'s regression at 4 of 10 under the strict key, against 7 of 10 for the bare diff. Recall differences: `payments` +33.3, `notifications` +23.3, `real` +36.7, `heldout` +66.7, `heldout2` +46.7. A text check under the owner's rule counts about 6 of 10 Skeleton reports and 8 of 10 bare-diff reports. The rescoring does not close the gap. Skeleton reviewers cite the `config.md` promise, but attach it to the explicit-include side effect. They do not report the default exclusion the commit message announces, because matching the stated intent reads as settling it.
+
+### Announced changes are decisions too (pilot `announced`, then study `final2`)
+
+**Change.** The `decision` rule adds: "This includes a change the stated intent announces: matching the stated intent does not settle a conflict with a document." Nothing else changes.
+
+**Frozen before the run.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=announced`, with the bars of `effects`, and `heldout2` is judged under the owner's rule. If it passes, `final2` runs as frozen above, with this contract.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
