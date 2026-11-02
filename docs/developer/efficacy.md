@@ -265,6 +265,20 @@ If the pilot passes, the product change gets its own frozen study before it ship
 
 Stale-document detection, `decision` use, and tokens are reported. If the pilot passes, a held-out real fixture and a full frozen study come before anything ships. If it fails, the result is recorded here, and the next attempt is structural: stated intent after the diff, or two passes.
 
+**Result, 2026-11-02: passed both bars.**
+
+| Pilot round | Skeleton | Bare diff |
+| --- | ---: | ---: |
+| `real` regression at the code line (`ada81325-0668-4ec9-b8e4-e969404a6beb`) | 10/10 | 6/10 |
+| `real` stale document | 10/10 | 0/10 |
+| `real` existing proof no longer matches | 6/10 | 9/10 |
+| `payments` refund contradiction (`3af57b6f-6122-4cb5-a585-a1c254fa320f`) | 10/10 | 0/10 |
+| `payments` stale document | 9/10 | 8/10 |
+
+Recall difference: `real` +36.7 points (23.3 to 50.0) at 0.73 times the tokens. `payments` +20.0 (10.0 to 30.0) at 0.20 times. Every Skeleton run on `real` wrote one `decision` finding at `src/audit/core/review-proof.ts`. It named the release-version consequence and cited `docs/developer/audit.md` and `README.md`. Nine of ten on `payments` did the same for the retry change. All kept the contract format. The `decision` slot gives the reviewer a way to report "the author probably meant this, and it breaks a documented promise" without choosing. Four instructions to choose had all failed.
+
+These are single rounds of ten, so they show a direction. One loss stands out: the existing-proof mismatch, 6 of 10 against 9 of 10. The bare diff's 6 of 10 on the regression is lower than its earlier 40 of 49, so part of the gap is noise. Nothing ships on this pilot. A real fixture held out from all of this tuning, and the full frozen study, come first.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
