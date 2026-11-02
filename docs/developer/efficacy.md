@@ -421,6 +421,8 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Bars.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=before-after`, with the bars of `effects`. If it passes, `final2` runs as frozen above, with this contract. A script error kept this section out of the contract commit, `bc045ae`, and it was committed after the pilot had started. The bars are copied unchanged from `effects`, which was frozen before any run.
 
+**Owner's scoring decision for `heldout2`, 2026-11-02, made after seeing data.** A code-line finding at `review-coverage.ts` counts as catching the regression if it makes clear that production or default `.mjs` files are now excluded from coverage. It does not also need to state that an uncovered `.mjs` change passes `validate changed`. A finding only about an explicit include no longer covering `.mjs` still does not count. The rule applies to both sides. It takes effect with `final2`. Earlier `heldout2` results, including the `before-after` pilot, were judged under the stricter key and are not rescored. `heldout3`'s answer key is unchanged.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

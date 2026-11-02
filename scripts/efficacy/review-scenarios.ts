@@ -178,7 +178,7 @@ export const REVIEW_SCENARIOS = {
 		defects: {
 			regression: {
 				failure:
-					"src/audit/core/review-coverage.ts adds **/*.mjs to the default review-coverage excludes, so every production .mjs file drops out of review coverage and an uncovered .mjs change passes validate changed. Count only a finding at src/audit/core/review-coverage.ts, as important or decision.",
+					"src/audit/core/review-coverage.ts adds **/*.mjs to the default review-coverage excludes, so production .mjs files drop out of review coverage by default and an uncovered .mjs change passes validate changed. Count a finding at src/audit/core/review-coverage.ts, as important or decision, that says production or default .mjs files are now excluded from coverage. It does not have to spell out the validate changed effect. A finding only about an explicit include no longer covering .mjs does not count.",
 				foundInLine: (line) =>
 					line.includes("src/audit/core/review-coverage.ts") && /\.?mjs/i.test(line),
 			},
