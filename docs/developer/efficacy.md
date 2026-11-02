@@ -431,6 +431,14 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Frozen before the run.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=announced`, with the bars of `effects`, and `heldout2` is judged under the owner's rule. If it passes, `final2` runs as frozen above, with this contract.
 
+**`announced` result, 2026-11-02: failed by one defect.** Every seeded defect on every fixture reached 10 of 10, except `heldout2`'s regression at 8 of 10 under the owner's rule. The bare diff reached 2 of 10. Recall differences: `payments` +31.7, `notifications` +23.3, `real` +40.0, `heldout` +66.7, `heldout2` +86.7. Token ratios: 0.32, 0.53, 1.27, 1.22, and 1.02. Both misses report only the side effect, that an explicit include stops covering `.mjs`, and fold the announced default exclusion into it.
+
+### The announced change first (pilot `announced-first`, then study `final2`)
+
+**Change.** The `decision` rule adds: "Report the announced change itself as its own finding, before any side effect it causes." Nothing else changes.
+
+**Frozen before the run.** These are the rounds and bars of `announced`, under `announced-first`. If the pilot passes, `final2` runs as frozen above, with this contract.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
