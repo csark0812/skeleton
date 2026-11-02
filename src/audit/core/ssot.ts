@@ -5,7 +5,7 @@ export interface SsotEntry {
 	form: SsotForm;
 }
 
-export type SsotParseResult =
+type SsotParseResult =
 	| { status: "ok"; entry: SsotEntry }
 	| { status: "none" }
 	| { status: "dual"; forms: SsotForm[] }
@@ -90,8 +90,4 @@ export function rewriteLegacySsotToComment(content: string): string | null {
 	const comment = `<!-- source-of-truth: ${parsed.entry.summary} -->`;
 	const next = content.replace(LEGACY_BANNER_LINE_RE, comment);
 	return next === content ? null : next;
-}
-
-export function preferredSsotComment(summary: string): string {
-	return `<!-- source-of-truth: ${cleanSummary(summary)} -->`;
 }

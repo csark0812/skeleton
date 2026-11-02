@@ -6,7 +6,10 @@ import {
 } from "../../scripts/efficacy/documents.ts";
 import { codeReviewSchema, reviewInstructions, transcript } from "../../scripts/efficacy/judge.ts";
 import { assessRun, measureReliability } from "../../scripts/efficacy/measurements.ts";
-import { checkOrderLimits } from "../../scripts/efficacy/order-checks.ts";
+import {
+	checkMissingContextRecovery,
+	checkOrderLimits,
+} from "../../scripts/efficacy/order-checks.ts";
 
 const prompt =
 	"Increase the standard order limit from 20 to 30. Preserve special-category and fallback limits. Keep related documentation accurate and verify the change.";
@@ -26,10 +29,23 @@ test("Recover when no ownership metadata is available", async ({
 	withSkeleton,
 	documentationAndVerification,
 }, info) => {
-	const evaluate = async (run: Run) => {
+	let recoveryDiagnostic = "";
+	const evaluate = async (run: Run, requireRecovery = false) => {
 		const regression = checkOrderLimits(run);
+		let recovery: ReturnType<typeof checkMissingContextRecovery> | undefined;
+		if (requireRecovery) {
+			try {
+				recovery = checkMissingContextRecovery(run);
+			} catch (error) {
+				recovery = {
+					passed: false,
+					output: error instanceof Error ? error.message : String(error),
+				};
+			}
+			recoveryDiagnostic = recovery.output;
+		}
 		await info.attach(`${run.id}-regression`, {
-			body: regression.output,
+			body: [regression.output, recovery?.output].filter(Boolean).join("\n\n"),
 			contentType: "text/plain",
 		});
 		const review = await documentationAndVerification.run({
@@ -41,10 +57,12 @@ test("Recover when no ownership metadata is available", async ({
 		return {
 			checks: {
 				regression: regression.passed,
+				...(recovery ? { documentationRecovery: recovery.passed } : {}),
 				documentation: review.output.documentationCorrect,
 				verification: review.output.verificationAdequate,
 			},
 			reason: `${regression.output}
+${recovery?.output ?? ""}
 ${review.output.reason}`,
 		};
 	};
@@ -54,13 +72,16 @@ ${review.output.reason}`,
 			withSkeleton.run({ prompt }),
 		]);
 		const [without, withTool] = await Promise.all([
-			assessRun(left, evaluate),
-			assessRun(right, evaluate),
+			assessRun(left, (run) => evaluate(run)),
+			assessRun(right, (run) => evaluate(run, true)),
 		]);
 		return { baseline: without, withSkeleton: withTool };
 	});
 	expect(report.baseline.correct, "Every baseline repetition is correct").toBe(report.attempts);
-	expect(report.withSkeleton.correct, "Every Skeleton repetition is correct").toBe(report.attempts);
+	expect(
+		report.withSkeleton.correct,
+		`${JSON.stringify(report.withSkeleton)}\n${recoveryDiagnostic}`,
+	).toBe(report.attempts);
 	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
 		report.attempts,
 	);

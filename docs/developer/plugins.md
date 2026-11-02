@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: skeleton plugin authoring (build, load, suites, prose policies) -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/plugins/load.ts,src/plugins/build.ts,src/plugins/paths.ts,src/plugin-types.ts -->
 
@@ -115,10 +115,9 @@ entries:
 skeleton audit docs --fix
 skeleton audit docs --fix=anchors
 skeleton audit docs --fix --dry-run
-skeleton audit docs --paths=docs/a.md --fix=doc-meta --confirm-reviewed
 ```
 
-Bare `--fix` applies safe mechanical anchor and legacy-SSOT repairs. Review attestation is a separate explicit operation and never runs without `--confirm-reviewed` plus paths.
+Bare `--fix` applies safe mechanical anchor and legacy-SSOT repairs. It never edits document prose.
 
 ## Example layout
 

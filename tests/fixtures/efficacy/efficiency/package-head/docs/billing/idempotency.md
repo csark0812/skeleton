@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Billing webhook idempotency contract; source owner src/billing/idempotency.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/billing/idempotency.ts -->
 

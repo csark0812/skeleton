@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: common Skeleton validation failures -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/validate/**,src/audit/run.ts -->
+<!-- review-deps: paths=src/validate/**,src/audit/run.ts,src/audit/core/stale-documents.ts,src/audit/rules/review-deps.ts -->
 
 Failures usually come from `runValidateChanged` / `codeValidationHint` or `runAudit` / `parseAuditArgs`.
 
@@ -16,15 +16,9 @@ Decision table and routing: [validation](validation.md). Day-one setup: [getting
 
 **Cause:** A live coverage-candidate file changed and no scanned paper lists it in `review-deps`. Deleted files do not fire this code.
 
-**Fix:** Add a `review-deps` path or glob on the owning paper. Then re-read that paper and attest it.
+**Fix:** Add a `review-deps` path or glob on the owning paper, then re-read that paper and correct it in the same commit.
 
 The same error fires on local, `--staged`, and `--base` runs. A mixed docs commit does not hide it.
-
-## `stage-required`
-
-**Cause:** `--staged` saw an impacted paper or hash lockfile that differs from HEAD and is not in the index.
-
-**Fix:** Stage the attested document. In hash mode, stage `.skeleton/review-lock.json` too.
 
 ## `validate changed: all paths were skipped`
 
@@ -83,28 +77,25 @@ skeleton build-plugin --check   # CI: fail if missing, unstamped, or content-sta
 
 Requires Bun on `PATH` for `build-plugin` (not for `--check`). See [plugins](plugins.md).
 
-## Doc-meta and review-proof failures
+## Document review failures
 
-Two different signals (see [doc system](doc-system.md#doc-meta)):
+See [keeping documents current](doc-system.md#keeping-documents-current).
 
-**Review behind latest edit** — message mentions `content changed after last-reviewed` / a git date.
+**Dependency changed, document did not** — code `review-dependency-changed`.
 
-**Cause:** The file’s last content commit is newer than `last-reviewed`, so the stamp no longer covers the paper.
+**Cause:** The change alters a file the document lists in `review-deps`, and the document itself is unchanged. It is a warning in every run (`--staged`, `--base`, and the working tree) and never fails the command. Plain-text output prints one warning per changed file, naming it.
 
-**Fix:** Re-read the entire document. Bump `last-reviewed` only if the content is still correct; changing the date alone does not satisfy the check. Record the completed review for explicit paths:
+**Fix:** Re-read the entire document against the changed files and update it in the same commit if it is out of date. If it is still correct, no action is needed.
 
-```bash
-skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed
-skeleton audit docs --paths=docs/example.md --fix=doc-meta --confirm-reviewed --dry-run
-```
+**Selector names nothing** — code `unresolved-selector`. A `review-deps` entry such as `package.json#scrpts` or `src/run.ts#oldName` selects nothing, so the document would never be asked for a re-read. Name a key, heading, or symbol that exists, or drop the selector.
 
-If the diagnostic code is `review-document-changed` or `review-dependency-changed`, hash proof found exact byte drift. Plain-text output prints one `file: error:` diagnostic per failed document and a `changed:` line for the files that triggered it. Review the whole document against every current `review-deps` dependency, then run the command above. Do not hand-edit the lockfile.
+**Dependency warnings** — `review-dependency-broad`: a document depends on a whole `package.json`; name the keys it describes (`package.json#scripts`). `review-dependency-cycle`: documents depend on each other; replace the document dependency with a link.
 
-**Re-read cadence** — message mentions `exceeds re-read cadence` / `daysUntilStale`.
+**Re-read cadence** — code `review-cadence-exceeded`.
 
-**Cause:** Calendar age of `last-reviewed` (even if the file was not edited). This is process hygiene, not proof the text is wrong.
+**Cause:** The document's last commit is older than `daysUntilStale` (even if nothing changed). This is process hygiene, not proof the text is wrong.
 
-**Fix:** Re-affirm the paper and bump the date, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
+**Fix:** Re-read the document against its sources and commit any correction, or raise `daysUntilStale` if the cadence is too tight. Warn-only unless `--strict`.
 
 ## Still stuck?
 

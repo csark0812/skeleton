@@ -4,21 +4,16 @@ import type { SkillOwnershipConfig } from "../config/types.ts";
 
 export const DEFAULT_SKILLS_LOCKFILE = "skills-lock.json";
 
-export type SkillSourceType = "github" | "local" | string;
+type SkillSourceType = "github" | "local" | string;
 
-export interface SkillLockEntry {
+interface SkillLockEntry {
 	source: string;
 	sourceType: SkillSourceType;
 	skillPath?: string;
 	computedHash?: string;
 }
 
-export interface SkillsLockFile {
-	version: number;
-	skills: Record<string, SkillLockEntry>;
-}
-
-export type SkillOwnership = "owned" | "foreign";
+type SkillOwnership = "owned" | "foreign";
 
 export interface SkillProvenanceMap {
 	/** Repo-relative lockfile path that was read, or null when absent. */

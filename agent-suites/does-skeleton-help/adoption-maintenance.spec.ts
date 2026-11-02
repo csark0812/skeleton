@@ -56,7 +56,7 @@ test("Skeleton adoption and the first maintenance change", async ({
 			(async () => {
 				const setup = await adopter.run({
 					prompt:
-						"Install the local package vendor/skeleton.tgz with npm and initialize Skeleton without optional skills. Configure ownership and dependency metadata for the existing order policy and record its review proof. Preserve application behavior. Verify the setup.",
+						"Install the local package vendor/skeleton.tgz with npm and initialize Skeleton without optional skills. Configure ownership and dependency metadata for the existing order policy. Preserve application behavior. Verify the setup.",
 				});
 				const setupChecks = {
 					...adoptionChecks(setup),

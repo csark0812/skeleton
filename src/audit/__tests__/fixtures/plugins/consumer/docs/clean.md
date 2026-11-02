@@ -1,6 +1,6 @@
 # Clean doc
 
-<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->
+<!-- doc-meta: owner=eng -->
 
 **Source of truth for** clean fixture doc.
 

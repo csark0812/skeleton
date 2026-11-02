@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import type { Run } from "@post-print/agent-test";
 
 /** Check public behavior with tests outside the agent's control. */
@@ -33,4 +34,59 @@ test("preserves special and fallback limits", () => {
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
+}
+
+function recoveryTranscript(run: Pick<Run, "trace" | "toolCalls">) {
+	const evidence = JSON.stringify({ messages: run.trace.messages, toolCalls: run.toolCalls });
+	return {
+		initialAction:
+			evidence.includes("action\\tno-context") || evidence.includes("action\tno-context"),
+		retriedQuery: evidence.includes("order limit") && evidence.includes("context"),
+	};
+}
+
+/** Verify canonical recovery with the packed CLI and independently retained transcript. */
+export function checkMissingContextRecovery(run: Pick<Run, "workspace" | "trace" | "toolCalls">) {
+	const root = run.workspace.final.path;
+	const document = join(root, "docs/orders.md");
+	const cli = join(
+		process.cwd(),
+		"tests/fixtures/efficacy/tradeoffs/missing/skeleton/node_modules/@csark0812/skeleton/dist/cli.js",
+	);
+	if (![document, cli].every(existsSync))
+		return {
+			passed: false,
+			output: "Final canonical document or prepared packed Skeleton CLI is missing.",
+		};
+	const content = readFileSync(document, "utf8");
+	const hasOwnership =
+		content.includes("source-of-truth:") && content.includes("review-deps: paths=src/limits.ts");
+	const result = spawnSync("node", [cli, "context", "order limit"], {
+		cwd: root,
+		encoding: "utf8",
+		timeout: 60_000,
+	});
+	const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+	const { initialAction, retriedQuery } = recoveryTranscript(run);
+	const returnedOwner =
+		output.includes("document\\tdocs/orders.md") || output.includes("document\tdocs/orders.md");
+	const returnedSource =
+		output.includes("source\\tsrc/limits.ts") || output.includes("source\tsrc/limits.ts");
+	const passed =
+		hasOwnership &&
+		result.status === 0 &&
+		initialAction &&
+		retriedQuery &&
+		returnedOwner &&
+		returnedSource;
+	return {
+		passed,
+		output: [
+			`canonical ownership metadata: ${hasOwnership}`,
+			`initial structured action observed: ${initialAction}`,
+			`same-query retry observed: ${retriedQuery}`,
+			`packed CLI returned owner/source: ${returnedOwner}/${returnedSource}`,
+			output,
+		].join("\n"),
+	};
 }

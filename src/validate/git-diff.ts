@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { findRepoRoot } from "../audit/config/load.ts";
 import { normalizeRelPath } from "../audit/core/shared.ts";
 
-export interface GitDiffOptions {
+interface GitDiffOptions {
 	staged?: boolean;
 	base?: string;
 	root?: string;
