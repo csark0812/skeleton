@@ -114,7 +114,7 @@ Rules:
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
 - When the diff changes behavior that a document promises, report a decision finding at the code line that changes it, never at the document's line. Name the consequence and cite the document's path and line. Do not say which side is wrong, and do not report the document separately. Check every document under "Documents the author must re-read and update".
 - Give each distinct consequence of a change its own finding, even when several start at the same code line.
-- Name each consequence by what a user, command, or check now does differently, such as what now passes, fails, or slows down, not only by what the code changed.
+- Name each consequence as a before and after: what a user, command, or check did before this diff, and what it does now. For example: "an uncovered file used to fail validation and now passes". Saying only what the code changed is not a consequence.
 - Every checklist line that changes behavior needs a finding or a reason it is safe. That includes data, records, or files saved under the old behavior that no longer match.
 - A test the diff deletes or weakens always gets its own finding. Name the behavior it protected, with the severity of that behavior's finding.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
