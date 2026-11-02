@@ -6,7 +6,7 @@ import {
 	pathHasReviewOwner,
 } from "../core/review-coverage.ts";
 
-export function runReviewCoverageRule(ctx: AuditContext): Issue[] {
+function runReviewCoverageRule(ctx: AuditContext): Issue[] {
 	const patterns = collectReviewDependencyPatterns({
 		root: ctx.root,
 		config: ctx.config,

@@ -96,7 +96,7 @@ import type { AuditResult } from "@csark0812/skeleton/result-types";
 
 const rule: AuditRule = { id: "consumer", run: (ctx: AuditContext) => [issue("consumer", ctx.root, { message: "ok" })] };
 const audit = {} as AuditResult;
-void [rule, audit.reviewProof.status];
+void [rule, audit.counts.errors];
 `,
 	);
 
@@ -107,9 +107,18 @@ void [rule, audit.reviewProof.status];
 	const packageJson = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8")) as {
 		bin?: Record<string, string>;
 		exports?: Record<string, unknown>;
+		dependencies?: Record<string, string>;
 	};
 	if (packageJson.bin?.skeleton !== "dist/cli.js") {
 		throw new Error("Packed package is missing the skeleton CLI bin mapping");
+	}
+	// The build bundles every library except these; anything else consumers install is unused code.
+	const buildExternals = ["typescript"];
+	const runtimeDependencies = Object.keys(packageJson.dependencies ?? {}).sort();
+	if (runtimeDependencies.join() !== buildExternals.join()) {
+		throw new Error(
+			`Runtime dependencies must be the build externals (${buildExternals.join(", ")}); found ${runtimeDependencies.join(", ") || "none"}. Bundled libraries belong in devDependencies.`,
+		);
 	}
 	for (const key of ["./plugin-types", "./result-types", "./schemas/result.schema.json"]) {
 		if (!(key in (packageJson.exports ?? {}))) throw new Error(`Packed exports missing ${key}`);

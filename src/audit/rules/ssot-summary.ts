@@ -9,7 +9,7 @@ import {
 	type FitFile,
 } from "../core/ssot-fit.ts";
 
-export function runSsotSummaryRule(ctx: AuditContext): Issue[] {
+function runSsotSummaryRule(ctx: AuditContext): Issue[] {
 	const overlapMin = ctx.config.docsLint?.ssotOverlapMin ?? DEFAULT_SSOT_OVERLAP_MIN;
 	const margin = ctx.config.docsLint?.ssotBetterMatchMargin ?? DEFAULT_BETTER_MATCH_MARGIN;
 	const phraseCheck = ctx.config.docsLint?.ssotPhraseCheck !== false;

@@ -1,9 +1,9 @@
-export const SKILLS_SOURCE = "csark0812/skeleton";
+const SKILLS_SOURCE = "csark0812/skeleton";
 
 const DEFAULT_SKILL = "skeleton";
 const DEFAULT_AGENTS = ["cursor", "claude-code", "codex"];
 
-export interface SkillsAddOptions {
+interface SkillsAddOptions {
 	skillsFlags?: string[];
 	source?: string;
 }

@@ -53,7 +53,6 @@ describe("skeleton init", () => {
 		expect(result.scaffold).toBe("created");
 		expect(existsSync(join(cwd, "skeleton.toml"))).toBe(true);
 		expect(existsSync(join(cwd, ".skeleton/config.yaml"))).toBe(false);
-		expect(existsSync(join(cwd, ".skeleton/registry.md"))).toBe(false);
 		expect(existsSync(join(cwd, ".skeleton/customize"))).toBe(false);
 		expect(existsSync(join(cwd, ".cursor/hooks.json"))).toBe(false);
 		const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
@@ -62,7 +61,7 @@ describe("skeleton init", () => {
 		const hook = readFileSync(join(cwd, ".pre-commit-config.yaml"), "utf8");
 		expect(hook).toContain("validate changed --staged");
 		expect(hook).not.toContain("bun test");
-		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain('mode = "hash"');
+		expect(readFileSync(join(cwd, "skeleton.toml"), "utf8")).toContain("Nothing records reviews");
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
 			'npx --no-install skeleton context "<topic>"',
 		);
@@ -70,7 +69,34 @@ describe("skeleton init", () => {
 			"Complete every `action` line and verify it against the final files.",
 		);
 		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
-			"Do not run Skeleton audits, validation, or review-proof commands",
+			"durable features, policies, workflows, or architectural contracts",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"For read-only tasks, report the gap",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Rerun the exact context request",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not run Skeleton audits or validation",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Never combine a topic with `--path`",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"answer immediately when the returned evidence fully answers a read-only request",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not run repository-wide searches, file listings, or status checks to reconfirm a complete result",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Do not rerun context or search, list, or read returned paths",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"Inspect again only when that test fails",
+		);
+		expect(readFileSync(join(cwd, "AGENTS.md"), "utf8")).toContain(
+			"without progress narration between the edits and test",
 		);
 	});
 

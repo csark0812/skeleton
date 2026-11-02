@@ -1,0 +1,8 @@
+{
+	"name": "websocket",
+	"targets": {
+		"generate": {
+			"command": "bun tspackages/websocket/scripts/generate-types.ts"
+		}
+	}
+}

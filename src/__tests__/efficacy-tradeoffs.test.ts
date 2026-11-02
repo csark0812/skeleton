@@ -16,7 +16,7 @@ import { documentationEvidence } from "../../scripts/efficacy/documents.ts";
 import { assessRun } from "../../scripts/efficacy/measurements.ts";
 import { checkOrderLimits } from "../../scripts/efficacy/order-checks.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
-import { evaluateContext } from "../context.ts";
+import { evaluateContext, formatContext } from "../context.ts";
 
 const FIXTURES = join(import.meta.dir, "../../tests/fixtures/efficacy");
 const snapshot = (before: string, after: string) =>
@@ -42,7 +42,11 @@ describe("package tradeoff fixtures and evidence", () => {
 	});
 	it("returns no context for the metadata-free recovery task", () => {
 		const root = join(FIXTURES, "tradeoffs/missing/skeleton");
-		expect(evaluateContext({ root, query: "order limit" }).documents).toEqual([]);
+		const result = evaluateContext({ root, query: "order limit" });
+		expect(result.documents).toEqual([]);
+		const formatted = formatContext(result);
+		expect(formatted).toContain("no-context\tno canonical document matched");
+		expect(formatted).toContain("action\tno-context\tInspect the relevant code");
 		expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toContain("skeleton: context-guide");
 	});
 	it("uses actual initialization for authority without teaching a custom decision algorithm", () => {

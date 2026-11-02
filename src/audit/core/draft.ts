@@ -1,7 +1,7 @@
 import { normalizeRelPath } from "./shared.ts";
 
 /** `_draft-foo.md` anywhere in the tree. */
-export const DRAFT_FILENAME_RE = /(^|\/)_draft-[^/]+\.md$/i;
+const DRAFT_FILENAME_RE = /(^|\/)_draft-[^/]+\.md$/i;
 
 /** Treat configured prefixes as directories (trailing `/` implied). */
 export function normalizeDraftPrefix(prefix: string): string {

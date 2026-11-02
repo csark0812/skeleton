@@ -129,13 +129,14 @@ export function excludeForeignSkillDocMetaPaths(
 interface DocMetaCollectContext {
 	config: SkeletonConfig;
 	root: string;
-	registryPaths: string[];
+	/** SSOT-bearing files; they need doc-meta even outside the default index paths. */
+	ssotPaths: string[];
 	skillIndex?: SkillIndex;
 }
 
-function collectRegistryDocMeta(ctx: DocMetaCollectContext): string[] {
+function collectSsotDocMeta(ctx: DocMetaCollectContext): string[] {
 	const paths: string[] = [];
-	for (const rel of ctx.registryPaths) {
+	for (const rel of ctx.ssotPaths) {
 		if (!(rel.endsWith(".md") || rel.endsWith(".mdc"))) continue;
 		const abs = join(ctx.root, rel);
 		if (existsSync(abs)) paths.push(normalizeRelPath(rel));
@@ -167,7 +168,7 @@ export function collectDocMetaPaths(ctx: DocMetaCollectContext): string[] {
 		if (existsSync(abs)) paths.push(normalizeRelPath(file));
 	}
 
-	paths.push(...collectRegistryDocMeta(ctx));
+	paths.push(...collectSsotDocMeta(ctx));
 	paths.push(...collectScannedDocMeta(ctx));
 
 	return excludeForeignSkillDocMetaPaths([...new Set(paths)], ctx.skillIndex);

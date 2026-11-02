@@ -18,8 +18,6 @@ describe("coverageGapsRule", () => {
 			docMetaPaths: [],
 			ssotEntries: [],
 			ssotErrors: [],
-			registryPaths: [],
-			registryHasTableHeader: false,
 			skillIndex: EMPTY_SKILL_INDEX,
 			lockedSkillSlugs: new Set<string>(),
 			policies: [],
