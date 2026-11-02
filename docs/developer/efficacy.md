@@ -415,6 +415,12 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Confirmation, frozen before any run.** It runs only if the pilot passes, with the same contract. Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,heldout3,null --study=final2`. Session 2 is the same without `null`. The bars are the ones frozen for `final`: at least 19 of 20 pooled for every seeded defect on every fixture, a recall difference whose 95% interval is above zero on every fixture, and a null round within 10 points of zero.
 
+### Before and after (pilot `before-after`, then study `final2`)
+
+**Change.** The effect rule becomes: "Name each consequence as a before and after: what a user, command, or check did before this diff, and what it does now. For example: 'an uncovered file used to fail validation and now passes'. Saying only what the code changed is not a consequence." The answer key stays strict while the owner decides whether a code-line `decision` that names the default exclusion should count.
+
+**Bars.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=before-after`, with the bars of `effects`. If it passes, `final2` runs as frozen above, with this contract. A script error kept this section out of the contract commit, `bc045ae`, and it was committed after the pilot had started. The bars are copied unchanged from `effects`, which was frozen before any run.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

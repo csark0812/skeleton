@@ -96,9 +96,7 @@ describe("review prepare", () => {
 		expect(text).toContain('Write one "saved before" line for each behavior change');
 		expect(text).toContain("A test the diff deletes or weakens always gets its own finding.");
 		expect(text).toContain("Give each distinct consequence of a change its own finding");
-		expect(text).toContain(
-			"Name each consequence by what a user, command, or check now does differently",
-		);
+		expect(text).toContain("Name each consequence as a before and after");
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");
