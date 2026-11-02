@@ -279,6 +279,27 @@ Recall difference: `real` +36.7 points (23.3 to 50.0) at 0.73 times the tokens. 
 
 These are single rounds of ten, so they show a direction. One loss stands out: the existing-proof mismatch, 6 of 10 against 9 of 10. The bare diff's 6 of 10 on the regression is lower than its earlier 40 of 49, so part of the gap is noise. Nothing ships on this pilot. A real fixture held out from all of this tuning, and the full frozen study, come first.
 
+### Confirming `decision` on held-out data (study `decision-confirm`)
+
+**Held-out fixture.** The `heldout` round reverts `eb85023`, "Make --base date-mode review deterministic across UTC midnight (#32)". It was chosen by a fixed rule before its contents were read: the most recent fix to wrong behavior since `review-deps` existed, outside the review-proof code the contract was tuned on, with a document whose `review-deps` cover a changed source file. The reversal touches `src/validate/changed.ts`, `src/validate/git-diff.ts`, and `src/__tests__/cli/validate-hook.test.ts`. The documents keep describing the fixed behavior, as in `real`. The answer key was written from the fix before any run:
+
+- **Regression:** under `--base`, the review date is compared with today's UTC date, so the same commit range passes before 00:00 UTC and fails after it. This counts only at `src/validate/changed.ts` or `src/validate/git-diff.ts`.
+- **Stale document:** a document still promises the same range gives the same result on any day.
+- **Removed tests:** the cross-midnight tests in `validate-hook.test.ts` are removed.
+
+The reversal's commit message describes the change neutrally, as `real`'s does. No contract wording is tuned on this fixture.
+
+**Frozen before any held-out run.** The contract is the one the `decision` pilot passed. Run 1 is `--rounds=real,heldout --sessions=3 --study=decision-confirm`, one session at a time. Run 2 is `--rounds=payments,notifications,null --study=decision-confirm`. The change ships only if all of these hold:
+
+- **Held-out regression:** pooled over three rounds, the share of Skeleton runs catching it is at most 10 points below the bare diff's share. This is a point estimate.
+- **Held-out recall:** the pooled recall difference is at least zero. This is a point estimate.
+- **`real` regression:** pooled over three rounds, at most 10 points below the bare diff.
+- **Stale documents:** Skeleton runs name the stale document in at least 90% of runs on both `real` and `heldout`.
+- **Seeded fixtures:** `payments` and `notifications` each have a recall difference of at least +9.1 points. Skeleton finds the commit-message contradiction in at least 9 of 10 runs on each.
+- **Null round:** within 10 points of zero.
+
+**Early stop.** After the first session, the study stops if the held-out regression gap is more than 50 points. A stop counts as a failure. If any bar fails, the result is recorded here and the `decision` change does not ship.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
@@ -359,7 +380,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All fifteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All sixteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -403,7 +424,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover twenty-one tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover twenty-two tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -415,10 +436,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All twenty-one agent and judge tests, using the default OpenAI agent.
+# All twenty-two agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the fifteen paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the sixteen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 

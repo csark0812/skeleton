@@ -235,8 +235,9 @@ type SessionManifest = {
 	notifications: string;
 	real: string;
 	null: string;
+	heldout?: string;
 }[];
-const FIXTURE_ROUNDS = ["payments", "notifications", "real"] as const;
+const FIXTURE_ROUNDS = ["payments", "notifications", "real", "heldout"] as const;
 
 function loadSession(entry: SessionManifest[number]): SessionResult {
 	return {

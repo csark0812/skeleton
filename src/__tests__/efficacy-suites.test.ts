@@ -48,7 +48,7 @@ import {
 	textChecks,
 } from "../../scripts/efficacy/review-detection.ts";
 import { seedReviewNotifications } from "../../scripts/efficacy/review-notifications.ts";
-import { seedReviewReal } from "../../scripts/efficacy/review-real.ts";
+import { seedReviewHeldOut, seedReviewReal } from "../../scripts/efficacy/review-real.ts";
 import { REVIEW_SCENARIOS } from "../../scripts/efficacy/review-scenarios.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
 import { seedReviewChange } from "../../scripts/efficacy/workspace.ts";
@@ -535,6 +535,43 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			);
 		expect(existsSync(join(root, "control/skeleton.toml"))).toBe(false);
 	});
+
+	it("reverts the held-out fix and lists the documents that promise the fixed behavior", () => {
+		for (const arm of ["control", "skeleton"] as const) {
+			const temp = mkdtempSync(join(tmpdir(), `skeleton-review-heldout-${arm}-`));
+			const git = (...args: string[]) => execFileSync("git", args, { cwd: temp, encoding: "utf8" });
+			try {
+				cpSync(join(ROOT, "tests/fixtures/efficacy/review-real", arm), temp, { recursive: true });
+				git("init", "--quiet", "-b", "main");
+				git("config", "user.email", "fixture@example.com");
+				git("config", "user.name", "Fixture");
+				git("config", "gc.auto", "0");
+				writeFileSync(join(temp, ".gitignore"), "node_modules\n");
+				git("add", "-A");
+				git("commit", "--quiet", "-m", "fixture");
+				seedReviewHeldOut({ path: temp } as Workspace, arm);
+				expect(git("diff", "main...HEAD", "--", "src/validate/changed.ts")).toContain(
+					"-function dateModeReviewFloor",
+				);
+				const validation = readFileSync(join(temp, "docs/developer/validation.md"), "utf8");
+				expect(validation).toContain("so the same range gives the same result on any day");
+				expect(validation.includes("review-deps:")).toBe(arm === "skeleton");
+				if (arm === "skeleton") {
+					const result = spawnSync(
+						"npx",
+						["--no-install", "skeleton", "review", "prepare", "--base", "main"],
+						{ cwd: temp, encoding: "utf8" },
+					);
+					expect(result.status).toBe(0);
+					expect(result.stdout).toContain(
+						"- docs/developer/validation.md (changed: src/validate/changed.ts, src/validate/git-diff.ts)",
+					);
+				}
+			} finally {
+				rmSync(temp, { recursive: true, force: true });
+			}
+		}
+	}, 60_000);
 
 	it("reverts the real fix on a real snapshot and hides Skeleton from the bare-diff side", () => {
 		for (const arm of ["control", "skeleton"] as const) {

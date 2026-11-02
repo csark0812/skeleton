@@ -1,6 +1,6 @@
 import type { Workspace } from "@post-print/agent-test";
 import { seedReviewNotifications } from "./review-notifications.ts";
-import { seedReviewReal } from "./review-real.ts";
+import { seedReviewHeldOut, seedReviewReal } from "./review-real.ts";
 import { seedReviewChange } from "./workspace.ts";
 
 export type ReviewArm = "control" | "skeleton";
@@ -130,6 +130,36 @@ export const REVIEW_SCENARIOS = {
 					"a document such as docs/developer/audit.md or docs/developer/config.md still says package.json is compared without its version. The report must name the document.",
 				foundInLine: (line) =>
 					/docs\/|README\.md|operations\.md/.test(line) && /package\.json|version/i.test(line),
+			},
+		},
+	},
+	/** A second real fix, held out from all contract tuning. Its answer key was written from the fix. */
+	heldout: {
+		name: "heldout",
+		fixture: "review-real",
+		seed: seedReviewHeldOut,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"under --base, validate changed compares last-reviewed with today's UTC date instead of the date of the latest commit in the range that touched the dependency, so the same commit range passes before 00:00 UTC and fails after it with no source change. Count only a finding at src/validate/changed.ts or src/validate/git-diff.ts, as important or decision. A finding only at a document does not count, even when it describes this consequence.",
+				foundInLine: (line) =>
+					/src\/validate\/(changed|git-diff)\.ts/.test(line) &&
+					/(utc|today|midnight|clock|date|day)/i.test(line) &&
+					/(--base|base|range|ci|determin|re-?run)/i.test(line),
+			},
+			staleDoc: {
+				failure:
+					"a document such as docs/developer/validation.md, docs/developer/troubleshooting.md, or docs/developer/config.md still says that under --base the review date only has to be on or after the latest commit in the range, so the same range gives the same result on any day. The report must name the document.",
+				foundInLine: (line) =>
+					/docs\/|README\.md|operations\.md/.test(line) &&
+					/(--base|base|commit|range|utc|day)/i.test(line),
+			},
+			testsRemoved: {
+				failure:
+					"src/__tests__/cli/validate-hook.test.ts loses the tests that pinned --base results across UTC midnight.",
+				foundInLine: (line) => line.includes("validate-hook.test.ts"),
 			},
 		},
 	},

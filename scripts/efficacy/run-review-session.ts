@@ -21,6 +21,7 @@ const ROUNDS = [
 	{ name: "payments", spec: "review-seeded-defects", nullRound: false },
 	{ name: "notifications", spec: "review-notifications", nullRound: false },
 	{ name: "real", spec: "review-real-regression", nullRound: false },
+	{ name: "heldout", spec: "review-held-out-regression", nullRound: false },
 	{ name: "null", spec: "review-seeded-defects", nullRound: true },
 ];
 
@@ -88,13 +89,16 @@ function modelCatalogHash(): string {
 	}
 }
 
+/** The session the reliable comparison froze. Other rounds run only when a study names them. */
+const DEFAULT_ROUNDS = ["payments", "notifications", "real", "null"];
+
 type SessionOptions = { rounds: typeof ROUNDS; sessions: number; study: string | null };
 
 /** `--rounds=real,null` picks rounds, `--sessions=3` repeats them, `--study=name` tags the entries. */
 function sessionOptions(args: string[]): SessionOptions {
 	const value = (name: string) =>
 		args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
-	const names = value("rounds")?.split(",") ?? ROUNDS.map((round) => round.name);
+	const names = value("rounds")?.split(",") ?? DEFAULT_ROUNDS;
 	const rounds = ROUNDS.filter((round) => names.includes(round.name));
 	if (rounds.length !== names.length) throw new Error(`Unknown round in ${names.join(",")}`);
 	return { rounds, sessions: Number(value("sessions") ?? "1"), study: value("study") ?? null };
