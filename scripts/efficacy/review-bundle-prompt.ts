@@ -20,6 +20,9 @@ function seededSkeletonWorkspace(scenario: ReviewScenario): string {
 	git("init", "-q", "-b", "main");
 	git("config", "user.email", "harness@local");
 	git("config", "user.name", "agent-harness");
+	// A detached auto-gc after the large `real` commit would still be writing when cleanup runs.
+	git("config", "gc.auto", "0");
+	git("config", "maintenance.auto", "false");
 	git("add", "-A");
 	git("commit", "-q", "-m", "sealed workspace");
 	scenario.seed({ path: root } as Workspace, "skeleton");
