@@ -169,6 +169,19 @@ Executions, first run: `b544b1af-bd9a-43a2-9009-b334891d32ff`, `4c5a9869-bb92-4e
 
 **What it does not establish.** It has one host and one model, and two of its three fixtures were written by the same author as the feature. It compares the whole bundle, so it does not attribute the result to a single contract line or feature. The stale-document reversal against the rounds below is unexplained: harness version, contract wording, and five-run noise changed together. The first `real` round is marked failed because 3.0.0 fails a test on one workspace escape, here one bare-diff run; that pair is excluded as unassessed.
 
+### Code before document (study `doc-vs-code`)
+
+**Question.** On `real`, bundle reviewers named the stale document in 49 of 49 runs, but the code regression in only 11 of 49, against 40 of 49 for the bare diff, in pairs where both sides finished. The contract now tells the reviewer to decide whether the code or the document is wrong. When the code changed documented behavior, the code change is reported first. Does that recover the regression without losing the document?
+
+**Frozen before any run.** Same model, harness, and pair count as the five sessions above. Run 1 is `--rounds=real --sessions=3`. Run 2 is one full session, all four rounds. Both use `--study=doc-vs-code`, and `review-report.ts --study doc-vs-code` scores them. The change ships only if all of these hold:
+
+- **Regression:** pooled across the four `real` rounds, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate, not an interval.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points. That is the lower end of the five-session interval above.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+If any bar fails, the result is recorded here and the contract change is reverted.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

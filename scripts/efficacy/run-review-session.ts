@@ -26,7 +26,7 @@ const ROUNDS = [
 
 /** Run one round, teeing its output to a log, and return the execution it recorded. */
 function runRound(round: (typeof ROUNDS)[number], day: string): Promise<string> {
-	const log = `/private/tmp/review-session-${day}-${process.pid}-${round.name}.log`;
+	const log = `/private/tmp/review-session-${day}-${process.pid}-${Date.now()}-${round.name}.log`;
 	console.log(`${round.name}: ${log}`);
 	const stream = createWriteStream(log);
 	const child = spawn(
@@ -88,15 +88,28 @@ function modelCatalogHash(): string {
 	}
 }
 
-/** One confirmatory session. A round marked failed still counts: the report's bars judge its data. */
-async function main(): Promise<void> {
+type SessionOptions = { rounds: typeof ROUNDS; sessions: number; study: string | null };
+
+/** `--rounds=real,null` picks rounds, `--sessions=3` repeats them, `--study=name` tags the entries. */
+function sessionOptions(args: string[]): SessionOptions {
+	const value = (name: string) =>
+		args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+	const names = value("rounds")?.split(",") ?? ROUNDS.map((round) => round.name);
+	const rounds = ROUNDS.filter((round) => names.includes(round.name));
+	if (rounds.length !== names.length) throw new Error(`Unknown round in ${names.join(",")}`);
+	return { rounds, sessions: Number(value("sessions") ?? "1"), study: value("study") ?? null };
+}
+
+/** One session. A round marked failed still counts: the report's bars judge its data. */
+async function runSession({ rounds, study }: SessionOptions): Promise<void> {
 	const day = new Date().toISOString().slice(0, 10);
 	const catalogBefore = modelCatalogHash();
-	const executions = await Promise.all(ROUNDS.map((round) => runRound(round, day)));
-	const entry = Object.fromEntries(ROUNDS.map((round, index) => [round.name, executions[index]]));
+	const executions = await Promise.all(rounds.map((round) => runRound(round, day)));
+	const entry = Object.fromEntries(rounds.map((round, index) => [round.name, executions[index]]));
 	const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
 	manifest.push({
 		confirmatory: true,
+		...(study ? { study } : {}),
 		day,
 		catalogBefore,
 		catalogAfter: modelCatalogHash(),
@@ -106,4 +119,5 @@ async function main(): Promise<void> {
 	console.log(`Recorded session ${manifest.length} for ${day}.`);
 }
 
-await main();
+const options = sessionOptions(process.argv.slice(2));
+for (let session = 0; session < options.sessions; session += 1) await runSession(options);

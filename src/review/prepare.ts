@@ -105,6 +105,7 @@ Rules:
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
 - A document listed under "Documents the author must re-read and update" that the diff makes wrong is an important finding. Open the document and cite its own path and line.
+- When the diff and a document disagree, decide which one is wrong. If the code changed behavior the document describes, report the code change as its own important finding first, then the document. Updating the document does not fix a regression.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
 - End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
 
