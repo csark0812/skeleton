@@ -387,6 +387,19 @@ This is one round of ten per fixture. Earlier single rounds also cleared one def
 
 Tokens are reported per fixture, not gated. If any bar fails, the result is recorded with every miss, and nothing ships until a later study passes.
 
+**Result, 2026-11-02: failed one bar, on the fresh held-out fixture.** Recall is a clear win on every fixture, and the null round is exactly zero. Every seeded defect reached at least 19 of 20, except the `heldout2` regression at 12 of 20, against 17 of 20 for the bare diff.
+
+| Fixture, 2 sessions | Skeleton minus bare diff | Token ratio | Lowest Skeleton defect |
+| --- | ---: | ---: | --- |
+| `payments` | +31.7 (25.0 to 38.3) | 0.30 | stale document 19/20 |
+| `notifications` | +26.7 (22.5 to 31.7) | 0.64 | guide's required record 19/20 |
+| `real` | +46.7 (38.3 to 55.0) | 1.33 | regression 19/20 |
+| `heldout` | +70.0 (66.7 to 75.0) | 1.14 | all 20/20 |
+| `heldout2` | +53.3 (43.3 to 63.3) | 1.05 | regression 12/20 |
+| null round | 0.0 | 0.96 | |
+
+Most misses have a code-line `decision` finding saying the change removes production `.mjs` from the documented default coverage set. None says what a user then sees: an uncovered `.mjs` change passes `validate changed`. The answer key, written before any run, requires that effect, and it stands. Several misses also report a consequence the key does not list: the new exclusion overrides an explicit `include = ["**/*.mjs"]`. The contract asks for the consequence but not the user-visible effect. `heldout2` has now shaped a finding, so it no longer counts as held out.
+
 
 
 
