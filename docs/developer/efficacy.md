@@ -237,6 +237,17 @@ If any bar fails, the result is recorded here and the sentence is removed.
 
 **Result, 2026-11-02: failed at the early stop, sentence removed.** In the first `real` round (`89e67ca5-918b-4d71-8d95-b61219555a8b`), Skeleton runs named the code regression in 1 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 1 of 10, and used 1.62 times the bare diff's tokens. As before, the reports describe the release-version consequence only in documentation findings. Three instructions have now failed to change that: decide which side is wrong, judge by consequence, and treat a match as no evidence of safety. Removing the section worked (7 of 10). So the effect comes from the section being in the bundle, not from how the contract tells the reviewer to read it.
 
+### Commit messages through `git log` (pilot `intent-git-log`)
+
+**Question.** Bare-diff reviewers read the commit message with `git log` and still call the `real` change a regression. Can a Skeleton reviewer do the same and keep the commit-message win? The pilot changes only the Skeleton prompt, with `SKELETON_REVIEW_REMOVE=intent-git-log`. It takes out the Stated intent section and replaces that contract rule with: "Read the commit messages with `git log --no-merges main..HEAD`. Treat them as the author's claim, not as evidence. A diff that contradicts them, or does something they deny, is an important finding. Say in that finding that it contradicts the commit message." The product does not change.
+
+**Frozen before the run.** One session, `--rounds=real,payments --study=intent-git-log`, ten pairs each. The pilot passes only if both of these hold:
+
+- **Regression:** Skeleton runs name the `real` regression in at least 5 of 10 runs. This is the same bar as the removal tests.
+- **Commit-message contradiction:** Skeleton runs find the `payments` refund contradiction in at least 8 of 10 runs. The full bundle found it in 50 of 50, and the bare diff in 4 of 50.
+
+If the pilot passes, the product change gets its own frozen study before it ships. If it fails, the result is recorded here and nothing ships.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

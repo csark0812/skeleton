@@ -578,6 +578,14 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		}
 	});
 
+	it("has the git-log pilot read commit messages itself instead of a Stated intent section", () => {
+		const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments, "intent-git-log");
+		expect(prompt).not.toContain("## Stated intent");
+		expect(prompt).not.toContain("Refund behavior is unchanged.");
+		expect(prompt).toContain("Read the commit messages with `git log --no-merges main..HEAD`.");
+		expect(prompt).toContain("## Documents the author must re-read and update");
+	});
+
 	it("gives the Skeleton reviewer the bundle as its prompt, the same for every run", () => {
 		const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments);
 		expect(prompt.startsWith(`${BUNDLE_PROMPT_LEAD}\n\n# Review bundle (main...HEAD)`)).toBe(true);

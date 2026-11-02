@@ -46,6 +46,25 @@ export function withoutSection(bundle: string, removal: string): string {
 	return bundle.slice(0, start) + (end < 0 ? "\n" : bundle.slice(end));
 }
 
+const STATED_INTENT_RULE =
+	'- Treat "Stated intent" as the author\'s claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.';
+const GIT_LOG_INTENT_RULE =
+	"- Read the commit messages with `git log --no-merges main..HEAD`. Treat them as the author's claim, not as evidence. A diff that contradicts them, or does something they deny, is an important finding. Say in that finding that it contradicts the commit message.";
+
+/**
+ * A candidate bundle for a pilot. `intent-git-log` drops the Stated intent section and has the
+ * reviewer read the commit messages with `git log`, as a bare-diff reviewer does.
+ */
+function bundleVariant(bundle: string, variant: string): string {
+	if (variant === "") return bundle;
+	if (variant === "intent-git-log") {
+		if (!bundle.includes(STATED_INTENT_RULE))
+			throw new Error("The contract changed; update the pilot.");
+		return withoutSection(bundle, "intent").replace(STATED_INTENT_RULE, GIT_LOG_INTENT_RULE);
+	}
+	return withoutSection(bundle, variant);
+}
+
 /**
  * The reviewer prompt Skeleton documents: the printed bundle given to a fresh session. The
  * seeded change is fixed, so one bundle serves every run of the scenario.
@@ -66,7 +85,7 @@ export function reviewBundlePrompt(
 				stdio: ["ignore", "pipe", "pipe"],
 			},
 		);
-		return `${BUNDLE_PROMPT_LEAD}\n\n${removal ? withoutSection(bundle, removal) : bundle}`;
+		return `${BUNDLE_PROMPT_LEAD}\n\n${bundleVariant(bundle, removal)}`;
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}
