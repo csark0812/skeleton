@@ -180,6 +180,9 @@ describe("review prepare", () => {
 			"## Stated intent\n\n```text\nretry twice\n\nRefunds are unchanged.\n\nretry three times\n```",
 		);
 		expect(text).toContain('Treat "Stated intent" as the author\'s claim, not as evidence.');
+		expect(text).toContain(
+			"A diff that matches it shows only that the author did what they meant, not that the change is safe",
+		);
 	});
 
 	it("has no stated intent for the index or the working tree", async () => {

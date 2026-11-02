@@ -221,6 +221,20 @@ Without stated intent, Skeleton runs found the regression about as often as the 
 
 These are single rounds of ten, so they show a direction, not a size. Removing stated intent would also give up the seeded fixtures' largest win: the commit-message contradiction, 100 of 100 against 4 of 100. The next product study keeps the section and changes what the contract asks of it. Matching the stated intent shows only that the author did what they meant. It is not evidence that the change is safe.
 
+### Intent reworded (study `intent-reword`)
+
+**Question.** Can the bundle keep stated intent, which gives the commit-message win on the seeded fixtures, without passing a harmful change just because it matches its commit message? The stated-intent rule gains one sentence: "A diff that matches it shows only that the author did what they meant, not that the change is safe: judge what the change breaks as if the stated intent were absent." Nothing else changes.
+
+**Frozen before any run.** Run 1 is `--rounds=real --sessions=3 --study=intent-reword`, one round at a time. The early stop from `consequence-first` applies after each round. Run 2 is one full session with the same study name, run only if every `real` bar holds after run 1. The change ships only if all of these hold:
+
+- **Regression:** pooled over every `real` round, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Commit-message contradiction:** in the full session, Skeleton runs find it in at least 9 of 10 runs on both `payments` and `notifications`.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+If any bar fails, the result is recorded here and the sentence is removed.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
