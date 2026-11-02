@@ -1,9 +1,15 @@
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
-import { formatReviewBundle, prepareReview, runReviewCommand } from "./prepare.ts";
+import {
+	formatReviewBundle,
+	largeBundleWarning,
+	prepareReview,
+	runReviewCommand,
+} from "./prepare.ts";
 
 interface ReviewPrepareOptions {
 	staged: boolean;
 	base?: string;
+	paths?: string[];
 	json: boolean;
 	run: boolean;
 }
@@ -23,6 +29,9 @@ export function parseReviewPrepareArgs(argv: string[]): ReviewPrepareOptions {
 		} else if (arg?.startsWith("--base=")) {
 			options.base = arg.slice("--base=".length);
 			if (!options.base) throw new Error("review prepare: --base cannot be empty");
+		} else if (arg?.startsWith("--paths=")) {
+			options.paths = arg.slice("--paths=".length).split(",").filter(Boolean);
+			if (options.paths.length === 0) throw new Error("review prepare: --paths cannot be empty");
 		} else throw new Error(`review prepare: unexpected argument ${arg}`);
 	}
 	if (options.staged && options.base) {
@@ -40,17 +49,24 @@ export function parseReviewPrepareArgs(argv: string[]): ReviewPrepareOptions {
  */
 export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<number> {
 	const root = findRepoRoot();
-	const bundle = await prepareReview({ root, staged: options.staged, base: options.base });
+	const bundle = await prepareReview({
+		root,
+		staged: options.staged,
+		base: options.base,
+		paths: options.paths,
+	});
 	if (bundle.humanReviewRequired.length > 0) {
 		console.error(
 			`review prepare: human review required for ${bundle.humanReviewRequired.join(", ")}; an agent review does not count`,
 		);
 	}
+	const text = formatReviewBundle(bundle);
+	const warning = largeBundleWarning(bundle, text);
+	if (warning) console.error(warning);
 	if (options.json) {
 		console.log(JSON.stringify(bundle, null, "\t"));
 		return 0;
 	}
-	const text = formatReviewBundle(bundle);
 	if (!options.run) {
 		console.log(text);
 		return 0;

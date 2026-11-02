@@ -15,6 +15,7 @@ export default defineConfig({
 		"agent-suites/does-skeleton-help/recover-missing-metadata.spec.ts",
 		"agent-suites/does-skeleton-help/simple-edit-overhead.spec.ts",
 		"agent-suites/does-skeleton-help/stale-doc-reference.spec.ts",
+		"agent-suites/does-skeleton-help/review-seeded-defects.spec.ts",
 	],
 	outputDir: "test-results/sdk-contracts",
 	timeout: 30_000,

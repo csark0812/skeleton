@@ -37,6 +37,8 @@ interface ReviewConfig {
 	humanPaths?: string[];
 	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
 	command?: string;
+	/** Globs left out of the bundle's diff text and listed by name, like lockfiles and generated files. */
+	omitFromDiff?: string[];
 }
 
 /** Tunables for near-duplicate and SSOT-summary docs lint. */

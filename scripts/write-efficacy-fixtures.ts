@@ -1,6 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { buildCatalogContent } from "../src/catalog.ts";
+import { reviewNotificationsBase } from "./efficacy/review-notifications.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/efficacy");
@@ -519,6 +520,137 @@ writeTree("tests/fixtures/efficacy/doc-reference/control", docReferenceFiles(fal
 writeTree("tests/fixtures/efficacy/doc-reference/skeleton", docReferenceFiles(true));
 addSkeletonArtifacts("tests/fixtures/efficacy/doc-reference/skeleton");
 
+const reviewChangeSources = {
+	"src/billing/approval.ts": `export const MANUAL_APPROVAL_CENTS = 100_000;
+
+export async function requireManualApproval(amountCents: number): Promise<void> {
+	if (amountCents >= MANUAL_APPROVAL_CENTS) throw new Error("Manual approval required");
+}
+`,
+	"src/billing/charge.ts": `import { requireManualApproval } from "./approval";
+
+export const MAX_RETRIES = 1;
+
+export async function chargeInvoice(
+	amountCents: number,
+	send: (amountCents: number) => Promise<boolean>,
+): Promise<boolean> {
+	await requireManualApproval(amountCents);
+	for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+		if (await send(amountCents)) return true;
+	}
+	return false;
+}
+`,
+	"src/billing/refund.ts": `export function refundCents(amountCents: number, fraction: number): number {
+	return Math.floor(amountCents * fraction);
+}
+`,
+	"src/orders/total.ts": `export function orderTotalCents(lines: number[]): number {
+	let total = 0;
+	for (let index = 0; index < lines.length; index += 1) total += lines[index] ?? 0;
+	return total;
+}
+`,
+	"src/orders/format.ts": `export function formatOrderLabel(orderId: string): string {
+	const s = orderId.trim().toUpperCase();
+	return \`ORDER-\${s}\`;
+}
+`,
+	"src/payouts/hold.ts": `export function applyPayoutHold(payoutDate: Date): Date {
+	return new Date(payoutDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+}
+`,
+	"src/api/payout-route.ts": `import { applyPayoutHold } from "../payouts/hold";
+
+export function schedulePayout(requestedDate: Date): Date {
+	return applyPayoutHold(requestedDate);
+}
+`,
+};
+
+const reviewChangeBillingDoc =
+	"Failed charges are retried once. Charges go through `chargeInvoice` in `src/billing/charge.ts`.\n";
+const reviewChangeBillingGuide =
+	"- Every path that charges a card must call `requireManualApproval` first. Failure means an unapproved large charge reaches the card network.\n- Do not comment on naming or formatting.\n";
+const reviewChangePayoutGuide =
+	"- Every payout must keep its seven-day hold. Failure means funds leave before the dispute window closes.\n- Removing a hold must add a line to `docs/payouts/hold-changes.md`. Failure means finance cannot trace why funds left early.\n- Do not comment on naming or formatting.\n";
+const reviewChangeHoldHistory = "One line for each change to the payout hold.\n";
+
+function reviewChangeFiles(skeleton: boolean): Record<string, string> {
+	return {
+		...reviewChangeSources,
+		"AGENTS.md": controlAgents,
+		"README.md": "# Payments service\n\nBilling, refunds, orders, and payouts live under src/.\n",
+		".gitattributes": "src/generated/** linguist-generated\n",
+		"package.json": packageJson.replace("billing-service-fixture", "payments-service-fixture"),
+		"docs/billing.md": skeleton
+			? `# Billing\n\n<!-- source-of-truth: Charge retry policy -->\n\n<!-- doc-meta: owner=billing -->\n\n<!-- review-deps: paths=src/billing/charge.ts -->\n\n${reviewChangeBillingDoc}`
+			: `# Billing\n\n${reviewChangeBillingDoc}`,
+		"docs/billing/REVIEW.md": skeleton
+			? `# Billing review\n\n<!-- review-deps: paths=src/billing/** -->\n\n${reviewChangeBillingGuide}`
+			: `# Billing review\n\n${reviewChangeBillingGuide}`,
+		"docs/payouts/REVIEW.md": skeleton
+			? `# Payouts review\n\n<!-- review-deps: paths=src/payouts/** -->\n\n${reviewChangePayoutGuide}`
+			: `# Payouts review\n\n${reviewChangePayoutGuide}`,
+		"docs/payouts/hold-changes.md": skeleton
+			? `# Payout hold changes\n\n<!-- source-of-truth: Payout hold history -->\n\n<!-- doc-meta: owner=payouts -->\n\n${reviewChangeHoldHistory}`
+			: `# Payout hold changes\n\n${reviewChangeHoldHistory}`,
+		...(skeleton ? { "skeleton.toml": skeletonConfig() } : {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/review-change/control", reviewChangeFiles(false));
+writeTree("tests/fixtures/efficacy/review-change/skeleton", reviewChangeFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/review-change/skeleton");
+
+const notificationBaseFiles = reviewNotificationsBase();
+
+function reviewNotificationFiles(skeleton: boolean): Record<string, string> {
+	const marked = (title: string, marker: string, body: string) =>
+		skeleton ? `# ${title}\n\n${marker}\n\n${body}` : `# ${title}\n\n${body}`;
+	return {
+		...notificationBaseFiles.sources,
+		"AGENTS.md": controlAgents,
+		"README.md":
+			"# Notifications service\n\nPush, SMS, digests, and audit logging live under src/.\n",
+		"docs/notify.md": marked(
+			"Notifications",
+			"<!-- source-of-truth: Digest schedule -->\n\n<!-- doc-meta: owner=notify -->\n\n<!-- review-deps: paths=src/notify/digest.py -->",
+			notificationBaseFiles.digestDoc,
+		),
+		"docs/notify/REVIEW.md": marked(
+			"Notifications review",
+			"<!-- review-deps: paths=src/notify/** -->",
+			notificationBaseFiles.notifyGuide,
+		),
+		"docs/audit/REVIEW.md": marked(
+			"Audit review",
+			"<!-- review-deps: paths=src/audit/** -->",
+			notificationBaseFiles.auditGuide,
+		),
+		"docs/audit/retention-changes.md": marked(
+			"Retention changes",
+			"<!-- source-of-truth: Audit retention history -->\n\n<!-- doc-meta: owner=audit -->",
+			"One line for each change to audit retention.\n",
+		),
+		...(skeleton
+			? { "skeleton.toml": skeletonConfig().replace('"src/**/*.ts"', '"src/**/*.py"') }
+			: {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/review-notifications/control", reviewNotificationFiles(false));
+writeTree("tests/fixtures/efficacy/review-notifications/skeleton", reviewNotificationFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/review-notifications/skeleton");
+
+// The real-history fixture extracts its repository during task setup, so these only hold the package.
+writeTree("tests/fixtures/efficacy/review-real/control", { ".gitkeep": "" });
+writeTree("tests/fixtures/efficacy/review-real/skeleton", {
+	".gitkeep": "",
+	"package.json": `{\n\t"name": "review-real-fixture",\n\t"private": true\n}\n`,
+});
+
 writeTree("tests/fixtures/efficacy/product-smoke/adopt-consumer", {
 	"AGENTS.md": `# Agent entry\n\nInstall @csark0812/skeleton with npm, then initialize it in this repository. Stay inside this repository.\n`,
 	"README.md": "# Notes app\n\nA small app with documentation but no Skeleton setup.\n",
@@ -546,6 +678,9 @@ Generated by \`bun scripts/write-efficacy-fixtures.ts\`.
 | \`efficiency/control\` and \`efficiency/package-head\` | Matched repository question; package-head uses the current package. |
 | \`postprint-applications/control\` and \`postprint-applications/package-head\` | Matched PostPrint-shaped monorepo question spanning backend, client, shared packages, and docs. |
 | \`doc-reference/control\` and \`doc-reference/skeleton\` | Invoicing service whose document links to a function by \`path#symbol\`; the treatment narrows \`review-deps\` to that function. |
+| \`review-change/control\` and \`review-change/skeleton\` | Payments service reviewed after \`agent-suites/seeds/review-change.patch\` seeds known defects on a \`feature\` branch. |
+| \`review-notifications/control\` and \`review-notifications/skeleton\` | Python notifications service; its known defects are committed during task setup. |
+| \`review-real/control\` and \`review-real/skeleton\` | Empty until task setup extracts a real commit of this repository and reverts a real fix. |
 | \`product-smoke/adopt-consumer\` | Separate npm install and init smoke. |
 
 The drift and package-head treatments receive the exact packed development package and the context guide produced by default initialization. Optional host skills are not installed. Product smoke enables sandbox network access and installs from npm. Generated vendor trees stay out of Git.

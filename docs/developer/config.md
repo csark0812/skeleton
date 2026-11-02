@@ -71,9 +71,10 @@ Documents stay current through the change itself ([keeping documents current](do
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**"]
 command = "./scripts/review-agent.sh"
+omitFromDiff = ["src/api/schema/**"]
 ```
 
-Both keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. See [code review](review.md).
+All keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. `omitFromDiff` lists globs to leave out of the diff text, in addition to lockfiles and `linguist-generated` paths; a path matching `humanPaths` always stays in the diff. See [code review](review.md).
 
 ## `reviewCoverage`
 

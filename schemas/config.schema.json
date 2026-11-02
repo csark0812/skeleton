@@ -141,6 +141,11 @@
 					"type": "string",
 					"minLength": 1,
 					"description": "Shell command that receives the review bundle on stdin (`review prepare --run`)"
+				},
+				"omitFromDiff": {
+					"type": "array",
+					"items": { "type": "string", "minLength": 1 },
+					"description": "Globs left out of the bundle's diff text and listed by name, like lockfiles and generated files"
 				}
 			}
 		},
