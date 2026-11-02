@@ -2,11 +2,11 @@
 
 <!-- source-of-truth: skeleton validate changed routing -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/validate/** -->
 
-Run `skeleton route` for the lane card. Run `skeleton route <path>` to classify one path. Those commands do not audit.
+Run `skeleton route` for the lane card; it also prints a `review` lane (`skeleton review prepare --base <base>`). Run `skeleton route <path>` to classify one path. Those commands do not audit.
 
 Prove the change with `runValidateChanged` / `evaluateValidateChanged` (`ValidateChangedOptions`). Code paths get a `codeValidationHint` for native gates. Review-deps papers are discovered from any changed path. A live coverage candidate with no owning paper fails `uncovered-changed-path`. Deleted files do not.
 
@@ -52,10 +52,11 @@ skeleton validate changed --base origin/main  # CI merge-base diff
 
 Skeleton does not claim to validate application code. It classifies code paths, prints the repo-native gates, and builds an exact reverse dependency map from `review-deps` declarations to scanned documents.
 
-- Hash mode: changed dependency bytes make the linked document's `review-proof` entry invalid until explicit re-review and attestation.
-- Date mode: a linked document must be included in the changed set and carry today's explicit review date.
+- An impacted document whose dependency changed while the document did not is reported as `review-dependency-changed`, a warning in every run. A `package.json` change to only its top-level `version` and a change outside a `#` selector's region (a JSON key, a Markdown section, a JS/TS declaration) do not count ([doc system](doc-system.md#keeping-documents-current)). The result depends only on the two sides of the change, so the same range gives the same result on any day; only the advisory cadence warning uses git dates.
 - No linked document: a live coverage-candidate path fails with `uncovered-changed-path` on local and `--base` runs. Mixed commits do not hide this. Deleted files do not fail that gate.
-- `--staged`: read document, lockfile, and dependency bytes from the git index. If an impacted paper or the hash lockfile differs from HEAD and is not staged, fail `stage-required`.
+- Deleted or renamed Markdown documents (in a diff run, not with explicit paths): every scanned document that mentions the old file name is audited too, so a link the change broke is reported even though that document is not in the diff.
+- Broken references: a scanned document that links to a changed file (`src/run.ts#parseArgs`), or runs a script from a changed `package.json`, is audited too, so a renamed symbol or removed script fails the commit that caused it ([references](audit.md#references)).
+- `--staged`: read document and dependency bytes from the git index and compare them with HEAD. `--base`: compare HEAD with the merge base.
 
 In this repo:
 

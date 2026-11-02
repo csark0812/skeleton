@@ -6,14 +6,14 @@ import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { mjsPathForTs, resolveAbsolutePluginTsPath, resolvePluginTsPath } from "./paths.ts";
 
-export interface BuildPluginOptions {
+interface BuildPluginOptions {
 	root?: string;
 	/** Path relative to `.skeleton/` or absolute; omit to build all config.plugins */
 	entry?: string;
 	check?: boolean;
 }
 
-export interface BuildPluginResult {
+interface BuildPluginResult {
 	built: string[];
 	checked: string[];
 }
@@ -51,7 +51,7 @@ function collectPluginEntries(root: string, config: SkeletonConfig, entry?: stri
  * Resolve local relative imports for stale-check (incl. `./x.js` → `x.ts`).
  * Covers `from "…"`, side-effect `import "…"`, and dynamic `import("…")`.
  */
-export function localImportPaths(tsAbs: string, content: string): string[] {
+function localImportPaths(tsAbs: string, content: string): string[] {
 	const dir = dirname(tsAbs);
 	const deps: string[] = [];
 	const re = /(?:from\s+|import\s*\(\s*|import\s+)["'](\.[^"']+)["']/g;
@@ -93,7 +93,7 @@ export function stampPathForMjs(mjsAbs: string): string {
  * Content fingerprint of the plugin entry and transitive local `.ts` imports.
  * Bun-free; used by `--check` so equal-mtime / post-checkout content drift still fails.
  */
-export function sourceFingerprint(tsAbs: string, seen = new Set<string>()): string {
+function sourceFingerprint(tsAbs: string, seen = new Set<string>()): string {
 	const hash = createHash("sha256");
 	function walk(abs: string): void {
 		if (seen.has(abs)) return;

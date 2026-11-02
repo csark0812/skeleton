@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { codeReviewSchema } from "../../scripts/efficacy/judge.ts";
+import { boundedToolResult, codeReviewSchema } from "../../scripts/efficacy/judge.ts";
 import {
 	assessRun,
 	measureReliability,
@@ -16,6 +16,15 @@ const correct = (tokens = 100): Outcome => ({ status: "correct", reason: "Suppor
 const incorrect = (): Outcome => ({ status: "incorrect", reason: "Wrong answer", tokens: 1 });
 
 describe("reliability and efficiency measurements", () => {
+	it("bounds large tool results while preserving evidence from both ends", () => {
+		const value = `START:${"a".repeat(8_000)}:END`;
+		const bounded = boundedToolResult(value);
+		expect(bounded.length).toBeLessThanOrEqual(4_096);
+		expect(bounded).toStartWith("START:");
+		expect(bounded).toEndWith(":END");
+		expect(bounded).toContain("characters omitted");
+	});
+
 	it("records incorrect work and both kinds of errors, then continues all repetitions", async () => {
 		const attachments: string[] = [];
 		const expected: Pair[] = [

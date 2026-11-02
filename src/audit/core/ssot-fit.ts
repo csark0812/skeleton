@@ -106,7 +106,7 @@ export function contentTokens(text: string): string[] {
 		.map(lightStem);
 }
 
-export function uniqueContentTokens(text: string): string[] {
+function uniqueContentTokens(text: string): string[] {
 	return [...new Set(contentTokens(text))];
 }
 
@@ -130,7 +130,7 @@ export function extractH1(content: string): string {
 }
 
 /** First non-empty prose paragraph after stripping SSOT/meta/code. */
-export function extractLeadParagraph(content: string): string {
+function extractLeadParagraph(content: string): string {
 	const prose = stripSsotAndMeta(stripCode(content));
 	const lines = prose.split(/\n/);
 	const chunks: string[] = [];
@@ -193,7 +193,7 @@ export function evidenceHasPhrase(evidence: string, phrase: string[]): boolean {
 	return false;
 }
 
-export interface FitOptions {
+interface FitOptions {
 	overlapMin?: number;
 	betterMatchMargin?: number;
 	phraseCheck?: boolean;
@@ -205,9 +205,9 @@ export interface FitFile {
 	content: string;
 }
 
-export type FitIssueKind = "short" | "weak" | "better-match";
+type FitIssueKind = "short" | "weak" | "better-match";
 
-export interface FitIssue {
+interface FitIssue {
 	kind: FitIssueKind;
 	path: string;
 	message: string;

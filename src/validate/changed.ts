@@ -1,8 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, extname, join } from "node:path";
+import { basename, extname, join, posix } from "node:path";
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
 import { collectScanFiles, relPath as relPathFromAbs } from "../audit/core/collect.ts";
+import { extractLinksFromMarkdown } from "../audit/core/markdown.ts";
+import {
+	owningPackageJson,
+	packageManagerOf,
+	parsePackageJson,
+	scriptReferences,
+} from "../audit/core/package-references.ts";
 import { type FileSource, readRepoText } from "../audit/core/repo-files.ts";
 import { type Issue, isRereadIssue, issue, printReport } from "../audit/core/report.ts";
 import {
@@ -14,8 +21,7 @@ import {
 	reviewDependencyMatchesPath,
 	reviewDependencyPatterns,
 } from "../audit/core/review-deps.ts";
-import { formatLocalReviewDate } from "../audit/core/review-proof.ts";
-import { docMetaLastReviewed, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
+import { isExternalLink, matchesGlobScope, normalizeRelPath } from "../audit/core/shared.ts";
 import {
 	buildSkillIndex,
 	isForeignSkillPath,
@@ -23,13 +29,13 @@ import {
 	listSkillMarkdownPaths,
 	type SkillIndex,
 } from "../audit/core/skill-roots.ts";
+import { staleDocumentDiagnostics } from "../audit/core/stale-documents.ts";
 import { loadPolicyFile } from "../audit/policies/load.ts";
 import { evaluateAudit, printAuditResult } from "../audit/run.ts";
 import { refreshLocalCatalog } from "../catalog.ts";
 import { collectWiredPolicyRelPaths } from "../plugins/load.ts";
 import type { AuditResult } from "../result-types.ts";
 import { type ChangedGitPath, gitDiffChangedFiles } from "./git-diff.ts";
-import { stageRequiredDiagnostics } from "./staged.ts";
 
 const DOC_EXTENSIONS = new Set([".md", ".mdc", ".yaml", ".yml"]);
 const POLICY_EXTENSIONS = new Set([".yaml", ".yml"]);
@@ -37,7 +43,7 @@ const SHELL_EXTENSIONS = new Set([".sh", ".bash", ".zsh"]);
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".py"]);
 const COMMAND_CONFIG_NAMES = new Set(["package.json", "project.json"]);
 
-export interface ValidateChangedOptions {
+interface ValidateChangedOptions {
 	paths?: string[];
 	staged?: boolean;
 	base?: string;
@@ -180,16 +186,6 @@ function validationIssue(code: string, file: string, message: string): Issue {
 	return issue("validate-changed", file, { code, message, severity: "error" });
 }
 
-function rereadValidationIssue(file: string, target: string): Issue {
-	return issue("validate-changed", file, {
-		code: "impacted-document-review-required",
-		message:
-			"a linked review dependency changed; re-read the entire document, then attest it with --fix=doc-meta --confirm-reviewed and include the document in validation",
-		severity: "error",
-		link: target,
-	});
-}
-
 function validateJson(relPath: string, root: string, fileSource: FileSource): Issue | null {
 	const content = readRepoText(root, relPath, fileSource);
 	if (content === null) return validationIssue("invalid-json", relPath, "path not found");
@@ -237,6 +233,96 @@ function validateShell(relPath: string, root: string, fileSource: FileSource): I
 interface ResolvedPaths {
 	paths: string[];
 	deleted: Set<string>;
+}
+
+/**
+ * Scanned Markdown documents that mention a removed path's file name, so the links rule
+ * re-checks them. Matching the name is deliberately broad: a false match only adds an audit.
+ */
+function addMissingDocs(docs: string[], extra: string[]): void {
+	for (const path of extra) if (!docs.includes(path)) docs.push(path);
+}
+
+function documentsMentioning(input: {
+	root: string;
+	config: ReturnType<typeof loadConfig>;
+	paths: string[];
+	source: FileSource;
+}): string[] {
+	const removed = input.paths.filter((path) => /\.mdx?$/i.test(path));
+	if (removed.length === 0) return [];
+	const names = removed.map((path) => basename(path));
+	const removedSet = new Set(removed);
+	return collectScanFiles(input.config, input.root)
+		.map((abs) => relPathFromAbs(abs, input.root))
+		.filter((path) => /\.mdx?$/i.test(path) && !removedSet.has(path))
+		.filter((path) => {
+			const content = readRepoText(input.root, path, input.source);
+			return content !== null && names.some((name) => content.includes(name));
+		});
+}
+
+/** Repo-relative file a document's link points at, without its anchor; null for external links. */
+function linkedPath(docPath: string, target: string): string | null {
+	if (isExternalLink(target) || target.startsWith("#")) return null;
+	const pathPart = target.split("#")[0]?.split("?")[0] ?? "";
+	return pathPart ? normalizeRelPath(posix.join(posix.dirname(docPath), pathPart)) : null;
+}
+
+function linksToChanged(docPath: string, content: string, changed: Set<string>): boolean {
+	return extractLinksFromMarkdown(content).some((link) => {
+		const path = linkedPath(docPath, link.target);
+		return path !== null && changed.has(path);
+	});
+}
+
+/** Whether a changed package.json owns this document's commands or toolchain facts. */
+function usesChangedPackage(input: {
+	root: string;
+	docPath: string;
+	content: string;
+	changed: Set<string>;
+	source: FileSource;
+}): boolean {
+	const { root, docPath, content, changed, source } = input;
+	const packagePath = owningPackageJson(root, docPath, source);
+	if (packagePath === null || !changed.has(packagePath)) return false;
+	if (basename(docPath) === "AGENTS.md" && posix.dirname(docPath) === posix.dirname(packagePath)) {
+		return true;
+	}
+	const pkg = parsePackageJson(readRepoText(root, packagePath, source));
+	const pm = pkg ? packageManagerOf(pkg) : null;
+	return pm !== null && scriptReferences(content, pm).length > 0;
+}
+
+/**
+ * A change can break a reference in a document the diff never touched: a link to a renamed
+ * symbol, key or heading, or a command naming a removed script. Those documents are audited again;
+ * whether one also needs a re-read stays with its review-deps.
+ */
+function documentsReferencing(input: {
+	root: string;
+	config: ReturnType<typeof loadConfig>;
+	paths: string[];
+	source: FileSource;
+}): string[] {
+	const changed = new Set(input.paths.map((path) => normalizeRelPath(path)));
+	if (changed.size === 0) return [];
+	const names = [...changed].map((path) => basename(path));
+	const touchesPackage = names.includes("package.json");
+	return collectScanFiles(input.config, input.root)
+		.map((abs) => relPathFromAbs(abs, input.root))
+		.filter((docPath) => /\.mdx?$/i.test(docPath) && !changed.has(docPath))
+		.filter((docPath) => {
+			const content = readRepoText(input.root, docPath, input.source);
+			if (content === null) return false;
+			const named = names.some((name) => content.includes(name));
+			if (named && linksToChanged(docPath, content, changed)) return true;
+			return (
+				touchesPackage &&
+				usesChangedPackage({ root: input.root, docPath, content, changed, source: input.source })
+			);
+		});
 }
 
 function resolvePaths(options: ValidateChangedOptions): ResolvedPaths {
@@ -444,51 +530,6 @@ function impactReasons(
 		}
 	}
 	return reasons;
-}
-
-function dateModeImpactDiagnostics(input: {
-	config: ReturnType<typeof loadConfig>;
-	impactedDocuments: ImpactedDocument[];
-	relPaths: string[];
-	root: string;
-	fileSource: FileSource;
-}): Issue[] {
-	if (input.config.reviewProof) return [];
-	const changed = new Set(input.relPaths.map(normalizeRelPath));
-	const today = formatLocalReviewDate(new Date());
-	return input.impactedDocuments.flatMap((impacted) =>
-		dateModeIssuesForDocument({
-			impacted,
-			changed,
-			today,
-			root: input.root,
-			fileSource: input.fileSource,
-		}),
-	);
-}
-
-function dateModeIssuesForDocument(input: {
-	impacted: ImpactedDocument;
-	changed: Set<string>;
-	today: string;
-	root: string;
-	fileSource: FileSource;
-}): Issue[] {
-	const content = readRepoText(input.root, input.impacted.path, input.fileSource);
-	if (!content) {
-		return input.impacted.reasons
-			.filter((reason) => reason.kind === "changed-review-dependency" && reason.target)
-			.map((reason) => rereadValidationIssue(input.impacted.path, reason.target ?? ""));
-	}
-	if (input.changed.has(input.impacted.path) && docMetaLastReviewed(content) === input.today) {
-		return [];
-	}
-	const issues: Issue[] = [];
-	for (const reason of input.impacted.reasons) {
-		if (reason.kind !== "changed-review-dependency" || !reason.target) continue;
-		issues.push(rereadValidationIssue(input.impacted.path, reason.target));
-	}
-	return issues;
 }
 
 function uncoveredChangedPathDiagnostics(
@@ -763,6 +804,15 @@ export async function evaluateValidateChanged(
 			classification.buckets.docs.push(impacted.path);
 		}
 	}
+	// A deleted or renamed document can break a link in a document the diff never touched.
+	addMissingDocs(
+		classification.buckets.docs,
+		documentsMentioning({ root, config, paths: [...resolvedPaths.deleted], source: fileSource }),
+	);
+	addMissingDocs(
+		classification.buckets.docs,
+		documentsReferencing({ root, config, paths: relPaths, source: fileSource }),
+	);
 	classification.buckets.docs.sort();
 
 	const ownerPatterns = collectReviewDependencyPatterns({
@@ -783,13 +833,10 @@ export async function evaluateValidateChanged(
 			coverageCandidateCount,
 		}),
 		...uncoveredChangedPathDiagnostics(livePaths, config, ownerPatterns),
-		...stageRequiredDiagnostics({
-			staged: options.staged ?? false,
-			stagedPaths: relPaths,
-			impactedDocuments: impactedDocuments.map((item) => item.path),
-			config,
-			root,
-		}),
+		...staleDocumentDiagnostics(
+			{ root, staged: options.staged, base: options.base },
+			impactedDocuments,
+		),
 	];
 
 	const evaluated = await evaluateBucketAudits({
@@ -799,9 +846,6 @@ export async function evaluateValidateChanged(
 		base: options.base,
 		fileSource,
 	});
-	evaluated.diagnostics.push(
-		...dateModeImpactDiagnostics({ config, impactedDocuments, relPaths, root, fileSource }),
-	);
 	return resultFor({
 		options,
 		relPaths,
@@ -813,7 +857,7 @@ export async function evaluateValidateChanged(
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: human rendering mirrors the structured result branches
-export function printValidateChangedResult(result: ValidateChangedResult): number {
+function printValidateChangedResult(result: ValidateChangedResult): number {
 	if (result.input.paths.length === 0) {
 		console.log("validate changed: no changed files.");
 		return result.exitCode;
@@ -845,7 +889,9 @@ export function printValidateChangedResult(result: ValidateChangedResult): numbe
 			notes.push(`${result.classification.code.length} code path(s) routed to native gates`);
 		}
 		if (result.classification.skipped.length > 0) {
-			notes.push(`${result.classification.skipped.length} path(s) skipped`);
+			const skipped = result.classification.skipped;
+			const shown = skipped.slice(0, 5).join(", ");
+			notes.push(`${skipped.length} path(s) skipped: ${shown}${skipped.length > 5 ? ", …" : ""}`);
 		}
 		if (result.classification.foreignSkills.length > 0) {
 			notes.push(`${result.classification.foreignSkills.length} foreign skill(s) ignored`);

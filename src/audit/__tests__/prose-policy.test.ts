@@ -26,8 +26,6 @@ function makeCtx(overrides: Partial<AuditContext> & { root: string }): AuditCont
 		docMetaPaths: [],
 		ssotEntries: [],
 		ssotErrors: [],
-		registryPaths: [],
-		registryHasTableHeader: true,
 		skillIndex: EMPTY_SKILL_INDEX,
 		lockedSkillSlugs: new Set(),
 		policies: [],

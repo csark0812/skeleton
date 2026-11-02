@@ -9,12 +9,12 @@ import type { PolicyFile } from "../audit/policies/types.ts";
 import type { AuditRule } from "../audit/rules/index.ts";
 import { assertUnderSkeleton, mjsPathForTs, resolvePluginTsPath, skeletonDir } from "./paths.ts";
 
-export interface PluginModule {
+interface PluginModule {
 	rules: AuditRule[];
 	policies?: string[];
 }
 
-export interface LoadedPlugins {
+interface LoadedPlugins {
 	rules: AuditRule[];
 	policies: PolicyFile[];
 }
@@ -109,7 +109,7 @@ export function normalizeExport(mod: unknown): PluginModule {
 }
 
 /** Expand plugin policy globs under `.skeleton/` to absolute YAML paths. */
-export function expandPolicyGlobs(root: string, globs: string[]): string[] {
+function expandPolicyGlobs(root: string, globs: string[]): string[] {
 	const base = skeletonDir(root);
 	const files = new Set<string>();
 	for (const pattern of globs) {

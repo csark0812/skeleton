@@ -83,7 +83,10 @@ test("keeps malformed judge output as an error", async ({ baseline, malformed })
 	).rejects.toThrow();
 });
 
-test("requires a correctness verdict for both runs", async () => {
+test("requires a correctness verdict for both runs", {
+	description: "Checks the comparison schema, so no agent runs.",
+	noAgent: true,
+}, async () => {
 	const verdict = { correct: true, reason: "Supported by tool output" };
 	expect(comparisonSchema.safeParse({ baseline: verdict }).success).toBe(false);
 	expect(

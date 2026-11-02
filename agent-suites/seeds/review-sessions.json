@@ -1,0 +1,94 @@
+[
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "b544b1af-bd9a-43a2-9009-b334891d32ff",
+		"notifications": "4c5a9869-bb92-4ed0-991c-fd52ba53ce2d",
+		"real": "412eb72d-498e-4cca-977c-1eeb98bc4019",
+		"null": "f1a900da-ffd0-4a9c-a01c-0af0ce624c2e"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "c7918305-ba36-4246-8bb1-ac2c165dcb4c",
+		"notifications": "9b93ebdf-823d-4542-a367-8bac8fc684c1",
+		"real": "3c3f8333-38d7-475a-bf76-a5dc59ed7056",
+		"null": "f1a900da-ffd0-4a9c-a01c-0af0ce624c2e"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "7a170264-cff9-4c27-9ea3-fb33b1f1cf22",
+		"notifications": "afa702d1-fb69-4d0a-8c89-d8d3cfcb5fd4",
+		"real": "51fa6c1d-52de-4089-b881-4380e9950a00",
+		"null": "eed55592-e4a7-4a07-a5c7-330313b76cf3"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "307c3c01-8a87-4edd-91a0-1ebf370f7639",
+		"notifications": "57c3b328-752b-445d-baf2-6cfd0b287139",
+		"real": "522154fc-d427-4baa-96c8-6b27c6ff7ccb",
+		"null": "db980ab2-2661-4760-93a8-1a5caf588ce4"
+	},
+	{
+		"confirmatory": false,
+		"day": "2026-11-01",
+		"payments": "a5e72475-c627-480e-b865-af5db25b884f",
+		"notifications": "91f14a7f-fbc7-4c04-a215-75060cd2045d",
+		"real": "99ab94c0-e936-4a64-99d4-7ac23b952945",
+		"null": "d0d7d444-8b79-4125-8990-b673db1bdb61"
+	},
+	{
+		"confirmatory": true,
+		"pilot": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "55e9aec7-1beb-48e2-89b5-184170578868",
+		"notifications": "ebcab8ef-714d-4d4d-945e-b37d2fc627ee",
+		"real": "2b97e953-f2d6-4e5f-a207-155d5dc571ac",
+		"null": "3c219678-5e60-4d03-824d-ab567d3ecc65",
+		"realSetupFailure": "43caec38-9b8d-4b2b-b012-74ee242dced0: temp cleanup raced git auto-gc before any agent ran; fixed in 64c76b7 and the real round ran once more alone"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "8e6a41c2-859d-4511-9846-7dc8cba70dae",
+		"notifications": "e08766cc-b291-4025-9236-50aad2dbe197",
+		"real": "d060afa3-ff87-4ae8-94ea-2a8ce4854688",
+		"null": "8c5ca635-4b60-4690-a5db-0b9cbaffc4e8"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "0fde7564-011f-47f6-be2e-0f29722d58ff",
+		"notifications": "2d169a89-895b-4c03-a14e-f63ef2b8f05e",
+		"real": "0641816d-e10d-452e-b46c-2a565277e52e",
+		"null": "4a2adebf-199b-494f-8113-7339af9c289d"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "9ee78bb9-721b-4fd7-80a4-5a89ad11d13b",
+		"notifications": "bd163038-e930-4da3-be86-54bc783062a9",
+		"real": "857b681d-6ef5-42f8-b8da-8ba9bd9f3ed2",
+		"null": "d173991d-d475-42f6-a338-bd4dc1a1469e"
+	},
+	{
+		"confirmatory": true,
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "729c716f-0d72-414c-8ec3-d1db291eb1f1",
+		"notifications": "868f841d-82ad-4f1a-accd-0dee75be5f34",
+		"real": "a9867557-d3cf-4a9c-8f64-5ad57088a789",
+		"null": "c3b7c766-b173-4bb1-b17c-029b053a4a60"
+	}
+]

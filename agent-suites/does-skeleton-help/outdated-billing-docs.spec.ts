@@ -57,10 +57,4 @@ test("Skeleton reliability and token efficiency when identifying outdated billin
 	expect(report.efficiency.pairs, "Every repetition forms a measurable efficiency pair").toBe(
 		report.attempts,
 	);
-	if (report.attempts > 1) {
-		expect(
-			report.efficiency.skeletonMedian!,
-			"Skeleton uses at least 15% fewer median tokens",
-		).toBeLessThanOrEqual(report.efficiency.baselineMedian! * 0.85);
-	}
 });

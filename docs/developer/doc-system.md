@@ -2,9 +2,9 @@
 
 <!-- source-of-truth: skeleton doc and catalog conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-13 -->
+<!-- doc-meta: owner=eng -->
 
-<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts -->
+<!-- review-deps: paths=src/catalog.ts,src/audit/core/ssot-fit.ts,src/audit/rules/doc-meta.ts,src/audit/rules/review-deps.ts,src/audit/core/review-deps.ts,src/audit/core/review-digest.ts,src/audit/core/stale-documents.ts -->
 
 Day-one walkthrough: [getting started](getting-started.md). Short authoring summary: [authoring](../authoring.md).
 
@@ -61,34 +61,47 @@ Opt-in markers declare the repository state a doc depends on:
 <!-- review-deps: paths=src/cli.ts,src/audit/run.ts -->
 ```
 
-Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes. Hash review proof supplies the exact invalidation signal.
+Each comma-separated path is repo-relative. Exact paths must exist; globs may temporarily match no files and emit a warning (an error under `--strict`). In a glob, `*` and `?` stay within one path segment, `**` spans segments, and `**/` also matches zero directories, so `src/**/*.ts` covers `src/a.ts`. Marked docs are always re-checked when the docs suite runs, including under `--paths`. `validate changed` treats every dependency as an edge and adds linked docs when a matching file changes ([keeping documents current](#keeping-documents-current)).
+
+A dependency may narrow one file with a selector after `#`, read by the file's type:
+
+| Dependency | Compared |
+| ---------- | -------- |
+| `package.json#scripts`, `config/app.json#server.port` | the selected value, as key-sorted JSON |
+| `docs/guide.md#install` | that heading's section, down to the next heading of the same or a higher level |
+| `src/audit/run.ts#parseAuditArgs`, `src/run.ts#Runner.stop` | that declaration, JSDoc included, in `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.mts`, `.cts` |
+
+A symbol in any other language, or one TypeScript does not find as a declaration (a re-export, a name only in a comment), is compared as the whole file, so the narrowing can only ask for more re-reads, never fewer. Skeleton parses with TypeScript 6, the last release with a JavaScript parser API; it is a runtime dependency. A selector that names nothing is the error `unresolved-selector`. Selectors are not allowed on globs, and line ranges (`#L10`) are not allowed at all, since they move whenever lines above them change. Any change to the file still pulls the document into `validate changed`. Markdown dependencies are compared without their doc-meta comment.
+
+Keep dependencies narrow. The `review-deps` rule warns `review-dependency-broad` when a document depends on a whole `package.json` (every dependency bump would ask for a re-read; name the keys it describes instead) and `review-dependency-cycle` when documents depend on each other (editing one asks for a re-read of the other; link them instead).
 
 ## Doc meta
 
 Index docs and SSOT-bearing files require:
 
 ```markdown
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 ```
 
-`last-reviewed` is the **only** authored freshness date — a human claim that someone stood behind this text as of that day. Do **not** add a parallel `last-edited` field; git is the last-edit signal.
+The comment names an owner only. Do **not** add review or edit dates.
 
-Audit treats review invalidation and calendar cadence differently:
+## Keeping documents current
 
-| Signal | Meaning | Typical fix |
-| ------ | ------- | ----------- |
-| Content changed after `last-reviewed` (git or hash proof) | Blocking error: review no longer covers the latest edit or linked dependency bytes | **Required:** re-read the entire document against current dependencies, then attest it. Do not change the date alone. |
-| `last-reviewed` older than `daysUntilStale` | Optional **re-read cadence** for untouched papers — process hygiene, not “the text drifted” | Re-affirm or bump after review; warn-only unless `--strict` |
+Nothing records reviews: no lock file, no proof lines, no dates. The change itself is the evidence. When a change alters a file that a document declares in `review-deps` and leaves the document unchanged, `validate changed` reports `review-dependency-changed` on the document, naming each changed file:
+
+| Run | Result |
+| --- | ------ |
+| `--staged` (pre-commit) | Warning. The commit goes through. |
+| `--base <ref>` (pull request CI) | Warning. `review prepare` lists the document under "Documents the author must re-read and update". |
+| No flags (working tree) | Warning. |
+
+The comparison ignores a `package.json` top-level release `version`, everything outside a `#` selector's region, and doc-meta-only edits to a Markdown dependency. Deleting a file a dependency glob matched counts as a change. With no commit to compare against (a new repository), nothing is reported.
+
+Re-read the document against the changed files and update it in the same commit if it is out of date. If it is still correct, there is nothing to do. No run blocks on this: an unchanged document may be correct, and nothing could record that it was checked. Because nothing is stored, two branches that edit the same document merge exactly as git merges the text.
+
+The re-read cadence is separate: `review-cadence-exceeded` warns (error under `--strict`) when a document's last commit is older than `daysUntilStale` days. It is process hygiene, not a sign the text drifted; re-read the document and commit any correction.
 
 SSOT paths under **foreign** (lockfile-synced) skill trees are excluded from doc-meta in consumer repos — keep review cadence in the owning toolbox repo. See [config](config.md#skillownership).
-
-### Explicit review attestation
-
-```bash
-skeleton audit docs --paths=docs/api.md --fix=doc-meta --confirm-reviewed
-```
-
-The command requires explicit paths. It sets `last-reviewed` to today only after the operator confirms a complete review. With `[reviewProof] mode = "hash"`, it also writes `.skeleton/review-lock.json` with deterministic document and dependency hashes. Bare `--fix` never touches review dates.
 
 ## Example canonical doc
 
@@ -97,7 +110,7 @@ The command requires explicit paths. It sets `last-reviewed` to today only after
 
 <!-- source-of-truth: Backend API conventions -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-08-16 -->
+<!-- doc-meta: owner=eng -->
 
 Keep request and response shapes consistent across services.
 ```

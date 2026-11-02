@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -21,6 +21,25 @@ export default defineAgent({
 						return;
 					}
 					const input = JSON.parse(prompt.slice(prompt.lastIndexOf("\nInput:\n") + 8));
+					if (input.report !== undefined) {
+						if (!input.report.includes("src/orders/total.ts"))
+							throw new Error("Missing review report");
+						yield {
+							type: "text",
+							text: JSON.stringify({
+								generic: true,
+								guideRule: input.report.includes("REVIEW.md"),
+								staleDoc: input.report.includes("docs/billing.md"),
+								deletionGuide: false,
+								deletionRule: false,
+								intentMismatch: false,
+								otherImportant: 0,
+								reason: "Offline review report contract.",
+							}),
+						};
+						yield { type: "usage", usage: { totalTokens: 999999 } };
+						return;
+					}
 					if (input.document) {
 						if (Object.keys(input).sort().join(",") !== "document,transcript")
 							throw new Error("Unexpected judge evidence");
@@ -74,24 +93,169 @@ export default defineAgent({
 					return;
 				}
 				if (options.executionFailure) throw new Error("Offline provider failure");
+				if (existsSync(join(workspace.path, "src/billing/refund.ts"))) {
+					const skeleton = existsSync(join(workspace.path, "skeleton.toml"));
+					const branch = execFileSync("git", ["branch", "--show-current"], {
+						cwd: workspace.path,
+						encoding: "utf8",
+					}).trim();
+					if (branch !== "feature") throw new Error("Setup did not create the feature branch");
+					// The Skeleton reviewer is handed the bundle as its prompt; the bare-diff reviewer runs git.
+					let result = prompt;
+					if (skeleton !== prompt.includes("## Reviewer contract"))
+						throw new Error("Only the Skeleton side should receive the bundle");
+					if (!skeleton) {
+						result = execFileSync("git", ["diff", "main...HEAD"], {
+							cwd: workspace.path,
+							encoding: "utf8",
+						});
+						yield {
+							type: "tool",
+							name: "Shell",
+							args: { command: "git diff main...HEAD" },
+							result,
+							succeeded: true,
+						};
+					}
+					if (!result.includes("src/orders/total.ts")) throw new Error("Missing seeded diff");
+					const findings = [
+						"important\tsrc/orders/total.ts:3\toff by one\tThe last line is dropped.",
+					];
+					if (result.includes("## Review guide: docs/billing/REVIEW.md"))
+						findings.push(
+							"important\tsrc/billing/charge.ts:18\tguide rule\tREVIEW.md requires approval.",
+						);
+					if (result.includes("- docs/billing.md (changed: src/billing/charge.ts)"))
+						findings.push("important\tdocs/billing.md:1\tstale document\tRetries are now 3.");
+					yield { type: "text", text: findings.join("\n") };
+					yield { type: "usage", usage: { totalTokens: skeleton ? 90 : 100 } };
+					return;
+				}
+				if (existsSync(join(workspace.path, "src/invoices.ts"))) {
+					const skeleton = existsSync(join(workspace.path, "skeleton.toml"));
+					const rename = prompt.includes("Rename sendInvoiceReminder");
+					const edit = async (path, from, to) => {
+						const absolute = join(workspace.path, path);
+						await writeFile(absolute, (await readFile(absolute, "utf8")).replaceAll(from, to));
+					};
+					const commit = () => {
+						execFileSync("git", ["add", "-A"], { cwd: workspace.path });
+						const result = spawnSync("git", ["commit", "-m", "Offline invoice change"], {
+							cwd: workspace.path,
+							encoding: "utf8",
+						});
+						return {
+							type: "tool",
+							name: "Shell",
+							args: { command: "git commit" },
+							result: `${result.stdout}${result.stderr}`,
+							succeeded: result.status === 0,
+						};
+					};
+					if (rename) {
+						for (const path of ["src/invoices.ts", "tests/invoices.test.ts"])
+							await edit(path, "sendInvoiceReminder", "remindInvoiceRecipient");
+					} else {
+						await edit("src/invoices.ts", "padStart(5", "padStart(6");
+						await edit("tests/invoices.test.ts", "INV-00042", "INV-000042");
+					}
+					const first = commit();
+					yield first;
+					if (rename && skeleton) {
+						// The Skeleton hook must refuse the stale link; the scripted agent then repairs it.
+						if (first.succeeded) throw new Error("Pre-commit hook accepted a stale link");
+						await edit(
+							"docs/invoice-reminders.md",
+							"sendInvoiceReminder",
+							"remindInvoiceRecipient",
+						);
+						const retry = commit();
+						yield retry;
+						if (!retry.succeeded) throw new Error(`Repaired commit failed: ${retry.result}`);
+					} else if (!first.succeeded) throw new Error(`Commit failed: ${first.result}`);
+					else if (rename) {
+						// Without the hook, the scripted baseline finds the stale link only on a second pass.
+						await edit(
+							"docs/invoice-reminders.md",
+							"sendInvoiceReminder",
+							"remindInvoiceRecipient",
+						);
+						const followUp = commit();
+						yield followUp;
+						if (!followUp.succeeded) throw new Error(`Follow-up commit failed: ${followUp.result}`);
+					}
+					yield { type: "text", text: "Offline invoice change committed." };
+					// Scripted totals that exercise the no-more-tokens gate; they are not measurements.
+					yield {
+						type: "usage",
+						usage: { totalTokens: rename ? (skeleton ? 120 : 130) : 100 },
+					};
+					return;
+				}
 				if (existsSync(join(workspace.path, "src/limits.ts"))) {
 					if (prompt.includes('"delviery"')) {
 						const path = join(workspace.path, "README.md");
 						await writeFile(path, (await readFile(path, "utf8")).replace("delviery", "delivery"));
 					} else {
 						const path = join(workspace.path, "src/limits.ts");
+						const doc = join(workspace.path, "docs/orders.md");
+						if (existsSync(join(workspace.path, "skeleton.toml"))) {
+							const cli = join(workspace.path, "node_modules/@csark0812/skeleton/dist/cli.js");
+							const initial = execFileSync("node", [cli, "context", "order limit"], {
+								cwd: workspace.path,
+								encoding: "utf8",
+							});
+							yield {
+								type: "tool",
+								name: "Shell",
+								args: { command: "skeleton context order limit" },
+								result: initial,
+								succeeded: true,
+							};
+							yield {
+								type: "tool",
+								name: "Read",
+								args: { path: "docs/orders.md" },
+								result: await readFile(doc, "utf8"),
+								succeeded: true,
+							};
+						}
 						await writeFile(
 							path,
 							(await readFile(path, "utf8")).replace("standard: 20", "standard: 30"),
 						);
-						const doc = join(workspace.path, "docs/orders.md");
+						const oldDoc = await readFile(doc, "utf8");
+						const updatedDoc = oldDoc.replace(
+							"Standard orders allow 20",
+							"Standard orders allow 30",
+						);
 						await writeFile(
 							doc,
-							(await readFile(doc, "utf8")).replace(
-								"Standard orders allow 20",
-								"Standard orders allow 30",
-							),
+							existsSync(join(workspace.path, "skeleton.toml"))
+								? updatedDoc.replace(
+										"# Order limits\n\n",
+										"# Order limits\n\n<!-- source-of-truth: Order limits -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n",
+									)
+								: updatedDoc,
 						);
+						if (existsSync(join(workspace.path, "skeleton.toml"))) {
+							const retry = execFileSync(
+								"node",
+								[
+									join(workspace.path, "node_modules/@csark0812/skeleton/dist/cli.js"),
+									"context",
+									"order limit",
+								],
+								{ cwd: workspace.path, encoding: "utf8" },
+							);
+							yield {
+								type: "tool",
+								name: "Shell",
+								args: { command: "skeleton context order limit" },
+								result: retry,
+								succeeded: true,
+							};
+						}
 						yield {
 							type: "tool",
 							name: "Read",

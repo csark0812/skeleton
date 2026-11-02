@@ -26,12 +26,6 @@ export interface AuditContext {
 		detail: string;
 		forms?: SsotForm[];
 	}>;
-	/**
-	 * @deprecated Prefer ssotEntries — kept empty for plugin type stability during transition.
-	 */
-	registryPaths: string[];
-	/** @deprecated Always false — hand registry removed. */
-	registryHasTableHeader: boolean;
 	skillIndex: SkillIndex;
 	/**
 	 * Foreign (synced) skill slugs — same as `skillIndex.foreignSlugs`.
@@ -42,9 +36,11 @@ export interface AuditContext {
 	policies: PolicyFile[];
 	/** Read document and dependency bytes from the worktree or the git index. */
 	fileSource?: FileSource;
+	/** True when `--paths` narrowed the run; repository-wide checks are skipped. */
+	pathScoped?: boolean;
 }
 
-export interface AuditOptions {
+interface AuditOptions {
 	root?: string;
 	changed?: boolean;
 	paths?: string[];
@@ -55,7 +51,7 @@ export interface AuditOptions {
 	 * matches path-scoped / validate `--base` prove.
 	 */
 	includeExcludedSkillTrees?: boolean;
-	/** When `index`, review-proof and coverage reads use `git show :path`. */
+	/** When `index`, document and coverage reads use `git show :path`. */
 	fileSource?: FileSource;
 }
 
@@ -79,7 +75,7 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 	const allDocMetaPaths = collectDocMetaPaths({
 		config,
 		root,
-		registryPaths: ssotPaths,
+		ssotPaths,
 		skillIndex,
 	});
 
@@ -93,11 +89,10 @@ export function createContext(options: AuditOptions = {}): AuditContext {
 				: allDocMetaPaths,
 		ssotEntries: ssot.entries,
 		ssotErrors: ssot.errors,
-		registryPaths: [],
-		registryHasTableHeader: false,
 		skillIndex,
 		lockedSkillSlugs: new Set(skillIndex.foreignSlugs),
 		policies: options.policies ?? [],
 		fileSource: options.fileSource,
+		pathScoped: Boolean(options.paths && options.paths.length > 0),
 	};
 }

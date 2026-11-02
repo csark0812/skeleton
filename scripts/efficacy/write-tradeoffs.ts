@@ -5,7 +5,7 @@ const ROOT = join(import.meta.dir, "../../tests/fixtures/efficacy/tradeoffs");
 const guidance =
 	"# Agent entry\n\nInspect the repository. Keep behavior, tests, and related documentation accurate. Verify changes.\n";
 const config =
-	'daysUntilStale = 365\n[scan]\ninclude = ["docs/**", "README.md", "AGENTS.md"]\nexclude = []\n[reviewProof]\nmode = "hash"\n';
+	'daysUntilStale = 365\n[scan]\ninclude = ["docs/**", "README.md", "AGENTS.md"]\nexclude = []\n';
 const policy = "export function orderLimit(kind: string): number { return LIMITS[kind] ?? 20; }\n";
 const limits = "const LIMITS: Record<string, number> = { standard: 20, regulated: 5 };\n";
 const tests =
@@ -38,7 +38,7 @@ for (const variant of ["adoption", "truncated", "missing", "trivial"]) {
 		write(root, "tests/limits.test.ts", tests);
 		const marker =
 			side === "skeleton" && variant !== "adoption" && variant !== "missing"
-				? "<!-- source-of-truth: Order limits -->\n<!-- doc-meta: owner=eng | last-reviewed=2026-09-17 -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n"
+				? "<!-- source-of-truth: Order limits -->\n<!-- doc-meta: owner=eng -->\n<!-- review-deps: paths=src/limits.ts,src/checkout.ts -->\n\n"
 				: "";
 		write(
 			root,

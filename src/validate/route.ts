@@ -4,13 +4,13 @@ import {
 	type ValidateClassificationResult,
 } from "./changed.ts";
 
-export interface RouteLine {
+interface RouteLine {
 	lane: string;
 	path: string;
 	action: string;
 }
 
-export interface RouteResult {
+interface RouteResult {
 	ok: boolean;
 	exitCode: 0 | 1;
 	lines: RouteLine[];
@@ -19,10 +19,10 @@ export interface RouteResult {
 
 const VALIDATE = "skeleton validate changed";
 const AUDIT_SKILLS = "skeleton audit skills";
-const ATTEST = "skeleton audit docs --paths=<paper> --fix=doc-meta --confirm-reviewed";
+const REVIEW = "skeleton review prepare --base <base>";
 
 /** Static lane card. No path. No plugin load. */
-export const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
+const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
 	["docs", VALIDATE],
 	["skills", AUDIT_SKILLS],
 	["code", VALIDATE],
@@ -31,7 +31,7 @@ export const ROUTE_CARD: ReadonlyArray<readonly [string, string]> = [
 	["shell", VALIDATE],
 	["foreign-skill", "skip"],
 	["orphan-policy", "fail-closed"],
-	["attest", ATTEST],
+	["review", REVIEW],
 ];
 
 export function formatRouteCard(): string {
@@ -70,13 +70,17 @@ function linesForClassification(
 	]);
 	for (const impacted of impactedDocuments) {
 		if (!classified.has(impacted.path)) {
-			lines.push({ lane: "impacted", path: impacted.path, action: "re-read" });
+			lines.push({
+				lane: "impacted",
+				path: impacted.path,
+				action: `re-read and update ${impacted.path} in the same commit`,
+			});
 		}
 	}
 	return lines;
 }
 
-export function formatRouteLines(lines: RouteLine[]): string {
+function formatRouteLines(lines: RouteLine[]): string {
 	return lines.map((line) => `${line.lane}\t${line.path}\t${line.action}`).join("\n");
 }
 

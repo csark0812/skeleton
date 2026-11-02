@@ -4,10 +4,10 @@ import { bannedRule } from "./banned.ts";
 import { docMetaRule } from "./doc-meta.ts";
 import { linksRule } from "./links.ts";
 import { nearDuplicateRule } from "./near-duplicate.ts";
+import { packageReferencesRule } from "./package-references.ts";
 import { prosePolicyRule } from "./prose-policy.ts";
 import { reviewCoverageRule } from "./review-coverage.ts";
 import { reviewDepsRule } from "./review-deps.ts";
-import { reviewProofRule } from "./review-proof.ts";
 import { coverageGapsRule } from "./scan-gaps.ts";
 import { scanRootsRule } from "./scan-roots.ts";
 import { skillIndexRule } from "./skill-index.ts";
@@ -29,7 +29,7 @@ export interface AuditRule {
 	run: (ctx: AuditContext) => Issue[];
 }
 
-export const docsRules: AuditRule[] = [
+const docsRules: AuditRule[] = [
 	{ ...scanRootsRule, global: true },
 	{ ...ssotRule, global: true },
 	{ ...nearDuplicateRule, global: true },
@@ -37,20 +37,20 @@ export const docsRules: AuditRule[] = [
 	{ ...coverageGapsRule, global: true },
 	{ ...reviewCoverageRule, global: true },
 	linksRule,
+	packageReferencesRule,
 	docMetaRule,
-	reviewProofRule,
 	reviewDepsRule,
 	{ ...bannedRule, global: true },
 	prosePolicyRule,
 ];
 
-export const skillsRules: AuditRule[] = [
+const skillsRules: AuditRule[] = [
 	{ ...skillIndexRule, global: true },
 	// Path-scoped: bare audit skills unions excluded skill trees into the corpus.
 	prosePolicyRule,
 ];
 
-export const allRules: AuditRule[] = [...docsRules, ...skillsRules];
+const allRules: AuditRule[] = [...docsRules, ...skillsRules];
 
 /**
  * Merge core + plugin rules. Fails on duplicate rule ids across core and plugins.
@@ -111,12 +111,4 @@ export function rulesForSuite(suite: string, pluginRules: AuditRule[] = []): Aud
 		default:
 			throw new Error(`Unknown suite: ${suite}`);
 	}
-}
-
-export function globalRulesForSuite(suite: string, pluginRules: AuditRule[] = []): AuditRule[] {
-	return rulesForSuite(suite, pluginRules).filter((rule) => rule.global);
-}
-
-export function pathScopedRulesForSuite(suite: string, pluginRules: AuditRule[] = []): AuditRule[] {
-	return rulesForSuite(suite, pluginRules).filter((rule) => !rule.global);
 }
