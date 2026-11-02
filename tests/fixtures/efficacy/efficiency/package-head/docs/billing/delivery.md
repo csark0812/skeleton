@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Billing webhook delivery ownership and retry limit; source owner src/billing/delivery.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/billing/delivery.ts -->
 

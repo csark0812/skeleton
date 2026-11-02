@@ -2,7 +2,7 @@
 
 <!-- source-of-truth: Order cancellation inventory release; source owner src/orders/cancellation.ts -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2026-09-14 -->
+<!-- doc-meta: owner=eng -->
 
 <!-- review-deps: paths=src/orders/cancellation.ts -->
 

@@ -1,0 +1,11 @@
+{
+  "name": "review-real-fixture",
+  "private": true,
+  "scripts": {
+    "validate:changed": "skeleton validate changed",
+    "validate:ci": "skeleton validate changed --base origin/main",
+    "audit:docs": "skeleton audit docs",
+    "audit:skills": "skeleton audit skills",
+    "audit:self": "skeleton audit self"
+  }
+}

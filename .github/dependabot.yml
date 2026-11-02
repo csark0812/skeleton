@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # 6.x is the last release with a JS parser API; review-deps symbol selectors parse with it.
+      - dependency-name: typescript
+        versions: [">=7"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

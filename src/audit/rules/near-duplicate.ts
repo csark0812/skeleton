@@ -72,7 +72,7 @@ function eligibleEntries(ctx: AuditContext): SsotFileEntry[] {
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: intentional control flow
-export function runNearDuplicateRule(ctx: AuditContext): Issue[] {
+function runNearDuplicateRule(ctx: AuditContext): Issue[] {
 	const issues: Issue[] = [];
 	const threshold = ctx.config.docsLint?.nearDuplicateThreshold ?? DEFAULT_THRESHOLD;
 	const ignored = ignoredPairSet(ctx);

@@ -1,9 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { readFileContent, relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
-import { extractHeadingSlugs, extractLinksFromMarkdown, slugifyAnchor } from "../core/markdown.ts";
+import { extractLinksFromMarkdown } from "../core/markdown.ts";
 import { type Issue, issue } from "../core/report.ts";
+import { resolveSelector, selectorKind } from "../core/selectors.ts";
 import { isExternalLink, isPlaceholderLink, SKILL_LINK_IN_TARGET_RE } from "../core/shared.ts";
 import { resolveSkillPath } from "../core/skill-roots.ts";
 
@@ -75,13 +76,15 @@ interface BrokenAnchorInput {
 
 function checkBrokenAnchor(ctx: BrokenAnchorInput): Issue | null {
 	const { input, anchor, resolved, relSource, relTarget } = ctx;
-	if (!(anchor && existsSync(resolved))) return null;
-	const targetContent = readFileSync(resolved, "utf8");
-	const slugs = extractHeadingSlugs(targetContent, resolved);
-	const anchorSlug = slugifyAnchor(anchor);
-	if (slugs.has(anchorSlug)) return null;
+	if (!(anchor && existsSync(resolved) && statSync(resolved).isFile())) return null;
+	const resolution = resolveSelector(resolved, readFileSync(resolved, "utf8"), anchor);
+	if (resolution.ok) return null;
+	const kind = selectorKind(resolved, anchor);
 	return issue("links", relSource, {
-		message: `broken anchor → #${anchor} in ${relTarget}`,
+		message:
+			kind === "heading"
+				? `broken anchor → #${anchor} in ${relTarget}`
+				: `broken anchor → #${anchor} in ${relTarget}: ${resolution.reason}`,
 		link: input.linkLabel,
 	});
 }

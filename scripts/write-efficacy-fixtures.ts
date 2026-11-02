@@ -1,11 +1,10 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { attestDocuments } from "../src/audit/core/review-proof.ts";
 import { buildCatalogContent } from "../src/catalog.ts";
+import { reviewNotificationsBase } from "./efficacy/review-notifications.ts";
 
 const ROOT = join(import.meta.dir, "..");
 const FIXTURES = join(ROOT, "tests/fixtures/efficacy");
-const REVIEWED_AT = "2026-09-14";
 
 rmSync(FIXTURES, { recursive: true, force: true });
 
@@ -26,9 +25,6 @@ function skeletonConfig(includeCode = true): string {
 include = ["docs/**", "README.md", "AGENTS.md"]
 exclude = []
 
-[reviewProof]
-mode = "hash"
-
 [reviewCoverage]
 include = ${includeCode ? '["src/**/*.ts"]' : "[]"}
 exclude = ["tests/**"]
@@ -38,11 +34,8 @@ paths = []
 `;
 }
 
-function addSkeletonArtifacts(root: string, docsToAttest: string[]): void {
+function addSkeletonArtifacts(root: string): void {
 	const abs = join(ROOT, root);
-	for (const doc of docsToAttest) {
-		attestDocuments({ root: abs, paths: [doc], reviewedAt: REVIEWED_AT });
-	}
 	const { content } = buildCatalogContent(abs);
 	write(join(root, ".skeleton/catalog.md"), content);
 }
@@ -97,7 +90,7 @@ const billingDocSkeleton = `# Billing webhook delivery
 
 <!-- source-of-truth: Billing webhook endpoint and retry policy -->
 
-<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+<!-- doc-meta: owner=billing -->
 
 <!-- review-deps: paths=src/billing.ts -->
 
@@ -130,7 +123,7 @@ writeTree("tests/fixtures/efficacy/drift/skeleton", {
 	"docs/billing-webhooks.md": billingDocSkeleton,
 	"skeleton.toml": skeletonConfig(),
 });
-addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton", ["docs/billing-webhooks.md"]);
+addSkeletonArtifacts("tests/fixtures/efficacy/drift/skeleton");
 
 const conflictReadme = `# Billing repository
 
@@ -146,7 +139,7 @@ function authorityPaper(options: { label: "A" | "B"; url: string; marked: boolea
 	const marker = options.marked ? "<!-- source-of-truth: Billing webhook endpoint -->\n\n" : "";
 	return `# Billing webhook reference ${options.label}
 
-${marker}<!-- doc-meta: owner=billing | last-reviewed=${REVIEWED_AT} -->
+${marker}<!-- doc-meta: owner=billing -->
 
 New integrations send webhooks to ${options.url}.
 `;
@@ -173,7 +166,7 @@ function writeConflictFixture(
 		}),
 		"skeleton.toml": skeletonConfig(false),
 	});
-	addSkeletonArtifacts(fixtureRoot, ["docs/billing-webhook-a.md", "docs/billing-webhook-b.md"]);
+	addSkeletonArtifacts(fixtureRoot);
 }
 
 writeConflictFixture("unmarked", { a: false, b: false });
@@ -255,7 +248,7 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 	};
 	for (const [path, fact] of Object.entries(efficiencyFacts)) {
 		files[path] = skeleton
-			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng | last-reviewed=${REVIEWED_AT} -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
+			? `# ${fact.summary}\n\n<!-- source-of-truth: ${fact.summary}; source owner ${fact.source} -->\n\n<!-- doc-meta: owner=eng -->\n\n<!-- review-deps: paths=${fact.source} -->\n\n${fact.body}\n`
 			: `# ${fact.summary}\n\n${fact.body}\n`;
 	}
 	for (const [slug, title, body] of noiseTopics)
@@ -266,10 +259,397 @@ function efficiencyFiles(treatment: EfficiencyTreatment): Record<string, string>
 
 writeTree("tests/fixtures/efficacy/efficiency/control", efficiencyFiles("control"));
 writeTree("tests/fixtures/efficacy/efficiency/package-head", efficiencyFiles("package"));
-addSkeletonArtifacts(
-	"tests/fixtures/efficacy/efficiency/package-head",
-	Object.keys(efficiencyFacts),
+addSkeletonArtifacts("tests/fixtures/efficacy/efficiency/package-head");
+
+const postPrintRealtimeDoc = `# Workspace document realtime
+
+Workspace document events cross the backend schema, generated WebSocket client, web-client
+cache handler, and this developer contract.
+
+The backend envelope and event payload are owned by
+\`apps/backend/postprint/realtime/schemas.py\`. Workspace document publication is owned by
+\`apps/backend/postprint/papers/realtime/publish.py\` and occurs only after the surrounding
+database transaction commits.
+
+Generated TypeScript lives in \`tspackages/websocket/src/realtime/realtime.gen.ts\`. Do not edit
+that file by hand; after changing the backend schema, run \`bun run generate-clients\`.
+
+The web client handles \`workspace.document_updated\` in
+\`apps/client/src/websocket/projectUpdates.ts\`. It invalidates the project document list,
+document detail, document content, and workspace folder queries.
+
+This is the complete contract map for a read-only impact analysis. Inspect additional paths only
+when implementing a change or diagnosing a failed generation run.
+`;
+
+const postPrintRealtimeSources: Record<string, string> = {
+	"apps/backend/postprint/realtime/schemas.py": `from typing import Literal
+
+from pydantic import BaseModel
+
+
+class WorkspaceDocumentUpdatedData(BaseModel):
+    document_id: str
+    project_id: str
+    event: Literal["workspace.document_updated"] = "workspace.document_updated"
+`,
+	"apps/backend/postprint/papers/realtime/publish.py": `def publish_document_updated(*, transaction, document_id: str, project_id: str) -> None:
+    transaction.on_commit(
+        lambda: broadcast("workspace.document_updated", {"document_id": document_id, "project_id": project_id})
+    )
+`,
+	"tspackages/websocket/src/realtime/realtime.gen.ts": `// Generated from the backend AsyncAPI schema. Do not edit by hand.
+export type WorkspaceDocumentUpdated = {
+	event: "workspace.document_updated";
+	document_id: string;
+	project_id: string;
+};
+`,
+	"apps/client/src/websocket/projectUpdates.ts": `const documentUpdateInvalidations = [
+	"projectDocuments",
+	"documentDetail",
+	"documentContent",
+	"workspaceFolders",
+] as const;
+
+export const projectUpdateHandlers = {
+	"workspace.document_updated": documentUpdateInvalidations,
+};
+`,
+	"apps/backend/postprint/realtime/openapi_ws.json":
+		'{"asyncapi":"3.0.0","info":{"title":"PostPrint realtime","version":"1.0.0"}}\n',
+	"tspackages/websocket/project.json": `{
+	"name": "websocket",
+	"targets": {
+		"generate": {
+			"command": "bun tspackages/websocket/scripts/generate-types.ts"
+		}
+	}
+}
+`,
+	"tspackages/websocket/scripts/generate-types.ts": `import { readFileSync, writeFileSync } from "node:fs";
+
+const schemaPath = "apps/backend/postprint/realtime/openapi_ws.json";
+const outputPath = "tspackages/websocket/src/realtime/realtime.gen.ts";
+const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+if (schema.info?.title !== "PostPrint realtime") throw new Error("Unexpected realtime schema");
+const generated = \`// Generated from the backend AsyncAPI schema. Do not edit by hand.
+export type WorkspaceDocumentUpdated = {
+\\tevent: "workspace.document_updated";
+\\tdocument_id: string;
+\\tproject_id: string;
+};
+\`;
+writeFileSync(outputPath, generated);
+`,
+};
+
+const postPrintNoiseDocs = [
+	["docs/developer/api-clients.md", "API clients", "REST clients are generated from OpenAPI."],
+	[
+		"docs/developer/architecture.md",
+		"Architecture",
+		"Applications and packages share one workspace.",
+	],
+	["docs/developer/builds.md", "Builds", "Nx owns package build targets."],
+	[
+		"docs/developer/services.md",
+		"Services",
+		"Local services are coordinated by the runtime script.",
+	],
+	["docs/developer/surfaces.md", "Surfaces", "Each application documents its development command."],
+	[
+		"docs/domain/documents.md",
+		"Documents",
+		"Documents belong to projects and may live in folders.",
+	],
+	["docs/domain/projects.md", "Projects", "Projects contain sources and Workspace files."],
+	["docs/operations/deployments.md", "Deployments", "Deployments promote signed images."],
+	[
+		"docs/operations/observability.md",
+		"Observability",
+		"Structured logs carry request identifiers.",
+	],
+	["docs/product/workspace.md", "Workspace", "Workspace supports documents and folders."],
+	[
+		"docs/security/application.md",
+		"Application security",
+		"WebSocket subscriptions require authorization.",
+	],
+	[
+		"docs/security/review.md",
+		"Security review",
+		"Review authentication and data exposure boundaries.",
+	],
+] as const;
+
+const postPrintNoiseSources: Record<string, string> = {
+	"apps/backend/postprint/notifications/realtime/events.py":
+		'NOTIFICATION_EVENT = "notification.created"\n',
+	"apps/backend/postprint/organizations/realtime/events.py":
+		'ORGANIZATION_EVENT = "organization.updated"\n',
+	"apps/backend/postprint/papers/api/schemas/document_schema.py":
+		"class DocumentSchema:\n    pass\n",
+	"apps/backend/postprint/papers/services/documents.py": "def update_document():\n    pass\n",
+	"apps/backend/postprint/realtime/consumers.py": "class RealtimeConsumer:\n    pass\n",
+	"apps/client/src/api/websocket.ts": 'export const REALTIME_PATH = "/ws/realtime/";\n',
+	"apps/client/src/components/library/WebsiteProjectDocumentPage.tsx":
+		"export function WebsiteProjectDocumentPage() { return null; }\n",
+	"apps/client/src/websocket/notifications.ts":
+		'export const notificationEvent = "notification.created";\n',
+	"apps/client/src/websocket/sources.ts": 'export const sourceEvent = "source.updated";\n',
+	"tspackages/api-client/src/client.gen.ts": "// Generated REST client.\n",
+	"tspackages/query/src/projects/realtime.ts": 'export const projectEvent = "project.updated";\n',
+	"tspackages/query/src/sources/cache/realtimeUtils.ts":
+		"export const invalidateSourceQueries = () => undefined;\n",
+	"tspackages/websocket/src/socket/RealtimeWebSocket.ts": "export class RealtimeWebSocket {}\n",
+};
+
+function postPrintFixtureFiles(treatment: EfficiencyTreatment): Record<string, string> {
+	const skeleton = treatment === "package";
+	const canonicalDoc = skeleton
+		? `# Workspace document realtime
+
+<!-- source-of-truth: Workspace document realtime protocol, generated client, and cache invalidation boundaries -->
+
+<!-- doc-meta: owner=eng -->
+
+<!-- review-deps: paths=${Object.keys(postPrintRealtimeSources).join(",")} -->
+
+${postPrintRealtimeDoc.replace(/^# Workspace document realtime\n+/, "")}`
+		: postPrintRealtimeDoc;
+	const files: Record<string, string> = {
+		"AGENTS.md": controlAgents,
+		"README.md":
+			"# Applications monorepo\n\nDjango, React, and shared TypeScript packages live in one Nx workspace.\n",
+		"package.json": `{
+	"name": "postprint-shaped-applications-fixture",
+	"private": true,
+	"type": "module",
+	"workspaces": ["apps/*", "tspackages/*"],
+	"scripts": {
+		"test": "bun test",
+			"generate-clients": "bun tspackages/websocket/scripts/generate-types.ts",
+		"validate:changed": "bun scripts/validate-changed.ts"
+	}
+}
+`,
+		"nx.json": '{"plugins": [], "targetDefaults": {"test": {"cache": true}}}\n',
+		"docs/developer/websocket.md": canonicalDoc,
+		"scripts/validate-changed.ts": 'console.log("validated changed files");\n',
+		...postPrintRealtimeSources,
+		...postPrintNoiseSources,
+	};
+	for (const [path, title, body] of postPrintNoiseDocs) files[path] = `# ${title}\n\n${body}\n`;
+	if (skeleton)
+		files["skeleton.toml"] = `daysUntilStale = 365
+
+[scan]
+include = ["docs/**", "README.md", "AGENTS.md"]
+exclude = []
+
+[reviewCoverage]
+include = ["apps/**/*.py", "apps/**/*.ts", "apps/**/*.tsx", "tspackages/**/*.ts"]
+exclude = ["**/tests/**", "**/*.test.ts"]
+
+[deny]
+paths = []
+`;
+	return files;
+}
+
+writeTree(
+	"tests/fixtures/efficacy/postprint-applications/control",
+	postPrintFixtureFiles("control"),
 );
+writeTree(
+	"tests/fixtures/efficacy/postprint-applications/package-head",
+	postPrintFixtureFiles("package"),
+);
+addSkeletonArtifacts("tests/fixtures/efficacy/postprint-applications/package-head");
+
+const invoiceSource = `export const INVOICE_PREFIX = "INV";
+
+export function formatInvoiceNumber(sequence: number): string {
+	return \`\${INVOICE_PREFIX}-\${String(sequence).padStart(5, "0")}\`;
+}
+
+export async function sendInvoiceReminder(
+	send: (invoiceNumber: string) => Promise<void>,
+	sequence: number,
+): Promise<void> {
+	await send(formatInvoiceNumber(sequence));
+}
+`;
+
+const invoiceTest = `import { expect, test } from "bun:test";
+import { formatInvoiceNumber, sendInvoiceReminder } from "../src/invoices";
+
+test("formats invoice numbers", () => {
+	expect(formatInvoiceNumber(42)).toBe("INV-00042");
+});
+
+test("sends one reminder with the invoice number", async () => {
+	const sent: string[] = [];
+	await sendInvoiceReminder(async (invoiceNumber) => {
+		sent.push(invoiceNumber);
+	}, 42);
+	expect(sent).toEqual(["INV-00042"]);
+});
+`;
+
+const invoiceDocBody = `Overdue invoices get one reminder. [\`sendInvoiceReminder\`](../src/invoices.ts#sendInvoiceReminder) sends it with the formatted invoice number.
+`;
+
+function docReferenceFiles(skeleton: boolean): Record<string, string> {
+	return {
+		"AGENTS.md": controlAgents,
+		"README.md":
+			"# Invoicing service\n\nInvoice numbering and reminders live in src/invoices.ts.\n",
+		"package.json": packageJson.replace("billing-service-fixture", "invoicing-service-fixture"),
+		"src/invoices.ts": invoiceSource,
+		"tests/invoices.test.ts": invoiceTest,
+		"docs/invoice-reminders.md": skeleton
+			? `# Invoice reminders\n\n<!-- source-of-truth: Invoice reminder delivery -->\n\n<!-- doc-meta: owner=billing -->\n\n<!-- review-deps: paths=src/invoices.ts#sendInvoiceReminder -->\n\n${invoiceDocBody}`
+			: `# Invoice reminders\n\n${invoiceDocBody}`,
+		...(skeleton ? { "skeleton.toml": skeletonConfig() } : {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/doc-reference/control", docReferenceFiles(false));
+writeTree("tests/fixtures/efficacy/doc-reference/skeleton", docReferenceFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/doc-reference/skeleton");
+
+const reviewChangeSources = {
+	"src/billing/approval.ts": `export const MANUAL_APPROVAL_CENTS = 100_000;
+
+export async function requireManualApproval(amountCents: number): Promise<void> {
+	if (amountCents >= MANUAL_APPROVAL_CENTS) throw new Error("Manual approval required");
+}
+`,
+	"src/billing/charge.ts": `import { requireManualApproval } from "./approval";
+
+export const MAX_RETRIES = 1;
+
+export async function chargeInvoice(
+	amountCents: number,
+	send: (amountCents: number) => Promise<boolean>,
+): Promise<boolean> {
+	await requireManualApproval(amountCents);
+	for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+		if (await send(amountCents)) return true;
+	}
+	return false;
+}
+`,
+	"src/billing/refund.ts": `export function refundCents(amountCents: number, fraction: number): number {
+	return Math.floor(amountCents * fraction);
+}
+`,
+	"src/orders/total.ts": `export function orderTotalCents(lines: number[]): number {
+	let total = 0;
+	for (let index = 0; index < lines.length; index += 1) total += lines[index] ?? 0;
+	return total;
+}
+`,
+	"src/orders/format.ts": `export function formatOrderLabel(orderId: string): string {
+	const s = orderId.trim().toUpperCase();
+	return \`ORDER-\${s}\`;
+}
+`,
+	"src/payouts/hold.ts": `export function applyPayoutHold(payoutDate: Date): Date {
+	return new Date(payoutDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+}
+`,
+	"src/api/payout-route.ts": `import { applyPayoutHold } from "../payouts/hold";
+
+export function schedulePayout(requestedDate: Date): Date {
+	return applyPayoutHold(requestedDate);
+}
+`,
+};
+
+const reviewChangeBillingDoc =
+	"Failed charges are retried once. Charges go through `chargeInvoice` in `src/billing/charge.ts`.\n";
+const reviewChangeBillingGuide =
+	"- Every path that charges a card must call `requireManualApproval` first. Failure means an unapproved large charge reaches the card network.\n- Do not comment on naming or formatting.\n";
+const reviewChangePayoutGuide =
+	"- Every payout must keep its seven-day hold. Failure means funds leave before the dispute window closes.\n- Removing a hold must add a line to `docs/payouts/hold-changes.md`. Failure means finance cannot trace why funds left early.\n- Do not comment on naming or formatting.\n";
+const reviewChangeHoldHistory = "One line for each change to the payout hold.\n";
+
+function reviewChangeFiles(skeleton: boolean): Record<string, string> {
+	return {
+		...reviewChangeSources,
+		"AGENTS.md": controlAgents,
+		"README.md": "# Payments service\n\nBilling, refunds, orders, and payouts live under src/.\n",
+		".gitattributes": "src/generated/** linguist-generated\n",
+		"package.json": packageJson.replace("billing-service-fixture", "payments-service-fixture"),
+		"docs/billing.md": skeleton
+			? `# Billing\n\n<!-- source-of-truth: Charge retry policy -->\n\n<!-- doc-meta: owner=billing -->\n\n<!-- review-deps: paths=src/billing/charge.ts -->\n\n${reviewChangeBillingDoc}`
+			: `# Billing\n\n${reviewChangeBillingDoc}`,
+		"docs/billing/REVIEW.md": skeleton
+			? `# Billing review\n\n<!-- review-deps: paths=src/billing/** -->\n\n${reviewChangeBillingGuide}`
+			: `# Billing review\n\n${reviewChangeBillingGuide}`,
+		"docs/payouts/REVIEW.md": skeleton
+			? `# Payouts review\n\n<!-- review-deps: paths=src/payouts/** -->\n\n${reviewChangePayoutGuide}`
+			: `# Payouts review\n\n${reviewChangePayoutGuide}`,
+		"docs/payouts/hold-changes.md": skeleton
+			? `# Payout hold changes\n\n<!-- source-of-truth: Payout hold history -->\n\n<!-- doc-meta: owner=payouts -->\n\n${reviewChangeHoldHistory}`
+			: `# Payout hold changes\n\n${reviewChangeHoldHistory}`,
+		...(skeleton ? { "skeleton.toml": skeletonConfig() } : {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/review-change/control", reviewChangeFiles(false));
+writeTree("tests/fixtures/efficacy/review-change/skeleton", reviewChangeFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/review-change/skeleton");
+
+const notificationBaseFiles = reviewNotificationsBase();
+
+function reviewNotificationFiles(skeleton: boolean): Record<string, string> {
+	const marked = (title: string, marker: string, body: string) =>
+		skeleton ? `# ${title}\n\n${marker}\n\n${body}` : `# ${title}\n\n${body}`;
+	return {
+		...notificationBaseFiles.sources,
+		"AGENTS.md": controlAgents,
+		"README.md":
+			"# Notifications service\n\nPush, SMS, digests, and audit logging live under src/.\n",
+		"docs/notify.md": marked(
+			"Notifications",
+			"<!-- source-of-truth: Digest schedule -->\n\n<!-- doc-meta: owner=notify -->\n\n<!-- review-deps: paths=src/notify/digest.py -->",
+			notificationBaseFiles.digestDoc,
+		),
+		"docs/notify/REVIEW.md": marked(
+			"Notifications review",
+			"<!-- review-deps: paths=src/notify/** -->",
+			notificationBaseFiles.notifyGuide,
+		),
+		"docs/audit/REVIEW.md": marked(
+			"Audit review",
+			"<!-- review-deps: paths=src/audit/** -->",
+			notificationBaseFiles.auditGuide,
+		),
+		"docs/audit/retention-changes.md": marked(
+			"Retention changes",
+			"<!-- source-of-truth: Audit retention history -->\n\n<!-- doc-meta: owner=audit -->",
+			"One line for each change to audit retention.\n",
+		),
+		...(skeleton
+			? { "skeleton.toml": skeletonConfig().replace('"src/**/*.ts"', '"src/**/*.py"') }
+			: {}),
+	};
+}
+
+writeTree("tests/fixtures/efficacy/review-notifications/control", reviewNotificationFiles(false));
+writeTree("tests/fixtures/efficacy/review-notifications/skeleton", reviewNotificationFiles(true));
+addSkeletonArtifacts("tests/fixtures/efficacy/review-notifications/skeleton");
+
+// The real-history fixture extracts its repository during task setup, so these only hold the package.
+writeTree("tests/fixtures/efficacy/review-real/control", { ".gitkeep": "" });
+writeTree("tests/fixtures/efficacy/review-real/skeleton", {
+	".gitkeep": "",
+	"package.json": `{\n\t"name": "review-real-fixture",\n\t"private": true\n}\n`,
+});
 
 writeTree("tests/fixtures/efficacy/product-smoke/adopt-consumer", {
 	"AGENTS.md": `# Agent entry\n\nInstall @csark0812/skeleton with npm, then initialize it in this repository. Stay inside this repository.\n`,
@@ -296,6 +676,11 @@ Generated by \`bun scripts/write-efficacy-fixtures.ts\`.
 | \`conflict/single-marker\` | The same papers with one authority marker. |
 | \`conflict/duplicate-markers\` | The same papers with both authority markers. |
 | \`efficiency/control\` and \`efficiency/package-head\` | Matched repository question; package-head uses the current package. |
+| \`postprint-applications/control\` and \`postprint-applications/package-head\` | Matched PostPrint-shaped monorepo question spanning backend, client, shared packages, and docs. |
+| \`doc-reference/control\` and \`doc-reference/skeleton\` | Invoicing service whose document links to a function by \`path#symbol\`; the treatment narrows \`review-deps\` to that function. |
+| \`review-change/control\` and \`review-change/skeleton\` | Payments service reviewed after \`agent-suites/seeds/review-change.patch\` seeds known defects on a \`feature\` branch. |
+| \`review-notifications/control\` and \`review-notifications/skeleton\` | Python notifications service; its known defects are committed during task setup. |
+| \`review-real/control\` and \`review-real/skeleton\` | Empty until task setup extracts a real commit of this repository and reverts a real fix. |
 | \`product-smoke/adopt-consumer\` | Separate npm install and init smoke. |
 
 The drift and package-head treatments receive the exact packed development package and the context guide produced by default initialization. Optional host skills are not installed. Product smoke enables sandbox network access and installs from npm. Generated vendor trees stay out of Git.

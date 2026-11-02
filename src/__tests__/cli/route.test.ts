@@ -23,7 +23,7 @@ function makeRoot(): string {
 
 <!-- source-of-truth: Alpha topic -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->
+<!-- doc-meta: owner=eng -->
 
 Alpha body with topic words.
 `,

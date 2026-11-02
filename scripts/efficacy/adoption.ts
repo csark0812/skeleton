@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Run } from "@post-print/agent-test";
 
-/** Verify actual initializer output and current review proof using the installed CLI. */
+/** Verify actual initializer output and the declared document owner using the installed CLI. */
 export function adoptionChecks(run: Run) {
 	const root = run.workspace.root;
 	const read = (path: string) =>
@@ -30,9 +30,9 @@ export function adoptionChecks(run: Run) {
 		guidance: read("AGENTS.md").includes("<!-- skeleton: context-guide -->"),
 		scripts: read("package.json").includes('"validate:changed"'),
 		hook: read(".pre-commit-config.yaml").includes("skeleton"),
-		currentReview:
+		ownerDeclared:
 			context.status === 0 &&
-			context.stdout.includes("document\tdocs/orders.md\tmatches-recorded-review") &&
+			context.stdout.includes("document\tdocs/orders.md\tcurrent") &&
 			context.stdout.includes("source\tsrc/limits.ts"),
 	};
 }

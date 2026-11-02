@@ -29,7 +29,7 @@ exclude = []
 
 <!-- source-of-truth: example -->
 
-<!-- doc-meta: owner=eng | last-reviewed=2099-01-01 -->
+<!-- doc-meta: owner=eng -->
 
 ${marker}
 `,

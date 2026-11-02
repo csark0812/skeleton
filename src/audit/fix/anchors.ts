@@ -4,6 +4,7 @@ import { readFileContent, relPath } from "../core/collect.ts";
 import type { AuditContext } from "../core/context.ts";
 import type { FixEdit } from "../core/fix.ts";
 import { extractHeadingSlugs, extractLinksFromMarkdown, slugifyAnchor } from "../core/markdown.ts";
+import { selectorKind } from "../core/selectors.ts";
 import { isExternalLink, isPlaceholderLink } from "../core/shared.ts";
 import { findBestAnchorMatch } from "./match-anchor.ts";
 
@@ -70,6 +71,11 @@ interface PendingAnchorInput {
 	link: { target: string; line?: number; urlStart?: number; urlEnd?: number };
 }
 
+/** Only heading anchors have near-miss slugs to repair; symbols and keys are fixed by hand. */
+function hasRepairableAnchor(resolved: string, anchor: string): boolean {
+	return existsSync(resolved) && selectorKind(resolved, anchor) === "heading";
+}
+
 function anchorTargetReplacement(
 	filePath: string,
 	target: string,
@@ -81,7 +87,7 @@ function anchorTargetReplacement(
 	if (!anchor) return null;
 
 	const resolved = resolveLink(filePath, target);
-	if (!existsSync(resolved)) return null;
+	if (!hasRepairableAnchor(resolved, anchor)) return null;
 
 	const targetContent = readFileSync(resolved, "utf8");
 	const slugs = extractHeadingSlugs(targetContent, resolved);
