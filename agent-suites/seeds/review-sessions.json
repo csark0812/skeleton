@@ -122,5 +122,13 @@
 		"catalogBefore": "ccdd6dc524a0",
 		"catalogAfter": "ccdd6dc524a0",
 		"real": "1bc24a63-d702-421c-a385-42f559e51c19"
+	},
+	{
+		"confirmatory": true,
+		"study": "intent-reword",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"real": "89e67ca5-918b-4d71-8d95-b61219555a8b"
 	}
 ]

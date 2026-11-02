@@ -235,6 +235,8 @@ These are single rounds of ten, so they show a direction, not a size. Removing s
 
 If any bar fails, the result is recorded here and the sentence is removed.
 
+**Result, 2026-11-02: failed at the early stop, sentence removed.** In the first `real` round (`89e67ca5-918b-4d71-8d95-b61219555a8b`), Skeleton runs named the code regression in 1 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 1 of 10, and used 1.62 times the bare diff's tokens. As before, the reports describe the release-version consequence only in documentation findings. Three instructions have now failed to change that: decide which side is wrong, judge by consequence, and treat a match as no evidence of safety. Removing the section worked (7 of 10). So the effect comes from the section being in the bundle, not from how the contract tells the reviewer to read it.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
