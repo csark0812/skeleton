@@ -411,6 +411,8 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Pilot, frozen before the run.** `--rounds=payments,notifications,real,heldout,heldout2 --study=effects`. Every seeded defect must be found in at least 9 of 10 runs, and every recall difference must be above zero. `heldout2` is in the pilot because it is no longer held out.
 
+**Pilot result, 2026-11-02: failed by one defect, so `final2` did not run.** Every seeded defect reached at least 9 of 10, except the `heldout2` regression at 7 of 10, the same as the bare diff's 7 of 10. Recall differences: `payments` +35.0, `notifications` +18.3, `real` +40.0, `heldout` +66.7, `heldout2` +60.0. Token ratios: 0.31, 0.66, 1.53, 1.45, and 1.02. Both sides miss the same way. They treat the default exclusion as the intent, because the commit message says "by default". They report only that an explicit `include = ["**/*.mjs"]` can no longer opt back in, a real consequence the answer key does not list. One Skeleton miss reported the default change as a `decision` at the code line, citing `config.md`, but without the downstream effect the answer key requires: an uncovered `.mjs` change passes `validate changed`. Whether that should count is the owner's call. Rescoring after the run is not done here.
+
 **Confirmation, frozen before any run.** It runs only if the pilot passes, with the same contract. Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,heldout3,null --study=final2`. Session 2 is the same without `null`. The bars are the ones frozen for `final`: at least 19 of 20 pooled for every seeded defect on every fixture, a recall difference whose 95% interval is above zero on every fixture, and a null round within 10 points of zero.
 
 ### Seeded-defect review
