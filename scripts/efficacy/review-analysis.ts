@@ -2,12 +2,26 @@
 export type ReviewRunResult = {
 	found: Record<string, boolean>;
 	tokens: number;
-	/** Ran the bundle and stayed in it. Meaningless on the bare-diff side. */
+	/** Received the bundle and stayed in it. Meaningless on the bare-diff side. */
 	usedBundle: boolean;
+	/** Ended with the contract's `findings:` line. Separates the two behaviors Skeleton runs show. */
+	keptFormat: boolean;
+	toolCalls: number;
 };
 export type ReviewPairResult = { baseline: ReviewRunResult; withSkeleton: ReviewRunResult };
 export type FixtureResult = { fixture: string; defects: string[]; pairs: ReviewPairResult[] };
 export type Interval = { estimate: number; low: number; high: number };
+
+const BUNDLE_MARKER = "## Reviewer contract";
+
+/** Running the command proves nothing: on `real` it failed in every run and the old check passed. */
+export function receivedBundle(toolResults: unknown[]): boolean {
+	return toolResults.some((result) => String(result).includes(BUNDLE_MARKER));
+}
+
+export function keptContractFormat(report: string): boolean {
+	return /^\s*findings:/m.test(report);
+}
 
 /** The bars the test must clear, set before the runs they judge. See docs/developer/efficacy.md. */
 export const RELIABILITY_BARS = {
@@ -173,7 +187,7 @@ export function leaveOneFixtureOut(fixtures: FixtureResult[]) {
 export type InstrumentEvidence = {
 	assessedFraction: Record<string, number>;
 	judgeTextAgreement: number;
-	bundleUse: number;
+	bundleUse: Record<string, number>;
 	nullRound: FixtureResult | null;
 };
 
@@ -187,7 +201,7 @@ export function reliabilityChecks(fixtures: FixtureResult[], evidence: Instrumen
 		assessed: Object.values(evidence.assessedFraction).every(
 			(fraction) => fraction >= bars.minAssessedFraction,
 		),
-		bundleUse: evidence.bundleUse >= bars.minBundleUse,
+		bundleUse: Object.values(evidence.bundleUse).every((share) => share >= bars.minBundleUse),
 		nullCoversZero: nullInterval !== null && nullInterval.low <= 0 && nullInterval.high >= 0,
 		nullIsTight:
 			nullInterval !== null && (nullInterval.high - nullInterval.low) / 2 <= bars.maxNullHalfWidth,
@@ -286,6 +300,9 @@ export const SESSION_BARS = {
 	minSessions: 5,
 	minDays: 3,
 	maxHalfWidth: 0.06,
+	/** A behavior with fewer runs in a session gives no usable recall for that session. */
+	minBehaviorRuns: 10,
+	minBehaviorSessions: 2,
 } as const;
 
 /** Sessions, not pairs, are the unit: behavior drifted between sessions with unchanged inputs. */
@@ -300,6 +317,52 @@ export function sessionInterval(estimates: number[]): Interval {
 }
 
 export type SessionResult = { day: string; fixtures: FixtureResult[]; nullRound: FixtureResult };
+
+function skeletonRuns(fixtures: FixtureResult[]): ReviewRunResult[] {
+	return fixtures.flatMap((fixture) => fixture.pairs.map((pair) => pair.withSkeleton));
+}
+
+/** A fixture whose Skeleton runs never got the bundle says nothing about the bundle. */
+export function bundleUseByFixture(fixtures: FixtureResult[]): Record<string, number> {
+	return Object.fromEntries(
+		fixtures.map((fixture) => {
+			const runs = skeletonRuns([fixture]);
+			return [fixture.fixture, runs.filter((run) => run.usedBundle).length / runs.length];
+		}),
+	);
+}
+
+function foundShare(runs: ReviewRunResult[]): number | null {
+	const found = runs.flatMap((run) => Object.values(run.found));
+	return found.length === 0 ? null : found.filter(Boolean).length / found.length;
+}
+
+/** How much of a session each behavior took, since the pooled result moves with this mix. */
+export function behaviorMix(fixtures: FixtureResult[]) {
+	const runs = skeletonRuns(fixtures).filter((run) => run.usedBundle);
+	const kept = runs.filter((run) => run.keptFormat);
+	const notKept = runs.filter((run) => !run.keptFormat);
+	return {
+		keptFormat: runs.length === 0 ? 0 : kept.length / runs.length,
+		keptRuns: kept.length,
+		notKeptRuns: notKept.length,
+		recallWhenKept: foundShare(kept),
+		recallWhenNot: foundShare(notKept),
+		baselineRecall: foundShare(fixtures.flatMap((fixture) => fixture.pairs.map((p) => p.baseline))),
+	};
+}
+
+/** Recall within one behavior across the sessions that show enough of it, or null if too few do. */
+function behaviorRecallInterval(
+	mixes: ReturnType<typeof behaviorMix>[],
+	runs: "keptRuns" | "notKeptRuns",
+	recall: "recallWhenKept" | "recallWhenNot",
+): Interval | null {
+	const values = mixes
+		.filter((mix) => mix[runs] >= SESSION_BARS.minBehaviorRuns)
+		.flatMap((mix) => mix[recall] ?? []);
+	return values.length < SESSION_BARS.minBehaviorSessions ? null : sessionInterval(values);
+}
 
 function fixtureNames(sessions: SessionResult[]): string[] {
 	return (sessions[0]?.fixtures ?? []).map((fixture) => fixture.fixture);
@@ -351,12 +414,29 @@ function summarizeSessions(sessions: SessionResult[]) {
 	};
 }
 
+function behaviorRecallAcross(sessions: SessionResult[]) {
+	const mixes = sessions.map((session) => behaviorMix(session.fixtures));
+	return {
+		kept: behaviorRecallInterval(mixes, "keptRuns", "recallWhenKept"),
+		notKept: behaviorRecallInterval(mixes, "notKeptRuns", "recallWhenNot"),
+	};
+}
+
+function behaviorsAreTight(behaviorRecall: ReturnType<typeof behaviorRecallAcross>): boolean {
+	const intervals = Object.values(behaviorRecall).flatMap((interval) => interval ?? []);
+	return (
+		intervals.length > 0 &&
+		intervals.every((interval) => (interval.high - interval.low) / 2 <= SESSION_BARS.maxHalfWidth)
+	);
+}
+
 /** The verdict and the bars for a design whose unit is the session. See docs/developer/efficacy.md. */
 export function sessionReport(sessions: SessionResult[]) {
 	const summary = summarizeSessions(sessions);
 	const nullInterval = sessionInterval(
 		sessions.map((session) => recallDifference([session.nullRound]).estimate),
 	);
+	const behaviorRecall = behaviorRecallAcross(sessions);
 	const leaveOneOut = sessions.map((_, index) =>
 		sessions.length > 2
 			? summarizeSessions(sessions.filter((__, kept) => kept !== index)).verdict
@@ -368,8 +448,11 @@ export function sessionReport(sessions: SessionResult[]) {
 			day: session.day,
 			recall: recallDifference(session.fixtures).estimate,
 			tokens: tokenRatio(session.fixtures).estimate,
+			bundleUse: bundleUseByFixture(session.fixtures),
+			behavior: behaviorMix(session.fixtures),
 		})),
 		nullInterval,
+		behaviorRecall,
 		leaveOneOut,
 		bars: {
 			enoughSessions: sessions.length >= SESSION_BARS.minSessions,
@@ -377,6 +460,12 @@ export function sessionReport(sessions: SessionResult[]) {
 			tight: (summary.recall.high - summary.recall.low) / 2 <= SESSION_BARS.maxHalfWidth,
 			nullCoversZero: nullInterval.low <= 0 && nullInterval.high >= 0,
 			verdictSurvivesAnySession: leaveOneOut.every((verdict) => verdict === summary.verdict),
+			behaviorsTight: behaviorsAreTight(behaviorRecall),
+			bundleDelivered: sessions.every((session) =>
+				Object.values(bundleUseByFixture(session.fixtures)).every(
+					(share) => share >= RELIABILITY_BARS.minBundleUse,
+				),
+			),
 		},
 	};
 }

@@ -38,6 +38,28 @@ Claude edited directly from the context packet in three to six calls. With the s
 
 The rounds below this section are too small to decide whether the review bundle is worth using. This section defines the test that can. The bars were committed before any run they judge.
 
+**Correction, 2026-11-02: every result in this section that includes `real` is invalid.** The bundle command failed in 70 of 70 Skeleton runs on `real` in the first three sessions and in 18 of 20 in the next two. The seed extracted Skeleton's own `package.json`, and its `bin` field makes `npx --no-install skeleton` use npm's cache, which the sandbox forbids. No run in the first three sessions received the bundle, so those `real` rounds compared a failed command with a bare diff. The old bundle-use bar passed because it checked that the command was typed. The seed now removes `bin`, a fixture test runs the real `npx` command with an unwritable home, and the bar requires that a tool result delivered the bundle, in every fixture. Results below are kept as a record and not revised; read "bundle use 100%", the `real` columns, and any pooled figure in that light.
+
+**Correction, 2026-11-02: the swings are not a clock effect.** Skeleton runs fall into two behaviors, and their mix is what moves. Runs that keep the contract's `findings:` line make a median of 2 or 3 tool calls and 41k to 49k tokens, and never rerun `git diff`. The others make 6 or 7 calls and 132k to 165k tokens. The rate rises and falls within a session (`notifications`: 5 of 6, 2 of 8, 9 of 11 in consecutive ten-minute windows), and parallel rounds move together regardless of position in their round. Two sessions from one snapshot and Codex version kept the format in 40 of 40 and 5 of 40 runs on `payments`, `notifications`, and the null round. Prompts, workspace snapshots, and bundle text match across rounds, and the harness gives each run a clean home with only the login file. The cause is unknown. Each run downloads the model's catalog entry from the server, about 21,600 characters of instructions, and deletes it, so that is the next thing to check; it has no evidence yet. Model serving and account-level settings are also open.
+
+**Five sessions rescored without `real`.** Skeleton minus bare diff, in points. Sessions 4 and 5 are the first two of the protocol below, which was stopped after them because `real` was broken. All five are exploratory and ran on one UTC date.
+
+| Session | Runs keeping the format | Recall difference | Token ratio |
+| --- | ---: | ---: | ---: |
+| 1 | 20% | -5.8 | 1.06 |
+| 2 | 33% | -5.8 | 0.97 |
+| 3 | 60% | +4.7 | 0.69 |
+| 4 | 95% | +17.5 | 0.48 |
+| 5 | 14% | -1.7 | 1.11 |
+
+The mean is +1.8 points, with a session-level interval of plus or minus 12.2, twice the frozen limit of 6. Adding sessions will not settle one overall number while the mix moves. Within a behavior, recall holds still: 76.4% (71.1 to 81.7) when the format is kept, 68.4% (65.6 to 71.3) when it is not, against 70% to 72.5% per session for the bare diff. Those two behavior figures use the sessions with at least ten such runs. They come from these same sessions, and behavior is an outcome of the run, so the gap does not show that keeping the format causes higher recall.
+
+**Replacement protocol, frozen before any of its sessions.** The earlier multi-session protocol is withdrawn. Each session is `bun scripts/efficacy/run-review-session.ts`, as before, and also records a fingerprint of the model's catalog entry before and after the session. Run at least five sessions on at least three different UTC days, at least six hours apart, with this commit's code, fixtures, harness version, and model. Do not rerun, drop, or reorder a session. A session that fails to record is reported as a protocol failure.
+
+The instrument is reliable when all of these hold across those sessions, as printed by `review-report.ts --sessions`: `enoughSessions`, `enoughDays`, `nullCoversZero`, `bundleDelivered` (at least 80% of Skeleton runs received the bundle in every fixture of every session), and `behaviorsTight` (recall within a behavior has a half-width of at most 6 points, over sessions with at least ten such runs, with at least one behavior measured in at least two sessions). The judge-audit and assessed-run bars from the table below also hold.
+
+`tight` and `verdictSurvivesAnySession` no longer decide reliability. They decide whether one overall verdict may be stated: if either fails, the finding is the two behavior figures and the mix, not a single answer about the bundle. This changes the bars after seeing data, because the old `tight` bar could not separate a bad instrument from a real mix shift. The new bar has been checked only on the data that suggested it, so these new sessions are its first real test. If it fails, record that and do not revise it.
+
 **The test.** Three fixtures: `payments` and `notifications` seed known defects, and `real` reverts a real fix from this repository's history (`7a605f2`), so its answer key is a change nobody wrote for this test. Each fixture runs twenty pairs on one host. A null round runs the Skeleton side against itself on `payments` for twenty pairs. An independent reading of each report's text audits every judge verdict.
 
 **The instrument is reliable when all of these hold.** They do not depend on which side wins.
@@ -46,7 +68,7 @@ The rounds below this section are too small to decide whether the review bundle 
 | --- | --- |
 | Judge audit | Judge verdicts agree with the text reading on at least 95% of checks |
 | Assessed runs | At least 90% of pairs are assessed in every fixture |
-| Bundle use | At least 80% of Skeleton runs ran the bundle and did not run `skeleton context` |
+| Bundle use | In every fixture, at least 80% of Skeleton runs received the bundle in a tool result and did not run `skeleton context` |
 | Null round covers zero | The 95% interval of the recall difference includes 0 |
 | Null round is tight | That interval's half-width is at most 15 percentage points |
 | Stability where a direction is claimed | For every fixture or pooled result whose interval excludes zero, two random halves both point the same way in at least 95% of 1,000 splits |
@@ -93,13 +115,13 @@ Skeleton reports that kept the contract's `findings:` line found 92% of `payment
 
 **What reliability still needs.** Several sessions spread across days, an interval that treats the session as the unit, and bars frozen before those sessions run.
 
-**Multi-session protocol, frozen before any of its sessions.** Each confirmatory session is `bun scripts/efficacy/run-review-session.ts`: ten pairs on each fixture plus ten null pairs, about 80 agent runs and 11 million tokens. Run at least five sessions on at least three different days, at least six hours apart, with this commit's code, fixtures, harness version, and model. Do not rerun, drop, or reorder a session. `bun scripts/efficacy/review-report.ts --sessions` scores them with the session as the unit: a Student t interval over each session's pooled recall difference.
+**Multi-session protocol, withdrawn on 2026-11-02 after two sessions.** It was frozen before any of its sessions, but it included the broken `real` fixture. Each confirmatory session is `bun scripts/efficacy/run-review-session.ts`: ten pairs on each fixture plus ten null pairs, about 80 agent runs and 11 million tokens. Run at least five sessions on at least three different days, at least six hours apart, with this commit's code, fixtures, harness version, and model. Do not rerun, drop, or reorder a session. `bun scripts/efficacy/review-report.ts --sessions` scores them with the session as the unit: a Student t interval over each session's pooled recall difference.
 
 The instrument is reliable when all of these hold across the confirmatory sessions: at least five sessions on three days; the recall interval's half-width is at most 6 points; the null sessions' interval covers zero; removing any one session leaves the verdict unchanged; and the judge audit, assessed-run, and bundle-use bars from the table above hold. The verdict uses the same rule with session intervals: `mixed` if a fixture's interval is entirely below zero, `helps` if pooled recall is entirely above zero and the token ratio's upper bound is at most 1.25, `no-meaningful-effect` if pooled recall is within plus or minus 5 points, otherwise `inconclusive`. The three sessions above are exploratory and do not count.
 
 With the session as the unit, those three sessions give a recall difference of -1.9 points (-9.5 to 5.7) and a token ratio of 1.07 (0.72 to 1.60), which is `inconclusive`. The second of them reused the first null round, so their null interval means little. This replaces the `no-meaningful-effect` reading of the pooled pairs above, whose interval ignores session variation.
 
-Why the clock matters: across all fixtures, the share of Skeleton reports keeping the contract's format rose from about 15% to 93% between 05:30 and 07:00 UTC, while Skeleton tokens fell from about 140k to 61k. Bare-diff tokens and tool calls stayed flat. Rounds running at the same concurrency differed widely, and the harness keeps `~/.codex/config.toml` out of its runs. The cause is unknown.
+An earlier reading, now replaced by the correction above, put this down to the clock: across all fixtures, the share of Skeleton reports keeping the contract's format rose from about 15% to 93% between 05:30 and 07:00 UTC, while Skeleton tokens fell from about 140k to 61k. Bare-diff tokens and tool calls stayed flat. Rounds running at the same concurrency differed widely, and the harness keeps `~/.codex/config.toml` out of its runs. The cause is unknown.
 
 **Results, 2026-11-01, agent-harness 3.0.0, `gpt-5.6-luna`.** Two independent runs of twenty pairs per fixture, plus the null round. Recall is Skeleton minus bare diff.
 

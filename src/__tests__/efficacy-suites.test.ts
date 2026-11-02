@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
+	chmodSync,
 	cpSync,
 	existsSync,
 	mkdirSync,
@@ -11,17 +12,22 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import type { Workspace } from "@post-print/agent-test";
 import { checkBillingDocument } from "../../scripts/efficacy/billing-document.ts";
 import { HISTORY_TASKS } from "../../scripts/efficacy/history.ts";
 import { median } from "../../scripts/efficacy/median.ts";
 import {
+	behaviorMix,
+	bundleUseByFixture,
 	defectComparison,
 	directionalStability,
 	type FixtureResult,
 	featureVerdict,
+	keptContractFormat,
 	mcnemarExact,
 	recallDifference,
+	receivedBundle,
 	reliabilityChecks,
 	replicationCheck,
 	sensitivity,
@@ -264,6 +270,8 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			found: { defect: found },
 			tokens,
 			usedBundle: true,
+			keptFormat: false,
+			toolCalls: 1,
 		});
 		const fixture = (
 			fixtureName: string,
@@ -323,7 +331,7 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			const evidence = {
 				assessedFraction: { a: 1, b: 1 },
 				judgeTextAgreement: 1,
-				bundleUse: 1,
+				bundleUse: { a: 1, b: 1 },
 				nullRound: fixture("null", 0, 40),
 			};
 			expect(Object.values(reliabilityChecks(fixtures, evidence)).every(Boolean)).toBe(true);
@@ -339,7 +347,9 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				nullRound: fixture("null", 15, 5),
 			});
 			expect(biased.nullCoversZero).toBe(false);
-			expect(reliabilityChecks(fixtures, { ...evidence, bundleUse: 0.5 }).bundleUse).toBe(false);
+			expect(
+				reliabilityChecks(fixtures, { ...evidence, bundleUse: { a: 1, b: 0 } }).bundleUse,
+			).toBe(false);
 			expect(reliabilityChecks(fixtures, { ...evidence, nullRound: null }).nullCoversZero).toBe(
 				false,
 			);
@@ -368,6 +378,70 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(interval.low).toBeCloseTo(-0.0948, 3);
 			expect(interval.high).toBeCloseTo(0.0581, 3);
 			expect(() => sessionInterval([0.1])).toThrow();
+		});
+
+		it("counts the bundle as used only when a tool result delivered it", () => {
+			expect(receivedBundle(["# Review bundle\n\n## Reviewer contract\n"])).toBe(true);
+			expect(receivedBundle(["npm error code EPERM", undefined])).toBe(false);
+			expect(keptContractFormat("important\ta.ts:1\tbug\twhy\nfindings: 1 important")).toBe(true);
+			expect(keptContractFormat("important\ta.ts:1\tbug\tno findings: here")).toBe(false);
+		});
+
+		it("fails a session whose one fixture never delivered the bundle", () => {
+			const undelivered = fixture("real", 10, 0);
+			undelivered.pairs = undelivered.pairs.map((pair) => ({
+				...pair,
+				withSkeleton: { ...pair.withSkeleton, usedBundle: false },
+			}));
+			const fixtures = [fixture("a", 10, 0), undelivered];
+			expect(bundleUseByFixture(fixtures)).toEqual({ a: 1, real: 0 });
+			const days = ["d1", "d1", "d2", "d2", "d3"];
+			const report = sessionReport(
+				days.map((day) => ({ day, fixtures, nullRound: fixture("null", 0, 20) })),
+			);
+			expect(report.bars.bundleDelivered).toBe(false);
+		});
+
+		it("reports recall for each behavior among runs that received the bundle", () => {
+			const pair = (keptFormat: boolean, found: boolean, usedBundle = true) => ({
+				baseline: run(true),
+				withSkeleton: { ...run(found), keptFormat, usedBundle },
+			});
+			const mixed: FixtureResult = {
+				fixture: "a",
+				defects: ["defect"],
+				pairs: [pair(true, true), pair(false, false), pair(false, true), pair(true, true, false)],
+			};
+			expect(behaviorMix([mixed])).toEqual({
+				keptFormat: 1 / 3,
+				keptRuns: 1,
+				notKeptRuns: 2,
+				recallWhenKept: 1,
+				recallWhenNot: 0.5,
+				baselineRecall: 1,
+			});
+		});
+
+		it("judges each behavior only across sessions with enough of its runs", () => {
+			const behaving = (kept: number, found: boolean): FixtureResult => ({
+				fixture: "a",
+				defects: ["defect"],
+				pairs: Array.from({ length: 12 }, (_, index) => ({
+					baseline: run(true),
+					withSkeleton: { ...run(found), keptFormat: index < kept },
+				})),
+			});
+			const report = (values: FixtureResult[]) =>
+				sessionReport(
+					values.map((a) => ({ day: "d", fixtures: [a], nullRound: fixture("n", 0, 9) })),
+				);
+			const steady = report([behaving(12, true), behaving(12, true), behaving(0, true)]);
+			expect(steady.behaviorRecall.kept?.estimate).toBe(1);
+			expect(steady.behaviorRecall.notKept).toBeNull();
+			expect(steady.bars.behaviorsTight).toBe(true);
+			const swinging = report([behaving(12, true), behaving(12, false), behaving(12, true)]);
+			expect(swinging.bars.behaviorsTight).toBe(false);
+			expect(report([behaving(5, true), behaving(5, true)]).bars.behaviorsTight).toBe(false);
 		});
 
 		it("fails session bars when sessions disagree, even if each session looks certain", () => {
@@ -462,12 +536,18 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				const audit = readFileSync(join(temp, "docs/developer/audit.md"), "utf8");
 				expect(audit.includes("review-deps:")).toBe(arm === "skeleton");
 				if (arm === "skeleton") {
+					// The same command the reviewer is told to run, where npm's cache cannot be created.
+					const readOnlyHome = join(temp, "node_modules/.read-only-home");
+					mkdirSync(readOnlyHome);
+					chmodSync(readOnlyHome, 0o555);
 					const result = spawnSync(
-						"node",
-						["node_modules/@csark0812/skeleton/dist/cli.js", "review", "prepare", "--base", "main"],
-						{ cwd: temp, encoding: "utf8" },
+						"npx",
+						["--no-install", "skeleton", "review", "prepare", "--base", "main"],
+						{ cwd: temp, encoding: "utf8", env: { ...process.env, HOME: readOnlyHome } },
 					);
+					chmodSync(readOnlyHome, 0o755);
 					expect(result.status).toBe(0);
+					expect(receivedBundle([result.stdout])).toBe(true);
 					expect(result.stdout).toContain(
 						"docs/developer/audit.md (changed: src/audit/core/review-proof.ts)",
 					);

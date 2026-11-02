@@ -3,14 +3,18 @@ import { join } from "node:path";
 import process from "node:process";
 import { median } from "./median.ts";
 import {
+	behaviorMix,
+	bundleUseByFixture,
 	defectComparison,
 	directionalStability,
 	type FixtureResult,
 	featureVerdict,
 	type Interval,
+	keptContractFormat,
 	leaveOneFixtureOut,
 	type ReviewRunResult,
 	recallDifference,
+	receivedBundle,
 	reliabilityChecks,
 	replicationCheck,
 	type SessionResult,
@@ -27,6 +31,7 @@ type ExecutionEvent = {
 	operationId: string;
 	data: {
 		name: string;
+		trace: { toolCalls: { args: unknown; result?: unknown }[] };
 		type?: string;
 		args?: unknown;
 		output: unknown;
@@ -34,6 +39,7 @@ type ExecutionEvent = {
 		usage: { tokens: { total: number } };
 	};
 };
+type ToolCalls = ExecutionEvent["data"]["trace"]["toolCalls"];
 type LoadedRound = { fixture: FixtureResult; attempted: number; judged: number; agreeing: number };
 
 function readEvents(execution: string): ExecutionEvent[] {
@@ -58,19 +64,19 @@ function verdictsByReport(events: ExecutionEvent[]): Map<string, Record<string, 
 	return verdicts;
 }
 
-function stayedInBundle(events: ExecutionEvent[], operationId: string): boolean {
-	const commands = events
-		.filter(
-			(event) =>
-				event.operationId === operationId &&
-				event.type === "operation.agent" &&
-				event.data.type === "tool",
-		)
-		.map((event) => JSON.stringify(event.data.args));
+function stayedInBundle(toolCalls: ToolCalls): boolean {
 	return (
-		commands.some((command) => command.includes("skeleton review prepare")) &&
-		!commands.some((command) => command.includes("skeleton context"))
+		receivedBundle(toolCalls.map((call) => call.result)) &&
+		!toolCalls.some((call) => JSON.stringify(call.args).includes("skeleton context"))
 	);
+}
+
+function runBehavior(report: string, toolCalls: ToolCalls) {
+	return {
+		usedBundle: stayedInBundle(toolCalls),
+		keptFormat: keptContractFormat(report),
+		toolCalls: toolCalls.length,
+	};
 }
 
 /** Rebuild every run and verdict from an event log, because passing runs keep no attachments. */
@@ -99,7 +105,7 @@ function loadExecution(execution: string, scenario: ReviewScenario): LoadedRound
 		const direct = textChecks(scenario, report);
 		round.judged += defects.length;
 		round.agreeing += defects.filter((defect) => direct[defect] === verdict[defect]).length;
-		return { found: verdict, tokens, usedBundle: stayedInBundle(events, operationId) };
+		return { found: verdict, tokens, ...runBehavior(report, complete.data.trace.toolCalls) };
 	};
 	const started = (side: string) =>
 		events
@@ -117,9 +123,6 @@ function loadExecution(execution: string, scenario: ReviewScenario): LoadedRound
 }
 
 function instrumentEvidence(loaded: LoadedRound[], nullRound: FixtureResult | null) {
-	const skeletonRuns = loaded.flatMap((round) =>
-		round.fixture.pairs.map((pair) => pair.withSkeleton),
-	);
 	return {
 		assessedFraction: Object.fromEntries(
 			loaded.map((round) => [round.fixture.fixture, round.fixture.pairs.length / round.attempted]),
@@ -127,7 +130,7 @@ function instrumentEvidence(loaded: LoadedRound[], nullRound: FixtureResult | nu
 		judgeTextAgreement:
 			loaded.reduce((sum, round) => sum + round.agreeing, 0) /
 			loaded.reduce((sum, round) => sum + round.judged, 0),
-		bundleUse: skeletonRuns.filter((run) => run.usedBundle).length / skeletonRuns.length,
+		bundleUse: bundleUseByFixture(loaded.map((round) => round.fixture)),
 		nullRound,
 	};
 }
@@ -159,6 +162,7 @@ function buildReport(loaded: LoadedRound[], nullRound: FixtureResult | null) {
 		leaveOneOut: leaveOneFixtureOut(fixtures),
 		nullDifference: nullRound ? recallDifference([nullRound]) : null,
 		evidence: { ...evidence, nullRound: undefined },
+		behavior: behaviorMix(fixtures),
 		reliability: reliabilityChecks(fixtures, evidence),
 		verdict: featureVerdict(fixtures),
 	};
@@ -184,6 +188,7 @@ function printReport(report: ReturnType<typeof buildReport>): void {
 			);
 	}
 	console.log(`\nInstrument: ${JSON.stringify(report.evidence)}`);
+	console.log(`Skeleton behavior: ${JSON.stringify(report.behavior)}`);
 	console.log(
 		`Null round: ${report.nullDifference ? interval(report.nullDifference, percent) : "not run"}`,
 	);

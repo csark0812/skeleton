@@ -43,6 +43,16 @@ function adoptCurrentConfigSchema(root: string): void {
 	writeFileSync(path, readFileSync(path, "utf8").replace(/\[reviewProof\]\nmode = "hash"\n\n/, ""));
 }
 
+/**
+ * The snapshot is Skeleton's own package, and a package that declares the `skeleton` bin makes
+ * `npx --no-install skeleton` reach for npm's cache, which the sandbox forbids. No bundle arrives.
+ */
+function removeOwnBin(root: string): void {
+	const path = join(root, "package.json");
+	const { bin: _bin, ...manifest } = JSON.parse(readFileSync(path, "utf8"));
+	writeFileSync(path, `${JSON.stringify(manifest, null, "\t")}\n`);
+}
+
 /** Extract the repository at the real fix, then commit that fix's reversal on a feature branch. */
 export function seedReviewReal(workspace: Workspace, arm: "control" | "skeleton"): void {
 	const root = workspace.path;
@@ -52,6 +62,7 @@ export function seedReviewReal(workspace: Workspace, arm: "control" | "skeleton"
 		maxBuffer: 256 * 1024 * 1024,
 	});
 	execFileSync("tar", ["-x", "-C", root], { input: archive });
+	removeOwnBin(root);
 	if (arm === "skeleton") adoptCurrentConfigSchema(root);
 	else removeSkeletonMetadata(root);
 	git("add", "-A");
