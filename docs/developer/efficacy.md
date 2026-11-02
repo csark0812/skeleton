@@ -203,6 +203,12 @@ The reports show why. Bundle reviewers do see the consequence: one wrote that by
 
 This also rules out the explanation given for `doc-vs-code`. All ten bare-diff reviewers ran `git log` or `git show` and saw the same commit message, and nine of the ten read the documents. They still reported the code as a regression in 8 of 10 runs. The stated intent is not what separates the sides. What remains is how the bundle presents the documents. Before either study, Skeleton runs named the regression in 11 of 49 runs. With two rules that each pointed harder at the listed documents, they named it in 0 of 20. The next step is to remove a section, not add a rule. Two cheap single-round tests would settle it: one with the documents section removed, one with stated intent removed, each on `real` only.
 
+### Removal tests (studies `remove-documents` and `remove-intent`)
+
+**Question.** Which bundle section turns the regression into a documentation finding? Each test runs one `real` round of ten pairs with the current contract. Only the Skeleton prompt changes: `SKELETON_REVIEW_REMOVE=documents` takes out "Documents the author must re-read and update", and `SKELETON_REVIEW_REMOVE=intent` takes out "Stated intent". The contract text, the workspace, and the bare-diff side do not change. A reviewer can still find the documents or run `git log` itself, as bare-diff reviewers do.
+
+**Frozen before either run.** With the full bundle and this contract, Skeleton runs named the regression in 11 of 49 runs (22%). A removal implicates its section if Skeleton runs name the regression in at least 5 of 10 runs. At 22%, that happens by chance about 7% of the time. Fewer than 5 does not clear the section, because one round of ten is too small to rule out a modest effect. Stale-document detection and tokens are reported, not gated. Neither result changes the product. A product change is its own study.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

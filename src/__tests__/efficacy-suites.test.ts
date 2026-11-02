@@ -562,6 +562,22 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		}
 	});
 
+	it("removes exactly one bundle section for a removal test", () => {
+		const whole = reviewBundlePrompt(REVIEW_SCENARIOS.payments, "");
+		for (const [removal, heading] of [
+			["documents", "## Documents the author must re-read and update"],
+			["intent", "## Stated intent"],
+		] as const) {
+			const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments, removal);
+			expect(whole).toContain(heading);
+			expect(prompt).not.toContain(heading);
+			expect(prompt).toContain("## Reviewer contract");
+			expect(prompt).toContain("## Review guide: docs/billing/REVIEW.md");
+			expect(prompt).toContain("-export const MAX_RETRIES = 1;");
+			expect(whole.length - prompt.length).toBeLessThan(400);
+		}
+	});
+
 	it("gives the Skeleton reviewer the bundle as its prompt, the same for every run", () => {
 		const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments);
 		expect(prompt.startsWith(`${BUNDLE_PROMPT_LEAD}\n\n# Review bundle (main...HEAD)`)).toBe(true);
