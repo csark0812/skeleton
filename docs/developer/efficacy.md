@@ -186,6 +186,19 @@ If any bar fails, the result is recorded here and the contract change is reverte
 
 The reports show why. Bundle reviewers do see the consequence: one wrote that byte hashing makes release-version changes invalidate review proof. But they file it as stale documentation. The bundle's "Stated intent" section quotes a commit message that says the special handling was removed on purpose. Its "Documents the author must re-read and update" section frames each listed document as something the author must update. Asked to decide which side is wrong, reviewers believe the stated intent and blame the documents. Bare-diff reviewers see neither section. They read the same documents as the specification and report the code as a regression that contradicts the documented exemption. The next attempt should state that a deliberate change is still a defect when its consequence is harmful, and should stop presenting listed documents only as the author's to-do list.
 
+### Consequence first (study `consequence-first`)
+
+**Question.** Can the bundle stop steering reviewers from the code to the document, without losing the document? The study `doc-vs-code` above showed two parts doing that steering. The commit message reads as permission, and the heading "Documents the author must re-read and update" makes every conflict look like a documentation task. This change makes two edits and nothing else. One new contract rule says to judge each behavior change by what it breaks, even when the stated intent calls it deliberate. The section is retitled "Documents that describe the changed code", and the contract says a broken promise there is evidence for a code finding first.
+
+**Frozen before any run.** The model, harness, and pair count are unchanged. Run 1 is `--rounds=real --sessions=3 --study=consequence-first`. Run 2 is one full session with the same study name, run only if run 1 passes the first two bars. Both are scored with `review-report.ts --study consequence-first`. The bars are the ones frozen for `doc-vs-code`:
+
+- **Regression:** pooled over every `real` round, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+**Early stop.** After each `real` round, the study stops if the regression gap so far is more than 50 points with at least ten pairs. With 30 pairs left, it could then pass only if the remaining rounds reversed the direction. A stop counts as a failure. If any bar fails, the result is recorded here and both edits are reverted.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

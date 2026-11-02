@@ -104,7 +104,8 @@ Rules:
 - Do not report style unless a review guide asks for it.
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
-- A document listed under "Documents the author must re-read and update" that the diff makes wrong is an important finding. Open the document and cite its own path and line.
+- Judge each behavior change by what it breaks, even when the stated intent says it is deliberate. When it breaks something users, callers, or other code rely on, report the code line and the consequence as an important finding.
+- The documents under "Documents that describe the changed code" record what the code promised. A promise the diff breaks is evidence for a code finding first. When the change is right and only the document is out of date, report the document instead. Open it and cite its own path and line.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
 - End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
 
@@ -382,7 +383,7 @@ export function formatReviewBundle(bundle: ReviewBundle): string {
 	if (bundle.documentsToReread.length > 0) {
 		parts.push(
 			section(
-				"Documents the author must re-read and update",
+				"Documents that describe the changed code",
 				bundle.documentsToReread
 					.map((document) => `- ${document.path} (changed: ${document.changed.join(", ")})`)
 					.join("\n"),
