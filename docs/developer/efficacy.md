@@ -364,6 +364,30 @@ The three remaining misses listed the changed hashing and reported the version-b
 
 **Frozen before the run.** These are the same rounds and bars as `checklist`, under `consequence-lines`. `heldout2` is not run in pilots. It is reserved for the final confirmation.
 
+**Result, 2026-11-02: passed, with no misses.** Skeleton runs found every seeded defect in 10 of 10 runs on all four fixtures.
+
+| Fixture | Skeleton minus bare diff | Token ratio |
+| --- | ---: | ---: |
+| `payments` | +30.0 (23.3 to 38.3) | 0.32 |
+| `notifications` | +30.0 (21.7 to 38.3) | 0.71 |
+| `real` | +46.7 (36.7 to 56.7) | 1.37 |
+| `heldout` | +66.7 (66.7 to 66.7) | 0.95 |
+
+This is one round of ten per fixture. Earlier single rounds also cleared one defect and then lost another, so the claim needs the confirmation below.
+
+### Final confirmation (study `final`)
+
+**Contract.** The contract is the one `consequence-lines` passed: the `decision` severity, the `checked:` list with `saved before` lines, a finding for every deleted test, and one finding per consequence at the code line. No wording changes during this study.
+
+**Frozen before any run.** Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,null --study=final`. Session 2 is `--rounds=payments,notifications,real,heldout,heldout2 --study=final`. `heldout2` has never been run before this study. The contract passes only if all of these hold:
+
+- **No misses, within one:** for every seeded defect on every fixture, Skeleton runs find it in at least 19 of 20 pooled runs.
+- **Clear recall win on every fixture:** the pooled recall difference's 95% interval is above zero on `payments`, `notifications`, `real`, `heldout`, and `heldout2`.
+- **Null round:** within 10 points of zero.
+
+Tokens are reported per fixture, not gated. If any bar fails, the result is recorded with every miss, and nothing ships until a later study passes.
+
+
 
 
 ### Seeded-defect review
