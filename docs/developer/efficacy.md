@@ -252,6 +252,19 @@ If the pilot passes, the product change gets its own frozen study before it ship
 
 **Where this leaves stated intent.** On these fixtures it is a tradeoff the contract wording has not removed. With the section, Skeleton catches a commit message that contradicts the diff (100 of 100 against 4 of 100). It misfiles a deliberate but harmful change as stale documentation (11 of 49 against 40 of 49). Without it, the order reverses (7 of 10 on `real`, from one round). Choosing between them is a product decision, recorded here. It is not something these runs settled.
 
+### A `decision` severity (pilot `decision`)
+
+**Owner's decisions, 2026-11-02.** Only the author knows whether a change to documented behavior was meant. The reviewer reports that conflict and its consequence as one finding at the code line, cites the document, and does not say which side is wrong. The finding has its own severity, `decision`. The skill tells the author agent to keep the change and update the document only when the user's request explicitly asked for it. Otherwise the agent stops and asks the user. It always asks without a request to check, as in CI or `--run`. Stated intent stays in the bundle.
+
+**Scoring change, approved by the owner before the run.** On `real`, the regression counts as found only in a finding at `src/audit/core/review-proof.ts`, marked `important` or `decision`, that names the release-version consequence. A finding only at a document does not count, even when it describes the consequence. The same rule applies to both sides. The judge was also told that citing a document inside a code-line finding names that document. Earlier judged runs are not rescored. Their verdicts already required the regression's own file.
+
+**Frozen before the run.** One session, `--rounds=real,payments --study=decision`, ten pairs each, with the full bundle. The pilot passes only if both of these hold:
+
+- **Regression:** Skeleton runs catch the `real` regression in at least 5 of 10 runs.
+- **Commit-message contradiction:** Skeleton runs find the `payments` refund contradiction in at least 8 of 10 runs.
+
+Stale-document detection, `decision` use, and tokens are reported. If the pilot passes, a held-out real fixture and a full frozen study come before anything ships. If it fails, the result is recorded here, and the next attempt is structural: stated intent after the diff, or two passes.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

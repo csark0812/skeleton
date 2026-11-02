@@ -67,7 +67,7 @@ humanPaths = [".github/workflows/**", "src/auth/**"]   # an agent review does no
 command = "./scripts/review-agent.sh"                  # optional; reads the bundle on stdin
 ```
 
-A finding line is `<severity>\t<file>:<line>\t<bug class>\t<what breaks>`, with severity `important`, `nit`, or `pre-existing`. Only `important` blocks the author. Enforce human approval for `humanPaths` with CODEOWNERS and branch protection.
+A finding line is `<severity>\t<file>:<line>\t<bug class>\t<what breaks>`, with severity `important`, `decision`, `nit`, or `pre-existing`. `important` blocks the author until fixed. `decision` marks a change to documented behavior; it blocks until the user's request confirms the change or a person decides. Enforce human approval for `humanPaths` with CODEOWNERS and branch protection.
 
 ## Skill ownership
 

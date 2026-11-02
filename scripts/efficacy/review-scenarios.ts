@@ -113,9 +113,11 @@ export const REVIEW_SCENARIOS = {
 		defects: {
 			regression: {
 				failure:
-					"src/audit/core/review-proof.ts now hashes package.json byte for byte, so a release version bump invalidates the review of every document that depends on package.json.",
+					"src/audit/core/review-proof.ts now hashes package.json byte for byte, so a release version bump invalidates the review of every document that depends on package.json. Count only a finding at src/audit/core/review-proof.ts, as important or decision. A finding only at a document does not count, even when it describes this consequence.",
 				foundInLine: (line) =>
-					/package\.json|manifest/i.test(line) && /version|release/i.test(line),
+					line.includes("src/audit/core/review-proof.ts") &&
+					/package\.json|manifest/i.test(line) &&
+					/version|release/i.test(line),
 			},
 			legacyProof: {
 				failure:

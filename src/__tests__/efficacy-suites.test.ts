@@ -269,6 +269,21 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		});
 	});
 
+	it("counts the real regression only at the code line, as important or decision", () => {
+		const atDocument =
+			"important\tREADME.md:61\tstale documentation\tA package.json version bump now invalidates review proof.";
+		const atCode =
+			"decision\tsrc/audit/core/review-proof.ts:347\tdocumented behavior change\tA package.json release version bump now invalidates every review; README.md:61 promises it does not.";
+		expect(textChecks(REVIEW_SCENARIOS.real, atDocument)).toMatchObject({
+			regression: false,
+			staleDoc: true,
+		});
+		expect(textChecks(REVIEW_SCENARIOS.real, atCode)).toMatchObject({
+			regression: true,
+			staleDoc: true,
+		});
+	});
+
 	describe("review comparison statistics", () => {
 		const run = (found: boolean, tokens = 100) => ({
 			found: { defect: found },
@@ -640,7 +655,9 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(result.stdout).toContain("## Review guide: docs/billing/REVIEW.md");
 			expect(result.stdout).toContain("## Review guide: docs/payouts/REVIEW.md");
 			expect(result.stdout).toContain("docs/payouts/hold-changes.md");
-			expect(result.stdout).toContain("Open the document and cite its own path and line.");
+			expect(result.stdout).toContain(
+				"When the diff changes behavior that a document promises, report one decision finding at the code line",
+			);
 			expect(result.stdout).toContain("This bundle replaces `skeleton context`");
 			expect(result.stdout).toContain("- docs/billing.md (changed: src/billing/charge.ts)");
 			expect(result.stdout).toContain("-export const MAX_RETRIES = 1;");

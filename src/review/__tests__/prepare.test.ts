@@ -84,6 +84,11 @@ describe("review prepare", () => {
 		expect(bundle.humanReviewRequired).toEqual([]);
 		const text = formatReviewBundle(bundle);
 		expect(text).toContain("## Reviewer contract");
+		// A change to documented behavior is the author's call, so the reviewer marks it, not judges it.
+		expect(text).toContain(
+			"- decision: the diff changes behavior that a document promises, and only the author knows whether that was meant.",
+		);
+		expect(text).toContain('"findings: <n> important, <n> decision, <n> nit, <n> pre-existing"');
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");

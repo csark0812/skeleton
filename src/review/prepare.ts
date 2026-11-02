@@ -95,6 +95,7 @@ Report each finding on its own line:
 
 Severities:
 - important: a real defect or a broken rule from AGENTS.md or a review guide. Must be fixed before merge.
+- decision: the diff changes behavior that a document promises, and only the author knows whether that was meant. Blocks until the author confirms the change was asked for or a person decides.
 - nit: optional improvement allowed by the review guides.
 - pre-existing: a defect this diff did not introduce. Never blocks the author.
 
@@ -104,9 +105,9 @@ Rules:
 - Do not report style unless a review guide asks for it.
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
-- A document listed under "Documents the author must re-read and update" that the diff makes wrong is an important finding. Open the document and cite its own path and line.
+- When the diff changes behavior that a document promises, report one decision finding at the code line that changes it. Name the consequence and cite the document's path and line. Do not say which side is wrong, and do not report the document separately. Check every document under "Documents the author must re-read and update".
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
-- End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
+- End with one line: "findings: <n> important, <n> decision, <n> nit, <n> pre-existing", or "no issues".`;
 
 function diffArgs(scope: ReviewScope): string[] {
 	if (scope.staged) return ["diff", "--cached"];
