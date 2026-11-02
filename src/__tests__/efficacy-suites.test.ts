@@ -269,6 +269,15 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		});
 	});
 
+	it("reads defects only from finding lines, never from the checklist", () => {
+		const report =
+			"checked:\n- src/notify/quiet_hours.py: changes >= to >\nimportant\tdocs/notify.md:3\tstale\tSays 24 hours.";
+		expect(textChecks(REVIEW_SCENARIOS.notifications, report)).toMatchObject({
+			generic: false,
+			staleDoc: true,
+		});
+	});
+
 	it("counts the real regression only at the code line, as important or decision", () => {
 		const atDocument =
 			"important\tREADME.md:61\tstale documentation\tA package.json version bump now invalidates review proof.";

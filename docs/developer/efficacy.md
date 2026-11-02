@@ -312,6 +312,21 @@ The reversal's commit message describes the change neutrally, as `real`'s does. 
 
 **A loss the bars did not anticipate.** On `notifications`, Skeleton runs found the plain off-by-one in `src/notify/quiet_hours.py` in only 4 of 10 runs, against 10 of 10 for the bare diff. Before this change they found it in 45 of 50. Nothing documents quiet hours, and the commit message does not mention them. The misses report every other seeded defect, so the reviewer finished without this one. The harness marked the round failed on its floor check, and this study's bars do not use that check. The recall bar of +9.1 passed, at +10.0. One round cannot tell a new contract effect from a bad round. The stale-proof loss on `real` also persists: 13/30 against 28/30. Both are recorded here and are open before the change ships.
 
+### A checklist before the findings (pilot `checklist`)
+
+**Goal set by the owner.** No Skeleton misses on any seeded defect, and a clear win on every fixture.
+
+**What still missed under `decision-confirm`, and the common cause.** The quiet-hours off-by-one on `notifications` (4/10). The second half of a guide rule, the required hold or retention record (7/10 on `payments`, 6/10 on `notifications`). Old saved fingerprints on `real` (13/30). Deleted cross-midnight tests on `heldout` (1/30). In each case, the reviewer finished the headline findings and never accounted for every changed file or every guide rule.
+
+**Change.** Before the findings, the contract asks for a `checked:` list with every changed file once, tests included, and every review-guide rule once, with a two-part rule as two lines. Every line that changes behavior needs a finding or a reason it is safe, explicitly including deleted tests and data saved under the old behavior. The judge and the text audit count only finding lines, never the checklist, on both sides.
+
+**Frozen before the run.** One session, `--rounds=payments,notifications,real,heldout --study=checklist`, ten pairs each. The pilot passes only if both of these hold:
+
+- **Every seeded defect:** Skeleton runs find it in at least 9 of 10 runs, on every fixture.
+- **Every fixture:** the recall difference is above zero.
+
+Tokens are reported. If the pilot passes, a confirmation run comes before anything ships. If it fails, the result is recorded with which defects still missed, and the next change targets those.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

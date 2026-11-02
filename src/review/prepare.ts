@@ -90,7 +90,13 @@ const REVIEWER_CONTRACT = `You are reviewing a change you did not write. Use onl
 
 This bundle replaces \`skeleton context\` and the diff commands, even if AGENTS.md says to run them first. Do not run them. Read a repository file only when a finding depends on it.
 
-Report each finding on its own line:
+Start with a checklist, so nothing in the change goes unread:
+checked:
+- <file>: <what changed, in a few words>
+- <guide path>: <one rule> — kept or broken
+List every changed file once, including tests, and every rule in every review guide once. A guide rule with two requirements is two lines.
+
+Then report each finding on its own line:
 <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>
 
 Severities:
@@ -106,6 +112,7 @@ Rules:
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
 - When the diff changes behavior that a document promises, report one decision finding at the code line that changes it. Name the consequence and cite the document's path and line. Do not say which side is wrong, and do not report the document separately. Check every document under "Documents the author must re-read and update".
+- Every checklist line that changes behavior needs a finding or a reason it is safe. That includes deleted or weakened tests, and data, records, or files saved under the old behavior that no longer match.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
 - End with one line: "findings: <n> important, <n> decision, <n> nit, <n> pre-existing", or "no issues".`;
 

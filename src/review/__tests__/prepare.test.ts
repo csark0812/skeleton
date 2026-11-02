@@ -89,6 +89,10 @@ describe("review prepare", () => {
 			"- decision: the diff changes behavior that a document promises, and only the author knows whether that was meant.",
 		);
 		expect(text).toContain('"findings: <n> important, <n> decision, <n> nit, <n> pre-existing"');
+		// Reviewers who stopped after the headline findings skipped files and half of guide rules.
+		expect(text).toContain(
+			"List every changed file once, including tests, and every rule in every review guide once.",
+		);
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");
