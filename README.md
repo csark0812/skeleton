@@ -126,7 +126,7 @@ skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton review prepare [--staged | --base <ref>] [--paths=a,b] [--json] [--run]
 ```
 
-**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. See [code review](docs/developer/review.md).
+**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. Give the bundle to the reviewer as its prompt, with `--run` or a new session. Do not have the reviewer run the command itself. When the bundle arrived as command output in tests, reviewers often ignored its contract and redid the review from a raw diff at about three times the tokens. See [code review](docs/developer/review.md).
 
 **Validate changed** routes git diffs to the right audit:
 
@@ -168,6 +168,8 @@ See [tiers](docs/tiers.md). Related work: [Toolbox](https://github.com/csark0812
 ## Agent efficacy
 
 Four efficiency qualifications ask whether agents complete the same work correctly with at least 35% fewer median tokens when Skeleton is available. Current five-pair OpenAI results exceed that gate in all four tasks, with reductions from 49.1% to 64.0%. One qualification uses a PostPrint-shaped applications monorepo spanning backend, client, generated WebSocket types, and developer documentation; it measured 62.3% lower median tokens. Three additional core tasks measure correctness and reliability without a savings gate, and five package-tradeoff comparisons measure adoption, recovery, and simple-task and hook overhead. The tests check behavior and tokens directly; semantic judges receive only the evidence needed for tasks that require them. These results remain scoped benchmark evidence, not a universal reliability claim.
+
+A separate review comparison asks whether `review prepare` helps a fresh reviewer find known defects. It compares the bundle, given as the reviewer's prompt, with a bare `git diff`. Across five sessions of ten pairs per fixture on `gpt-5.6-luna`, the bundle found 12.8 percentage points more seeded defects (95% CI 9.1 to 16.5), using 0.52 times the tokens (0.49 to 0.56). A null round, with the bundle on both sides, showed no difference (+1.7, -1.6 to 4.9). The gain comes from the two seeded fixtures: +21.0 and +16.0 points. On a real regression reverted from this repository's history, the bundle used fewer tokens with no clear change in recall (+1.4, -9.8 to 12.6). All five sessions ran on one day with one model and harness version, so the result has not been tested across model or serving changes.
 
 Method: [Agent efficacy](docs/developer/efficacy.md).
 
