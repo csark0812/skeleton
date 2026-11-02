@@ -31,6 +31,7 @@ type ExecutionEvent = {
 	operationId: string;
 	data: {
 		name: string;
+		prompt?: string;
 		trace: { toolCalls: { args: unknown; result?: unknown }[] };
 		type?: string;
 		args?: unknown;
@@ -64,30 +65,34 @@ function verdictsByReport(events: ExecutionEvent[]): Map<string, Record<string, 
 	return verdicts;
 }
 
-function stayedInBundle(toolCalls: ToolCalls): boolean {
+/** The bundle arrives as the prompt, or, in older sessions, as the result of a command the reviewer ran. */
+function stayedInBundle(prompt: string, toolCalls: ToolCalls): boolean {
 	return (
-		receivedBundle(toolCalls.map((call) => call.result)) &&
+		receivedBundle([prompt, ...toolCalls.map((call) => call.result)]) &&
 		!toolCalls.some((call) => JSON.stringify(call.args).includes("skeleton context"))
 	);
 }
 
-function runBehavior(report: string, toolCalls: ToolCalls) {
+function runBehavior(prompt: string, report: string, toolCalls: ToolCalls) {
 	return {
-		usedBundle: stayedInBundle(toolCalls),
+		usedBundle: stayedInBundle(prompt, toolCalls),
 		keptFormat: keptContractFormat(report),
 		toolCalls: toolCalls.length,
 	};
+}
+
+function eventsByOperation(events: ExecutionEvent[], type: string): Map<string, ExecutionEvent> {
+	return new Map(
+		events.filter((event) => event.type === type).map((event) => [event.operationId, event]),
+	);
 }
 
 /** Rebuild every run and verdict from an event log, because passing runs keep no attachments. */
 function loadExecution(execution: string, scenario: ReviewScenario): LoadedRound {
 	const events = readEvents(execution);
 	const verdicts = verdictsByReport(events);
-	const completed = new Map(
-		events
-			.filter((event) => event.type === "operation.complete")
-			.map((event) => [event.operationId, event]),
-	);
+	const completed = eventsByOperation(events, "operation.complete");
+	const prompts = eventsByOperation(events, "operation.start");
 	const defects = Object.keys(scenario.defects);
 	const round: LoadedRound = {
 		fixture: { fixture: scenario.name, defects, pairs: [] },
@@ -105,7 +110,15 @@ function loadExecution(execution: string, scenario: ReviewScenario): LoadedRound
 		const direct = textChecks(scenario, report);
 		round.judged += defects.length;
 		round.agreeing += defects.filter((defect) => direct[defect] === verdict[defect]).length;
-		return { found: verdict, tokens, ...runBehavior(report, complete.data.trace.toolCalls) };
+		return {
+			found: verdict,
+			tokens,
+			...runBehavior(
+				prompts.get(operationId)?.data.prompt ?? "",
+				report,
+				complete.data.trace.toolCalls,
+			),
+		};
 	};
 	const started = (side: string) =>
 		events

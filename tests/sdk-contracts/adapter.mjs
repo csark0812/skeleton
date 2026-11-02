@@ -100,19 +100,24 @@ export default defineAgent({
 						encoding: "utf8",
 					}).trim();
 					if (branch !== "feature") throw new Error("Setup did not create the feature branch");
-					// The shipped command, through the launcher a consumer's npx resolves.
-					const [command, args] = skeleton
-						? ["npx", ["--no-install", "skeleton", "review", "prepare", "--base", "main"]]
-						: ["git", ["diff", "main...HEAD"]];
-					const result = execFileSync(command, args, { cwd: workspace.path, encoding: "utf8" });
+					// The Skeleton reviewer is handed the bundle as its prompt; the bare-diff reviewer runs git.
+					let result = prompt;
+					if (skeleton !== prompt.includes("## Reviewer contract"))
+						throw new Error("Only the Skeleton side should receive the bundle");
+					if (!skeleton) {
+						result = execFileSync("git", ["diff", "main...HEAD"], {
+							cwd: workspace.path,
+							encoding: "utf8",
+						});
+						yield {
+							type: "tool",
+							name: "Shell",
+							args: { command: "git diff main...HEAD" },
+							result,
+							succeeded: true,
+						};
+					}
 					if (!result.includes("src/orders/total.ts")) throw new Error("Missing seeded diff");
-					yield {
-						type: "tool",
-						name: "Shell",
-						args: { command: `${command} ${args.join(" ")}` },
-						result,
-						succeeded: true,
-					};
 					const findings = [
 						"important\tsrc/orders/total.ts:3\toff by one\tThe last line is dropped.",
 					];

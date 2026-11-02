@@ -37,6 +37,10 @@ import {
 	tokenRatio,
 } from "../../scripts/efficacy/review-analysis.ts";
 import {
+	BUNDLE_PROMPT_LEAD,
+	reviewBundlePrompt,
+} from "../../scripts/efficacy/review-bundle-prompt.ts";
+import {
 	decoyNotImportant,
 	detectionSchema,
 	judgeReport,
@@ -556,6 +560,16 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				rmSync(temp, { recursive: true, force: true });
 			}
 		}
+	});
+
+	it("gives the Skeleton reviewer the bundle as its prompt, the same for every run", () => {
+		const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments);
+		expect(prompt.startsWith(`${BUNDLE_PROMPT_LEAD}\n\n# Review bundle (main...HEAD)`)).toBe(true);
+		expect(receivedBundle([prompt])).toBe(true);
+		expect(prompt).toContain("## Review guide: docs/billing/REVIEW.md");
+		// The bundle's contract is the only instruction about the report format.
+		expect(prompt).not.toContain("Start by running");
+		expect(reviewBundlePrompt(REVIEW_SCENARIOS.payments)).toBe(prompt);
 	});
 
 	it("gives both review sides the same change and bundles the seeded evidence", () => {

@@ -3,6 +3,7 @@ import type { Run } from "@post-print/agent-test";
 import { describe, expect } from "@post-print/agent-test";
 import { type Assessment, assessRun, measureReliability, type Pair } from "./measurements.ts";
 import { receivedBundle } from "./review-analysis.ts";
+import { reviewBundlePrompt } from "./review-bundle-prompt.ts";
 import {
 	decoyNotImportant,
 	detectionInstructions,
@@ -12,16 +13,10 @@ import {
 } from "./review-detection.ts";
 import type { ReviewArm, ReviewScenario } from "./review-scenarios.ts";
 
-const reviewPrompt = (firstCommand: string) =>
-	`Review the feature branch against main. Start by running \`${firstCommand}\`. Report only; do not modify files.
+const BARE_DIFF_PROMPT = `Review the feature branch against main. Start by running \`git diff main...HEAD\`. Report only; do not modify files.
 Report each finding on its own line: <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>. The severities are important, nit, and pre-existing.`;
-const PROMPTS: Record<ReviewArm, string> = {
-	control: reviewPrompt("git diff main...HEAD"),
-	skeleton: reviewPrompt("npx --no-install skeleton review prepare --base main"),
-};
 const MIN_ASSESSED_FRACTION = 0.9;
 const MIN_FLOOR_FRACTION = 0.8;
-const MIN_BUNDLE_FRACTION = 0.8;
 
 type ReviewJudge = {
 	run(request: { input: { report: string } }): Promise<{
@@ -29,7 +24,7 @@ type ReviewJudge = {
 	}>;
 };
 
-function reviewEvaluator(scenario: ReviewScenario, detection: ReviewJudge, arm: ReviewArm) {
+function reviewEvaluator(scenario: ReviewScenario, detection: ReviewJudge) {
 	return async (run: Run): Promise<Assessment> => {
 		const { otherImportant, reason, ...found } = (
 			await judgeReport(() => detection.run({ input: { report: run.output } }))
@@ -43,9 +38,6 @@ function reviewEvaluator(scenario: ReviewScenario, detection: ReviewJudge, arm: 
 				...found,
 				...decoy,
 				unchanged,
-				...(arm === "skeleton"
-					? { receivedBundle: receivedBundle(run.toolCalls.map((call) => call.result)) }
-					: {}),
 			},
 			reason: [
 				unchanged ? "No files changed." : `Changed files: ${run.workspace.changedPaths.join(", ")}`,
@@ -57,17 +49,9 @@ function reviewEvaluator(scenario: ReviewScenario, detection: ReviewJudge, arm: 
 }
 
 /** These decide whether the round can be used, not who won. `review-report.ts` compares the sides. */
-function expectUsableRound(scenario: ReviewScenario, pairs: Pair[], baselineArm: ReviewArm): void {
+function expectUsableRound(scenario: ReviewScenario, pairs: Pair[]): void {
 	const summary = summarizeDetection(pairs);
-	for (const [side, arm] of [
-		[summary.baseline, baselineArm],
-		[summary.withSkeleton, "skeleton"],
-	] as const) {
-		if (arm === "skeleton")
-			expect(
-				side.hits.receivedBundle,
-				"Skeleton reviewers receive the bundle",
-			).toBeGreaterThanOrEqual(Math.ceil(side.evaluated * MIN_BUNDLE_FRACTION));
+	for (const side of [summary.baseline, summary.withSkeleton]) {
 		expect(side.evaluated, "Enough runs were assessed").toBeGreaterThanOrEqual(
 			Math.ceil(pairs.length * MIN_ASSESSED_FRACTION),
 		);
@@ -102,14 +86,20 @@ export function defineReviewSuite(scenario: ReviewScenario): void {
 		detection,
 	}, info) => {
 		const pairs: Pair[] = [];
+		const bundlePrompt = reviewBundlePrompt(scenario);
+		expect(receivedBundle([bundlePrompt]), "The Skeleton prompt carries the bundle").toBe(true);
+		const prompts: Record<ReviewArm, string> = {
+			control: BARE_DIFF_PROMPT,
+			skeleton: bundlePrompt,
+		};
 		await measureReliability(info, async () => {
 			const [without, withTool] = await Promise.allSettled([
-				baseline.run({ prompt: PROMPTS[baselineArm] }),
-				withSkeleton.run({ prompt: PROMPTS.skeleton }),
+				baseline.run({ prompt: prompts[baselineArm] }),
+				withSkeleton.run({ prompt: prompts.skeleton }),
 			]);
 			const [baselineOutcome, skeletonOutcome] = await Promise.all([
-				assessRun(without, reviewEvaluator(scenario, detection, baselineArm)),
-				assessRun(withTool, reviewEvaluator(scenario, detection, "skeleton")),
+				assessRun(without, reviewEvaluator(scenario, detection)),
+				assessRun(withTool, reviewEvaluator(scenario, detection)),
 			]);
 			const pair = { baseline: baselineOutcome, withSkeleton: skeletonOutcome };
 			pairs.push(pair);
@@ -119,6 +109,6 @@ export function defineReviewSuite(scenario: ReviewScenario): void {
 			body: JSON.stringify(summarizeDetection(pairs), null, 2),
 			contentType: "application/json",
 		});
-		expectUsableRound(scenario, pairs, baselineArm);
+		expectUsableRound(scenario, pairs);
 	});
 }
