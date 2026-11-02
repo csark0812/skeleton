@@ -327,6 +327,23 @@ The reversal's commit message describes the change neutrally, as `real`'s does. 
 
 Tokens are reported. If the pilot passes, a confirmation run comes before anything ships. If it fails, the result is recorded with which defects still missed, and the next change targets those.
 
+**Result, 2026-11-02: failed by one defect.** Every seeded defect reached at least 9 of 10 except one: the old saved fingerprints on `real`, at 7 of 10. That is up from 13 of 30. The other formerly missed defects all cleared. Deleted tests on `heldout` went to 9/10 from 1/30. The quiet-hours off-by-one went to 10/10 from 4/10. The guide's required record went to 9/10 on both fixtures, from 7/10 and 6/10.
+
+| Fixture | Skeleton minus bare diff | Token ratio |
+| --- | ---: | ---: |
+| `payments` | +28.3 (16.7 to 38.3) | 0.26 |
+| `notifications` | +20.0 (13.3 to 26.7) | 0.48 |
+| `real` | +40.0 (23.3 to 53.3) | 1.42 |
+| `heldout` | +63.3 (56.7 to 66.7) | 1.33 |
+
+The three remaining misses listed the changed hashing and reported the version-bump regression. None said that fingerprints saved under the old rule stop matching after an upgrade with no other change. The sentence about saved data is easy to skip. The next change makes it a checklist line the reviewer must fill in. The checklist also raised tokens on the two real fixtures above the bare diff.
+
+### Saved data as a checklist line (pilot `checklist-saved`)
+
+**Change.** The checklist gains a required line for each behavior change: `saved before: <data written under the old behavior> — still matches, or what breaks`. The reviewer writes it even when nothing was saved. Nothing else changes from `checklist`.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under the study name `checklist-saved`. Every seeded defect must be found in at least 9 of 10 runs on every fixture, and every fixture's recall difference must be above zero. Tokens are reported.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.

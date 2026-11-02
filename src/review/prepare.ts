@@ -94,7 +94,8 @@ Start with a checklist, so nothing in the change goes unread:
 checked:
 - <file>: <what changed, in a few words>
 - <guide path>: <one rule> — kept or broken
-List every changed file once, including tests, and every rule in every review guide once. A guide rule with two requirements is two lines.
+- saved before: <data written under the old behavior, such as stored hashes, records, caches, or lock files> — still matches, or what breaks
+List every changed file once, including tests, and every rule in every review guide once. A guide rule with two requirements is two lines. Write one "saved before" line for each behavior change, even when nothing was saved.
 
 Then report each finding on its own line:
 <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>

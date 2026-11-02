@@ -185,5 +185,16 @@
 		"payments": "be567483-8473-4a54-8f49-92daef1b1f6f",
 		"notifications": "ae6af954-af1a-45a3-bcd9-27910ae2e160",
 		"null": "9e1ee2a4-67d2-4991-ac90-fbe9a2e509a4"
+	},
+	{
+		"confirmatory": true,
+		"study": "checklist",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "646f8952-53d7-48f1-9b9e-6d4d31eb584d",
+		"notifications": "538bd479-17c7-4af5-a940-55bcd6d2d2e0",
+		"real": "7da46e44-9542-4633-83d4-a9bcd045c06b",
+		"heldout": "6edf1f69-e90a-46b5-982b-6ac0c60571c9"
 	}
 ]
