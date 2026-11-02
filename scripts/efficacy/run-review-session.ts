@@ -23,6 +23,7 @@ const ROUNDS = [
 	{ name: "real", spec: "review-real-regression", nullRound: false },
 	{ name: "heldout", spec: "review-held-out-regression", nullRound: false },
 	{ name: "heldout2", spec: "review-held-out-mjs-regression", nullRound: false },
+	{ name: "heldout3", spec: "review-held-out-crawl-regression", nullRound: false },
 	{ name: "null", spec: "review-seeded-defects", nullRound: true },
 ];
 

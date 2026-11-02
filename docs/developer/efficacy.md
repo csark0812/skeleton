@@ -403,6 +403,16 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 
 
+### User-visible effects (pilot `effects`, then study `final2`)
+
+**Change.** "Name each consequence by what a user, command, or check now does differently, such as what now passes, fails, or slows down, not only by what the code changed." Nothing else changes.
+
+**Third held-out fixture.** `heldout3` reverts `337d30a`, "fix(audit): prune scan.exclude trees during coverage crawl". It was chosen by the same fixed rule, which excluded the review-proof, `validate/changed.ts`, and `review-coverage.ts` code already used. No later fix qualified, so the rule fell back to fixes from before `review-deps` existed. Its bundle has stated intent and no documents section. The answer key: the code-line regression at `collect.ts`, where audits now crawl every excluded tree and slow down or hang on large repositories, and the deleted readdir-spy test. Its legacy `.skeleton/config.yaml` is kept as it was. It is not run until `final2`.
+
+**Pilot, frozen before the run.** `--rounds=payments,notifications,real,heldout,heldout2 --study=effects`. Every seeded defect must be found in at least 9 of 10 runs, and every recall difference must be above zero. `heldout2` is in the pilot because it is no longer held out.
+
+**Confirmation, frozen before any run.** It runs only if the pilot passes, with the same contract. Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,heldout3,null --study=final2`. Session 2 is the same without `null`. The bars are the ones frozen for `final`: at least 19 of 20 pooled for every seeded defect on every fixture, a recall difference whose 95% interval is above zero on every fixture, and a null round within 10 points of zero.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
@@ -483,7 +493,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All seventeen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All eighteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -527,7 +537,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover twenty-three tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover twenty-four tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -539,10 +549,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All twenty-three agent and judge tests, using the default OpenAI agent.
+# All twenty-four agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the seventeen paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the eighteen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 

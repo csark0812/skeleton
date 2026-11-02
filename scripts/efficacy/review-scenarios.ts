@@ -1,6 +1,11 @@
 import type { Workspace } from "@post-print/agent-test";
 import { seedReviewNotifications } from "./review-notifications.ts";
-import { seedReviewHeldOut, seedReviewHeldOutTwo, seedReviewReal } from "./review-real.ts";
+import {
+	seedReviewHeldOut,
+	seedReviewHeldOutThree,
+	seedReviewHeldOutTwo,
+	seedReviewReal,
+} from "./review-real.ts";
 import { seedReviewChange } from "./workspace.ts";
 
 export type ReviewArm = "control" | "skeleton";
@@ -186,6 +191,28 @@ export const REVIEW_SCENARIOS = {
 				failure:
 					"the tests that kept production .mjs as a coverage candidate are deleted from src/audit/__tests__/review-coverage.test.ts or src/__tests__/cli/validate-hook.test.ts.",
 				foundInLine: (line) => /review-coverage\.test\.ts|validate-hook\.test\.ts/.test(line),
+			},
+		},
+	},
+	/** A fourth real fix, held out from all tuning. It predates review-deps, so no document is listed. */
+	heldout3: {
+		name: "heldout3",
+		fixture: "review-real",
+		seed: seedReviewHeldOutThree,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"src/audit/core/collect.ts no longer passes the excludes to the file crawl, so audits walk every excluded tree, such as large vendor directories, before filtering, and become slow or hang on large repositories. Count only a finding at src/audit/core/collect.ts, as important or decision.",
+				foundInLine: (line) =>
+					line.includes("src/audit/core/collect.ts") &&
+					/(crawl|walk|readdir|travers|slow|perf|hang|large|vendor|exclud)/i.test(line),
+			},
+			testsRemoved: {
+				failure:
+					"src/audit/__tests__/collect.test.ts loses the regression test that checked large excluded trees are not crawled.",
+				foundInLine: (line) => line.includes("collect.test.ts"),
 			},
 		},
 	},

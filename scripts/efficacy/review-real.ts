@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Workspace } from "@post-print/agent-test";
@@ -62,6 +62,7 @@ function removeSkeletonMetadata(root: string): void {
 /** The snapshot predates the removal of `[reviewProof]`, which the packed package now rejects. */
 function adoptCurrentConfigSchema(root: string): void {
 	const path = join(root, "skeleton.toml");
+	if (!existsSync(path)) return;
 	writeFileSync(path, readFileSync(path, "utf8").replace(/\[reviewProof\]\nmode = "hash"\n\n/, ""));
 }
 
@@ -90,6 +91,19 @@ const MJS_COVERAGE_REGRESSION: RealRegression = {
 
 Adds **/*.mjs to the built-in review-coverage excludes, so ESM files do not need an
 owning document by default.`,
+};
+
+/**
+ * The file crawl stopped walking excluded trees. Held out from all contract tuning, chosen by the
+ * same rule after \`heldout2\` shaped a finding. It predates review-deps, so no document is listed.
+ */
+const EXCLUDED_CRAWL_REGRESSION: RealRegression = {
+	fixCommit: "337d30a",
+	fixPaths: ["src/audit/core/collect.ts", "src/audit/__tests__/collect.test.ts"],
+	message: `Filter excluded paths after matching
+
+Lets the file crawl match everything and drops excluded paths afterwards, so one
+filter decides what is skipped.`,
 };
 
 /** Extract the repository at a real fix, then commit that fix's reversal on a feature branch. */
@@ -121,3 +135,4 @@ function seedRealRegression(regression: RealRegression) {
 export const seedReviewReal = seedRealRegression(PACKAGE_VERSION_REGRESSION);
 export const seedReviewHeldOut = seedRealRegression(UTC_MIDNIGHT_REGRESSION);
 export const seedReviewHeldOutTwo = seedRealRegression(MJS_COVERAGE_REGRESSION);
+export const seedReviewHeldOutThree = seedRealRegression(EXCLUDED_CRAWL_REGRESSION);
