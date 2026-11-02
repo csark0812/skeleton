@@ -66,7 +66,7 @@
 		"typescript": "6.0.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
+		"@biomejs/biome": "2.5.13",
 		"@cursor/sdk": "^1.0.40",
 		"@post-print/agent-harness": "3.0.0",
 		"@post-print/agent-test": "3.0.0",
