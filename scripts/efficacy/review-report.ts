@@ -228,12 +228,25 @@ function combineRounds(first: LoadedRound, second: LoadedRound): LoadedRound {
 
 type SessionManifest = {
 	confirmatory: boolean;
+	/** A study runs only the rounds it needs and is scored on its own, with `--study`. */
+	study?: string;
 	day: string;
 	payments: string;
 	notifications: string;
 	real: string;
 	null: string;
+	heldout?: string;
+	heldout2?: string;
+	heldout3?: string;
 }[];
+const FIXTURE_ROUNDS = [
+	"payments",
+	"notifications",
+	"real",
+	"heldout",
+	"heldout2",
+	"heldout3",
+] as const;
 
 function loadSession(entry: SessionManifest[number]): SessionResult {
 	return {
@@ -250,10 +263,36 @@ function loadSession(entry: SessionManifest[number]): SessionResult {
 function printSessions(path: string): void {
 	const manifest: SessionManifest = JSON.parse(readFileSync(path, "utf8"));
 	for (const confirmatory of [false, true]) {
-		const entries = manifest.filter((entry) => entry.confirmatory === confirmatory);
+		const entries = manifest.filter(
+			(entry) => entry.confirmatory === confirmatory && entry.study === undefined,
+		);
 		if (entries.length < 2) continue;
 		console.log(confirmatory ? "\nConfirmatory sessions:" : "\nExploratory sessions:");
 		console.log(JSON.stringify(sessionReport(entries.map(loadSession)), null, "\t"));
+	}
+}
+
+/** Per fixture a study ran: each session's recall difference, then every pair pooled, by defect. */
+function printStudy(study: string, path: string): void {
+	const manifest: SessionManifest = JSON.parse(readFileSync(path, "utf8"));
+	const entries = manifest.filter((entry) => entry.study === study);
+	if (entries.length === 0) throw new Error(`No sessions recorded for study ${study}.`);
+	for (const name of [...FIXTURE_ROUNDS, "null"] as const) {
+		const executions = entries.flatMap((entry) => (entry[name] ? [entry[name]] : []));
+		if (executions.length === 0) continue;
+		const scenario = REVIEW_SCENARIOS[name === "null" ? "payments" : name];
+		const rounds = executions.map((execution) => loadExecution(execution, scenario).fixture);
+		const pooled = { ...rounds[0], pairs: rounds.flatMap((round) => round.pairs) } as FixtureResult;
+		console.log(
+			`\n${name}: ${rounds.length} sessions, ${pooled.pairs.length} pairs, recall ${interval(recallDifference([pooled]), percent)}, tokens ${interval(tokenRatio([pooled]), ratio)}`,
+		);
+		console.log(
+			`  per session: ${rounds.map((round) => percent(recallDifference([round]).estimate)).join(", ")}`,
+		);
+		for (const defect of defectComparison(pooled))
+			console.log(
+				`  ${defect.defect}: Skeleton ${defect.skeleton}, bare diff ${defect.baseline}, p=${defect.p.toFixed(4)}`,
+			);
 	}
 }
 
@@ -301,8 +340,9 @@ function compareRounds(): void {
 }
 
 function main(): void {
-	if (process.argv[2] === "--sessions")
-		printSessions(process.argv[3] ?? "agent-suites/seeds/review-sessions.json");
+	const manifest = "agent-suites/seeds/review-sessions.json";
+	if (process.argv[2] === "--sessions") printSessions(process.argv[3] ?? manifest);
+	else if (process.argv[2] === "--study") printStudy(process.argv[3] ?? "", manifest);
 	else compareRounds();
 }
 

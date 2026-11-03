@@ -1,6 +1,11 @@
 import type { Workspace } from "@post-print/agent-test";
 import { seedReviewNotifications } from "./review-notifications.ts";
-import { seedReviewReal } from "./review-real.ts";
+import {
+	seedReviewHeldOut,
+	seedReviewHeldOutThree,
+	seedReviewHeldOutTwo,
+	seedReviewReal,
+} from "./review-real.ts";
 import { seedReviewChange } from "./workspace.ts";
 
 export type ReviewArm = "control" | "skeleton";
@@ -113,9 +118,11 @@ export const REVIEW_SCENARIOS = {
 		defects: {
 			regression: {
 				failure:
-					"src/audit/core/review-proof.ts now hashes package.json byte for byte, so a release version bump invalidates the review of every document that depends on package.json.",
+					"src/audit/core/review-proof.ts now hashes package.json byte for byte, so a release version bump invalidates the review of every document that depends on package.json. Count only a finding at src/audit/core/review-proof.ts, as important or decision. A finding only at a document does not count, even when it describes this consequence.",
 				foundInLine: (line) =>
-					/package\.json|manifest/i.test(line) && /version|release/i.test(line),
+					line.includes("src/audit/core/review-proof.ts") &&
+					/package\.json|manifest/i.test(line) &&
+					/version|release/i.test(line),
 			},
 			legacyProof: {
 				failure:
@@ -128,6 +135,84 @@ export const REVIEW_SCENARIOS = {
 					"a document such as docs/developer/audit.md or docs/developer/config.md still says package.json is compared without its version. The report must name the document.",
 				foundInLine: (line) =>
 					/docs\/|README\.md|operations\.md/.test(line) && /package\.json|version/i.test(line),
+			},
+		},
+	},
+	/** A second real fix, held out from all contract tuning. Its answer key was written from the fix. */
+	heldout: {
+		name: "heldout",
+		fixture: "review-real",
+		seed: seedReviewHeldOut,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"under --base, validate changed compares last-reviewed with today's UTC date instead of the date of the latest commit in the range that touched the dependency, so the same commit range passes before 00:00 UTC and fails after it with no source change. Count only a finding at src/validate/changed.ts or src/validate/git-diff.ts, as important or decision. A finding only at a document does not count, even when it describes this consequence.",
+				foundInLine: (line) =>
+					/src\/validate\/(changed|git-diff)\.ts/.test(line) &&
+					/(utc|today|midnight|clock|date|day)/i.test(line) &&
+					/(--base|base|range|ci|determin|re-?run)/i.test(line),
+			},
+			staleDoc: {
+				failure:
+					"a document such as docs/developer/validation.md, docs/developer/troubleshooting.md, or docs/developer/config.md still says that under --base the review date only has to be on or after the latest commit in the range, so the same range gives the same result on any day. The report must name the document.",
+				foundInLine: (line) =>
+					/docs\/|README\.md|operations\.md/.test(line) &&
+					/(--base|base|commit|range|utc|day)/i.test(line),
+			},
+			testsRemoved: {
+				failure:
+					"src/__tests__/cli/validate-hook.test.ts loses the tests that pinned --base results across UTC midnight.",
+				foundInLine: (line) => line.includes("validate-hook.test.ts"),
+			},
+		},
+	},
+	/** A third real fix, held out from all tuning. Its answer key was written from the fix. */
+	heldout2: {
+		name: "heldout2",
+		fixture: "review-real",
+		seed: seedReviewHeldOutTwo,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"src/audit/core/review-coverage.ts adds **/*.mjs to the default review-coverage excludes, so production .mjs files drop out of review coverage by default and an uncovered .mjs change passes validate changed. Count a finding at src/audit/core/review-coverage.ts, as important or decision, that says production or default .mjs files are now excluded from coverage. It does not have to spell out the validate changed effect. A finding only about an explicit include no longer covering .mjs does not count.",
+				foundInLine: (line) =>
+					line.includes("src/audit/core/review-coverage.ts") && /\.?mjs/i.test(line),
+			},
+			staleDoc: {
+				failure:
+					"docs/developer/config.md still says production .mjs stays in the coverage set and that the built-in excludes only drop tests, fixtures, templates, and .skeleton/plugins/**. The report must name the document.",
+				foundInLine: (line) => line.includes("docs/developer/config.md"),
+			},
+			testsRemoved: {
+				failure:
+					"the tests that kept production .mjs as a coverage candidate are deleted from src/audit/__tests__/review-coverage.test.ts or src/__tests__/cli/validate-hook.test.ts.",
+				foundInLine: (line) => /review-coverage\.test\.ts|validate-hook\.test\.ts/.test(line),
+			},
+		},
+	},
+	/** A fourth real fix, held out from all tuning. It predates review-deps, so no document is listed. */
+	heldout3: {
+		name: "heldout3",
+		fixture: "review-real",
+		seed: seedReviewHeldOutThree,
+		floor: null,
+		decoyPath: null,
+		defects: {
+			regression: {
+				failure:
+					"src/audit/core/collect.ts no longer passes the excludes to the file crawl, so audits walk every excluded tree, such as large vendor directories, before filtering, and become slow or hang on large repositories. Count only a finding at src/audit/core/collect.ts, as important or decision.",
+				foundInLine: (line) =>
+					line.includes("src/audit/core/collect.ts") &&
+					/(crawl|walk|readdir|travers|slow|perf|hang|large|vendor|exclud)/i.test(line),
+			},
+			testsRemoved: {
+				failure:
+					"src/audit/__tests__/collect.test.ts loses the regression test that checked large excluded trees are not crawled.",
+				foundInLine: (line) => line.includes("collect.test.ts"),
 			},
 		},
 	},

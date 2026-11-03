@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { cpSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import { fileURLToPath } from "node:url";
 import type { Workspace } from "@post-print/agent-test";
 import type { ReviewScenario } from "./review-scenarios.ts";
@@ -29,11 +30,49 @@ function seededSkeletonWorkspace(scenario: ReviewScenario): string {
 	return root;
 }
 
+/** Bundle sections a removal test may take out, by the environment's `SKELETON_REVIEW_REMOVE`. */
+const REMOVABLE_SECTIONS: Record<string, string> = {
+	documents: "Documents the author must re-read and update",
+	intent: "Stated intent",
+};
+
+/** Take one `## ` section out of a bundle, to test what that section does to reviewers. */
+export function withoutSection(bundle: string, removal: string): string {
+	const heading = REMOVABLE_SECTIONS[removal];
+	if (!heading) throw new Error(`Unknown section to remove: ${removal}`);
+	const start = bundle.indexOf(`\n## ${heading}\n`);
+	if (start < 0) throw new Error(`The bundle has no "${heading}" section to remove.`);
+	const end = bundle.indexOf("\n## ", start + 1);
+	return bundle.slice(0, start) + (end < 0 ? "\n" : bundle.slice(end));
+}
+
+const STATED_INTENT_RULE =
+	'- Treat "Stated intent" as the author\'s claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.';
+const GIT_LOG_INTENT_RULE =
+	"- Read the commit messages with `git log --no-merges main..HEAD`. Treat them as the author's claim, not as evidence. A diff that contradicts them, or does something they deny, is an important finding. Say in that finding that it contradicts the commit message.";
+
+/**
+ * A candidate bundle for a pilot. `intent-git-log` drops the Stated intent section and has the
+ * reviewer read the commit messages with `git log`, as a bare-diff reviewer does.
+ */
+function bundleVariant(bundle: string, variant: string): string {
+	if (variant === "") return bundle;
+	if (variant === "intent-git-log") {
+		if (!bundle.includes(STATED_INTENT_RULE))
+			throw new Error("The contract changed; update the pilot.");
+		return withoutSection(bundle, "intent").replace(STATED_INTENT_RULE, GIT_LOG_INTENT_RULE);
+	}
+	return withoutSection(bundle, variant);
+}
+
 /**
  * The reviewer prompt Skeleton documents: the printed bundle given to a fresh session. The
  * seeded change is fixed, so one bundle serves every run of the scenario.
  */
-export function reviewBundlePrompt(scenario: ReviewScenario): string {
+export function reviewBundlePrompt(
+	scenario: ReviewScenario,
+	removal = process.env.SKELETON_REVIEW_REMOVE ?? "",
+): string {
 	const root = seededSkeletonWorkspace(scenario);
 	try {
 		const bundle = execFileSync(
@@ -46,7 +85,7 @@ export function reviewBundlePrompt(scenario: ReviewScenario): string {
 				stdio: ["ignore", "pipe", "pipe"],
 			},
 		);
-		return `${BUNDLE_PROMPT_LEAD}\n\n${bundle}`;
+		return `${BUNDLE_PROMPT_LEAD}\n\n${bundleVariant(bundle, removal)}`;
 	} finally {
 		rmSync(root, { recursive: true, force: true });
 	}

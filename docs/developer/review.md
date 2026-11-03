@@ -13,7 +13,7 @@ skeleton review prepare                    # working tree against HEAD, plus unt
 skeleton review prepare --staged           # the index
 skeleton review prepare --base origin/main # a branch range
 skeleton review prepare --base origin/main --json
-skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command
+skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command, once per reviewer
 skeleton review prepare --base origin/main --paths=src/billing/**   # review one area
 ```
 
@@ -21,7 +21,7 @@ skeleton review prepare --base origin/main --paths=src/billing/**   # review one
 
 The bundle has these sections, in order:
 
-1. **Reviewer contract.** The output format and rules. Each finding is one line: `<severity>\t<file>:<line>\t<bug class>\t<what breaks and why>`. The severities are `important` (must be fixed before merge), `nit` (optional), and `pre-existing` (not introduced by this diff; never blocks the author). The reviewer cites exact lines, names the bug class so the author can fix every instance, reports style only when a review guide asks for it, and does not re-report resolved findings. It treats the bundle as replacing `skeleton context` and the diff commands, and cites a listed document that the diff makes wrong. It ends with a count line, or `no issues`.
+1. **Reviewer contract.** The output format and rules. Each finding is one line: `<severity>\t<file>:<line>\t<bug class>\t<what breaks and why>`. The severities are `important` (must be fixed before merge), `decision` (the diff changes behavior a document promises; blocks until the author confirms the user asked for it or a person decides), `nit` (optional), and `pre-existing` (not introduced by this diff; never blocks the author). The reviewer cites exact lines, names the bug class so the author can fix every instance, reports style only when a review guide asks for it, and does not re-report resolved findings. It treats the bundle as replacing `skeleton context` and the diff commands, and reports a change to documented behavior as a `decision` finding at the code line, never the document's line, citing the document, without saying which side is wrong, even when the stated intent announces the change, and it reports the announced change itself before any side effect it causes. Each distinct consequence of a change gets its own finding, named as a before and after: what a user, command, or check did before the diff and what it does now. Before the findings it writes a `checked:` list with every changed file and every review-guide rule once, plus a `saved before` line per behavior change for data written under the old behavior, and every line that changes behavior needs a finding or a reason it is safe, including data saved under the old behavior; a deleted or weakened test always gets its own finding. It ends with a count line, or `no issues`.
 2. **Human review required.** Shown only when a changed path, including a deleted one, matches `[review] humanPaths`. An agent review does not count for them. The same list is printed on stderr.
 3. **Documents the author must re-read and update.** Impacted documents (other than `REVIEW.md` guides) whose declared dependencies changed in the scope while they did not, with the changed paths ([keeping documents current](doc-system.md#keeping-documents-current)). Deleted paths are not considered.
 4. **Stated intent.** Shown only with `--base`: the subject and body of each non-merge commit in `<base>..HEAD`, oldest first. The reviewer treats them as the author's claim, not as evidence, and reports a diff that contradicts them. The index and the working tree have no commit message to state.
@@ -56,8 +56,15 @@ Keep a guide short: what failure means in this area, paths to ignore, and what n
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**", "src/billing/**", "scripts/release/**"]
 command = "./scripts/review-agent.sh"   # optional: any command that reads the bundle on stdin
+reviewers = 2                           # optional: independent reviews --run starts in parallel (1 to 5)
 omitFromDiff = ["src/api/schema/**"]    # optional: more paths to list by name instead of in the diff
 ```
+
+## Two reviews by default
+
+`--run` starts `reviewers` copies of `command` at once, each with the same bundle on stdin and no view of the others. It prints each report under `review <n> of <total>:` and exits with the first nonzero status. The packaged skill does the same without `--run`: it gives the bundle to two new sessions or subagents and acts on every finding from either; a finding both report counts once.
+
+Two is the default because the remaining misses are random, not a blind spot. One review found 98.0% of seeded defects, and its misses fell on defects that other runs of the same fixture found every time. Two merged reviews found 99.1% at 1.74 times the tokens of one bare-diff review, so the token saving of a single review becomes a cost. Set `reviewers = 1` to take that trade the other way. The numbers are in [efficacy](efficacy.md).
 
 The risk tier comes from the changed paths, never from who wrote the change. A change that touches no human path can merge with an agent review and green checks. A change that touches one needs a person. `review prepare` names those paths; enforce the requirement with CODEOWNERS and branch protection, because only the forge can tell whether a person approved.
 

@@ -84,6 +84,25 @@ describe("review prepare", () => {
 		expect(bundle.humanReviewRequired).toEqual([]);
 		const text = formatReviewBundle(bundle);
 		expect(text).toContain("## Reviewer contract");
+		// A change to documented behavior is the author's call, so the reviewer marks it, not judges it.
+		expect(text).toContain(
+			"- decision: the diff changes behavior that a document promises, and only the author knows whether that was meant.",
+		);
+		expect(text).toContain('"findings: <n> important, <n> decision, <n> nit, <n> pre-existing"');
+		// Reviewers who stopped after the headline findings skipped files and half of guide rules.
+		expect(text).toContain(
+			"List every changed file once, including tests, and every rule in every review guide once.",
+		);
+		expect(text).toContain('Write one "saved before" line for each behavior change');
+		expect(text).toContain("A test the diff deletes or weakens always gets its own finding.");
+		expect(text).toContain(
+			"This includes a change the stated intent announces: matching the stated intent does not settle a conflict with a document.",
+		);
+		expect(text).toContain(
+			"Report the announced change itself as its own finding, before any side effect it causes.",
+		);
+		expect(text).toContain("Give each distinct consequence of a change its own finding");
+		expect(text).toContain("Name each consequence as a before and after");
 		expect(text).toContain("A retry change must keep payments idempotent.");
 		expect(text).not.toContain("Sessions must expire.");
 		expect(text).toContain("Run the focused test.");
@@ -363,12 +382,65 @@ describe("review prepare", () => {
 		expect(bundle.diff).not.toContain("ttl = 1");
 	});
 
-	it("hands the bundle to a reviewer command on stdin and returns its status", () => {
+	it("hands the bundle to a reviewer command on stdin and returns its status", async () => {
 		const root = makeRepo();
 		const out = join(root, "received.txt");
 		expect(
-			runReviewCommand({ root, command: `cat > "${out}"; exit 3`, bundle: "bundle text" }),
+			await runReviewCommand({
+				root,
+				command: `cat > "${out}"; exit 3`,
+				bundle: "bundle text",
+				reviewers: 1,
+			}),
 		).toBe(3);
-		expect(Bun.file(out).text()).resolves.toBe("bundle text");
+		expect(await Bun.file(out).text()).toBe("bundle text");
+	});
+
+	it("starts two independent reviewers by default and prints each report", async () => {
+		const root = makeRepo();
+		const dir = join(root, "reviews");
+		mkdirSync(dir);
+		const printed: string[] = [];
+		const write = process.stdout.write;
+		const log = console.log;
+		process.stdout.write = ((chunk: string) => printed.push(chunk) > 0) as typeof write;
+		console.log = (line: string) => printed.push(`${line}\n`);
+		try {
+			const status = await runReviewCommand({
+				root,
+				command: `out=$(mktemp "${dir}/r.XXXX"); cat > "$out"; echo "important from $out"`,
+				bundle: "bundle text",
+			});
+			expect(status).toBe(0);
+		} finally {
+			process.stdout.write = write;
+			console.log = log;
+		}
+		const received = [...new Bun.Glob("r.*").scanSync(dir)];
+		expect(received).toHaveLength(2);
+		for (const file of received) expect(await Bun.file(join(dir, file)).text()).toBe("bundle text");
+		const text = printed.join("");
+		expect(text).toContain("review 1 of 2:\nimportant from");
+		expect(text).toContain("review 2 of 2:\nimportant from");
+	});
+
+	it("reports a failing reviewer even when the other succeeds", async () => {
+		const root = makeRepo();
+		const marker = join(root, "first");
+		const write = process.stdout.write;
+		const log = console.log;
+		process.stdout.write = (() => true) as typeof write;
+		console.log = () => {};
+		try {
+			const status = await runReviewCommand({
+				root,
+				command: `if mkdir "${marker}" 2>/dev/null; then exit 0; else exit 4; fi`,
+				bundle: "bundle text",
+			});
+			expect(status).toBe(4);
+		} finally {
+			process.stdout.write = write;
+			console.log = log;
+		}
 	});
 });

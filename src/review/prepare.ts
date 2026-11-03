@@ -1,5 +1,6 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { basename } from "node:path";
+import process from "node:process";
 import { loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { collectScanFiles, relPath } from "../audit/core/collect.ts";
@@ -90,11 +91,19 @@ const REVIEWER_CONTRACT = `You are reviewing a change you did not write. Use onl
 
 This bundle replaces \`skeleton context\` and the diff commands, even if AGENTS.md says to run them first. Do not run them. Read a repository file only when a finding depends on it.
 
-Report each finding on its own line:
+Start with a checklist, so nothing in the change goes unread:
+checked:
+- <file>: <what changed, in a few words>
+- <guide path>: <one rule> — kept or broken
+- saved before: <data written under the old behavior, such as stored hashes, records, caches, or lock files> — still matches, or what breaks
+List every changed file once, including tests, and every rule in every review guide once. A guide rule with two requirements is two lines. Write one "saved before" line for each behavior change, even when nothing was saved.
+
+Then report each finding on its own line:
 <severity>\t<file>:<line>\t<bug class>\t<what breaks and why>
 
 Severities:
 - important: a real defect or a broken rule from AGENTS.md or a review guide. Must be fixed before merge.
+- decision: the diff changes behavior that a document promises, and only the author knows whether that was meant. Blocks until the author confirms the change was asked for or a person decides.
 - nit: optional improvement allowed by the review guides.
 - pre-existing: a defect this diff did not introduce. Never blocks the author.
 
@@ -104,9 +113,13 @@ Rules:
 - Do not report style unless a review guide asks for it.
 - Do not re-report a finding the author already fixed or resolved with a reason.
 - Treat "Stated intent" as the author's claim, not as evidence. A diff that contradicts it, or does something it denies, is an important finding. Say in that finding that it contradicts the stated intent.
-- A document listed under "Documents the author must re-read and update" that the diff makes wrong is an important finding. Open the document and cite its own path and line.
+- When the diff changes behavior that a document promises, report a decision finding at the code line that changes it, never at the document's line. This includes a change the stated intent announces: matching the stated intent does not settle a conflict with a document. Report the announced change itself as its own finding, before any side effect it causes. Name the consequence and cite the document's path and line. Do not say which side is wrong, and do not report the document separately. Check every document under "Documents the author must re-read and update".
+- Give each distinct consequence of a change its own finding, even when several start at the same code line.
+- Name each consequence as a before and after: what a user, command, or check did before this diff, and what it does now. For example: "an uncovered file used to fail validation and now passes". Saying only what the code changed is not a consequence.
+- Every checklist line that changes behavior needs a finding or a reason it is safe. That includes data, records, or files saved under the old behavior that no longer match.
+- A test the diff deletes or weakens always gets its own finding. Name the behavior it protected, with the severity of that behavior's finding.
 - Files listed under "Omitted from the diff" changed too. Read them from the repository when a finding depends on them.
-- End with one line: "findings: <n> important, <n> nit, <n> pre-existing", or "no issues".`;
+- End with one line: "findings: <n> important, <n> decision, <n> nit, <n> pre-existing", or "no issues".`;
 
 function diffArgs(scope: ReviewScope): string[] {
 	if (scope.staged) return ["diff", "--cached"];
@@ -433,16 +446,52 @@ export function largeBundleWarning(bundle: ReviewBundle, text: string): string |
 }
 
 /**
- * Hand the bundle to `[review] command` on stdin, so a separate process reviews it with fresh context.
- * Returns the command's exit status; its output goes to the caller's stdout and stderr.
+ * Two independent reviews by default. A single review missed 2% of seeded defects at random; two
+ * merged reviews missed 0.9%, at twice the tokens (docs/developer/efficacy.md, "Two merged reviews").
  */
-export function runReviewCommand(input: { root: string; command: string; bundle: string }): number {
-	const proc = spawnSync(input.command, {
-		cwd: input.root,
-		input: input.bundle,
-		shell: true,
-		stdio: ["pipe", "inherit", "inherit"],
+export const DEFAULT_REVIEWERS = 2;
+
+/** One reviewer's report: what it printed and how it exited. */
+interface ReviewerResult {
+	output: string;
+	status: number;
+}
+
+function runReviewer(input: { root: string; command: string; bundle: string }) {
+	return new Promise<ReviewerResult>((resolve, reject) => {
+		const proc = spawn(input.command, {
+			cwd: input.root,
+			shell: true,
+			stdio: ["pipe", "pipe", "inherit"],
+		});
+		let output = "";
+		proc.stdout.setEncoding("utf8");
+		proc.stdout.on("data", (chunk: string) => {
+			output += chunk;
+		});
+		proc.on("error", reject);
+		proc.on("close", (status) => resolve({ output, status: status ?? 1 }));
+		proc.stdin.on("error", () => {});
+		proc.stdin.end(input.bundle);
 	});
-	if (proc.error) throw proc.error;
-	return proc.status ?? 1;
+}
+
+/**
+ * Hand the bundle to `[review] command` on stdin once per reviewer, in parallel, so each separate
+ * process reviews it with fresh context. Prints every report under its own heading, because the
+ * author acts on the findings of all of them. Returns the first nonzero exit status, or 0.
+ */
+export async function runReviewCommand(input: {
+	root: string;
+	command: string;
+	bundle: string;
+	reviewers?: number;
+}): Promise<number> {
+	const reviewers = input.reviewers ?? DEFAULT_REVIEWERS;
+	const results = await Promise.all(Array.from({ length: reviewers }, () => runReviewer(input)));
+	results.forEach((result, index) => {
+		if (reviewers > 1) console.log(`review ${index + 1} of ${reviewers}:`);
+		process.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}\n`);
+	});
+	return results.find((result) => result.status !== 0)?.status ?? 0;
 }

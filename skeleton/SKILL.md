@@ -27,7 +27,7 @@ When you are about to open a pull request, or the user asks for a review, run `n
 
 1. Re-read each listed document whose declared dependencies changed, and update it in the same branch. If it is still correct, say so in the pull request.
 2. If the output names human-review paths, stop and tell the user which paths need a person. Do not approve them yourself.
-3. Get a review with fresh context: use `--run` when `[review] command` is set; otherwise give the printed bundle to a new session or subagent. Fix every `important` finding. Resolve the others with a one-line reason.
+3. Get two independent reviews with fresh context: use `--run` when `[review] command` is set, which starts `[review] reviewers` reviews (default 2); otherwise give the printed bundle, as its prompt, to two new sessions or subagents in parallel. Neither reviewer sees the other's report. Act on every finding from either review; a finding both report counts once. Fix every `important` finding. For a `decision` finding, keep the change and update the cited document only if the user's request explicitly asked for that behavior change; otherwise stop and ask the user, quoting the consequence. Without a user request to check, as in CI or `--run`, always ask. Resolve the others with a one-line reason.
 4. Run at most three review cycles. After the first, review only the new diff (`--base <last reviewed commit>`). Fix a named bug class everywhere it occurs. Do not re-report resolved findings. After three cycles, stop and ask the user to re-evaluate the approach.
 
 ## Skeleton operations

@@ -126,7 +126,7 @@ skeleton validate changed [--staged | --base <ref>] [paths…]
 skeleton review prepare [--staged | --base <ref>] [--paths=a,b] [--json] [--run]
 ```
 
-**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. Give the bundle to the reviewer as its prompt, with `--run` or a new session. Do not have the reviewer run the command itself. When the bundle arrived as command output in tests, reviewers often ignored its contract and redid the review from a raw diff at about three times the tokens. See [code review](docs/developer/review.md).
+**Review prepare** prints one self-contained bundle for a reviewer with fresh context: a reviewer contract, paths that need a person (`[review] humanPaths`), documents to re-read and update, matching `REVIEW.md` guides, `AGENTS.md` without its agent context guide, and the diff. Any harness or CI step runs the review; Skeleton runs no model and approves nothing. Give the bundle as the prompt to two independent reviewers, with `--run` or two new sessions, and act on every finding from either: in tests one review missed 2% of seeded defects and two missed 0.9%, at twice the tokens. Do not have the reviewer run the command itself. When the bundle arrived as command output in tests, reviewers often ignored its contract and redid the review from a raw diff at about three times the tokens. See [code review](docs/developer/review.md).
 
 **Validate changed** routes git diffs to the right audit:
 

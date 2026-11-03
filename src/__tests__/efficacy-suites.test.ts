@@ -48,7 +48,11 @@ import {
 	textChecks,
 } from "../../scripts/efficacy/review-detection.ts";
 import { seedReviewNotifications } from "../../scripts/efficacy/review-notifications.ts";
-import { seedReviewReal } from "../../scripts/efficacy/review-real.ts";
+import {
+	seedReviewHeldOut,
+	seedReviewHeldOutTwo,
+	seedReviewReal,
+} from "../../scripts/efficacy/review-real.ts";
 import { REVIEW_SCENARIOS } from "../../scripts/efficacy/review-scenarios.ts";
 import { verifyCode } from "../../scripts/efficacy/verification.ts";
 import { seedReviewChange } from "../../scripts/efficacy/workspace.ts";
@@ -266,6 +270,30 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			guideRule: true,
 			generic: false,
 			intentMismatch: false,
+		});
+	});
+
+	it("reads defects only from finding lines, never from the checklist", () => {
+		const report =
+			"checked:\n- src/notify/quiet_hours.py: changes >= to >\nimportant\tdocs/notify.md:3\tstale\tSays 24 hours.";
+		expect(textChecks(REVIEW_SCENARIOS.notifications, report)).toMatchObject({
+			generic: false,
+			staleDoc: true,
+		});
+	});
+
+	it("counts the real regression only at the code line, as important or decision", () => {
+		const atDocument =
+			"important\tREADME.md:61\tstale documentation\tA package.json version bump now invalidates review proof.";
+		const atCode =
+			"decision\tsrc/audit/core/review-proof.ts:347\tdocumented behavior change\tA package.json release version bump now invalidates every review; README.md:61 promises it does not.";
+		expect(textChecks(REVIEW_SCENARIOS.real, atDocument)).toMatchObject({
+			regression: false,
+			staleDoc: true,
+		});
+		expect(textChecks(REVIEW_SCENARIOS.real, atCode)).toMatchObject({
+			regression: true,
+			staleDoc: true,
 		});
 	});
 
@@ -521,6 +549,77 @@ describe("clear comparisons of work with and without Skeleton", () => {
 		expect(existsSync(join(root, "control/skeleton.toml"))).toBe(false);
 	});
 
+	it("reverts the second held-out fix and keeps its stale document out of the bundle's list", () => {
+		const temp = mkdtempSync(join(tmpdir(), "skeleton-review-heldout2-"));
+		const git = (...args: string[]) => execFileSync("git", args, { cwd: temp, encoding: "utf8" });
+		try {
+			cpSync(join(ROOT, "tests/fixtures/efficacy/review-real/skeleton"), temp, { recursive: true });
+			git("init", "--quiet", "-b", "main");
+			git("config", "user.email", "fixture@example.com");
+			git("config", "user.name", "Fixture");
+			git("config", "gc.auto", "0");
+			writeFileSync(join(temp, ".gitignore"), "node_modules\n");
+			git("add", "-A");
+			git("commit", "--quiet", "-m", "fixture");
+			seedReviewHeldOutTwo({ path: temp } as Workspace, "skeleton");
+			expect(git("diff", "main...HEAD", "--", "src/audit/core/review-coverage.ts")).toContain(
+				'+\t"**/*.mjs",',
+			);
+			expect(readFileSync(join(temp, "docs/developer/config.md"), "utf8")).toContain(
+				"Production `.mjs` stays in the coverage set.",
+			);
+			const result = spawnSync(
+				"npx",
+				["--no-install", "skeleton", "review", "prepare", "--base", "main"],
+				{ cwd: temp, encoding: "utf8" },
+			);
+			expect(result.status).toBe(0);
+			expect(result.stdout).toContain(
+				"- docs/developer/audit.md (changed: src/audit/core/review-coverage.ts)",
+			);
+			expect(result.stdout).not.toContain("- docs/developer/config.md (changed:");
+		} finally {
+			rmSync(temp, { recursive: true, force: true });
+		}
+	}, 60_000);
+
+	it("reverts the held-out fix and lists the documents that promise the fixed behavior", () => {
+		for (const arm of ["control", "skeleton"] as const) {
+			const temp = mkdtempSync(join(tmpdir(), `skeleton-review-heldout-${arm}-`));
+			const git = (...args: string[]) => execFileSync("git", args, { cwd: temp, encoding: "utf8" });
+			try {
+				cpSync(join(ROOT, "tests/fixtures/efficacy/review-real", arm), temp, { recursive: true });
+				git("init", "--quiet", "-b", "main");
+				git("config", "user.email", "fixture@example.com");
+				git("config", "user.name", "Fixture");
+				git("config", "gc.auto", "0");
+				writeFileSync(join(temp, ".gitignore"), "node_modules\n");
+				git("add", "-A");
+				git("commit", "--quiet", "-m", "fixture");
+				seedReviewHeldOut({ path: temp } as Workspace, arm);
+				expect(git("diff", "main...HEAD", "--", "src/validate/changed.ts")).toContain(
+					"-function dateModeReviewFloor",
+				);
+				const validation = readFileSync(join(temp, "docs/developer/validation.md"), "utf8");
+				expect(validation).toContain("so the same range gives the same result on any day");
+				expect(validation.includes("review-deps:")).toBe(arm === "skeleton");
+				if (arm === "skeleton") {
+					const result = spawnSync(
+						"npx",
+						["--no-install", "skeleton", "review", "prepare", "--base", "main"],
+						{ cwd: temp, encoding: "utf8" },
+					);
+					expect(result.status).toBe(0);
+					expect(result.stdout).toContain(
+						"- docs/developer/validation.md (changed: src/validate/changed.ts, src/validate/git-diff.ts)",
+					);
+				}
+			} finally {
+				rmSync(temp, { recursive: true, force: true });
+			}
+		}
+	}, 60_000);
+
 	it("reverts the real fix on a real snapshot and hides Skeleton from the bare-diff side", () => {
 		for (const arm of ["control", "skeleton"] as const) {
 			const temp = mkdtempSync(join(tmpdir(), `skeleton-review-real-${arm}-`));
@@ -560,6 +659,30 @@ describe("clear comparisons of work with and without Skeleton", () => {
 				rmSync(temp, { recursive: true, force: true });
 			}
 		}
+	});
+
+	it("removes exactly one bundle section for a removal test", () => {
+		const whole = reviewBundlePrompt(REVIEW_SCENARIOS.payments, "");
+		for (const [removal, heading] of [
+			["documents", "## Documents the author must re-read and update"],
+			["intent", "## Stated intent"],
+		] as const) {
+			const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments, removal);
+			expect(whole).toContain(heading);
+			expect(prompt).not.toContain(heading);
+			expect(prompt).toContain("## Reviewer contract");
+			expect(prompt).toContain("## Review guide: docs/billing/REVIEW.md");
+			expect(prompt).toContain("-export const MAX_RETRIES = 1;");
+			expect(whole.length - prompt.length).toBeLessThan(400);
+		}
+	});
+
+	it("has the git-log pilot read commit messages itself instead of a Stated intent section", () => {
+		const prompt = reviewBundlePrompt(REVIEW_SCENARIOS.payments, "intent-git-log");
+		expect(prompt).not.toContain("## Stated intent");
+		expect(prompt).not.toContain("Refund behavior is unchanged.");
+		expect(prompt).toContain("Read the commit messages with `git log --no-merges main..HEAD`.");
+		expect(prompt).toContain("## Documents the author must re-read and update");
 	});
 
 	it("gives the Skeleton reviewer the bundle as its prompt, the same for every run", () => {
@@ -616,7 +739,9 @@ describe("clear comparisons of work with and without Skeleton", () => {
 			expect(result.stdout).toContain("## Review guide: docs/billing/REVIEW.md");
 			expect(result.stdout).toContain("## Review guide: docs/payouts/REVIEW.md");
 			expect(result.stdout).toContain("docs/payouts/hold-changes.md");
-			expect(result.stdout).toContain("Open the document and cite its own path and line.");
+			expect(result.stdout).toContain(
+				"When the diff changes behavior that a document promises, report a decision finding at the code line",
+			);
 			expect(result.stdout).toContain("This bundle replaces `skeleton context`");
 			expect(result.stdout).toContain("- docs/billing.md (changed: src/billing/charge.ts)");
 			expect(result.stdout).toContain("-export const MAX_RETRIES = 1;");

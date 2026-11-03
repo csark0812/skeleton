@@ -169,6 +169,303 @@ Executions, first run: `b544b1af-bd9a-43a2-9009-b334891d32ff`, `4c5a9869-bb92-4e
 
 **What it does not establish.** It has one host and one model, and two of its three fixtures were written by the same author as the feature. It compares the whole bundle, so it does not attribute the result to a single contract line or feature. The stale-document reversal against the rounds below is unexplained: harness version, contract wording, and five-run noise changed together. The first `real` round is marked failed because 3.0.0 fails a test on one workspace escape, here one bare-diff run; that pair is excluded as unassessed.
 
+### Code before document (study `doc-vs-code`)
+
+**Question.** On `real`, bundle reviewers named the stale document in 49 of 49 runs, but the code regression in only 11 of 49, against 40 of 49 for the bare diff, in pairs where both sides finished. The contract now tells the reviewer to decide whether the code or the document is wrong. When the code changed documented behavior, the code change is reported first. Does that recover the regression without losing the document?
+
+**Frozen before any run.** Same model, harness, and pair count as the five sessions above. Run 1 is `--rounds=real --sessions=3`. Run 2 is one full session, all four rounds. Both use `--study=doc-vs-code`, and `review-report.ts --study doc-vs-code` scores them. The change ships only if all of these hold:
+
+- **Regression:** pooled across the four `real` rounds, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate, not an interval.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points. That is the lower end of the five-session interval above.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+If any bar fails, the result is recorded here and the contract change is reverted.
+
+**Result, 2026-11-02: failed, stopped after one of four rounds, rule reverted.** In the first `real` round (`d88623b4-e7e5-4a07-b4ed-2c6a38be46f9`), Skeleton runs named the code regression in 0 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 2 of 10. The owner stopped the study, because the regression bar could pass only if the remaining rounds reversed the direction. The second round was cut off unrecorded.
+
+The reports show why. Bundle reviewers do see the consequence: one wrote that byte hashing makes release-version changes invalidate review proof. But they file it as stale documentation. The bundle's "Stated intent" section quotes a commit message that says the special handling was removed on purpose. Its "Documents the author must re-read and update" section frames each listed document as something the author must update. Asked to decide which side is wrong, reviewers believe the stated intent and blame the documents. Bare-diff reviewers see neither section. They read the same documents as the specification and report the code as a regression that contradicts the documented exemption. The next attempt should state that a deliberate change is still a defect when its consequence is harmful, and should stop presenting listed documents only as the author's to-do list.
+
+### Consequence first (study `consequence-first`)
+
+**Question.** Can the bundle stop steering reviewers from the code to the document, without losing the document? The study `doc-vs-code` above showed two parts doing that steering. The commit message reads as permission, and the heading "Documents the author must re-read and update" makes every conflict look like a documentation task. This change makes two edits and nothing else. One new contract rule says to judge each behavior change by what it breaks, even when the stated intent calls it deliberate. The section is retitled "Documents that describe the changed code", and the contract says a broken promise there is evidence for a code finding first.
+
+**Frozen before any run.** The model, harness, and pair count are unchanged. Run 1 is `--rounds=real --sessions=3 --study=consequence-first`. Run 2 is one full session with the same study name, run only if run 1 passes the first two bars. Both are scored with `review-report.ts --study consequence-first`. The bars are the ones frozen for `doc-vs-code`:
+
+- **Regression:** pooled over every `real` round, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+**Early stop.** After each `real` round, the study stops if the regression gap so far is more than 50 points with at least ten pairs. With 30 pairs left, it could then pass only if the remaining rounds reversed the direction. A stop counts as a failure. If any bar fails, the result is recorded here and both edits are reverted.
+
+**Result, 2026-11-02: failed at the early stop, both edits reverted.** In the first `real` round (`7fd8dc12-bb38-4579-8123-44be1b132c0e`), Skeleton runs named the code regression in 0 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 2 of 10. Every Skeleton report mentioned the release-version consequence, but always in a documentation finding. Two reports had a code finding in `review-proof.ts` for the existing-proof mismatch, but not for the version bump.
+
+This seemed to rule out the explanation given for `doc-vs-code`; the removal tests below show it did not. All ten bare-diff reviewers ran `git log` or `git show` and saw the same commit message, and nine of the ten read the documents. They still reported the code as a regression in 8 of 10 runs. The stated intent is not what separates the sides. What remains is how the bundle presents the documents. Before either study, Skeleton runs named the regression in 11 of 49 runs. With two rules that each pointed harder at the listed documents, they named it in 0 of 20. The next step is to remove a section, not add a rule. Two cheap single-round tests would settle it: one with the documents section removed, one with stated intent removed, each on `real` only.
+
+### Removal tests (studies `remove-documents` and `remove-intent`)
+
+**Question.** Which bundle section turns the regression into a documentation finding? Each test runs one `real` round of ten pairs with the current contract. Only the Skeleton prompt changes: `SKELETON_REVIEW_REMOVE=documents` takes out "Documents the author must re-read and update", and `SKELETON_REVIEW_REMOVE=intent` takes out "Stated intent". The contract text, the workspace, and the bare-diff side do not change. A reviewer can still find the documents or run `git log` itself, as bare-diff reviewers do.
+
+**Frozen before either run.** With the full bundle and this contract, Skeleton runs named the regression in 11 of 49 runs (22%). A removal implicates its section if Skeleton runs name the regression in at least 5 of 10 runs. At 22%, that happens by chance about 7% of the time. Fewer than 5 does not clear the section, because one round of ten is too small to rule out a modest effect. Stale-document detection and tokens are reported, not gated. Neither result changes the product. A product change is its own study.
+
+**Result, 2026-11-02: stated intent is implicated; the documents section is not.**
+
+| `real`, one round each | Regression: Skeleton | Regression: bare diff | Stale document: Skeleton | Existing proof: Skeleton | Recall difference |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Full bundle, earlier sessions | 11/49 | 40/49 | 49/49 | 27/49 | +1.4 |
+| Without stated intent (`1bc24a63-d702-421c-a385-42f559e51c19`) | 7/10 | 9/10 | 9/10 | 9/10 | +23.3 |
+| Without documents section (`697fde06-a978-4fa7-b41e-712063d3b79d`) | 2/10 | 9/10 | 9/10 | 5/10 | -10.0 |
+
+Without stated intent, Skeleton runs found the regression about as often as the bare diff, kept the stale document, and found the existing-proof mismatch as often. Without the documents section, nothing recovered, and Skeleton runs still named the stale document in 9 of 10. That corrects the account under `consequence-first`. Bare-diff reviewers also read the commit message, but only as `git log` output. In the bundle it is a section, and the contract tells the reviewer to check the diff against it. A diff that does what its commit message says passes that check. Its consequence is then filed against the documents it contradicts.
+
+These are single rounds of ten, so they show a direction, not a size. Removing stated intent would also give up the seeded fixtures' largest win: the commit-message contradiction, 100 of 100 against 4 of 100. The next product study keeps the section and changes what the contract asks of it. Matching the stated intent shows only that the author did what they meant. It is not evidence that the change is safe.
+
+### Intent reworded (study `intent-reword`)
+
+**Question.** Can the bundle keep stated intent, which gives the commit-message win on the seeded fixtures, without passing a harmful change just because it matches its commit message? The stated-intent rule gains one sentence: "A diff that matches it shows only that the author did what they meant, not that the change is safe: judge what the change breaks as if the stated intent were absent." Nothing else changes.
+
+**Frozen before any run.** Run 1 is `--rounds=real --sessions=3 --study=intent-reword`, one round at a time. The early stop from `consequence-first` applies after each round. Run 2 is one full session with the same study name, run only if every `real` bar holds after run 1. The change ships only if all of these hold:
+
+- **Regression:** pooled over every `real` round, the share of Skeleton runs naming the code regression is at most 10 points below the bare diff's share. This is a point estimate.
+- **Document:** Skeleton runs name the stale document in at least 90% of `real` runs.
+- **Commit-message contradiction:** in the full session, Skeleton runs find it in at least 9 of 10 runs on both `payments` and `notifications`.
+- **Seeded fixtures:** in the full session, `payments` and `notifications` each have a recall difference of at least +9.1 points.
+- **Null round:** the full session's null round is within 10 points of zero.
+
+If any bar fails, the result is recorded here and the sentence is removed.
+
+**Result, 2026-11-02: failed at the early stop, sentence removed.** In the first `real` round (`89e67ca5-918b-4d71-8d95-b61219555a8b`), Skeleton runs named the code regression in 1 of 10 runs, against 8 of 10 for the bare diff. They named the stale document in 10 of 10, against 1 of 10, and used 1.62 times the bare diff's tokens. As before, the reports describe the release-version consequence only in documentation findings. Three instructions have now failed to change that: decide which side is wrong, judge by consequence, and treat a match as no evidence of safety. Removing the section worked (7 of 10). So the effect comes from the section being in the bundle, not from how the contract tells the reviewer to read it.
+
+### Commit messages through `git log` (pilot `intent-git-log`)
+
+**Question.** Bare-diff reviewers read the commit message with `git log` and still call the `real` change a regression. Can a Skeleton reviewer do the same and keep the commit-message win? The pilot changes only the Skeleton prompt, with `SKELETON_REVIEW_REMOVE=intent-git-log`. It takes out the Stated intent section and replaces that contract rule with: "Read the commit messages with `git log --no-merges main..HEAD`. Treat them as the author's claim, not as evidence. A diff that contradicts them, or does something they deny, is an important finding. Say in that finding that it contradicts the commit message." The product does not change.
+
+**Frozen before the run.** One session, `--rounds=real,payments --study=intent-git-log`, ten pairs each. The pilot passes only if both of these hold:
+
+- **Regression:** Skeleton runs name the `real` regression in at least 5 of 10 runs. This is the same bar as the removal tests.
+- **Commit-message contradiction:** Skeleton runs find the `payments` refund contradiction in at least 8 of 10 runs. The full bundle found it in 50 of 50, and the bare diff in 4 of 50.
+
+If the pilot passes, the product change gets its own frozen study before it ships. If it fails, the result is recorded here and nothing ships.
+
+**Result, 2026-11-02: failed both bars.** On `real` (`5d376eb5`), Skeleton runs named the regression in 4 of 10 runs, against 9 of 10 for the bare diff, and the stale document in 10 of 10. On `payments` (`668153a9`), they found the refund contradiction in 1 of 10, the same as the bare diff, and kept every other seeded check. Every Skeleton reviewer ran `git log`, but most shortened it to `--oneline` or `--format='%h %s'`, which prints only the subject. The refund claim is in the commit body, so on `payments` only 1 of 11 `git log` calls showed it. Handing commit messages to the reviewer's own command loses the body. Reviewers that do read a claim still tend to pass a change that matches it.
+
+**Where this leaves stated intent.** On these fixtures it is a tradeoff the contract wording has not removed. With the section, Skeleton catches a commit message that contradicts the diff (100 of 100 against 4 of 100). It misfiles a deliberate but harmful change as stale documentation (11 of 49 against 40 of 49). Without it, the order reverses (7 of 10 on `real`, from one round). Choosing between them is a product decision, recorded here. It is not something these runs settled.
+
+### A `decision` severity (pilot `decision`)
+
+**Owner's decisions, 2026-11-02.** Only the author knows whether a change to documented behavior was meant. The reviewer reports that conflict and its consequence as one finding at the code line, cites the document, and does not say which side is wrong. The finding has its own severity, `decision`. The skill tells the author agent to keep the change and update the document only when the user's request explicitly asked for it. Otherwise the agent stops and asks the user. It always asks without a request to check, as in CI or `--run`. Stated intent stays in the bundle.
+
+**Scoring change, approved by the owner before the run.** On `real`, the regression counts as found only in a finding at `src/audit/core/review-proof.ts`, marked `important` or `decision`, that names the release-version consequence. A finding only at a document does not count, even when it describes the consequence. The same rule applies to both sides. The judge was also told that citing a document inside a code-line finding names that document. Earlier judged runs are not rescored. Their verdicts already required the regression's own file.
+
+**Frozen before the run.** One session, `--rounds=real,payments --study=decision`, ten pairs each, with the full bundle. The pilot passes only if both of these hold:
+
+- **Regression:** Skeleton runs catch the `real` regression in at least 5 of 10 runs.
+- **Commit-message contradiction:** Skeleton runs find the `payments` refund contradiction in at least 8 of 10 runs.
+
+Stale-document detection, `decision` use, and tokens are reported. If the pilot passes, a held-out real fixture and a full frozen study come before anything ships. If it fails, the result is recorded here, and the next attempt is structural: stated intent after the diff, or two passes.
+
+**Result, 2026-11-02: passed both bars.**
+
+| Pilot round | Skeleton | Bare diff |
+| --- | ---: | ---: |
+| `real` regression at the code line (`ada81325-0668-4ec9-b8e4-e969404a6beb`) | 10/10 | 6/10 |
+| `real` stale document | 10/10 | 0/10 |
+| `real` existing proof no longer matches | 6/10 | 9/10 |
+| `payments` refund contradiction (`3af57b6f-6122-4cb5-a585-a1c254fa320f`) | 10/10 | 0/10 |
+| `payments` stale document | 9/10 | 8/10 |
+
+Recall difference: `real` +36.7 points (23.3 to 50.0) at 0.73 times the tokens. `payments` +20.0 (10.0 to 30.0) at 0.20 times. Every Skeleton run on `real` wrote one `decision` finding at `src/audit/core/review-proof.ts`. It named the release-version consequence and cited `docs/developer/audit.md` and `README.md`. Nine of ten on `payments` did the same for the retry change. All kept the contract format. The `decision` slot gives the reviewer a way to report "the author probably meant this, and it breaks a documented promise" without choosing. Four instructions to choose had all failed.
+
+These are single rounds of ten, so they show a direction. One loss stands out: the existing-proof mismatch, 6 of 10 against 9 of 10. The bare diff's 6 of 10 on the regression is lower than its earlier 40 of 49, so part of the gap is noise. Nothing ships on this pilot. A real fixture held out from all of this tuning, and the full frozen study, come first.
+
+### Confirming `decision` on held-out data (study `decision-confirm`)
+
+**Held-out fixture.** The `heldout` round reverts `eb85023`, "Make --base date-mode review deterministic across UTC midnight (#32)". It was chosen by a fixed rule before its contents were read: the most recent fix to wrong behavior since `review-deps` existed, outside the review-proof code the contract was tuned on, with a document whose `review-deps` cover a changed source file. The reversal touches `src/validate/changed.ts`, `src/validate/git-diff.ts`, and `src/__tests__/cli/validate-hook.test.ts`. The documents keep describing the fixed behavior, as in `real`. The answer key was written from the fix before any run:
+
+- **Regression:** under `--base`, the review date is compared with today's UTC date, so the same commit range passes before 00:00 UTC and fails after it. This counts only at `src/validate/changed.ts` or `src/validate/git-diff.ts`.
+- **Stale document:** a document still promises the same range gives the same result on any day.
+- **Removed tests:** the cross-midnight tests in `validate-hook.test.ts` are removed.
+
+The reversal's commit message describes the change neutrally, as `real`'s does. No contract wording is tuned on this fixture.
+
+**Frozen before any held-out run.** The contract is the one the `decision` pilot passed. Run 1 is `--rounds=real,heldout --sessions=3 --study=decision-confirm`, one session at a time. Run 2 is `--rounds=payments,notifications,null --study=decision-confirm`. The change ships only if all of these hold:
+
+- **Held-out regression:** pooled over three rounds, the share of Skeleton runs catching it is at most 10 points below the bare diff's share. This is a point estimate.
+- **Held-out recall:** the pooled recall difference is at least zero. This is a point estimate.
+- **`real` regression:** pooled over three rounds, at most 10 points below the bare diff.
+- **Stale documents:** Skeleton runs name the stale document in at least 90% of runs on both `real` and `heldout`.
+- **Seeded fixtures:** `payments` and `notifications` each have a recall difference of at least +9.1 points. Skeleton finds the commit-message contradiction in at least 9 of 10 runs on each.
+- **Null round:** within 10 points of zero.
+
+**Early stop.** After the first session, the study stops if the held-out regression gap is more than 50 points. A stop counts as a failure. If any bar fails, the result is recorded here and the `decision` change does not ship.
+
+**Result, 2026-11-02: every frozen bar passed.**
+
+| Fixture | Skeleton minus bare diff | Token ratio | Bar |
+| --- | ---: | ---: | --- |
+| `heldout`, 3 sessions | +33.3 (30.0 to 36.7) | 0.92 | Regression 29/30 against 30/30; stale document 30/30 against 0/30 |
+| `real`, 3 sessions | +21.1 (13.3 to 30.0) | 1.04 | Regression 29/30 against 24/30; stale document 29/30 against 0/30 |
+| `payments` | +28.3 (18.3 to 38.3) | 0.25 | Commit-message contradiction 10/10 against 0/10 |
+| `notifications` | +10.0 (0.0 to 20.0) | 0.51 | Commit-message contradiction 10/10 against 0/10 |
+| null round | +3.3 (-5.0 to 10.0) | 0.79 | Within 10 points of zero |
+
+**A loss the bars did not anticipate.** On `notifications`, Skeleton runs found the plain off-by-one in `src/notify/quiet_hours.py` in only 4 of 10 runs, against 10 of 10 for the bare diff. Before this change they found it in 45 of 50. Nothing documents quiet hours, and the commit message does not mention them. The misses report every other seeded defect, so the reviewer finished without this one. The harness marked the round failed on its floor check, and this study's bars do not use that check. The recall bar of +9.1 passed, at +10.0. One round cannot tell a new contract effect from a bad round. The stale-proof loss on `real` also persists: 13/30 against 28/30. Both are recorded here and are open before the change ships.
+
+### A checklist before the findings (pilot `checklist`)
+
+**Goal set by the owner.** No Skeleton misses on any seeded defect, and a clear win on every fixture.
+
+**What still missed under `decision-confirm`, and the common cause.** The quiet-hours off-by-one on `notifications` (4/10). The second half of a guide rule, the required hold or retention record (7/10 on `payments`, 6/10 on `notifications`). Old saved fingerprints on `real` (13/30). Deleted cross-midnight tests on `heldout` (1/30). In each case, the reviewer finished the headline findings and never accounted for every changed file or every guide rule.
+
+**Change.** Before the findings, the contract asks for a `checked:` list with every changed file once, tests included, and every review-guide rule once, with a two-part rule as two lines. Every line that changes behavior needs a finding or a reason it is safe, explicitly including deleted tests and data saved under the old behavior. The judge and the text audit count only finding lines, never the checklist, on both sides.
+
+**Frozen before the run.** One session, `--rounds=payments,notifications,real,heldout --study=checklist`, ten pairs each. The pilot passes only if both of these hold:
+
+- **Every seeded defect:** Skeleton runs find it in at least 9 of 10 runs, on every fixture.
+- **Every fixture:** the recall difference is above zero.
+
+Tokens are reported. If the pilot passes, a confirmation run comes before anything ships. If it fails, the result is recorded with which defects still missed, and the next change targets those.
+
+**Result, 2026-11-02: failed by one defect.** Every seeded defect reached at least 9 of 10 except one: the old saved fingerprints on `real`, at 7 of 10. That is up from 13 of 30. The other formerly missed defects all cleared. Deleted tests on `heldout` went to 9/10 from 1/30. The quiet-hours off-by-one went to 10/10 from 4/10. The guide's required record went to 9/10 on both fixtures, from 7/10 and 6/10.
+
+| Fixture | Skeleton minus bare diff | Token ratio |
+| --- | ---: | ---: |
+| `payments` | +28.3 (16.7 to 38.3) | 0.26 |
+| `notifications` | +20.0 (13.3 to 26.7) | 0.48 |
+| `real` | +40.0 (23.3 to 53.3) | 1.42 |
+| `heldout` | +63.3 (56.7 to 66.7) | 1.33 |
+
+The three remaining misses listed the changed hashing and reported the version-bump regression. None said that fingerprints saved under the old rule stop matching after an upgrade with no other change. The sentence about saved data is easy to skip. The next change makes it a checklist line the reviewer must fill in. The checklist also raised tokens on the two real fixtures above the bare diff.
+
+### Saved data as a checklist line (pilot `checklist-saved`)
+
+**Change.** The checklist gains a required line for each behavior change: `saved before: <data written under the old behavior> — still matches, or what breaks`. The reviewer writes it even when nothing was saved. Nothing else changes from `checklist`.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under the study name `checklist-saved`. Every seeded defect must be found in at least 9 of 10 runs on every fixture, and every fixture's recall difference must be above zero. Tokens are reported.
+
+**Result, 2026-11-02: failed by one defect.** Every seeded defect reached 10 of 10 except deleted tests on `heldout`, at 8 of 10. The old saved fingerprints on `real` went to 10/10, from 7/10. Recall differences: `payments` +30.0, `notifications` +23.3, `real` +43.3, `heldout` +56.7. Token ratios: 0.36, 0.64, 1.05, and 1.23. Both misses listed the deleted tests in the checklist and never reported them. One wrote "safe only if replacement coverage exists" and left it there.
+
+**`heldout` is no longer held out.** The checklist and the next rule were shaped partly by its misses. A confirmation of the final contract needs a new held-out fixture, chosen by the same fixed rule.
+
+### Deleted tests always reported (pilot `checklist-tests`)
+
+**Change.** "A test the diff deletes or weakens always gets its own finding. Name the behavior it protected, with the severity of that behavior's finding." The sentence about saved data no longer mentions tests. Nothing else changes.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under `checklist-tests`.
+
+**Result, 2026-11-02: failed by one defect.** Deleted tests on `heldout` went to 10/10, but the `real` regression fell to 6/10. It had been 10/10 in each of the three previous rounds. In all four misses, the one code-line finding at `review-proof.ts` went to the saved-fingerprint problem. The version-bump consequence went to `decision` findings at document lines, or into deleted-test findings. Two contract gaps explain it. "Report one decision finding" let two consequences of one change compete for the same line, and nothing kept `decision` findings off document lines. Recall differences: `payments` +28.3, `notifications` +20.0, `real` +23.3, `heldout` +66.7.
+
+**Second held-out fixture.** `heldout2` reverts `a202aad`, "Stop default review-coverage from dropping every .mjs file". It was chosen by the same fixed rule, which skipped `b05c1a7` because that commit touches `src/validate/changed.ts`, the code `heldout` used. It re-adds `**/*.mjs` to the default review-coverage excludes. Its stale document, `docs/developer/config.md`, is not among the bundle's listed documents. The answer key has three defects: the code-line regression at `review-coverage.ts`, `config.md` still saying production `.mjs` stays covered, and the deleted `.mjs` tests. No contract wording has been, or will be, tuned on it.
+
+### One finding per consequence (pilot `consequence-lines`)
+
+**Change.** A `decision` finding sits at the code line, never the document's line. Each distinct consequence of a change gets its own finding, even when several start at the same line.
+
+**Frozen before the run.** These are the same rounds and bars as `checklist`, under `consequence-lines`. `heldout2` is not run in pilots. It is reserved for the final confirmation.
+
+**Result, 2026-11-02: passed, with no misses.** Skeleton runs found every seeded defect in 10 of 10 runs on all four fixtures.
+
+| Fixture | Skeleton minus bare diff | Token ratio |
+| --- | ---: | ---: |
+| `payments` | +30.0 (23.3 to 38.3) | 0.32 |
+| `notifications` | +30.0 (21.7 to 38.3) | 0.71 |
+| `real` | +46.7 (36.7 to 56.7) | 1.37 |
+| `heldout` | +66.7 (66.7 to 66.7) | 0.95 |
+
+This is one round of ten per fixture. Earlier single rounds also cleared one defect and then lost another, so the claim needs the confirmation below.
+
+### Final confirmation (study `final`)
+
+**Contract.** The contract is the one `consequence-lines` passed: the `decision` severity, the `checked:` list with `saved before` lines, a finding for every deleted test, and one finding per consequence at the code line. No wording changes during this study.
+
+**Frozen before any run.** Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,null --study=final`. Session 2 is `--rounds=payments,notifications,real,heldout,heldout2 --study=final`. `heldout2` has never been run before this study. The contract passes only if all of these hold:
+
+- **No misses, within one:** for every seeded defect on every fixture, Skeleton runs find it in at least 19 of 20 pooled runs.
+- **Clear recall win on every fixture:** the pooled recall difference's 95% interval is above zero on `payments`, `notifications`, `real`, `heldout`, and `heldout2`.
+- **Null round:** within 10 points of zero.
+
+Tokens are reported per fixture, not gated. If any bar fails, the result is recorded with every miss, and nothing ships until a later study passes.
+
+**Result, 2026-11-02: failed one bar, on the fresh held-out fixture.** Recall is a clear win on every fixture, and the null round is exactly zero. Every seeded defect reached at least 19 of 20, except the `heldout2` regression at 12 of 20, against 17 of 20 for the bare diff.
+
+| Fixture, 2 sessions | Skeleton minus bare diff | Token ratio | Lowest Skeleton defect |
+| --- | ---: | ---: | --- |
+| `payments` | +31.7 (25.0 to 38.3) | 0.30 | stale document 19/20 |
+| `notifications` | +26.7 (22.5 to 31.7) | 0.64 | guide's required record 19/20 |
+| `real` | +46.7 (38.3 to 55.0) | 1.33 | regression 19/20 |
+| `heldout` | +70.0 (66.7 to 75.0) | 1.14 | all 20/20 |
+| `heldout2` | +53.3 (43.3 to 63.3) | 1.05 | regression 12/20 |
+| null round | 0.0 | 0.96 | |
+
+Most misses have a code-line `decision` finding saying the change removes production `.mjs` from the documented default coverage set. None says what a user then sees: an uncovered `.mjs` change passes `validate changed`. The answer key, written before any run, requires that effect, and it stands. Several misses also report a consequence the key does not list: the new exclusion overrides an explicit `include = ["**/*.mjs"]`. The contract asks for the consequence but not the user-visible effect. `heldout2` has now shaped a finding, so it no longer counts as held out.
+
+
+
+
+### User-visible effects (pilot `effects`, then study `final2`)
+
+**Change.** "Name each consequence by what a user, command, or check now does differently, such as what now passes, fails, or slows down, not only by what the code changed." Nothing else changes.
+
+**Third held-out fixture.** `heldout3` reverts `337d30a`, "fix(audit): prune scan.exclude trees during coverage crawl". It was chosen by the same fixed rule, which excluded the review-proof, `validate/changed.ts`, and `review-coverage.ts` code already used. No later fix qualified, so the rule fell back to fixes from before `review-deps` existed. Its bundle has stated intent and no documents section. The answer key: the code-line regression at `collect.ts`, where audits now crawl every excluded tree and slow down or hang on large repositories, and the deleted readdir-spy test. Its legacy `.skeleton/config.yaml` is kept as it was. It is not run until `final2`.
+
+**Pilot, frozen before the run.** `--rounds=payments,notifications,real,heldout,heldout2 --study=effects`. Every seeded defect must be found in at least 9 of 10 runs, and every recall difference must be above zero. `heldout2` is in the pilot because it is no longer held out.
+
+**Pilot result, 2026-11-02: failed by one defect, so `final2` did not run.** Every seeded defect reached at least 9 of 10, except the `heldout2` regression at 7 of 10, the same as the bare diff's 7 of 10. Recall differences: `payments` +35.0, `notifications` +18.3, `real` +40.0, `heldout` +66.7, `heldout2` +60.0. Token ratios: 0.31, 0.66, 1.53, 1.45, and 1.02. Both sides miss the same way. They treat the default exclusion as the intent, because the commit message says "by default". They report only that an explicit `include = ["**/*.mjs"]` can no longer opt back in, a real consequence the answer key does not list. One Skeleton miss reported the default change as a `decision` at the code line, citing `config.md`, but without the downstream effect the answer key requires: an uncovered `.mjs` change passes `validate changed`. Whether that should count is the owner's call. Rescoring after the run is not done here.
+
+**Confirmation, frozen before any run.** It runs only if the pilot passes, with the same contract. Session 1 is `--rounds=payments,notifications,real,heldout,heldout2,heldout3,null --study=final2`. Session 2 is the same without `null`. The bars are the ones frozen for `final`: at least 19 of 20 pooled for every seeded defect on every fixture, a recall difference whose 95% interval is above zero on every fixture, and a null round within 10 points of zero.
+
+### Before and after (pilot `before-after`, then study `final2`)
+
+**Change.** The effect rule becomes: "Name each consequence as a before and after: what a user, command, or check did before this diff, and what it does now. For example: 'an uncovered file used to fail validation and now passes'. Saying only what the code changed is not a consequence." The answer key stays strict while the owner decides whether a code-line `decision` that names the default exclusion should count.
+
+**Bars.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=before-after`, with the bars of `effects`. If it passes, `final2` runs as frozen above, with this contract. A script error kept this section out of the contract commit, `bc045ae`, and it was committed after the pilot had started. The bars are copied unchanged from `effects`, which was frozen before any run.
+
+**Owner's scoring decision for `heldout2`, 2026-11-02, made after seeing data.** A code-line finding at `review-coverage.ts` counts as catching the regression if it makes clear that production or default `.mjs` files are now excluded from coverage. It does not also need to state that an uncovered `.mjs` change passes `validate changed`. A finding only about an explicit include no longer covering `.mjs` still does not count. The rule applies to both sides. It takes effect with `final2`. Earlier `heldout2` results, including the `before-after` pilot, were judged under the stricter key and are not rescored. `heldout3`'s answer key is unchanged.
+
+**`before-after` result, 2026-11-02: failed by one defect.** Every seeded defect reached at least 9 of 10, except `heldout2`'s regression at 4 of 10 under the strict key, against 7 of 10 for the bare diff. Recall differences: `payments` +33.3, `notifications` +23.3, `real` +36.7, `heldout` +66.7, `heldout2` +46.7. A text check under the owner's rule counts about 6 of 10 Skeleton reports and 8 of 10 bare-diff reports. The rescoring does not close the gap. Skeleton reviewers cite the `config.md` promise, but attach it to the explicit-include side effect. They do not report the default exclusion the commit message announces, because matching the stated intent reads as settling it.
+
+### Announced changes are decisions too (pilot `announced`, then study `final2`)
+
+**Change.** The `decision` rule adds: "This includes a change the stated intent announces: matching the stated intent does not settle a conflict with a document." Nothing else changes.
+
+**Frozen before the run.** The pilot is `--rounds=payments,notifications,real,heldout,heldout2 --study=announced`, with the bars of `effects`, and `heldout2` is judged under the owner's rule. If it passes, `final2` runs as frozen above, with this contract.
+
+**`announced` result, 2026-11-02: failed by one defect.** Every seeded defect on every fixture reached 10 of 10, except `heldout2`'s regression at 8 of 10 under the owner's rule. The bare diff reached 2 of 10. Recall differences: `payments` +31.7, `notifications` +23.3, `real` +40.0, `heldout` +66.7, `heldout2` +86.7. Token ratios: 0.32, 0.53, 1.27, 1.22, and 1.02. Both misses report only the side effect, that an explicit include stops covering `.mjs`, and fold the announced default exclusion into it.
+
+### The announced change first (pilot `announced-first`, then study `final2`)
+
+**Change.** The `decision` rule adds: "Report the announced change itself as its own finding, before any side effect it causes." Nothing else changes.
+
+**Frozen before the run.** These are the rounds and bars of `announced`, under `announced-first`. If the pilot passes, `final2` runs as frozen above, with this contract.
+
+**Result, 2026-11-02: passed.** Every seeded defect on every fixture reached at least 9 of 10.
+
+| Fixture | Skeleton minus bare diff | Token ratio | Below 10/10 |
+| --- | ---: | ---: | --- |
+| `payments` | +30.0 (23.3 to 38.3) | 0.36 | none |
+| `notifications` | +23.3 (16.7 to 30.0) | 0.57 | guide's required record 9/10 |
+| `real` | +50.0 (40.0 to 60.0) | 0.95 | none |
+| `heldout` | +66.7 (66.7 to 66.7) | 1.18 | none |
+| `heldout2` | +83.3 (63.3 to 100.0) | 1.16 | regression 9/10, stale document 9/10 |
+
+`final2` runs next with this contract, unchanged.
+
+**`final2` result, 2026-11-03: two of three bars passed; the no-miss bar failed on four defects by one to three runs.** Across all 460 defect checks (23 seeded defects, 20 pairs each), Skeleton runs missed 9 (98.0% found). Bare-diff runs missed 222 (51.7% found). The null round was exactly zero.
+
+| Fixture, 2 sessions | Skeleton minus bare diff | Token ratio | Skeleton below 19/20 |
+| --- | ---: | ---: | --- |
+| `payments` | +35.0 (30.0 to 40.0) | 0.36 | none |
+| `notifications` | +27.5 (21.7 to 33.3) | 0.74 | quiet-hours off-by-one 18/20 |
+| `real` | +46.7 (36.7 to 56.7) | 1.19 | old saved fingerprints 18/20 |
+| `heldout` | +66.7 (66.7 to 66.7) | 1.20 | none |
+| `heldout2` | +83.3 (73.3 to 91.7) | 1.07 | regression 17/20, deleted tests 18/20 |
+| `heldout3`, never tuned on | +50.0 (50.0 to 50.0) | 0.74 | none: regression 20/20 against 20/20, deleted tests 20/20 against 0/20 |
+
+What this establishes for this model and these six fixtures: recall is a clear win on every fixture. Skeleton finds 98% of the seeded defects against 52% for the bare diff. The one fixture never used for tuning had no misses. The remaining misses are scattered, one to three per defect in twenty, on defects that earlier rounds caught 10 of 10. Each contract change in this series moved misses between defects as well as removing them. Tokens are lower than the bare diff on the seeded fixtures and `heldout3`, and 7 to 20% higher on the other real fixtures, the cost of the checklist. Single model, harness, and day, and no multi-day check.
+
+**Two merged reviews, measured from the `final2` runs.** Each Skeleton run in session 1 was paired with the run in the same position in session 2, so no run is reused. Merging each pair's findings gives 10 merged reviews per fixture, 230 defect checks. They missed 2 (99.1% found): one `real` old-saved-fingerprint check and one `heldout2` regression check. Tokens were 1.74 times one bare-diff review. The expectation across all possible pairs is 0.6 misses in 460 checks (99.86%). Misses fall with each added review, but none of these runs reached zero. The cost doubles, so the token win becomes a loss on every fixture.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
@@ -249,7 +546,7 @@ Default Skeleton initialization adds one owned `AGENTS.md` context guide, which 
 
 ## How correctness is checked
 
-All fifteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
+All eighteen paired tests report reliability and token efficiency for correct, complete work. Incorrect outcomes and execution or evaluation errors are recorded without stopping later repetitions. Acceptance assertions run after the report is attached. Twelve comparisons require treatment correctness; the seeded-defect review reports detection per check instead, because missing one seeded defect is the measurement. Three efficiency qualifications and the narrowed-dependency overhead test require baseline correctness in every run. The staged-endpoint qualification instead requires at least 60% matched correct pairs because baseline reliability is measured but is not a package outcome; the stale-doc-reference rename likewise measures baseline correctness without requiring it. Installation and authority tests check behavior without a token-saving requirement.
 
 | Tests | Direct checks | Judge responsibility |
 | --- | --- | --- |
@@ -293,7 +590,7 @@ Caught run or evaluation errors do not stop later repetitions. A global test tim
 ## Commands
 
 ```bash
-# Build, regenerate fixtures, discover twenty-one tests, and run offline SDK contracts. No live agents.
+# Build, regenerate fixtures, discover twenty-four tests, and run offline SDK contracts. No live agents.
 bun run agent:test:check
 
 # One paired live comparison per task by default, using Codex.
@@ -305,10 +602,10 @@ bun scripts/run-efficacy.ts --scenario find-billing-rules
 # Diagnostic single pair; not a reliability claim.
 bun scripts/run-efficacy.ts --scenario find-billing-rules --runs 1
 
-# All twenty-one agent and judge tests, using the default OpenAI agent.
+# All twenty-four agent and judge tests, using the default OpenAI agent.
 bunx agent-test test
 
-# Explicit optional matrix for the fifteen paired tasks: Cursor, Claude, and OpenAI Codex.
+# Explicit optional matrix for the eighteen paired tasks: Cursor, Claude, and OpenAI Codex.
 bun run agent:test:matrix
 ```
 
