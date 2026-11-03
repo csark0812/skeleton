@@ -44,7 +44,7 @@ export function parseReviewPrepareArgs(argv: string[]): ReviewPrepareOptions {
 }
 
 /**
- * Print a self-contained review bundle, or pipe it to `[review] command` with `--run`.
+ * Print a self-contained review bundle, or pipe it to each `[review] command` reviewer with `--run`.
  * Human-review paths are repeated on stderr so an agent cannot miss them.
  */
 export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<number> {
@@ -71,7 +71,13 @@ export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<n
 		console.log(text);
 		return 0;
 	}
-	const command = loadConfig(root).review?.command;
-	if (!command) throw new Error("review prepare --run: set [review] command in skeleton.toml");
-	return runReviewCommand({ root, command, bundle: text });
+	const review = loadConfig(root).review;
+	if (!review?.command)
+		throw new Error("review prepare --run: set [review] command in skeleton.toml");
+	return runReviewCommand({
+		root,
+		command: review.command,
+		bundle: text,
+		reviewers: review.reviewers,
+	});
 }

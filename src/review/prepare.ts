@@ -1,5 +1,6 @@
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { basename } from "node:path";
+import process from "node:process";
 import { loadConfig } from "../audit/config/load.ts";
 import type { SkeletonConfig } from "../audit/config/types.ts";
 import { collectScanFiles, relPath } from "../audit/core/collect.ts";
@@ -445,16 +446,52 @@ export function largeBundleWarning(bundle: ReviewBundle, text: string): string |
 }
 
 /**
- * Hand the bundle to `[review] command` on stdin, so a separate process reviews it with fresh context.
- * Returns the command's exit status; its output goes to the caller's stdout and stderr.
+ * Two independent reviews by default. A single review missed 2% of seeded defects at random; two
+ * merged reviews missed 0.9%, at twice the tokens (docs/developer/efficacy.md, "Two merged reviews").
  */
-export function runReviewCommand(input: { root: string; command: string; bundle: string }): number {
-	const proc = spawnSync(input.command, {
-		cwd: input.root,
-		input: input.bundle,
-		shell: true,
-		stdio: ["pipe", "inherit", "inherit"],
+export const DEFAULT_REVIEWERS = 2;
+
+/** One reviewer's report: what it printed and how it exited. */
+interface ReviewerResult {
+	output: string;
+	status: number;
+}
+
+function runReviewer(input: { root: string; command: string; bundle: string }) {
+	return new Promise<ReviewerResult>((resolve, reject) => {
+		const proc = spawn(input.command, {
+			cwd: input.root,
+			shell: true,
+			stdio: ["pipe", "pipe", "inherit"],
+		});
+		let output = "";
+		proc.stdout.setEncoding("utf8");
+		proc.stdout.on("data", (chunk: string) => {
+			output += chunk;
+		});
+		proc.on("error", reject);
+		proc.on("close", (status) => resolve({ output, status: status ?? 1 }));
+		proc.stdin.on("error", () => {});
+		proc.stdin.end(input.bundle);
 	});
-	if (proc.error) throw proc.error;
-	return proc.status ?? 1;
+}
+
+/**
+ * Hand the bundle to `[review] command` on stdin once per reviewer, in parallel, so each separate
+ * process reviews it with fresh context. Prints every report under its own heading, because the
+ * author acts on the findings of all of them. Returns the first nonzero exit status, or 0.
+ */
+export async function runReviewCommand(input: {
+	root: string;
+	command: string;
+	bundle: string;
+	reviewers?: number;
+}): Promise<number> {
+	const reviewers = input.reviewers ?? DEFAULT_REVIEWERS;
+	const results = await Promise.all(Array.from({ length: reviewers }, () => runReviewer(input)));
+	results.forEach((result, index) => {
+		if (reviewers > 1) console.log(`review ${index + 1} of ${reviewers}:`);
+		process.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}\n`);
+	});
+	return results.find((result) => result.status !== 0)?.status ?? 0;
 }

@@ -142,6 +142,12 @@
 					"minLength": 1,
 					"description": "Shell command that receives the review bundle on stdin (`review prepare --run`)"
 				},
+				"reviewers": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 5,
+					"description": "Independent reviews `review prepare --run` starts in parallel; the author acts on all their findings. Default 2."
+				},
 				"omitFromDiff": {
 					"type": "array",
 					"items": { "type": "string", "minLength": 1 },

@@ -13,7 +13,7 @@ skeleton review prepare                    # working tree against HEAD, plus unt
 skeleton review prepare --staged           # the index
 skeleton review prepare --base origin/main # a branch range
 skeleton review prepare --base origin/main --json
-skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command
+skeleton review prepare --base origin/main --run   # pipe the bundle to [review] command, once per reviewer
 skeleton review prepare --base origin/main --paths=src/billing/**   # review one area
 ```
 
@@ -56,8 +56,15 @@ Keep a guide short: what failure means in this area, paths to ignore, and what n
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**", "src/billing/**", "scripts/release/**"]
 command = "./scripts/review-agent.sh"   # optional: any command that reads the bundle on stdin
+reviewers = 2                           # optional: independent reviews --run starts in parallel (1 to 5)
 omitFromDiff = ["src/api/schema/**"]    # optional: more paths to list by name instead of in the diff
 ```
+
+## Two reviews by default
+
+`--run` starts `reviewers` copies of `command` at once, each with the same bundle on stdin and no view of the others. It prints each report under `review <n> of <total>:` and exits with the first nonzero status. The packaged skill does the same without `--run`: it gives the bundle to two new sessions or subagents and acts on every finding from either; a finding both report counts once.
+
+Two is the default because the remaining misses are random, not a blind spot. One review found 98.0% of seeded defects, and its misses fell on defects that other runs of the same fixture found every time. Two merged reviews found 99.1% at 1.74 times the tokens of one bare-diff review, so the token saving of a single review becomes a cost. Set `reviewers = 1` to take that trade the other way. The numbers are in [efficacy](efficacy.md).
 
 The risk tier comes from the changed paths, never from who wrote the change. A change that touches no human path can merge with an agent review and green checks. A change that touches one needs a person. `review prepare` names those paths; enforce the requirement with CODEOWNERS and branch protection, because only the forge can tell whether a person approved.
 
