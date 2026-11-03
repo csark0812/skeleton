@@ -290,5 +290,17 @@
 		"real": "fe05be81-8043-420b-ad42-7c30801ff7aa",
 		"heldout": "eb1fbdcf-7fda-4f6a-8b10-4acf65301bd4",
 		"heldout2": "a29f3948-0245-4cbf-abb3-a0eb1cb2303a"
+	},
+	{
+		"confirmatory": true,
+		"study": "announced-first",
+		"day": "2026-11-02",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "b8fe728d-d6dd-42d4-9ed9-b2e0d06fb759",
+		"notifications": "d36e94e8-bac9-4781-8d64-14c899e9b395",
+		"real": "0f545203-efe1-490c-8fb1-5adada204fd8",
+		"heldout": "55663b5a-1f74-4470-a1ed-e238f569db99",
+		"heldout2": "a30f88a8-8045-4a8c-a5e1-a7e91e57b5f6"
 	}
 ]

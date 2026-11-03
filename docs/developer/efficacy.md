@@ -439,6 +439,18 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 **Frozen before the run.** These are the rounds and bars of `announced`, under `announced-first`. If the pilot passes, `final2` runs as frozen above, with this contract.
 
+**Result, 2026-11-02: passed.** Every seeded defect on every fixture reached at least 9 of 10.
+
+| Fixture | Skeleton minus bare diff | Token ratio | Below 10/10 |
+| --- | ---: | ---: | --- |
+| `payments` | +30.0 (23.3 to 38.3) | 0.36 | none |
+| `notifications` | +23.3 (16.7 to 30.0) | 0.57 | guide's required record 9/10 |
+| `real` | +50.0 (40.0 to 60.0) | 0.95 | none |
+| `heldout` | +66.7 (66.7 to 66.7) | 1.18 | none |
+| `heldout2` | +83.3 (63.3 to 100.0) | 1.16 | regression 9/10, stale document 9/10 |
+
+`final2` runs next with this contract, unchanged.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
