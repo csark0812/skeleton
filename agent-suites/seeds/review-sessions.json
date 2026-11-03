@@ -302,5 +302,32 @@
 		"real": "0f545203-efe1-490c-8fb1-5adada204fd8",
 		"heldout": "55663b5a-1f74-4470-a1ed-e238f569db99",
 		"heldout2": "a30f88a8-8045-4a8c-a5e1-a7e91e57b5f6"
+	},
+	{
+		"confirmatory": true,
+		"study": "final2",
+		"day": "2026-11-03",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "0cee9b39-f446-4bc0-9d07-7fd31bea1814",
+		"notifications": "6e087bb4-8d29-4917-a40a-ed62f21a3976",
+		"real": "376f404e-253d-4280-b3ca-b030f487c719",
+		"heldout": "44d40dec-e250-454f-8f5a-eef2fb958aa8",
+		"heldout2": "7f7cfa92-80cd-4da7-93fb-ca9e5cd11ba9",
+		"heldout3": "40f5728b-f354-4f52-928d-aea31b0a6a6f",
+		"null": "e2237aa6-7847-4162-b17f-61a4d18b894d"
+	},
+	{
+		"confirmatory": true,
+		"study": "final2",
+		"day": "2026-11-03",
+		"catalogBefore": "ccdd6dc524a0",
+		"catalogAfter": "ccdd6dc524a0",
+		"payments": "5a18cfb8-40ae-42ab-bb72-886fee211ecd",
+		"notifications": "27a53025-3448-4e10-8d29-be8d0b163e04",
+		"real": "5f60e0b3-6608-4aef-b9ff-6606316e330f",
+		"heldout": "3b54c64d-b181-48c5-961e-d880e141f5a5",
+		"heldout2": "8743ad57-b295-4987-9595-120055a9299c",
+		"heldout3": "d7255337-034e-4aa7-b801-682089bc4cd7"
 	}
 ]

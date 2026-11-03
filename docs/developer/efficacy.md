@@ -451,6 +451,19 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 `final2` runs next with this contract, unchanged.
 
+**`final2` result, 2026-11-03: two of three bars passed; the no-miss bar failed on four defects by one to three runs.** Across all 460 defect checks (23 seeded defects, 20 pairs each), Skeleton runs missed 9 (98.0% found). Bare-diff runs missed 222 (51.7% found). The null round was exactly zero.
+
+| Fixture, 2 sessions | Skeleton minus bare diff | Token ratio | Skeleton below 19/20 |
+| --- | ---: | ---: | --- |
+| `payments` | +35.0 (30.0 to 40.0) | 0.36 | none |
+| `notifications` | +27.5 (21.7 to 33.3) | 0.74 | quiet-hours off-by-one 18/20 |
+| `real` | +46.7 (36.7 to 56.7) | 1.19 | old saved fingerprints 18/20 |
+| `heldout` | +66.7 (66.7 to 66.7) | 1.20 | none |
+| `heldout2` | +83.3 (73.3 to 91.7) | 1.07 | regression 17/20, deleted tests 18/20 |
+| `heldout3`, never tuned on | +50.0 (50.0 to 50.0) | 0.74 | none: regression 20/20 against 20/20, deleted tests 20/20 against 0/20 |
+
+What this establishes for this model and these six fixtures: recall is a clear win on every fixture. Skeleton finds 98% of the seeded defects against 52% for the bare diff. The one fixture never used for tuning had no misses. The remaining misses are scattered, one to three per defect in twenty, on defects that earlier rounds caught 10 of 10. Each contract change in this series moved misses between defects as well as removing them. Tokens are lower than the bare diff on the seeded fixtures and `heldout3`, and 7 to 20% higher on the other real fixtures, the cost of the checklist. Single model, harness, and day, and no multi-day check.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
