@@ -41,6 +41,24 @@ export function pathDiffersFromHead(
 	return current !== (head ?? "");
 }
 
+/** The given paths that git ignores; tracked paths never count. Empty outside a repository. */
+export function gitIgnoredPaths(root: string, relPaths: string[]): Set<string> {
+	if (relPaths.length === 0) return new Set();
+	const proc = spawnSync("git", ["check-ignore", "-z", "--stdin"], {
+		cwd: root,
+		input: relPaths.join("\0"),
+		encoding: "utf8",
+		maxBuffer: 20_000_000,
+	});
+	// Exit 1 means none are ignored; 128 means no repository.
+	return proc.status === 0 ? new Set(proc.stdout.split("\0").filter(Boolean)) : new Set();
+}
+
+/** True when the bytes are not text: they hold a NUL, as compiled and media files do. */
+export function isBinaryText(content: string): boolean {
+	return content.includes("\0");
+}
+
 /** Paths in the git index; empty outside a repository. */
 export function trackedPaths(root: string): string[] {
 	const proc = spawnSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" });

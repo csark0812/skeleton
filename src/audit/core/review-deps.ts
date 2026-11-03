@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { globSync } from "tinyglobby";
+import { gitIgnoredPaths } from "./repo-files.ts";
 import { selectorKind } from "./selectors.ts";
 import { matchesGlobScope, normalizeRelPath } from "./shared.ts";
 
@@ -118,13 +119,16 @@ export function resolveReviewDependencies(
 			else selectors.set(ref.path, (selectors.get(ref.path) ?? new Set()).add(ref.selector));
 			continue;
 		}
-		for (const match of globSync(ref.path, {
+		const matches = globSync(ref.path, {
 			cwd: root,
 			onlyFiles: true,
 			dot: true,
 			ignore: [".git/**"],
-		})) {
-			const target = normalizeRelPath(match);
+		}).map(normalizeRelPath);
+		// Build output and caches the repository ignores are not sources a document owns.
+		const ignored = gitIgnoredPaths(root, matches);
+		for (const target of matches) {
+			if (ignored.has(target)) continue;
 			targets.add(target);
 			wholeFiles.add(target);
 		}
