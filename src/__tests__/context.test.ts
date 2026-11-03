@@ -315,6 +315,52 @@ Billing webhooks retry once after a failed delivery.
 		}
 	});
 
+	it("leaves gitignored build output out of glob dependencies and review status", () => {
+		const root = makeRepo(false);
+		try {
+			const doc = join(root, "docs/billing.md");
+			writeFileSync(
+				doc,
+				readFileSync(doc, "utf8").replace("src/billing/delivery.ts", "src/billing/**"),
+			);
+			writeFileSync(join(root, ".gitignore"), "__pycache__/\n");
+			commitAll(root, "baseline");
+			mkdirSync(join(root, "src/billing/__pycache__"));
+			writeFileSync(
+				join(root, "src/billing/__pycache__/delivery.cpython-313.pyc"),
+				"\0\u0001bytecode",
+			);
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.review).toBe("current");
+			expect(result.documents[0]?.sources.map(({ path }) => path)).toEqual([
+				"src/billing/delivery.ts",
+			]);
+			expect(result.documents[0]?.omittedSources).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it("names a tracked binary dependency without excerpting its bytes", () => {
+		const root = makeRepo(false);
+		try {
+			const doc = join(root, "docs/billing.md");
+			writeFileSync(
+				doc,
+				readFileSync(doc, "utf8").replace("src/billing/delivery.ts", "src/billing/**"),
+			);
+			writeFileSync(join(root, "src/billing/invoice.pdf"), "%PDF-1.7\0\u0001binary");
+			commitAll(root, "baseline");
+			const result = evaluateContext({ root, query: "billing retry" });
+			expect(result.documents[0]?.sources.map(({ path }) => path)).toEqual([
+				"src/billing/delivery.ts",
+			]);
+			expect(result.documents[0]?.omittedSources).toEqual(["src/billing/invoice.pdf"]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it("centers bounded source excerpts on the strongest query-term match", () => {
 		const root = makeRepo();
 		try {

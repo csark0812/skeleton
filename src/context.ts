@@ -4,6 +4,7 @@ import { collectScanFiles } from "./audit/core/collect.ts";
 import { lastCommitDay } from "./audit/core/git-meta.ts";
 import {
 	type FileSource,
+	isBinaryText,
 	pathDiffersFromHead,
 	readRepoText,
 	trackedPaths,
@@ -399,7 +400,9 @@ export function evaluateContext(options: ContextOptions): ContextResult {
 			tests.length > 0 ? Math.min(EXCERPT_WINDOW_CHARS, Math.floor(packetBudget / 4)) : 0;
 		const sourceExcerpts = boundedExcerpts(
 			sourceEntries.flatMap((dependency) =>
-				dependency.content === null ? [] : [{ path: dependency.path, excerpt: dependency.content }],
+				dependency.content === null || isBinaryText(dependency.content)
+					? []
+					: [{ path: dependency.path, excerpt: dependency.content }],
 			),
 			packetBudget - documentExcerpt.length - testBudget,
 			excerptTerms,
