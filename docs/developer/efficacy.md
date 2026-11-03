@@ -464,6 +464,8 @@ Most misses have a code-line `decision` finding saying the change removes produc
 
 What this establishes for this model and these six fixtures: recall is a clear win on every fixture. Skeleton finds 98% of the seeded defects against 52% for the bare diff. The one fixture never used for tuning had no misses. The remaining misses are scattered, one to three per defect in twenty, on defects that earlier rounds caught 10 of 10. Each contract change in this series moved misses between defects as well as removing them. Tokens are lower than the bare diff on the seeded fixtures and `heldout3`, and 7 to 20% higher on the other real fixtures, the cost of the checklist. Single model, harness, and day, and no multi-day check.
 
+**Two merged reviews, measured from the `final2` runs.** Each Skeleton run in session 1 was paired with the run in the same position in session 2, so no run is reused. Merging each pair's findings gives 10 merged reviews per fixture, 230 defect checks. They missed 2 (99.1% found): one `real` old-saved-fingerprint check and one `heldout2` regression check. Tokens were 1.74 times one bare-diff review. The expectation across all possible pairs is 0.6 misses in 460 checks (99.86%). Misses fall with each added review, but none of these runs reached zero. The cost doubles, so the token win becomes a loss on every fixture.
+
 ### Seeded-defect review
 
 On 2026-10-30 the seeded-defect review ran five paired attempts per round on `gpt-5.6-luna` with agent-harness 2.3.5. Each round built on the one before it: v0 is the existing bundle, v1 adds stated intent and guides for deleted paths, and v2 also omits lockfiles and generated files. The baseline never changes, so its movement between rounds shows the noise. Counts are runs out of five.
