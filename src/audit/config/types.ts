@@ -37,7 +37,7 @@ interface ReviewConfig {
 	humanPaths?: string[];
 	/** Shell command that receives the review bundle on stdin (`review prepare --run`). */
 	command?: string;
-	/** Independent reviews `--run` starts in parallel; the author acts on all their findings. Default 2. */
+	/** Fixed review count that overrides the computed tier (1 for short prose-only changes, otherwise 2). */
 	reviewers?: number;
 	/** Globs left out of the bundle's diff text and listed by name, like lockfiles and generated files. */
 	omitFromDiff?: string[];

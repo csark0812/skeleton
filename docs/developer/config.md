@@ -71,11 +71,11 @@ Documents stay current through the change itself ([keeping documents current](do
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**"]
 command = "./scripts/review-agent.sh"
-reviewers = 2
+# reviewers = 2
 omitFromDiff = ["src/api/schema/**"]
 ```
 
-All keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. `reviewers` is how many copies of `command` `--run` starts in parallel, from 1 to 5; the default is 2, and the author acts on every finding from any of them. `omitFromDiff` lists globs to leave out of the diff text, in addition to lockfiles and `linguist-generated` paths; a path matching `humanPaths` always stays in the diff. See [code review](review.md).
+All keys are optional. `humanPaths` lists globs for high-consequence paths; `skeleton review prepare` names every changed path that matches, because an agent review does not count for them. `command` is a shell command that receives the review bundle on stdin when you run `review prepare --run`. `reviewers`, from 1 to 5, fixes how many independent reviews every change gets and turns off the computed tier; without it, `review prepare` plans one review for a short prose-only change and two otherwise. The author acts on every finding from any of them. `omitFromDiff` lists globs to leave out of the diff text, in addition to lockfiles and `linguist-generated` paths; a path matching `humanPaths` always stays in the diff. See [code review](review.md).
 
 ## `reviewCoverage`
 

@@ -146,7 +146,7 @@
 					"type": "integer",
 					"minimum": 1,
 					"maximum": 5,
-					"description": "Independent reviews `review prepare --run` starts in parallel; the author acts on all their findings. Default 2."
+					"description": "Fixed number of independent reviews for every change, overriding the computed tier (1 for a short prose-only change, otherwise 2). `review prepare --run` starts that many in parallel; the author acts on all their findings."
 				},
 				"omitFromDiff": {
 					"type": "array",
