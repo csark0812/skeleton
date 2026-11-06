@@ -45,7 +45,7 @@ Bare `--fix` changes anchors and legacy SSOT markers; it never edits document pr
 | `context <query> \| --path <path> [--staged] [--max-chars=N]` | Read-only canonical-document, source-owner, and focused-test evidence. |
 | `build-plugin [--check]` | Build or verify plugin `.mjs` siblings. |
 | `validate changed [--staged] [--base <ref>]` | Validate changed paths and their owning papers. |
-| `review prepare [--staged \| --base <ref>] [--paths=a,b] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command` once per reviewer (default 2), in parallel. |
+| `review prepare [--staged \| --base <ref>] [--paths=a,b] [--json] [--run]` | Print a fresh-context review bundle; `--run` pipes it to `[review] command` once per planned reviewer, in parallel. |
 
 When `context` reports `changed-since-review`, it also prints an `action` line requiring the final document to be checked against the returned sources and every mismatch to be corrected before finishing.
 
@@ -65,10 +65,10 @@ Consumer prevention also requires `review-deps` for active implementation claims
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**"]   # an agent review does not count here
 command = "./scripts/review-agent.sh"                  # optional; reads the bundle on stdin
-reviewers = 2                                          # optional; independent reviews --run starts
+# reviewers = 2                                        # optional; fixed count for every change, turns off the tiers
 ```
 
-Use two independent reviews by default and act on every finding from either. In tests, one review missed 2% of seeded defects and two merged reviews missed 0.9%, at twice the tokens. Set `reviewers = 1` to trade those misses for cost.
+`review prepare` prints how many independent reviews to start on stderr: one for a prose-only change of 300 lines or fewer, outside agent instructions, and two for anything else. Act on every finding from any of them. In tests, one review missed 2% of seeded defects and two merged reviews missed 0.9%, at twice the tokens; the one-review tier is not measured. Set `reviewers` to use a fixed count for every change.
 
 A finding line is `<severity>\t<file>:<line>\t<bug class>\t<what breaks>`, with severity `important`, `decision`, `nit`, or `pre-existing`. `important` blocks the author until fixed. `decision` marks a change to documented behavior; it blocks until the user's request confirms the change or a person decides. Enforce human approval for `humanPaths` with CODEOWNERS and branch protection.
 

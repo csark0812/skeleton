@@ -1,4 +1,5 @@
 import { findRepoRoot, loadConfig } from "../audit/config/load.ts";
+import { formatReviewPlan } from "./plan.ts";
 import {
 	formatReviewBundle,
 	largeBundleWarning,
@@ -45,7 +46,8 @@ export function parseReviewPrepareArgs(argv: string[]): ReviewPrepareOptions {
 
 /**
  * Print a self-contained review bundle, or pipe it to each `[review] command` reviewer with `--run`.
- * Human-review paths are repeated on stderr so an agent cannot miss them.
+ * Human-review paths and the reviewer count go to stderr so an agent cannot miss them, and so the
+ * reviewer prompt stays the measured bundle.
  */
 export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<number> {
 	const root = findRepoRoot();
@@ -60,6 +62,7 @@ export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<n
 			`review prepare: human review required for ${bundle.humanReviewRequired.join(", ")}; an agent review does not count`,
 		);
 	}
+	console.error(formatReviewPlan(bundle.plan));
 	const text = formatReviewBundle(bundle);
 	const warning = largeBundleWarning(bundle, text);
 	if (warning) console.error(warning);
@@ -78,6 +81,6 @@ export async function runReviewPrepare(options: ReviewPrepareOptions): Promise<n
 		root,
 		command: review.command,
 		bundle: text,
-		reviewers: review.reviewers,
+		reviewers: bundle.plan.reviewers,
 	});
 }

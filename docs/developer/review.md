@@ -56,15 +56,25 @@ Keep a guide short: what failure means in this area, paths to ignore, and what n
 [review]
 humanPaths = [".github/workflows/**", "src/auth/**", "src/billing/**", "scripts/release/**"]
 command = "./scripts/review-agent.sh"   # optional: any command that reads the bundle on stdin
-reviewers = 2                           # optional: independent reviews --run starts in parallel (1 to 5)
+# reviewers = 2                         # optional: fixed count for every change (1 to 5); turns off the tiers
 omitFromDiff = ["src/api/schema/**"]    # optional: more paths to list by name instead of in the diff
 ```
 
-## Two reviews by default
+## How many reviews
 
-`--run` starts `reviewers` copies of `command` at once, each with the same bundle on stdin and no view of the others. It prints each report under `review <n> of <total>:` and exits with the first nonzero status. The packaged skill does the same without `--run`: it gives the bundle to two new sessions or subagents and acts on every finding from either; a finding both report counts once.
+`review prepare` decides how many independent reviews a change gets and prints it on stderr, for example `review prepare: light review, 1 reviewer (prose only, 1 lines); start exactly that many`. `--json` has the same decision as `plan`. The count is never part of the bundle text, so the reviewer prompt stays the one that was measured. `reviewPlan` in `src/review/plan.ts` makes the decision for both the packaged skill and `--run`:
 
-Two is the default because the remaining misses are random, not a blind spot. One review found 98.0% of seeded defects, and its misses fell on defects that other runs of the same fixture found every time. Two merged reviews found 99.1% at 1.74 times the tokens of one bare-diff review, so the token saving of a single review becomes a cost. Set `reviewers = 1` to take that trade the other way. The numbers are in [efficacy](efficacy.md).
+| Tier | When | Reviews |
+| --- | --- | --- |
+| `configured` | `[review] reviewers` is set | that number, for every change |
+| `full` | a human-review path changed, a document must be re-read, any reviewed path is not prose, or the prose change is over 300 lines | 2 |
+| `light` | every reviewed path is `.md` or `.mdx` prose, 300 changed lines or fewer | 1 |
+
+Prose leaves out agent instructions: `SKILL.md`, `AGENTS.md`, `CLAUDE.md`, `REVIEW.md`, and any file under a directory that holds a `SKILL.md`. Paths omitted from the diff, such as lockfiles, do not count. A follow-up cycle (`--base <last reviewed commit>`) is sized by its own diff, so a one-sentence documentation fix after a code review gets one review.
+
+The kind of change sets the tier, not its size. Two reviews are the default because the remaining misses are random, not a blind spot. One review found 98.0% of seeded defects, and its misses fell on defects that other runs of the same fixture found every time. Two merged reviews found 99.1% at 1.74 times the tokens of one bare-diff review. The defect a single review missed most often was a one-line code regression, so a small code change still gets two. The `light` tier and its 300-line cap are not measured: no efficacy fixture is prose-only.
+
+`--run` starts that many copies of `command` at once, each with the same bundle on stdin and no view of the others. It prints each report under `review <n> of <total>:` and exits with the first nonzero status. The packaged skill does the same without `--run`: it gives the bundle to that many new sessions or subagents and acts on every finding from any of them; a finding two report counts once. The numbers are in [efficacy](efficacy.md).
 
 The risk tier comes from the changed paths, never from who wrote the change. A change that touches no human path can merge with an agent review and green checks. A change that touches one needs a person. `review prepare` names those paths; enforce the requirement with CODEOWNERS and branch protection, because only the forge can tell whether a person approved.
 

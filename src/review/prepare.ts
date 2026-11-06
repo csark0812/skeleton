@@ -13,6 +13,13 @@ import { matchesGlobScope } from "../audit/core/shared.ts";
 import { type DocumentImpact, staleDocuments } from "../audit/core/stale-documents.ts";
 import { evaluateRouteClassification } from "../validate/changed.ts";
 import { gitDiffChangedFiles } from "../validate/git-diff.ts";
+import {
+	DEFAULT_REVIEWERS,
+	isInstructionFileName,
+	type ReviewedPath,
+	type ReviewPlan,
+	reviewPlan,
+} from "./plan.ts";
 
 /** Which change a review covers: the index, a branch range, or the working tree against HEAD. */
 interface ReviewScope {
@@ -66,6 +73,8 @@ interface ReviewBundle {
 	agentGuide: string | null;
 	omittedFromDiff: OmittedPath[];
 	diff: string;
+	/** How many independent reviews to start. Printed on stderr; never part of the reviewer prompt. */
+	plan: ReviewPlan;
 }
 
 const REVIEW_GUIDE = "REVIEW.md";
@@ -334,6 +343,34 @@ function withoutContextGuide(agents: string | null): string | null {
 	return `${agents.slice(0, start).trimEnd()}\n${next === -1 ? "" : rest.slice(next)}`;
 }
 
+/** A skill's SKILL.md or any file beside it, such as its references, steers an agent. */
+function isInstructionFile(root: string, path: string, source: FileSource): boolean {
+	if (isInstructionFileName(path)) return true;
+	const segments = path.split("/").slice(0, -1);
+	for (let depth = segments.length; depth > 0; depth--) {
+		const dir = segments.slice(0, depth).join("/");
+		if (readRepoText(root, `${dir}/SKILL.md`, source) !== null) return true;
+	}
+	return false;
+}
+
+/** Paths in the reviewed diff with their line counts, for sizing the review. */
+function reviewedPaths(input: {
+	scope: ReviewScope;
+	paths: string[];
+	untracked: string[];
+}): ReviewedPath[] {
+	if (input.paths.length === 0) return [];
+	const counts = lineCounts(
+		input.scope,
+		input.untracked.filter((path) => input.paths.includes(path)),
+	);
+	return input.paths.map((path) => {
+		const [added = null, removed = null] = counts.get(path) ?? [];
+		return { path, lines: added === null || removed === null ? null : added + removed };
+	});
+}
+
 /** Collect the diff and the repository rules a reviewer needs, without judging anything. */
 export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 	const config = loadConfig(scope.root);
@@ -352,11 +389,24 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 	const focusPaths = pathsInFocus(scope, allPaths);
 	const humanPaths = humanReviewPaths(config, allPaths);
 	const omittedFromDiff = pathsToOmit({ scope, config, paths: focusPaths, humanPaths, untracked });
+	const rereads = documentsToReread(scope, impactedDocuments);
+	const omitted = new Set(omittedFromDiff.map((item) => item.path));
+	const plan = reviewPlan({
+		paths: reviewedPaths({
+			scope,
+			paths: focusPaths.filter((path) => !omitted.has(path)),
+			untracked,
+		}),
+		isInstructionFile: (path) => isInstructionFile(scope.root, path, source),
+		humanReviewRequired: humanPaths,
+		documentsToReread: rereads.length,
+		configuredReviewers: config.review?.reviewers,
+	});
 	return {
 		scope: { staged: scope.staged ?? false, base: scope.base ?? null, paths: scope.paths ?? null },
 		changedPaths,
 		humanReviewRequired: humanPaths,
-		documentsToReread: documentsToReread(scope, impactedDocuments),
+		documentsToReread: rereads,
 		commits: statedCommits(scope),
 		reviewGuides: reviewGuides({ root: scope.root, config, paths: focusPaths, source }),
 		agentGuide: withoutContextGuide(readRepoText(scope.root, "AGENTS.md", source)),
@@ -365,6 +415,7 @@ export async function prepareReview(scope: ReviewScope): Promise<ReviewBundle> {
 			...omittedFromDiff.map((item) => item.path),
 			...allPaths.filter((path) => !focusPaths.includes(path)),
 		]),
+		plan,
 	};
 }
 
@@ -444,12 +495,6 @@ export function largeBundleWarning(bundle: ReviewBundle, text: string): string |
 		),
 	].join("\n");
 }
-
-/**
- * Two independent reviews by default. A single review missed 2% of seeded defects at random; two
- * merged reviews missed 0.9%, at twice the tokens (docs/developer/efficacy.md, "Two merged reviews").
- */
-export const DEFAULT_REVIEWERS = 2;
 
 /** One reviewer's report: what it printed and how it exited. */
 interface ReviewerResult {

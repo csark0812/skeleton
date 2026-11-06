@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
-import { parseReviewPrepareArgs } from "../cli.ts";
+import { parseReviewPrepareArgs, runReviewPrepare } from "../cli.ts";
 import {
 	formatReviewBundle,
 	largeBundleWarning,
@@ -380,6 +380,81 @@ describe("review prepare", () => {
 		expect(bundle.changedPaths).toEqual(["src/billing/charge.ts"]);
 		expect(bundle.diff).toContain("+export const retries = 3;");
 		expect(bundle.diff).not.toContain("ttl = 1");
+	});
+
+	it("plans one review for a prose-only change and two for a one-line code change", async () => {
+		const root = makeRepo();
+		write(root, "docs/notes.md", "Row hidden for release 9.2.\n");
+		const prose = await prepareReview({ root });
+		expect(prose.plan).toEqual({
+			tier: "light",
+			reviewers: 1,
+			reasons: ["prose only, 1 lines"],
+		});
+		expect(formatReviewBundle(prose)).not.toContain("reviewer(s)");
+		expect(formatReviewBundle(prose)).not.toContain("light review");
+		write(root, "src/auth/session.ts", "export const ttl = 30;\n");
+		expect((await prepareReview({ root })).plan).toMatchObject({ tier: "full", reviewers: 2 });
+	});
+
+	it("plans two reviews for a skill or a file beside it", async () => {
+		const root = makeRepo();
+		write(root, "skills/demo/SKILL.md", "# Demo\n");
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "skill"]);
+		write(root, "skills/demo/references/operations.md", "Run the focused test.\n");
+		expect((await prepareReview({ root })).plan.tier).toBe("full");
+	});
+
+	it("plans a follow-up range from its own diff", async () => {
+		const root = makeRepo();
+		git(root, ["checkout", "-q", "-b", "feature"]);
+		write(root, "src/auth/session.ts", "export const ttl = 30;\n");
+		git(root, ["commit", "-q", "-am", "shorter sessions"]);
+		git(root, ["tag", "reviewed"]);
+		write(root, "docs/notes.md", "Sessions last 30 seconds.\n");
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "note"]);
+		expect((await prepareReview({ root, base: "main" })).plan.tier).toBe("full");
+		expect((await prepareReview({ root, base: "reviewed" })).plan.tier).toBe("light");
+	});
+
+	it("ignores lockfiles when planning and uses [review] reviewers as an override", async () => {
+		const root = makeRepo();
+		write(root, "docs/notes.md", "A note.\n");
+		write(root, "bun.lock", "lock\n");
+		expect((await prepareReview({ root })).plan.tier).toBe("light");
+		const configured = makeRepo("[review]\nreviewers = 3\n");
+		write(configured, "docs/notes.md", "A note.\n");
+		expect((await prepareReview({ root: configured })).plan).toMatchObject({
+			tier: "configured",
+			reviewers: 3,
+		});
+	});
+
+	it("starts the planned number of reviewers under --run", async () => {
+		const root = makeRepo('[review]\ncommand = "cat > \\"$(mktemp reviews/r.XXXX)\\""\n');
+		mkdirSync(join(root, "reviews"));
+		git(root, ["add", "-A"]);
+		git(root, ["commit", "-q", "-m", "reviews dir", "--allow-empty"]);
+		write(root, "docs/notes.md", "A note.\n");
+		const cwd = process.cwd();
+		const error = console.error;
+		const errors: string[] = [];
+		console.error = (line: string) => errors.push(line);
+		try {
+			process.chdir(root);
+			expect(
+				await runReviewPrepare({ staged: false, json: false, run: true, paths: ["docs/**"] }),
+			).toBe(0);
+		} finally {
+			process.chdir(cwd);
+			console.error = error;
+		}
+		expect([...new Bun.Glob("r.*").scanSync(join(root, "reviews"))]).toHaveLength(1);
+		expect(errors).toContain(
+			"review prepare: light review, 1 reviewer (prose only, 1 lines); start exactly that many",
+		);
 	});
 
 	it("hands the bundle to a reviewer command on stdin and returns its status", async () => {
